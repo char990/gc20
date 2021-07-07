@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "random": "cpp",
+        "exception": "cpp",
+        "stdexcept": "cpp",
+        "cstdlib": "cpp",
+        "cstdint": "cpp",
+        "limits": "cpp"
+    },
+}
