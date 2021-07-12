@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "TimerEvent.h"
+#include "TsiSp003.h"
 
 TimerEvent::TimerEvent(int ms, std::string name, Epoll* epoll):name(name),epoll(epoll)
 {
@@ -67,5 +68,9 @@ void TimerEvent::InEvent()
         cnt=0;
         sec++;
         printf("(%s)sec=%d\n", name.c_str(), sec);
+        for(int i=0;i<MAX_TsiSp003;i++)
+        {
+            TsiSp003::tsiSp003s[i]->Run();
+        }
     }
 }

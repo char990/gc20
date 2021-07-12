@@ -6,6 +6,7 @@
 #include "Epoll.h"
 #include "SerialPort.h"
 #include "TimerEvent.h"
+#include "TsiSp003.h"
 
 using namespace std;
 
@@ -38,6 +39,11 @@ int main()
 {
     try
     {
+        for(int i=0;i<MAX_TsiSp003;i++)
+        {
+            TsiSp003::tsiSp003s[i]=nullptr;
+        }
+        
         Epoll epoll(32);
         TimerEvent timerEvt(10,"[timerEvt:10ms]", &epoll);
 
