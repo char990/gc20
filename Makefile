@@ -13,5 +13,5 @@ $(TARGET) : $(OBJS)
 	$(CXX) $(CFLAGS) -o $(TARGET) $^
 .PHONY: clean
 clean:
-	-rm -f $(TARGET) $(OBJS)
+	-rm -f $(TARGET) $(OBJ)/*
 

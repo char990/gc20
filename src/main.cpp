@@ -1,24 +1,63 @@
+/*
+ *
+ */
+#include <cstdio>
+#include <unistd.h>
+#include "Epoll.h"
 #include "SerialPort.h"
-#include "FreeTimer.h"
+#include "TimerEvent.h"
+
 using namespace std;
-using namespace GC20;
+
+void PrintTime()
+{
+    struct timespec _CLOCK_BOOTTIME;
+    clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
+    printf("[%ld.%09ld]",_CLOCK_BOOTTIME.tv_sec,_CLOCK_BOOTTIME.tv_nsec);
+}
+
+long Interval()
+{
+    struct timespec start={0,0};
+    struct timespec end;
+    clock_gettime(CLOCK_BOOTTIME, &end);
+    long ms = (end.tv_sec - start.tv_sec)*1000;
+    if(end.tv_nsec < start.tv_nsec)
+    {
+        ms += (end.tv_nsec + 1000000000 - start.tv_nsec)/1000000 - 1000;
+    }
+    else
+    {
+        ms += (end.tv_nsec - start.tv_nsec)/1000000;
+    }
+    start=end;
+    return ms;
+}
 
 int main()
 {
-    SerialPortConfig cfg(SerialPortConfig::SpMode::RS232, 1152009);
-    SerialPort rs232("RS232", cfg);
-    rs232.Open();
-    FreeTimer tmr;
-    int sec;
-    uint8_t buf[256];
-    for (int x = 0; x < 10; x++)
+    try
     {
-        while (!tmr.IsExpired())
-            ;
-        int n = rs232.Read(buf, 255);
-        buf[n] = '\0';
-        printf("\n[%d]Got %d bytes:%s", x, n, buf);
-        tmr.SetMs(1000);
+        Epoll epoll(32);
+        TimerEvent timerEvt(10,"[timerEvt:10ms]", &epoll);
+
+        SerialPortConfig cfg(SerialPortConfig::SpMode::RS232, 115200);
+        SerialPort rs232("/dev/ttyRS232", cfg, &epoll);
+        IByteStream *irs232 = &rs232;
+
+        irs232->Open();
+
+        while(1)
+        {
+            epoll.EventHandle();
+        }
+        irs232->Close();
     }
-    rs232.Close();
+    catch(const std::exception& e)
+    {
+        printf("main exception: %s\n", e.what());
+    }
 }
+
+
+// E-O-F

@@ -1,8 +1,8 @@
 #include <limits.h>
 
-#include "FreeTimer.h"
+#include "BootTimer.h"
 
-void FreeTimer::SetMs(int ms)
+void BootTimer::Setms(long ms)
 {
     if(ms<0)
     {
@@ -21,7 +21,26 @@ void FreeTimer::SetMs(int ms)
     }
 }
 
-bool FreeTimer::IsExpired()
+void BootTimer::Setus(long us)
+{
+    if(us<0)
+    {
+        ns=0;
+        sec=LONG_MAX;   // time_t is long
+        return;
+    }
+    struct timespec _CLOCK_BOOTTIME;
+    clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
+    ns = (us%1000)*1000 + _CLOCK_BOOTTIME.tv_nsec;
+    sec = us/1000000 + _CLOCK_BOOTTIME.tv_sec;
+    if(ns>1000000000)
+    {
+        ns-=1000000000;
+        sec++;
+    }
+}
+
+bool BootTimer::IsExpired()
 {
     struct timespec _CLOCK_BOOTTIME;
     clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
