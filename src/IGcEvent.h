@@ -9,6 +9,8 @@ public:
     virtual void InEvent()=0;
     virtual void OutEvent()=0;
     virtual void Error(uint32_t events)=0;
+    virtual int GetFd()=0;
+    uint32_t events;
 };
 
 #endif

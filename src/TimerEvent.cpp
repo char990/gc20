@@ -4,9 +4,8 @@
 #include <unistd.h>
 
 #include "TimerEvent.h"
-#include "TsiSp003.h"
 
-TimerEvent::TimerEvent(int ms, std::string name, Epoll* epoll):name(name),epoll(epoll)
+TimerEvent::TimerEvent(int ms, std::string name):name(name)
 {
     int tv_sec=ms/1000;
     long tv_nsec=(ms%1000)*1000*1000;
@@ -30,12 +29,13 @@ TimerEvent::TimerEvent(int ms, std::string name, Epoll* epoll):name(name),epoll(
     ticks = 1000 / ms;
     sec=0;
     cnt=0;
-    epoll->AddEvent(schedulerFd, EPOLLIN | EPOLLET, this);
+    events = EPOLLIN | EPOLLET;
+    Epoll::Instance().AddEvent(this, events);
 }
 
 TimerEvent::~TimerEvent()
 {
-    if(epoll>0)epoll->DeleteEvent(schedulerFd, EPOLLIN | EPOLLET, this);
+    Epoll::Instance().DeleteEvent(this, events);
     if(schedulerFd>0)close(schedulerFd);
 }
 
@@ -68,9 +68,22 @@ void TimerEvent::InEvent()
         cnt=0;
         sec++;
         printf("(%s)sec=%d\n", name.c_str(), sec);
-        for(int i=0;i<MAX_TsiSp003;i++)
-        {
-            TsiSp003::tsiSp003s[i]->Run();
-        }
     }
+    for (std::list<IPeriodicEvent * >::iterator evt = evts.begin(); evt != evts.end(); ++evt)
+    {
+        if((*evt)!=nullptr)
+        {
+            (*evt)->PeriodicRun();
+        }
+    }    
+}
+
+void TimerEvent::Add(IPeriodicEvent * evt)
+{
+    evts.push_front(evt);
+}
+
+void TimerEvent::Remove(IPeriodicEvent * evt)
+{
+    evts.remove(evt);
 }

@@ -7,28 +7,34 @@
 class Epoll
 {
 public:
-    /// \brief		Constructor
-    Epoll(int max);
-    
-    /// \brief		Destructor
-    ~Epoll();
+    Epoll(Epoll const &) = delete;
+    void operator=(Epoll const &) = delete;
+    static Epoll &Instance()
+    {
+        static Epoll instance; // Guaranteed to be destroyed. Instantiated on first use.
+        return instance;
+    }
+
+    /// \brief		Init
+    void Init(int max);
 
     /// \brief		Add Event
-    void AddEvent(int fd, uint32_t state, IGcEvent * event);
+    void AddEvent(IGcEvent * event, uint32_t events);
 
     /// \brief		Delete Event
-    void DeleteEvent(int fd, uint32_t state, IGcEvent * event);
+    void DeleteEvent(IGcEvent * event, uint32_t events);
 
     /// \brief		Modify Event
-    void ModifyEvent(int fd, uint32_t state, IGcEvent * event);
+    void ModifyEvent(IGcEvent * event, uint32_t events);
 
     /// \brief      Event handle
     void EventHandle();
 
 private:
+    Epoll():MAX(0){};
+    ~Epoll();
     int epollfd;
     int cnt;
-    const int MAX;
+    int MAX;
 };
-
 #endif

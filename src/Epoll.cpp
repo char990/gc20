@@ -3,12 +3,22 @@
 #include <stdexcept>
 #include "Epoll.h"
 
-Epoll::Epoll(int max) : MAX(max),cnt(0)
+void Epoll::Init(int max)
 {
+    if(max<=0)
+    {
+        throw std::range_error("Epoll size must be greater than 0");
+    }
+    if(MAX>0)
+    {
+        throw std::runtime_error("Epoll Re-Init is not allowed");
+    }
+    MAX = max;
+    cnt = 0;
     epollfd = epoll_create(MAX);
     if(epollfd<0)
     {
-        throw std::runtime_error("Epoll create failed.");
+        throw std::runtime_error("Epoll create failed");
     }
 }
 
@@ -17,38 +27,38 @@ Epoll::~Epoll()
     if(epollfd>0)close(epollfd);
 }
 
-void Epoll::AddEvent(int fd, uint32_t state, IGcEvent * event)
+void Epoll::AddEvent(IGcEvent * event, uint32_t events)
 {
     if(cnt>=MAX)
     {
         throw std::overflow_error("Epoll overflow. Can't add event.");
     }
     struct epoll_event ev;
-    ev.events = state;
+    ev.events = events;
     ev.data.ptr = event;
-    epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&ev);
+    epoll_ctl(epollfd,EPOLL_CTL_ADD, event->GetFd() ,&ev);
     cnt++;
 }
 
-void Epoll::DeleteEvent(int fd, uint32_t state, IGcEvent * event)
+void Epoll::DeleteEvent(IGcEvent * event, uint32_t events)
 {
     if(cnt==0)
     {
         throw std::overflow_error("Epoll is empty. Can't delete event.");
     }
     struct epoll_event ev;
-    ev.events = state;
+    ev.events = events;
     ev.data.ptr = event;
-    epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&ev);
+    epoll_ctl(epollfd,EPOLL_CTL_DEL, event->GetFd() ,&ev);
     cnt--;
 }
 
-void Epoll::ModifyEvent(int fd, uint32_t state, IGcEvent * event)
+void Epoll::ModifyEvent(IGcEvent * event, uint32_t events)
 {     
     struct epoll_event ev;
-    ev.events = state;
+    ev.events = events;
     ev.data.ptr = event;
-    epoll_ctl(epollfd,EPOLL_CTL_MOD,fd,&ev);
+    epoll_ctl(epollfd,EPOLL_CTL_MOD, event->GetFd() ,&ev);
 }
 
 void Epoll::EventHandle()
@@ -57,7 +67,10 @@ void Epoll::EventHandle()
     int num = epoll_wait(epollfd, events, MAX, -1);
     if(num == -1)
     {
-        throw std::runtime_error("epoll_wait() failed");
+        if(errno != EINTR)
+        {
+            throw std::runtime_error("epoll_wait() failed");
+        }
     }
     for(int i = 0; i < num; i++)
     {

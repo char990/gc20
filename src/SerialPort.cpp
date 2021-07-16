@@ -1,32 +1,19 @@
-/*
- * 
- *
- * 
- */
-
-#include <stdlib.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <string.h>
 #include <linux/serial.h>
 #include <termios.h>
 
+#include <cstring>
 #include <stdexcept>
 
 #include "SerialPort.h"
-#include "BootTimer.h"
 
 using namespace std;
 
-SerialPort::SerialPort(const std::string &device, SerialPortConfig &config, Epoll * epoll)
-	: spConfig(config), spDevice(device), epoll(epoll), spFileDesc(-1)
+SerialPort::SerialPort(const std::string &device, SerialPortConfig &config)
+	: spConfig(config), spDevice(device), spFileDesc(-1)
 {
-	spConfig.ByteBits();
+	spConfig.Bytebits();
 }
 
 SerialPort::~SerialPort()
@@ -56,8 +43,6 @@ int SerialPort::Open()
 		return -1;
 	}
 	ConfigureTermios();
-	spState = State::OPEN;
-	epoll->AddEvent(spFileDesc, EPOLLIN, this);
 	return 0;
 }
 
@@ -82,7 +67,7 @@ void SerialPort::ConfigureTermios()
 
 	//===================== BAUD RATE =================//
 	tty.c_cflag &= ~CBAUD;
-	switch (spConfig.baudRate)
+	switch (spConfig.baudrate)
 	{
 	case 300:
 		tty.c_cflag |= B300;
@@ -124,7 +109,7 @@ void SerialPort::ConfigureTermios()
 		tty.c_cflag |= B921600;
 		break;
 	default:
-		throw invalid_argument("BaudRate unrecognized: " + std::to_string(spConfig.baudRate));
+		throw invalid_argument("baudrate unrecognized: " + std::to_string(spConfig.baudrate));
 	}
 
 	//===================== (.c_oflag) =================//
@@ -171,99 +156,10 @@ void SerialPort::ConfigureTermios()
 	}
 }
 
-int SerialPort::Write(const uint8_t *data, int len)
-{
-	if (spState != State::OPEN || spFileDesc < 0)
-	{
-		throw std::runtime_error("Write() failed: " + spDevice + " is not open");
-	}
-	if(len>TX_BUFFER_SIZE)
-	{
-		throw std::out_of_range("Write() failed: len>TxBuffer");
-	}
-	if(bytesSent!=txDataLen && !txTimeout.IsExpired())
-	{
-		return -1;	// have not finished
-	}
-	memcpy(txBuffer, data, len);
-	txDataLen=len;
-	bytesSent=0;
-	int writeResult = write(spFileDesc, data, len);
-	// Check status
-	if (writeResult == -1)
-	{
-		throw std::runtime_error("Write() failed: write()");
-	}
-	bytesSent+=writeResult;
-	int us = len*spConfig.byteBits*1000000L/spConfig.baudRate;
-	if(us==0)us=1;
-	txTimeout.Setus(us);
-	return us;
-}
-
-void SerialPort::FlushBuffer()
-{
-	if (spState != State::OPEN || spFileDesc < 0)
-	{
-		throw std::runtime_error("Write() failed: " + spDevice + " is not open");
-	}
-	if(bytesSent!=txDataLen)
-	{
-		int writeResult = write(spFileDesc, &txBuffer[bytesSent], txDataLen-bytesSent);
-		// Check status
-		if (writeResult > 0)
-		{
-			bytesSent+=writeResult;
-		}
-	}
-}
-
-int SerialPort::Read(uint8_t *buffer, int buffer_len)
-{
-	if (spFileDesc == 0)
-	{
-		throw std::runtime_error("Read() failed: " + spDevice + " is not open");
-	}
-
-	// Read from file
-	// We provide the underlying raw array from the readBuffer_ vector to this C api.
-	// This will work because we do not delete/resize the vector while this method
-	// is called
-	ssize_t n = read(spFileDesc, buffer, buffer_len);
-
-	// Error Handling
-	if (n < 0)
-	{
-		// Read was unsuccessful
-		throw std::runtime_error("Read() failed: return " + n);
-	}
-	return n;
-}
-
-void SerialPort::InEvent()
-{
-    #define BUF_SIZE 4096
-	uint8_t buf[BUF_SIZE];
-    int n = Read(buf, BUF_SIZE);
-	rcvd+=n;
-    printf("Got %d ,total %d\n", n, rcvd);
-}
-
-void SerialPort::OutEvent()
-{
-
-}
-
-void SerialPort::Error(uint32_t events)
-{
-
-}
-
 int SerialPort::Close()
 {
 	if (spFileDesc > 0)
 	{
-		epoll->DeleteEvent(spFileDesc, EPOLLIN, this);
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
@@ -271,6 +167,5 @@ int SerialPort::Close()
 		}
 		spFileDesc = -1;
 	}
-	spState = State::CLOSED;
 	return 0;
 }

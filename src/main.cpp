@@ -6,7 +6,10 @@
 #include "Epoll.h"
 #include "SerialPort.h"
 #include "TimerEvent.h"
-#include "TsiSp003.h"
+#include "TsiSp003Lower.h"
+#include "TsiSp003Cfg.h"
+#include "DbHelper.h"
+#include "TcpServer.h"
 
 using namespace std;
 
@@ -39,29 +42,37 @@ int main()
 {
     try
     {
-        for(int i=0;i<MAX_TsiSp003;i++)
-        {
-            TsiSp003::tsiSp003s[i]=nullptr;
-        }
+        DbHelper::Instance().Init();
+        Epoll::Instance().Init(32);
+
+        TimerEvent timerEvt(10,"[timerEvt:10ms]");
+        TsiSp003Lower::tmrEvent = &timerEvt;
+
+        TcpServer tcpServerTSiSp003(59999, 10, ILowerLayer::LowerLayerType::TSISP003LOWER);
         
-        Epoll epoll(32);
-        TimerEvent timerEvt(10,"[timerEvt:10ms]", &epoll);
+        TcpServer tcpServerWeb2App(57777, 2, ILowerLayer::LowerLayerType::WEB2APPLOWER);
 
-        SerialPortConfig cfg(SerialPortConfig::SpMode::RS232, 115200);
-        SerialPort rs232("/dev/ttyRS232", cfg, &epoll);
-        IByteStream *irs232 = &rs232;
+        SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 115200);
+        SerialPort rs232("/dev/ttyRS232", spCfg);
+        rs232.Open();
 
-        irs232->Open();
+        spCfg.mode = SerialPortConfig::SpMode::RS485_01;
+        SerialPort com6("/dev/ttyCOM6", spCfg);
+        com6.Open();
 
+        /*************** Start ****************/
         while(1)
         {
-            epoll.EventHandle();
+            Epoll::Instance().EventHandle();
         }
-        irs232->Close();
+        /************* Never hit **************/
+        com6.Close();
+        rs232.Close();
     }
     catch(const std::exception& e)
     {
         printf("main exception: %s\n", e.what());
+        // clean
     }
 }
 
