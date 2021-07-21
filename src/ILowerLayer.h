@@ -11,10 +11,15 @@ public:
     };
 
     /// \brief		data received
-    virtual void Rx()=0;
+    /// \param      int fd : file desc
+    /// \return     -1: Error; 0:Closed; n:bytes
+    virtual int Rx(int fd)=0;
     
-    /// \brief		Send data
-    virtual void Tx()=0;
+    /// \brief Transmitting function, call Tx() of lowerLayer
+    /// \param		data		data buffer
+    /// \param		len		    data length
+    /// \return     int         time in ms for sending all data
+    virtual int Tx(uint8_t * data, int len)=0;
 };
 
 #endif

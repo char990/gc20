@@ -5,7 +5,7 @@
 #include <sys/timerfd.h>
 #include <stdexcept>
 #include <string>
-#include <list>
+#include <vector>
 
 #include "Epoll.h"
 #include "IPeriodicEvent.h"
@@ -19,17 +19,8 @@ public:
     /// \brief		Destructor. Closes fd.
     ~TimerEvent();
 
-    /// \brief      Timer expired to run
-    void InEvent() override;
-
-    /// \brief      not used
-    void OutEvent() override {};
-
-    /// \brief      Error event
-    void Error(uint32_t events) override;
-
-    /// \brief      file
-    int GetFd() override {return schedulerFd; };
+    /// \brief      Event handle, will be called in Epoll when events rise
+    void EventsHandle(uint32_t events) override;
 
     /// \brief      Add delegate IPeriodicEvent
     void Add(IPeriodicEvent * evt);
@@ -37,11 +28,13 @@ public:
     /// \brief      Add delegate IPeriodicEvent
     void Remove(IPeriodicEvent * evt);
 
+    /// \brief      Periodic run
+    void PeriodicRun();
+
 private:
-    int schedulerFd;
     std::string name;
     int ticks, sec, cnt;
-    std::list<IPeriodicEvent *> evts; 
+    std::vector<IPeriodicEvent *> pEvts; 
 };
 
 #endif

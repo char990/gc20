@@ -4,14 +4,14 @@
 class DbHelper
 {
 private:
-    DbHelper() {} // Constructor? (the {} brackets) are needed here.
+    DbHelper() {}
 
 public:
     DbHelper(DbHelper const &) = delete;
     void operator=(DbHelper const &) = delete;
     static DbHelper &Instance()
     {
-        static DbHelper instance; // Guaranteed to be destroyed. Instantiated on first use.
+        static DbHelper instance;
         return instance;
     }
 

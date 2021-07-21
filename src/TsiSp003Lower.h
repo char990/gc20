@@ -17,25 +17,26 @@
 class TsiSp003Lower : public ILowerLayer, public IPeriodicEvent
 {
 public:
-    TsiSp003Lower();
+    TsiSp003Lower(std::string name);
     ~TsiSp003Lower();
     static TimerEvent * tmrEvent;
-
-    /// \brief		check if there is a free space int tsiSp003s
-    /// \brief      Must check before instantiate a new TsiSp003Lower
-    /// \return     int : -1 failed
-    int GetFreeSpace();
 
     /// \brief		periodic run
     void PeriodicRun();
 
     /// \brief		data received
-    void Rx();
-
-    /// \brief		send data
-    void Tx();
+    /// \param      int fd : file desc
+    /// \return     -1: Error; 0:Closed; n:bytes
+    virtual int Rx(int fd);
+    
+    /// \brief Transmitting function, call Tx() of lowerLayer
+    /// \param		data		data buffer
+    /// \param		len		    data length
+    /// \return     int         time in ms for sending all data
+    virtual int Tx(uint8_t * data, int len);
 
 private:
+    std::string name;
     /// \brief		byte stream for rx & tx
     IByteStream *byteStream;
     /// \brief		pointer to app layer interface
@@ -50,14 +51,12 @@ private:
     /// \brief		Check display timeout
     void DisplayTimeout();
 
-
     /// \brief protocol fields 
     uint8_t nr, ns;
     void IncNr();
     void IncNs();
     uint16_t password;
     uint8_t seed;
-
 };
 
 #endif

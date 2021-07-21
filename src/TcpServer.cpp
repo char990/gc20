@@ -4,109 +4,45 @@
 
 #include <stdexcept>
 
+
 #include "TcpServer.h"
 #include "Epoll.h"
 
-#include "TsiSp003Lower.h"
-#include "Web2AppLower.h"
-
-Client::Client(std::string name, int fd, ILowerLayer::LowerLayerType llType)
-    : name(name),
-      clientFd(fd),
-      llType(llType)
-{
-    events = EPOLLIN;
-    Epoll::Instance().AddEvent(this, events);
-    switch (llType)
-    {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
-        lowerLayer = new TsiSp003Lower();
-        break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
-        lowerLayer = new Web2AppLower();
-        break;
-    }
-}
-
-Client::~Client()
-{
-    switch (llType)
-    {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
-        delete (TsiSp003Lower *)lowerLayer;
-        break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
-        delete (Web2AppLower *)lowerLayer;
-        break;
-    }
-    Release();
-}
-
-void Client::Release()
-{
-    if (clientFd > 0)
-    {
-        Epoll::Instance().DeleteEvent(this, events);
-        close(clientFd);
-        clientFd = -1;
-    }
-}
-
-void Client::InEvent()
-{
-    lowerLayer->Rx();
-    lowerLayer->Tx();
-
-    uint8_t buf[65536];
-    int n = read(clientFd, buf, 65536);
-    if (n <= 0)
-    {
-        printf("[%s] disconnected\n", name.c_str());
-        Release();
-    }
-    else
-    {
-        printf("[%s]%d bytes\n", name.c_str(), n);
-    }
-}
-
-void Client::OutEvent()
-{
-}
-
-void Client::Error(uint32_t events)
-{
-}
-
-int Client::GetFd()
-{
-    return clientFd;
-}
-
-TcpServer::TcpServer(int listenPort, int clientMax, ILowerLayer::LowerLayerType llType)
+TcpServer::TcpServer(std::string name, int listenPort, int clientMax, ILowerLayer::LowerLayerType llType)
     : listenPort(listenPort),
       clientMax(clientMax),
       llType(llType),
       clientActive(0),
-      clients(clientMax, nullptr)
+      clients(clientMax, nullptr),
+      name(name)
 {
-    if ((serverFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
         throw std::runtime_error("socket() failed");
     }
-    SetNonblocking(serverFd);
+    SetNonblocking(eventFd);
 
     memset(&myserver, 0, sizeof(myserver));
     myserver.sin_family = AF_INET;
     myserver.sin_addr.s_addr = htonl(INADDR_ANY);
     myserver.sin_port = htons(listenPort);
-
-    if (bind(serverFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
+    
+    int reuse=1;
+    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+    {
+        throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+    }
+    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0)
+    {
+        throw std::runtime_error("setsockopt(SO_REUSEPORT) failed");
+    }
+        
+    if (bind(eventFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
     {
         throw std::runtime_error("bind() failed");
     }
 
-    if (listen(serverFd, clientMax) < 0)
+    if (listen(eventFd, clientMax) < 0)
     {
         throw std::runtime_error("listen() failed");
     }
@@ -117,18 +53,18 @@ TcpServer::TcpServer(int listenPort, int clientMax, ILowerLayer::LowerLayerType 
 TcpServer::~TcpServer()
 {
     Epoll::Instance().DeleteEvent(this, events);
-    close(serverFd);
+    close(eventFd);
 }
 
-void TcpServer::InEvent()
+void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
     printf("Incomming...\n");
-    int connfd = accept(serverFd, (sockaddr *)&clientaddr, &clientlen);
+    int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
-        throw std::runtime_error("accept() failed");
+        throw std::runtime_error(name+" accept() failed");
     }
     int x = -1;
     for (int i = 0; i < clientMax; i++)
@@ -153,26 +89,27 @@ void TcpServer::InEvent()
     if (x == -1)
     {
         close(connfd);
+        printf("Connections full, reject\n");
         return;
     }
     SetNonblocking(connfd);
-    Client *client = new Client("CON" + std::to_string(x), connfd, llType);
+    std::string clientname{name+"::TcpOperator" + std::to_string(x+1)};
+    TcpOperator *client = new TcpOperator(clientname, connfd, llType);
     clients[x] = client;
     clientActive++;
-    printf("Connection accepted at %d :[%d of %d]%s\n", x, clientActive, clientMax, inet_ntoa(clientaddr.sin_addr));
+    printf("Accept %s:[%d of %d]:%s\n", clientname.c_str(), clientActive, clientMax, inet_ntoa(clientaddr.sin_addr));
 }
 
-void TcpServer::OutEvent()
+void TcpServer::EventsHandle(uint32_t events)
 {
-}
-
-void TcpServer::Error(uint32_t events)
-{
-}
-
-int TcpServer::GetFd()
-{
-    return serverFd;
+    if(events & EPOLLIN)
+    {
+        Accept();
+    }
+    else
+    {
+        UnknownEvents(name,events);
+    }
 }
 
 void TcpServer::SetNonblocking(int sock)

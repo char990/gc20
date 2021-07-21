@@ -12,7 +12,13 @@ TsiSp003App::~TsiSp003App()
 }
 
 
-int TsiSp003App::Received(uint8_t * data, int len)
+int TsiSp003App::Rx(uint8_t * data, int len)
 {
     return -1;
 }
+
+int TsiSp003App::Tx(uint8_t * data, int len)
+{
+    return lowerlayer->Tx(data, len);
+}
+

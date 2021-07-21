@@ -16,13 +16,13 @@ TimerEvent::TimerEvent(int ms, std::string name):name(name)
     new_value.it_interval.tv_sec = tv_sec;
     new_value.it_interval.tv_nsec = tv_nsec;
 
-    schedulerFd = timerfd_create(CLOCK_BOOTTIME, TFD_NONBLOCK);
-    if(schedulerFd == -1)
+    eventFd = timerfd_create(CLOCK_BOOTTIME, TFD_NONBLOCK);
+    if(eventFd == -1)
     {
 		throw std::runtime_error("timerfd_create() failed");
     }
 
-    if(timerfd_settime(schedulerFd, 0, &new_value, NULL) == -1)
+    if(timerfd_settime(eventFd, 0, &new_value, NULL) == -1)
     {
 		throw std::runtime_error("timerfd_settime() failed");
     }
@@ -36,29 +36,25 @@ TimerEvent::TimerEvent(int ms, std::string name):name(name)
 TimerEvent::~TimerEvent()
 {
     Epoll::Instance().DeleteEvent(this, events);
-    if(schedulerFd>0)close(schedulerFd);
+    if(eventFd>0)close(eventFd);
 }
 
-void TimerEvent::Error(uint32_t events)
+void TimerEvent::EventsHandle(uint32_t events)
 {
-    if (events & EPOLLERR)
+    if(events & EPOLLIN)
     {
-        throw std::runtime_error(name + "InEvent failed:EPOLLERR");
+        PeriodicRun();
     }
-    if (events & EPOLLHUP)
+    else
     {
-        throw std::runtime_error(name + "InEvent failed:EPOLLHUP");
-    }
-    if (events & EPOLLRDHUP)
-    {
-        throw std::runtime_error(name + "InEvent failed:EPOLLRDHUP");
+        UnknownEvents(name,events);
     }
 }
 
-void TimerEvent::InEvent()
+void TimerEvent::PeriodicRun()
 {
     uint64_t buf;
-    int r = read(schedulerFd,&buf,sizeof(uint64_t));
+    int r = read(eventFd,&buf,sizeof(uint64_t));
     if(r<0)
     {
         throw std::runtime_error(name + "InEvent failed:read");
@@ -69,21 +65,36 @@ void TimerEvent::InEvent()
         sec++;
         printf("(%s)sec=%d\n", name.c_str(), sec);
     }
-    for (std::list<IPeriodicEvent * >::iterator evt = evts.begin(); evt != evts.end(); ++evt)
+    for(int i=0;i<pEvts.size();i++)
     {
-        if((*evt)!=nullptr)
+        if(pEvts[i]!=nullptr)
         {
-            (*evt)->PeriodicRun();
+            pEvts[i]->PeriodicRun();
         }
-    }    
+    }
 }
 
 void TimerEvent::Add(IPeriodicEvent * evt)
 {
-    evts.push_front(evt);
+    for(int i=0;i<pEvts.size();i++)
+    {
+        if(pEvts[i]==nullptr)
+        {
+            pEvts[i]=evt;
+            return;
+        }
+    }
+    pEvts.push_back(evt);
 }
 
 void TimerEvent::Remove(IPeriodicEvent * evt)
 {
-    evts.remove(evt);
+    for(int i=0;i<pEvts.size();i++)
+    {
+        if(pEvts[i]==evt)
+        {
+            pEvts[i]=nullptr;
+            return;
+        }
+    }
 }

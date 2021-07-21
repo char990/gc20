@@ -42,6 +42,7 @@ void BootTimer::Setus(long us)
 
 bool BootTimer::IsExpired()
 {
+    if(sec==LONG_MAX) return false;
     struct timespec _CLOCK_BOOTTIME;
     clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
     return ((_CLOCK_BOOTTIME.tv_sec>sec) ||

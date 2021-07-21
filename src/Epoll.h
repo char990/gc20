@@ -28,7 +28,7 @@ public:
     void ModifyEvent(IGcEvent * event, uint32_t events);
 
     /// \brief      Event handle
-    void EventHandle();
+    void EventsHandle();
 
 private:
     Epoll():MAX(0){};

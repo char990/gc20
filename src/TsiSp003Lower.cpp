@@ -4,13 +4,9 @@
 
 TimerEvent * TsiSp003Lower::tmrEvent = nullptr;
 
-TsiSp003Lower::TsiSp003Lower()
+TsiSp003Lower::TsiSp003Lower(std::string name)
+:name(name)
 {
-    int n = GetFreeSpace();
-    if(n==-1)
-    {
-        throw std::overflow_error("TsiSp003Lower space full");
-    }
     sessionTimeout.Setms(-1);
     displayTimeout.Setms(-1);
     tmrEvent->Add(this);
@@ -21,24 +17,27 @@ TsiSp003Lower::~TsiSp003Lower()
     tmrEvent->Remove(this);
 }
 
-int TsiSp003Lower::GetFreeSpace()
-{
-    
-}
-
 void TsiSp003Lower::PeriodicRun()
 {
-
+    SessionTimeout();
 }
 
 void TsiSp003Lower::SessionTimeout()
 {
-
+    if(sessionTimeout.IsExpired())
+    {
+        printf("%s: session timeout\n",name.c_str());
+        sessionTimeout.Setms(-1);
+    }
 }
 
 void TsiSp003Lower::DisplayTimeout()
 {
-
+    if(sessionTimeout.IsExpired())
+    {
+        printf("%s: display timeout\n",name.c_str());
+        sessionTimeout.Setms(-1);
+    }
 }
 
 void TsiSp003Lower::IncNr()
@@ -53,12 +52,21 @@ void TsiSp003Lower::IncNs()
     if(ns==0)ns=1;
 }
 
-void TsiSp003Lower::Rx()
+int TsiSp003Lower::Rx(int fd)
 {
-
+    uint8_t buf[65536];
+    int n = 0;
+    while(1)
+    {
+        int k = read(fd,buf,65536);
+        if(k<0)break;
+        n+=k;
+    }
+    sessionTimeout.Setms(30000);
+    return n;
 }
 
-void TsiSp003Lower::Tx()
+int TsiSp003Lower::Tx(uint8_t * data, int len)
 {
-
+    return 1;
 }

@@ -61,7 +61,7 @@ void Epoll::ModifyEvent(IGcEvent * event, uint32_t events)
     epoll_ctl(epollfd,EPOLL_CTL_MOD, event->GetFd() ,&ev);
 }
 
-void Epoll::EventHandle()
+void Epoll::EventsHandle()
 {
     epoll_event events[MAX];
     int num = epoll_wait(epollfd, events, MAX, -1);
@@ -75,24 +75,9 @@ void Epoll::EventHandle()
     for(int i = 0; i < num; i++)
     {
         IGcEvent * evt = (IGcEvent *)events[i].data.ptr;
-        if(events[i].events & (EPOLLERR|EPOLLHUP|EPOLLRDHUP))
-        {// something wrong
-            evt->Error(events[i].events);
-        }
-        else if(events[i].events & EPOLLIN)
-        {
-            evt->InEvent();
-        }
-        else if(events[i].events & EPOLLOUT)
-        {
-            evt->OutEvent();
-        }
+        evt->EventsHandle(events[i].events);
     }
-
 }
-
-
-
 
 #if 0
 
