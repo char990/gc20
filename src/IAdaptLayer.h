@@ -1,13 +1,18 @@
-#ifndef __ILOWERLAYER_H__
-#define __ILOWERLAYER_H__
+#ifndef __IADAPTLAYER_H__
+#define __IADAPTLAYER_H__
 
-class ILowerLayer
+#include <cstdint>
+
+/// \brief  Adapt layer is an adaptor between byte stream and appication layer
+class IAdaptLayer
 {
 public:
-    enum class LowerLayerType
+    enum class AdType
     {
-        TSISP003LOWER,
-        WEB2APPLOWER
+        /// \brief  AdaptorType-TsiSp003  
+        AT_TSI,
+        /// \brief  AdaptorType-Web2App  
+        AT_W2A
     };
 
     /// \brief		data received

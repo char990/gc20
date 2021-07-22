@@ -1,29 +1,36 @@
 #ifndef __OBJECTPOOL_H__
 #define __OBJECTPOOL_H__
 
-template <class Object, int N>
+template <class Object>
 class ObjectPool
 {
 public:
-    /// \brief  Constructor, init pool with nullptr
-    ObjectPool():size(0)
+    ObjectPool(int size):size(size),cnt(size)
     {
-        for(int i=0;i<N;i++)
+        pool = new Object [size];
+        unused = new Object * [size];
+        for(int i=0;i<size;i++)
         {
-            pool[i]=nullptr;
+            unused[i]=&pool[i];
         }
+    }
+
+    ~ObjectPool()
+    {
+        delete [] pool;
+        delete [] unused;
     }
 
     /// \brief  Pop an object form pool
     /// \return object pointer; nullptr: no valid object, all used
-    Object *Pop()
+    Object * Pop()
     {
-        if(size<=0)
+        if(cnt<=0)
         {
             return nullptr;
         }
-        size--;
-        return pool[size];
+        cnt--;
+        return &unused[cnt];
     }
 
     /// \brief  Push an object into pool
@@ -31,20 +38,26 @@ public:
     /// \return int : valid objects in pool; -1 : failed
     int Push(Object *pObj)
     {
-        if(size>=N || pObj == nullptr)
+        if(cnt>=size || pObj == nullptr)
         {
             return -1;
         }
-        pool[size++] = pObj;
-        return size;
+        unused[cnt] = pObj;
+        cnt++;
+        return cnt;
     }
 
-    /// \brief  valid objects in pool
-    int GetSize() { return size; }
+    Object * Pool() { return pool; }
+    int Size() { return size; }
+    int Cnt() { return cnt; }
 
 private:
+    /// \brief  pool size
     int size;
-    Object * pool[N];
+    /// \brief  unused object counter
+    int cnt;
+    Object * pool;
+    Object ** unused;
 };
 
 #endif

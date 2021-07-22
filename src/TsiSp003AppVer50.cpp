@@ -11,14 +11,13 @@ TsiSp003AppVer50::~TsiSp003AppVer50()
     
 }
 
-std::string TsiSp003AppVer50::Version()
+int TsiSp003AppVer50::Rx(uint8_t * data, int len)
 {
-    return std::string("Ver5.0");
-}
-
-int TsiSp003AppVer50::Received(uint8_t * data, int len)
-{
-    int r = TsiSp003AppVer31::Received(data,len);
+    if(NewMi(data, len)==0)
+    {
+        return 0;
+    }
+    int r = TsiSp003AppVer31::Rx(data,len);
     if(r==0) return 0;
     printf("Ver50::Received\n");
     return -1;

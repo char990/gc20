@@ -8,16 +8,16 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 #include "IGcEvent.h"
-#include "ILowerLayer.h"
+#include "IAdaptLayer.h"
 #include "TcpOperator.h"
+#include "ObjectPool.h"
 
 #define MAX_CLIENT 10
-
 
 class TcpServer : IGcEvent
 {
 public:
-    TcpServer(std::string name, int listenPort, int clientMax, ILowerLayer::LowerLayerType llType);
+    TcpServer(int listenPort, ObjectPool<TcpOperator> & oPool);
     ~TcpServer();
 
     /// \brief  Incoming... Accept
@@ -27,15 +27,12 @@ public:
     void EventsHandle(uint32_t events);
 
 private:
-    std::string name;
     int listenPort;
-    ILowerLayer::LowerLayerType llType;
-    int clientMax;
-    int clientActive;
+    std::string name;
+    ObjectPool<TcpOperator> & oPool;
     sockaddr_in myserver;
 
     void SetNonblocking(int sock);
-    std::vector<TcpOperator *> clients;
 };
 
 #endif

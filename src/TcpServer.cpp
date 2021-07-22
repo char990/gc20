@@ -4,21 +4,17 @@
 
 #include <stdexcept>
 
-
 #include "TcpServer.h"
 #include "Epoll.h"
 
-TcpServer::TcpServer(std::string name, int listenPort, int clientMax, ILowerLayer::LowerLayerType llType)
+TcpServer::TcpServer(int listenPort, ObjectPool<TcpOperator> & oPool)
     : listenPort(listenPort),
-      clientMax(clientMax),
-      llType(llType),
-      clientActive(0),
-      clients(clientMax, nullptr),
-      name(name)
+      oPool(oPool)
 {
+    name = "Tcp port:"+std::to_string(listenPort);
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
-        throw std::runtime_error("socket() failed");
+        throw std::runtime_error(name+":socket() failed");
     }
     SetNonblocking(eventFd);
 
@@ -26,28 +22,29 @@ TcpServer::TcpServer(std::string name, int listenPort, int clientMax, ILowerLaye
     myserver.sin_family = AF_INET;
     myserver.sin_addr.s_addr = htonl(INADDR_ANY);
     myserver.sin_port = htons(listenPort);
-    
+
     int reuse=1;
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
     {
-        throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+        throw std::runtime_error(name+":setsockopt(SO_REUSEADDR) failed");
     }
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0)
     {
-        throw std::runtime_error("setsockopt(SO_REUSEPORT) failed");
+        throw std::runtime_error(name+":setsockopt(SO_REUSEPORT) failed");
     }
         
     if (bind(eventFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
     {
-        throw std::runtime_error("bind() failed");
+        throw std::runtime_error(name+":bind() failed");
     }
 
-    if (listen(eventFd, clientMax) < 0)
+    if (listen(eventFd, oPool.Size()) < 0)
     {
-        throw std::runtime_error("listen() failed");
+        throw std::runtime_error(name+":listen() failed");
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
+
 }
 
 TcpServer::~TcpServer()
@@ -60,44 +57,22 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    printf("Incomming...\n");
+    printf("%s:Incomming...\n",name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
-        throw std::runtime_error(name+" accept() failed");
+        throw std::runtime_error(name+":accept() failed");
     }
-    int x = -1;
-    for (int i = 0; i < clientMax; i++)
-    {
-        if (clients[i] != nullptr)
-        {
-            if (clients[i]->GetFd() == -1)
-            {
-                delete clients[i];
-                clients[i] = nullptr;
-                clientActive--;
-            }
-        }
-        if (x == -1)
-        {
-            if (clients[i] == nullptr)
-            {
-                x = i;
-            }
-        }
-    }
-    if (x == -1)
+    TcpOperator * tcpOperator = oPool.Pop();
+    if(tcpOperator==nullptr)
     {
         close(connfd);
-        printf("Connections full, reject\n");
+        printf("%s:Connections full, reject\n",name.c_str());
         return;
     }
     SetNonblocking(connfd);
-    std::string clientname{name+"::TcpOperator" + std::to_string(x+1)};
-    TcpOperator *client = new TcpOperator(clientname, connfd, llType);
-    clients[x] = client;
-    clientActive++;
-    printf("Accept %s:[%d of %d]:%s\n", clientname.c_str(), clientActive, clientMax, inet_ntoa(clientaddr.sin_addr));
+    tcpOperator->Setup(connfd);
+    printf("%s:Accept %s:[%d of %d]\n",name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size());
 }
 
 void TcpServer::EventsHandle(uint32_t events)
@@ -108,7 +83,7 @@ void TcpServer::EventsHandle(uint32_t events)
     }
     else
     {
-        UnknownEvents(name,events);
+        UnknownEvents(name, events);
     }
 }
 
@@ -118,11 +93,11 @@ void TcpServer::SetNonblocking(int sock)
     opts = fcntl(sock, F_GETFL);
     if (opts < 0)
     {
-        throw std::runtime_error("SetNonblocking()-fcntl(sock, F_GETFL) failed");
+        throw std::runtime_error(name+":SetNonblocking()-fcntl(sock, F_GETFL) failed");
     }
     opts = opts | O_NONBLOCK;
     if (fcntl(sock, F_SETFL, opts) < 0)
     {
-        throw std::runtime_error("SetNonblocking()-fcntl(sock, F_SETFL) failed");
+        throw std::runtime_error(name+":SetNonblocking()-fcntl(sock, F_SETFL) failed");
     }
 }

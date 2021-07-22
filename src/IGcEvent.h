@@ -13,7 +13,7 @@ public:
     virtual void UnknownEvents(std::string name, uint32_t events)
     {
         char buf[256];
-        snprintf(buf,255,"%s:Unkown evets=0x%08X", name, events);
+        snprintf(buf,255,"[%s]Unkown events=0x%08X", name.c_str(), events);
         throw std::runtime_error(buf);
     }
 

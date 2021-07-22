@@ -45,17 +45,37 @@ int main()
 {
     try
     {
+        #define LINKS_TSI   8   // from tcp:tsi-sp-003
+        #define LINKS_WEB   2   // from web
+        
         DbHelper::Instance().Init();
-        Epoll::Instance().Init(32);
+        Epoll::Instance().Init(64);
+
+        TcpOperator * pool;
+        ObjectPool<TcpOperator> webPool(LINKS_WEB);
+        pool = webPool.Pool();
+        for(int i=0;i<webPool.Size();i++)
+        {
+            pool[i].Init(IAdaptLayer::AdType::AT_W2A, "TcpOp:Web"+std::to_string(i));
+        }
+
+        ObjectPool<TcpOperator> tsiPool(LINKS_TSI);
+        pool = tsiPool.Pool();
+        for(int i=0;i<tsiPool.Size();i++)
+        {
+            pool[i].Init(IAdaptLayer::AdType::AT_TSI, "TcpOp:Tsi"+std::to_string(i));
+        }
+
+        
 
         TimerEvent timerEvt(10,"[timerEvt:10ms]");
         TsiSp003Lower::tmrEvent = &timerEvt;
         TcpOperator::tmrEvent = &timerEvt;
 
-        TcpServer tcpServerTSiSp003("Tmc", 59991, 10, ILowerLayer::LowerLayerType::TSISP003LOWER);
-        
-        TcpServer tcpServerWeb2App("Web", 59992, 2, ILowerLayer::LowerLayerType::WEB2APPLOWER);
+        TcpServer tcpServerTSiSp003(59991, tsiPool);
+        TcpServer tcpServerWeb2App(59992, webPool);
 
+        #define LINKS_SP    2   // from serial port
         SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 115200);
         SerialPort rs232("/dev/ttyRS232", spCfg);
         rs232.Open();

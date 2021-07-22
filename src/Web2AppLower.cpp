@@ -5,10 +5,14 @@
 
 #include "Web2AppLower.h"
 
-Web2AppLower::Web2AppLower(std::string name)
-:name(name)
+Web2AppLower::Web2AppLower(std::string name, IOperator * iOperator)
+:name(name),
+ iOperator(iOperator)
 {
+}
 
+Web2AppLower::~Web2AppLower()
+{
 }
 
 void Web2AppLower::PeriodicRun()
@@ -31,5 +35,5 @@ int Web2AppLower::Rx(int fd)
 
 int Web2AppLower::Tx(uint8_t * data, int len)
 {
-    return operator->Tx(data, len);
+    return iOperator->Tx(data, len);
 }

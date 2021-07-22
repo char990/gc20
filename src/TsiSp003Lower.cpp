@@ -4,8 +4,9 @@
 
 TimerEvent * TsiSp003Lower::tmrEvent = nullptr;
 
-TsiSp003Lower::TsiSp003Lower(std::string name)
-:name(name)
+TsiSp003Lower::TsiSp003Lower(std::string name, IOperator * iOperator)
+:name(name),
+ iOperator(iOperator)
 {
     sessionTimeout.Setms(-1);
     displayTimeout.Setms(-1);
@@ -26,17 +27,17 @@ void TsiSp003Lower::SessionTimeout()
 {
     if(sessionTimeout.IsExpired())
     {
-        printf("%s: session timeout\n",name.c_str());
+        printf("[%s]Session timeout\n", name.c_str());
         sessionTimeout.Setms(-1);
     }
 }
 
 void TsiSp003Lower::DisplayTimeout()
 {
-    if(sessionTimeout.IsExpired())
+    if(displayTimeout.IsExpired())
     {
-        printf("%s: display timeout\n",name.c_str());
-        sessionTimeout.Setms(-1);
+        printf("[%s]Display timeout\n", name.c_str());
+        displayTimeout.Setms(-1);
     }
 }
 

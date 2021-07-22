@@ -7,40 +7,39 @@
 #include "BootTimer.h"
 #include "IByteStream.h"
 #include "DbHelper.h"
-#include "ILowerLayer.h"
+#include "IAdaptLayer.h"
 #include "TimerEvent.h"
+#include "IOperator.h"
 
-#define  MAX_TsiSp003 16
 
 /// \brief TsiSp003Lower is for all Lower layers of TsiSp003 management except for Application layer
 /// \brief Including Session management, Start/End session, Password / Password Seed
-class TsiSp003Lower : public ILowerLayer, public IPeriodicEvent
+class TsiSp003Lower : public IAdaptLayer, public IPeriodicEvent
 {
 public:
-    TsiSp003Lower(std::string name);
+    TsiSp003Lower(std::string name, IOperator * iOperator);
     ~TsiSp003Lower();
     static TimerEvent * tmrEvent;
 
     /// \brief		periodic run
-    void PeriodicRun();
+    virtual void PeriodicRun()override;
 
     /// \brief		data received
     /// \param      int fd : file desc
     /// \return     -1: Error; 0:Closed; n:bytes
-    virtual int Rx(int fd);
+    virtual int Rx(int fd) override;
     
     /// \brief Transmitting function, call Tx() of lowerLayer
     /// \param		data		data buffer
     /// \param		len		    data length
     /// \return     int         time in ms for sending all data
-    virtual int Tx(uint8_t * data, int len);
+    virtual int Tx(uint8_t * data, int len) override;
 
 private:
     std::string name;
-    /// \brief		byte stream for rx & tx
-    IByteStream *byteStream;
-    /// \brief		pointer to app layer interface
-    TsiSp003App *tsiSp003App;
+    IOperator * iOperator;
+    TsiSp003App app;
+
     /// \brief Session timeout timer
     BootTimer sessionTimeout;
     /// \brief Display timeout timer

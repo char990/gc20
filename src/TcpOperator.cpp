@@ -6,38 +6,46 @@ TimerEvent * TcpOperator::tmrEvent = nullptr;
 
 #define IDLE_TIME (60*1000)
 
-TcpOperator::TcpOperator(std::string name, int fd, ILowerLayer::LowerLayerType llType)
-    : name(name),
-      llType(llType)
+TcpOperator::TcpOperator()
 {
-    events = EPOLLIN | EPOLLRDHUP;
-    eventFd = fd;
-    switch (llType)
-    {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
-        lowerLayer = new TsiSp003Lower(name + "::TsiSp003Lower");
-        break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
-        lowerLayer = new Web2AppLower(name + "::Web2AppLower");
-        break;
-    }
-    Epoll::Instance().AddEvent(this, events);
-    tmrEvent->Add(this);
-    tcpIdleTmr.Setms(IDLE_TIME);
 }
 
 TcpOperator::~TcpOperator()
 {
-    switch (llType)
+    switch (adType)
     {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
+    case IAdaptLayer::AdType::AT_TSI:
         delete (TsiSp003Lower *)lowerLayer;
         break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
+    case IAdaptLayer::AdType::AT_W2A:
         delete (Web2AppLower *)lowerLayer;
         break;
     }
     Release();
+}
+
+void TcpOperator::Init(IAdaptLayer::AdType adType_, std::string name_)
+{
+    adType=adType_;
+    name=name_;
+    switch (adType)
+    {
+    case IAdaptLayer::AdType::AT_TSI:
+        lowerLayer = new TsiSp003Lower(name+":TsiLower", this);
+        break;
+    case IAdaptLayer::AdType::AT_W2A:
+        lowerLayer = new Web2AppLower(name+":WebLower", this);
+        break;
+    }
+}
+
+void TcpOperator::Setup(int fd)
+{
+    events = EPOLLIN | EPOLLRDHUP;
+    eventFd = fd;
+    Epoll::Instance().AddEvent(this, events);
+    tmrEvent->Add(this);
+    tcpIdleTmr.Setms(IDLE_TIME);
 }
 
 void TcpOperator::Release()
@@ -57,16 +65,16 @@ void TcpOperator::Rx()
     int n = lowerLayer->Rx(eventFd);
     if (n <= 0)
     {
-        printf("[%s] disconnected\n", name.c_str());
+        printf("disconnected\n");
         Release();
     }
     else
     {
-        printf("[%s]%d bytes\n", name.c_str(), n);
+        printf("%d bytes\n", n);
     }
 }
 
-void TcpOperator::Tx()
+int TcpOperator::Tx(uint8_t * data, int len)
 {
     
 }
@@ -75,7 +83,7 @@ void TcpOperator::EventsHandle(uint32_t events)
 {
     if(events & (EPOLLRDHUP|EPOLLRDHUP|EPOLLERR))
     {
-        printf("[%s%d] disconnected\n", name);
+        printf("Disconnected:events=0x%08X\n",events);
         Release();
     }
     else if(events & EPOLLIN)
@@ -88,7 +96,7 @@ void TcpOperator::EventsHandle(uint32_t events)
     }
     else
     {
-        UnknownEvents(name,events);
+        UnknownEvents(name, events);
     }
 
 }
@@ -97,7 +105,7 @@ void TcpOperator::PeriodicRun()
 {
     if(tcpIdleTmr.IsExpired())
     {
-        printf("[%s] idle. Disconnected\n", name.c_str());
+        printf("Idle timeout. Disconnected\n");
         Release();
     }
 }

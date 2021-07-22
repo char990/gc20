@@ -2,14 +2,14 @@
 #define __SPOPERATOR_H__
 
 #include "IOperator.h"
-#include "ILowerLayer.h"
+#include "IAdaptLayer.h"
 #include "SerialPort.h"
 
 /// \brief  Operator from serial port
 class SpOperator : public IOperator
 {
 public:
-    SpOperator(std::string name, int fd, ILowerLayer::LowerLayerType llType);
+    SpOperator(std::string name, int fd, IAdaptLayer::AdType adType);
     ~SpOperator();
     void EventsHandle(uint32_t events);
     void Rx();
@@ -18,8 +18,8 @@ public:
     void Release();
 private:
     std::string name;
-    ILowerLayer::LowerLayerType llType;
-    ILowerLayer *lowerLayer;
+    IAdaptLayer::AdType adType;
+    IAdaptLayer *lowerLayer;
 };
 
 #endif

@@ -4,32 +4,31 @@
 #include "TsiSp003Lower.h"
 #include "Web2AppLower.h"
 
-SpOperator::SpOperator(std::string name, int fd, ILowerLayer::LowerLayerType llType)
+SpOperator::SpOperator(std::string name, int fd, IAdaptLayer::AdType adType)
 :name(name),
- llType(llType)
+ adType(adType)
 {
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
-    switch (llType)
+    switch (adType)
     {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
-        lowerLayer = new TsiSp003Lower(name+"::TsiSp003Lower");
+    case IAdaptLayer::AdType::AT_TSI:
+        lowerLayer = new TsiSp003Lower(name, this);
         break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
-        throw std::runtime_error("SpOperator does not accept Web2AppLower");
-        //lowerLayer = new Web2AppLower(name+"::Web2AppLower");
+    case IAdaptLayer::AdType::AT_W2A:
+        lowerLayer = new Web2AppLower(name, this);
         break;
     }
     Epoll::Instance().AddEvent(this, events);
 }
 
 SpOperator::~SpOperator()
-{    switch (llType)
+{    switch (adType)
     {
-    case ILowerLayer::LowerLayerType::TSISP003LOWER:
+    case IAdaptLayer::AdType::AT_TSI:
         delete (TsiSp003Lower *)lowerLayer;
         break;
-    case ILowerLayer::LowerLayerType::WEB2APPLOWER:
+    case IAdaptLayer::AdType::AT_W2A:
         delete (Web2AppLower *)lowerLayer;
         break;
     }
@@ -58,7 +57,7 @@ void SpOperator::EventsHandle(uint32_t events)
     }
     else
     {
-        UnknownEvents(name,events);
+        UnknownEvents(name, events);
     }
 }
 

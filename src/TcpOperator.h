@@ -2,7 +2,7 @@
 #define __TCPOPERATOR_H__
 
 #include "IOperator.h"
-#include "ILowerLayer.h"
+#include "IAdaptLayer.h"
 #include "TimerEvent.h"
 #include "BootTimer.h"
 
@@ -10,20 +10,30 @@
 class TcpOperator : public IOperator, public IPeriodicEvent
 {
 public:
-    TcpOperator(std::string name, int fd, ILowerLayer::LowerLayerType llType);
+    TcpOperator();
     ~TcpOperator();
     static TimerEvent * tmrEvent;
-    void EventsHandle(uint32_t events);
+
+    virtual void EventsHandle(uint32_t events) override;
+
+    /// \brief  Called only after object was created
+    virtual void Init(IAdaptLayer::AdType adType, std::string name) override;
+
+    /// \brief  Called when connection was accepted
+    virtual void Setup(int fd) override;
+    
+    virtual int Tx(uint8_t * data, int len) override;
+
     void PeriodicRun();
 
 protected:
     void Rx();
-    void Tx();
-    ILowerLayer *lowerLayer;
 
 private:
     std::string name;
-    ILowerLayer::LowerLayerType llType;
+    IAdaptLayer::AdType adType;
+    IAdaptLayer *lowerLayer;
+
     void Release();
     BootTimer tcpIdleTmr;
 };
