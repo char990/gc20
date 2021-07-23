@@ -22,3 +22,9 @@ int TsiSp003AppVer50::Rx(uint8_t * data, int len)
     printf("Ver50::Received\n");
     return -1;
 }
+
+int TsiSp003AppVer50::NewMi(uint8_t * data, int len)
+{
+
+    return -1;
+}

@@ -1,25 +1,23 @@
-#ifndef __TSISP003LOWER_H__
-#define __TSISP003LOWER_H__
+#ifndef __PHCS2APPADAPTOR_H__
+#define __PHCS2APPADAPTOR_H__
 
 #include <unistd.h>
 #include "TsiSp003Cfg.h"
 #include "TsiSp003App.h"
 #include "BootTimer.h"
-#include "IByteStream.h"
 #include "DbHelper.h"
-#include "IAdaptLayer.h"
+#include "IAppAdaptor.h"
 #include "TimerEvent.h"
 #include "IOperator.h"
 
 
-/// \brief TsiSp003Lower is for all Lower layers of TsiSp003 management except for Application layer
+/// \brief Phcs2AppAdaptor is for all Lower layers of TsiSp003 management except for Application layer
 /// \brief Including Session management, Start/End session, Password / Password Seed
-class TsiSp003Lower : public IAdaptLayer, public IPeriodicEvent
+class Phcs2AppAdaptor : public IAppAdaptor
 {
 public:
-    TsiSp003Lower(std::string name, IOperator * iOperator);
-    ~TsiSp003Lower();
-    static TimerEvent * tmrEvent;
+    Phcs2AppAdaptor(std::string name, IOperator * iOperator);
+    ~Phcs2AppAdaptor();
 
     /// \brief		periodic run
     virtual void PeriodicRun()override;
@@ -29,7 +27,7 @@ public:
     /// \return     -1: Error; 0:Closed; n:bytes
     virtual int Rx(int fd) override;
     
-    /// \brief Transmitting function, call Tx() of lowerLayer
+    /// \brief Transmitting function, call Tx() of adaptor
     /// \param		data		data buffer
     /// \param		len		    data length
     /// \return     int         time in ms for sending all data
@@ -38,7 +36,7 @@ public:
 private:
     std::string name;
     IOperator * iOperator;
-    TsiSp003App app;
+    TsiSp003App *app;
 
     /// \brief Session timeout timer
     BootTimer sessionTimeout;

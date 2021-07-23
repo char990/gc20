@@ -8,7 +8,7 @@ public:
     ObjectPool(int size):size(size),cnt(size)
     {
         pool = new Object [size];
-        unused = new Object * [size];
+        unused = new Object* [size];
         for(int i=0;i<size;i++)
         {
             unused[i]=&pool[i];
@@ -30,7 +30,7 @@ public:
             return nullptr;
         }
         cnt--;
-        return &unused[cnt];
+        return unused[cnt];
     }
 
     /// \brief  Push an object into pool

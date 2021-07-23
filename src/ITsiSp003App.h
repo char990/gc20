@@ -2,14 +2,11 @@
 #define __ITSISP003App_H__
 
 #include <string>
-#include "IAdaptLayer.h"
+#include "IAppAdaptor.h"
 
 class ITsiSp003App
 {
 public:
-    ITsiSp003App();
-    ~ITsiSp003App();
-
     virtual std::string Version()=0;
 
     /// \brief Receiving Handle, called by LowerLayer
@@ -18,17 +15,33 @@ public:
     /// \return     int         0: Command excuted; -1: unknown command
     virtual int Rx(uint8_t * data, int len)=0;
 
-    /// \brief Transmitting function, call Tx() of lowerLayer
+    /// \brief Sending data to adaptor
     /// \param		data		data buffer
     /// \param		len		    data length
-    /// \return     int         time in ms for sending all data
-    virtual void SetLowerLayer(IAdaptLayer * ll)
+    /// \return     int         -1: failed; >=0: ms for sending out
+    virtual int Tx(uint8_t * data, int len)
     {
-        adaptlayer=ll;
+        if(adaptor!=nullptr)
+        {
+            return adaptor->Tx(data,len);
+        }
+        return -1;
+    }
+
+    /// \brief  Check and run new added MI rather than old revision
+    /// \param  data    data buffer
+    /// \param  len     data len
+    /// \return int     -1: No cmd matched, call base Rx()
+    virtual int NewMi(uint8_t * data, int len)=0;
+
+    /// \brief set adaptor for Tx()
+    virtual void SetAdaptor(IAppAdaptor * adp)
+    {
+        adaptor=adp;
     }
 
 protected:
-    IAdaptLayer * adaptlayer;
+    IAppAdaptor * adaptor;
 };
 
 #endif

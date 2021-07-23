@@ -1,10 +1,9 @@
 #include "TcpOperator.h"
-#include "TsiSp003Lower.h"
-#include "Web2AppLower.h"
+#include "TcpServer.h"
+#include "Phcs2AppAdaptor.h"
+#include "Web2AppAdaptor.h"
 
-TimerEvent * TcpOperator::tmrEvent = nullptr;
-
-#define IDLE_TIME (60*1000)
+TimerEvent *TcpOperator::tmrEvent = nullptr;
 
 TcpOperator::TcpOperator()
 {
@@ -12,31 +11,31 @@ TcpOperator::TcpOperator()
 
 TcpOperator::~TcpOperator()
 {
-    switch (adType)
+    if (adaptor)
     {
-    case IAdaptLayer::AdType::AT_TSI:
-        delete (TsiSp003Lower *)lowerLayer;
-        break;
-    case IAdaptLayer::AdType::AT_W2A:
-        delete (Web2AppLower *)lowerLayer;
-        break;
+        delete adaptor;
     }
-    Release();
+    if (events > 0)
+    {
+        tmrEvent->Remove(this);
+        Epoll::Instance().DeleteEvent(this, events);
+    }
+    if (eventFd > 0)
+    {
+        close(eventFd);
+        eventFd = -1;
+    }
 }
 
-void TcpOperator::Init(IAdaptLayer::AdType adType_, std::string name_)
+void TcpOperator::Init(std::string name, std::string aType)
 {
-    adType=adType_;
-    name=name_;
-    switch (adType)
-    {
-    case IAdaptLayer::AdType::AT_TSI:
-        lowerLayer = new TsiSp003Lower(name+":TsiLower", this);
-        break;
-    case IAdaptLayer::AdType::AT_W2A:
-        lowerLayer = new Web2AppLower(name+":WebLower", this);
-        break;
-    }
+    this->name = name;
+    adaptor = new AppAdaptor(name, aType, this);
+}
+
+void TcpOperator::IdleTime(int idleTime)
+{
+    this->idleTime = idleTime;
 }
 
 void TcpOperator::Setup(int fd)
@@ -45,7 +44,12 @@ void TcpOperator::Setup(int fd)
     eventFd = fd;
     Epoll::Instance().AddEvent(this, events);
     tmrEvent->Add(this);
-    tcpIdleTmr.Setms(IDLE_TIME);
+    tcpIdleTmr.Setms(idleTime);
+}
+
+void TcpOperator::SetServer(TcpServer *svr)
+{
+    server = svr;
 }
 
 void TcpOperator::Release()
@@ -54,15 +58,15 @@ void TcpOperator::Release()
     {
         tmrEvent->Remove(this);
         Epoll::Instance().DeleteEvent(this, events);
-        close(eventFd);
-        eventFd = -1;
+        events = 0;
+        server->Release(this);
     }
 }
 
 void TcpOperator::Rx()
 {
-    tcpIdleTmr.Setms(IDLE_TIME);
-    int n = lowerLayer->Rx(eventFd);
+    tcpIdleTmr.Setms(idleTime);
+    int n = adaptor->Rx(eventFd);
     if (n <= 0)
     {
         printf("disconnected\n");
@@ -74,36 +78,33 @@ void TcpOperator::Rx()
     }
 }
 
-int TcpOperator::Tx(uint8_t * data, int len)
+int TcpOperator::Tx(uint8_t *data, int len)
 {
-    
 }
 
 void TcpOperator::EventsHandle(uint32_t events)
 {
-    if(events & (EPOLLRDHUP|EPOLLRDHUP|EPOLLERR))
+    if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        printf("Disconnected:events=0x%08X\n",events);
+        printf("Disconnected:events=0x%08X\n", events);
         Release();
     }
-    else if(events & EPOLLIN)
+    else if (events & EPOLLIN)
     {
         Rx();
     }
     else if (events & EPOLLOUT)
     {
-
     }
     else
     {
         UnknownEvents(name, events);
     }
-
 }
 
 void TcpOperator::PeriodicRun()
 {
-    if(tcpIdleTmr.IsExpired())
+    if (tcpIdleTmr.IsExpired())
     {
         printf("Idle timeout. Disconnected\n");
         Release();

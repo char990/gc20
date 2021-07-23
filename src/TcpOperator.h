@@ -2,9 +2,12 @@
 #define __TCPOPERATOR_H__
 
 #include "IOperator.h"
-#include "IAdaptLayer.h"
+#include "AppAdaptor.h"
 #include "TimerEvent.h"
 #include "BootTimer.h"
+
+
+class TcpServer;
 
 /// \brief  Operator from tcp
 class TcpOperator : public IOperator, public IPeriodicEvent
@@ -17,25 +20,29 @@ public:
     virtual void EventsHandle(uint32_t events) override;
 
     /// \brief  Called only after object was created
-    virtual void Init(IAdaptLayer::AdType adType, std::string name) override;
+    virtual void Init(std::string name, std::string aType) override;
 
     /// \brief  Called when connection was accepted
     virtual void Setup(int fd) override;
     
     virtual int Tx(uint8_t * data, int len) override;
 
-    void PeriodicRun();
+    virtual void PeriodicRun() override;
 
+    void SetServer(TcpServer * server);
+    void IdleTime(int idleTime);
+
+    std::string Name(){ return name; };
 protected:
     void Rx();
 
 private:
     std::string name;
-    IAdaptLayer::AdType adType;
-    IAdaptLayer *lowerLayer;
-
+    AppAdaptor * adaptor;
+    TcpServer * server;
     void Release();
     BootTimer tcpIdleTmr;
+    int idleTime;
 };
 
 #endif

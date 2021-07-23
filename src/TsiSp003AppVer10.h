@@ -4,7 +4,8 @@
 #include "TsiSp003Cfg.h"
 #include "ITsiSp003App.h"
 
-class TsiSp003AppVer10:ITsiSp003App
+/// \brief  This is the base of TsiSp003 Application layer
+class TsiSp003AppVer10 : public ITsiSp003App
 {
 public:
     TsiSp003AppVer10();
@@ -12,21 +13,18 @@ public:
 
     virtual std::string Version() override { return std::string{"Ver1.0"}; };
 
-    virtual int Rx(uint8_t * data, int len) override
-    {
-        if(NewMi(data, len)==0)
-        {
-            return 0;
-        }
-        /* run app layer functions */
-        return -1;
-    }
+    /// \brief  Callback handle of receiving data
+    /// \param  data    data buffer
+    /// \param  len     data len
+    /// \return int     -1: No cmd matched
+    virtual int Rx(uint8_t * data, int len) override;
 
-    /// \brief  
-    virtual int NewMi(uint8_t * data, int len)
-    {
-        return -1;
-    }
+    /// \brief  Check and run new added MI rather than old revision
+    /// \param  data    data buffer
+    /// \param  len     data len
+    /// \return int     -1: No cmd matched, call base Rx()
+    virtual int NewMi(uint8_t * data, int len) override;
 };
+
 
 #endif

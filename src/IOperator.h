@@ -1,6 +1,7 @@
 #ifndef __IOPERATOR_H__
 #define __IOPERATOR_H__
 
+#include <string>
 #include "IGcEvent.h"
 
 class IOperator : public IGcEvent 
@@ -15,7 +16,7 @@ public:
     virtual int Tx(uint8_t * data, int len)=0;
 
     /// \brief  Called only after object was created
-    virtual void Init(IAdaptLayer::AdType llType, std::string name)=0;
+    virtual void Init(std::string aType, std::string name)=0;
 
     /// \brief  Called when connection was accepted
     virtual void Setup(int fd)=0;

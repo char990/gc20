@@ -6,7 +6,7 @@
 #include "Epoll.h"
 #include "SerialPort.h"
 #include "TimerEvent.h"
-#include "TsiSp003Lower.h"
+#include "Phcs2AppAdaptor.h"
 #include "TsiSp003Cfg.h"
 #include "DbHelper.h"
 #include "TcpServer.h"
@@ -16,6 +16,7 @@
 
 using namespace std;
 
+/*
 void PrintTime()
 {
     struct timespec _CLOCK_BOOTTIME;
@@ -40,40 +41,42 @@ long Interval()
     start=end;
     return ms;
 }
+*/
+
+TimerEvent * IAppAdaptor::tmrEvent;
 
 int main()
 {
     try
     {
-        #define LINKS_TSI   8   // from tcp:tsi-sp-003
-        #define LINKS_WEB   2   // from web
-        
         DbHelper::Instance().Init();
         Epoll::Instance().Init(64);
+        TimerEvent timerEvt(10,"[tmrEvt:10ms]");
+        IAppAdaptor::tmrEvent = &timerEvt;
+        TcpOperator::tmrEvent = &timerEvt;
 
+        #define LINKS_PHCS   3   // from tcp:tsi-sp-003
+        #define LINKS_WEB   2   // from web
+        
         TcpOperator * pool;
         ObjectPool<TcpOperator> webPool(LINKS_WEB);
         pool = webPool.Pool();
         for(int i=0;i<webPool.Size();i++)
         {
-            pool[i].Init(IAdaptLayer::AdType::AT_W2A, "TcpOp:Web"+std::to_string(i));
+            pool[i].Init("TcpOp:WEB"+std::to_string(i), "WEB");
+            pool[i].IdleTime(60*1000);
         }
 
-        ObjectPool<TcpOperator> tsiPool(LINKS_TSI);
-        pool = tsiPool.Pool();
-        for(int i=0;i<tsiPool.Size();i++)
+        ObjectPool<TcpOperator> phcsPool(LINKS_PHCS);
+        pool = phcsPool.Pool();
+        for(int i=0;i<phcsPool.Size();i++)
         {
-            pool[i].Init(IAdaptLayer::AdType::AT_TSI, "TcpOp:Tsi"+std::to_string(i));
+            pool[i].Init("TcpOp:PHCS"+std::to_string(i), "PHCS");
+            pool[i].IdleTime(60*1000);
         }
 
-        
-
-        TimerEvent timerEvt(10,"[timerEvt:10ms]");
-        TsiSp003Lower::tmrEvent = &timerEvt;
-        TcpOperator::tmrEvent = &timerEvt;
-
-        TcpServer tcpServerTSiSp003(59991, tsiPool);
-        TcpServer tcpServerWeb2App(59992, webPool);
+        TcpServer tcpServerPhcs(59991, phcsPool);
+        TcpServer tcpServerWeb(59992, webPool);
 
         #define LINKS_SP    2   // from serial port
         SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 115200);

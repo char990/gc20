@@ -1,6 +1,6 @@
 #include "TsiSp003App.h"
 
-TsiSp003App::TsiSp003App():adaptlayer(nullptr)
+TsiSp003App::TsiSp003App():adaptor(nullptr)
 {
 
 }
@@ -17,9 +17,9 @@ int TsiSp003App::Rx(uint8_t * data, int len)
 
 int TsiSp003App::Tx(uint8_t * data, int len)
 {
-    if(adaptlayer!=nullptr)
+    if(adaptor!=nullptr)
     {
-        return  adaptlayer->Tx(data,len);
+        return  adaptor->Tx(data,len);
     }
     return -1;
 }

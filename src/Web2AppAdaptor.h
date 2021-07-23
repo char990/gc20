@@ -1,16 +1,14 @@
-#ifndef __WEB2APPLOWER_H__
-#define __WEB2APPLOWER_H__
+#ifndef __WEB2APPADAPTOR_H__
+#define __WEB2APPADAPTOR_H__
 #include <string>
-#include "IAdaptLayer.h"
+#include "IAppAdaptor.h"
 #include "IOperator.h"
 #include "TsiSp003App.h"
-#include "IPeriodicEvent.h"
-
-class Web2AppLower : public IAdaptLayer, public IPeriodicEvent
+class Web2AppAdaptor : public IAppAdaptor
 {
 public:
-    Web2AppLower(std::string name, IOperator * iOperator);
-    ~Web2AppLower();
+    Web2AppAdaptor(std::string name, IOperator * iOperator);
+    ~Web2AppAdaptor();
 
     /// \brief		periodic run
     virtual void PeriodicRun() override;
@@ -29,7 +27,7 @@ public:
 private:
     std::string name;
     IOperator * iOperator;
-    TsiSp003App app;
+    TsiSp003App *app;
 };
 
 #endif

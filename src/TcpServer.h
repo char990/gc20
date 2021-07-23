@@ -8,11 +8,9 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 #include "IGcEvent.h"
-#include "IAdaptLayer.h"
+#include "IAppAdaptor.h"
 #include "TcpOperator.h"
 #include "ObjectPool.h"
-
-#define MAX_CLIENT 10
 
 class TcpServer : IGcEvent
 {
@@ -26,12 +24,13 @@ public:
     /// \brief  Event triggered
     void EventsHandle(uint32_t events);
 
+    void Release(TcpOperator * tcpOperator);
+
 private:
     int listenPort;
     std::string name;
     ObjectPool<TcpOperator> & oPool;
     sockaddr_in myserver;
-
     void SetNonblocking(int sock);
 };
 

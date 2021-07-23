@@ -44,13 +44,24 @@ TcpServer::TcpServer(int listenPort, ObjectPool<TcpOperator> & oPool)
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
-
 }
 
 TcpServer::~TcpServer()
 {
     Epoll::Instance().DeleteEvent(this, events);
     close(eventFd);
+}
+
+void TcpServer::EventsHandle(uint32_t events)
+{
+    if(events & EPOLLIN)
+    {
+        Accept();
+    }
+    else
+    {
+        UnknownEvents(name, events);
+    }
 }
 
 void TcpServer::Accept()
@@ -72,19 +83,17 @@ void TcpServer::Accept()
     }
     SetNonblocking(connfd);
     tcpOperator->Setup(connfd);
-    printf("%s:Accept %s:[%d of %d]\n",name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size());
+    tcpOperator->SetServer(this);
+    printf("%s:Accept %s:[%d of %d]:%s\n",
+        name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 
-void TcpServer::EventsHandle(uint32_t events)
+void TcpServer::Release(TcpOperator * tcpOperator)
 {
-    if(events & EPOLLIN)
-    {
-        Accept();
-    }
-    else
-    {
-        UnknownEvents(name, events);
-    }
+    close(tcpOperator->GetFd());
+    oPool.Push(tcpOperator);
+    printf("%s:tcpOperator released:[%d of %d]:%s\n",
+        name.c_str(), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 
 void TcpServer::SetNonblocking(int sock)
