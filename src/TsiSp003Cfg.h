@@ -6,10 +6,6 @@
 
 class TsiSp003Cfg
 {
-private:
-    TsiSp003Cfg() {}
-    std::string version; 
-
 public:
     TsiSp003Cfg(TsiSp003Cfg const &) = delete;
     void operator=(TsiSp003Cfg const &) = delete;
@@ -20,6 +16,10 @@ public:
     }
 
     void Init(std::string ver);
+
+private:
+    TsiSp003Cfg() {}
+    std::string version; 
 };
 
 #endif

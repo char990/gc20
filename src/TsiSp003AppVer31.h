@@ -9,13 +9,9 @@ public:
     TsiSp003AppVer31();
     ~TsiSp003AppVer31();
 
-    virtual std::string Version() override { return std::string{"Ver3.1"}; };
+    virtual int NewMi(uint8_t * data, int len);
 
     virtual int Rx(uint8_t * data, int len) override;
-    
-    virtual int NewMi(uint8_t * data, int len) override;
-
-private:
 
 };
 

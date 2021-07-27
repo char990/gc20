@@ -4,18 +4,17 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
-#include <sys/socket.h> 
-#include <netinet/in.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include "IGcEvent.h"
-#include "IAppAdaptor.h"
-#include "TcpOperator.h"
+#include "OprTcp.h"
 #include "ObjectPool.h"
 
 class TcpServer : IGcEvent
 {
 public:
-    TcpServer(int listenPort, ObjectPool<TcpOperator> & oPool);
+    TcpServer(int listenPort, ObjectPool<OprTcp> & oPool);
     ~TcpServer();
 
     /// \brief  Incoming... Accept
@@ -24,12 +23,12 @@ public:
     /// \brief  Event triggered
     void EventsHandle(uint32_t events);
 
-    void Release(TcpOperator * tcpOperator);
+    void Release(OprTcp * tcpOperator);
 
 private:
     int listenPort;
     std::string name;
-    ObjectPool<TcpOperator> & oPool;
+    ObjectPool<OprTcp> & oPool;
     sockaddr_in myserver;
     void SetNonblocking(int sock);
 };

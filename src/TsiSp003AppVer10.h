@@ -2,28 +2,37 @@
 #define __TSISP003APPVER10_H__
 
 #include "TsiSp003Cfg.h"
-#include "ITsiSp003App.h"
+#include "ILayer.h"
 
 /// \brief  This is the base of TsiSp003 Application layer
-class TsiSp003AppVer10 : public ITsiSp003App
+class TsiSp003AppVer10 : public ILayer
 {
 public:
     TsiSp003AppVer10();
     ~TsiSp003AppVer10();
 
-    virtual std::string Version() override { return std::string{"Ver1.0"}; };
+    /// \brief Transmitting function, called by upperlayer and call lowerlayer->Tx()
+    /// \param		data		data buffer
+    /// \param		len		    data length
+    /// \return     int         time in ms for sending all data
+    virtual int Tx(uint8_t * data, int len) override;
 
-    /// \brief  Callback handle of receiving data
-    /// \param  data    data buffer
-    /// \param  len     data len
-    /// \return int     -1: No cmd matched
+    /// \brief Receiving Handle, called by Lower-Layer
+    /// \param		data		data buffer
+    /// \param		len		    data length
+    /// \return     int         0: Command excuted; -1: failed
     virtual int Rx(uint8_t * data, int len) override;
 
-    /// \brief  Check and run new added MI rather than old revision
-    /// \param  data    data buffer
-    /// \param  len     data len
-    /// \return int     -1: No cmd matched, call base Rx()
-    virtual int NewMi(uint8_t * data, int len) override;
+    /// \brief		Release current layer. Called by upperlayer and call lowerlayer->Release()
+    virtual void Release() override;
+    /// \brief		Periodic run. Called by lowerlayer->PeriodicRun() and call upperlayer->PeriodicRun()
+    virtual void PeriodicRun() override;
+    /// \brief		Init current layer. Called by lowerlayer->Init() and call upperlayer->Init()
+    virtual void Clean() override;
+
+    bool online;
+
+protected:
 };
 
 

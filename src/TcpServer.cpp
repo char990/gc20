@@ -7,7 +7,7 @@
 #include "TcpServer.h"
 #include "Epoll.h"
 
-TcpServer::TcpServer(int listenPort, ObjectPool<TcpOperator> & oPool)
+TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool)
     : listenPort(listenPort),
       oPool(oPool)
 {
@@ -74,7 +74,7 @@ void TcpServer::Accept()
     {
         throw std::runtime_error(name+":accept() failed");
     }
-    TcpOperator * tcpOperator = oPool.Pop();
+    OprTcp * tcpOperator = oPool.Pop();
     if(tcpOperator==nullptr)
     {
         close(connfd);
@@ -88,7 +88,7 @@ void TcpServer::Accept()
         name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 
-void TcpServer::Release(TcpOperator * tcpOperator)
+void TcpServer::Release(OprTcp * tcpOperator)
 {
     close(tcpOperator->GetFd());
     oPool.Push(tcpOperator);

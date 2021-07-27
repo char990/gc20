@@ -19,7 +19,7 @@ int TsiSp003AppVer31::Rx(uint8_t * data, int len)
     }
     int r = TsiSp003AppVer10::Rx(data,len);
     if(r==0) return 0;
-    printf("Ver31::Received\n");
+    //printf("TsiSp003AppVer31::Rx\n");
     return -1;
 }
 

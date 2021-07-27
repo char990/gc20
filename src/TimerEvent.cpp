@@ -43,34 +43,29 @@ void TimerEvent::EventsHandle(uint32_t events)
 {
     if(events & EPOLLIN)
     {
-        PeriodicRun();
+        uint64_t buf;
+        int r = read(eventFd,&buf,sizeof(uint64_t));
+        if(r<0)
+        {
+            throw std::runtime_error(name + "InEvent failed:read");
+        }
+        if(++cnt==ticks)
+        {
+            cnt=0;
+            sec++;
+            printf("(%s)sec=%d\n", name.c_str(), sec);
+        }
+        for(int i=0;i<pEvts.size();i++)
+        {
+            if(pEvts[i]!=nullptr)
+            {
+                pEvts[i]->PeriodicEvt();
+            }
+        }
     }
     else
     {
         UnknownEvents(name,events);
-    }
-}
-
-void TimerEvent::PeriodicRun()
-{
-    uint64_t buf;
-    int r = read(eventFd,&buf,sizeof(uint64_t));
-    if(r<0)
-    {
-        throw std::runtime_error(name + "InEvent failed:read");
-    }
-    if(++cnt==ticks)
-    {
-        cnt=0;
-        sec++;
-        printf("(%s)sec=%d\n", name.c_str(), sec);
-    }
-    for(int i=0;i<pEvts.size();i++)
-    {
-        if(pEvts[i]!=nullptr)
-        {
-            pEvts[i]->PeriodicRun();
-        }
     }
 }
 

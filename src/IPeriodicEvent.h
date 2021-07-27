@@ -4,7 +4,7 @@
 class IPeriodicEvent
 {
 public:
-    virtual void PeriodicRun()=0;
+    virtual void PeriodicEvt()=0;
 };
 
 #endif

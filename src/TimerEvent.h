@@ -28,9 +28,6 @@ public:
     /// \brief      Add delegate IPeriodicEvent
     void Remove(IPeriodicEvent * evt);
 
-    /// \brief      Periodic run
-    void PeriodicRun();
-
 private:
     std::string name;
     int ticks, sec, cnt;
