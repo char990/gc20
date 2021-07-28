@@ -19,6 +19,7 @@ int LayerWeb::Rx(uint8_t * data, int len)
 {
     uint8_t buf[65536];
     int n = 0;
+    online=true;
     upperLayer->Rx(buf,n);
 /*    
     while(1)
