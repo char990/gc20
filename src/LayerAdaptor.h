@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <string>
-#include "ILayer.h"
-#include "IOperator.h"
+#include "TsiSp003Prst.h"
+#include "TsiSp003App.h"
+#include "AppFactory.h"
+
 
 class LayerAdaptor : public ILayer
 {
@@ -24,8 +26,10 @@ public:
 
 private:
     ILayer * midLayer;  // middle layer
-    ILayer * prstLayer; // presentation layer
-    ILayer * appLayer;  // app layer
+    TsiSp003Prst * prstLayer; // presentation layer
+    TsiSp003App * appLayer;  // app layer
+    AppFactory * appFactory;
+    bool online;
 };
 
 #endif

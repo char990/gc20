@@ -2,6 +2,7 @@
  *
  */
 #include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
 #include <mcheck.h>
 
@@ -45,7 +46,8 @@ long Interval()
 
 int main()
 {
-    //mtrace();
+    // setenv("MALLOC_TRACE","./test.log",1);
+    // mtrace();
     try
     {
         DbHelper::Instance().Init();

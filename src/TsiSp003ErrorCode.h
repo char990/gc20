@@ -1,0 +1,76 @@
+#ifndef _TSISP003ERRORCODE_H__
+#define _TSISP003ERRORCODE_H__
+
+enum class APP_ERROR
+{
+    NoError=0,
+    DeviceControllerOffline,
+    SyntaxError,
+    LengthError,
+    DataChksumError,
+    TextNonASC,
+    FrameTooLarge,
+    UnknownMi,
+    MiNotSupported,
+    PowerIsOff,
+    UndefinedDeviceNumber,
+    FontNotSupported,
+    ColourNotSupported,
+    OverlaysNotSupported,
+    DimmingLevelNotSupported,
+    FrmMsgPlnActive,
+    FacilitySwitchOverride,
+    ConspicuityNotSupported,
+    TransitionTimeNotSupported,
+    FrmMsgPlnUndefined,
+    PlanNotEnabled,
+    PlanEnabled,
+    SizeMismatch,
+    FrameTooSmall,
+    HARStrategyStopped,
+    HarStrategyUndefined,
+    HARStrategyError,
+    HARVoiceError,
+    HARVoiceNotSupported,
+    HARHardwareError,
+    TimeExpired,
+    CollourDepthNotSupported,
+    IncompleteColouFrameDefinition
+};
+
+enum class DEV_ERROR
+{
+    NoError,
+    PowerFailure,
+    CommunicationsTimeoutError,
+    MemoryError,
+    BatteryFailure,
+    InternalCommunicationsFailure,
+    SignLampFailure,
+    SignSingleLedFailure,
+    SignMultiLedFailure,
+    OverTemperatureAlarm,
+    UnderTemperatureAlarm,
+    ConspicuityDeviceFailure,
+    SignLuminanceControllerFailure,
+    ControllerReset,
+    BatteryLow,
+    PoweredOffByCommand,
+    FacilitySwitchoverride,
+    SignDisplayDriverFailure,
+    SignFirmwareMismatch,
+    SignLampPairFailure,
+    EquipmentOverTemperature,
+    NoResponseFromSensor,
+    CutSensorCable,
+    SensorShortCircuit,
+    SensorDirtyLens,
+    HARHardwareError,
+    HARRadioFault,
+    HARVoiceDataError,
+    DisplayTimeoutError,
+    BackupControllerUnavailable,
+    PreexistingOrReoccurringFaultExists = 0xFF
+};
+
+#endif

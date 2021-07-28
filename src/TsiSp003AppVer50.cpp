@@ -4,7 +4,8 @@
 
 extern void PrintTime();
 
-TsiSp003AppVer50::TsiSp003AppVer50()
+TsiSp003AppVer50::TsiSp003AppVer50(bool & online)
+:TsiSp003AppVer31(online)
 {
 
 }
@@ -24,7 +25,7 @@ int TsiSp003AppVer50::Rx(uint8_t * data, int len)
     //printf("TsiSp003AppVer50::Rx\n");
     PrintTime();
     uint8_t buf[128*1024];
-    lowerLayer->Tx(buf, 128*1024);
+    Tx(buf, 128*1024);
     return -1;
 }
 

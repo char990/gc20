@@ -5,7 +5,8 @@
 
 #include "LayerWeb.h"
 
-LayerWeb::LayerWeb(std::string name)
+LayerWeb::LayerWeb(std::string name, bool & online)
+:online(online)
 {
     this->name = name+":LayerWeb";
 }

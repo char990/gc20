@@ -1,6 +1,7 @@
 #ifndef __PRESENTAIONLAYER_H__
 #define __PRESENTAIONLAYER_H__
 
+#include "TsiSp003ErrorCode.h"
 #include "ILayer.h"
 
 class TsiSp003Prst : public ILayer
@@ -15,6 +16,10 @@ public:
     void Clean() override;
 
     void Release() override;
+
+private:
+    static const int BUF_SIZE = 128*1024+256;
+    uint8_t buf[BUF_SIZE];
 };
 
 #endif

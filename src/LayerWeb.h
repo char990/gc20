@@ -7,7 +7,7 @@
 class LayerWeb : public ILayer
 {
 public:
-    LayerWeb(std::string name);
+    LayerWeb(std::string name, bool & online);
     ~LayerWeb();
 
     int Rx(uint8_t * data, int len) override;
@@ -22,6 +22,7 @@ public:
 
 private:
     std::string name;
+    bool & online;
 };
 
 #endif

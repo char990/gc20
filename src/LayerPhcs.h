@@ -2,6 +2,8 @@
 #define __PHCS2APPADAPTOR_H__
 
 #include <unistd.h>
+#include <string>
+
 #include "BootTimer.h"
 #include "DbHelper.h"
 #include "TimerEvent.h"
@@ -17,7 +19,7 @@
 class LayerPhcs : public ILayer
 {
 public:
-    LayerPhcs(std::string name);
+    LayerPhcs(std::string name, bool & online);
     ~LayerPhcs();
 
     int Rx(uint8_t * data, int len) override;
@@ -44,6 +46,7 @@ private:
     void DisplayTimeout();
 
     /// \brief protocol fields 
+    bool & online;
     uint8_t nr, ns;
     void IncNr();
     void IncNs();
@@ -51,6 +54,7 @@ private:
     uint8_t seed;
 
     int rcvd;
+
 };
 
 #endif

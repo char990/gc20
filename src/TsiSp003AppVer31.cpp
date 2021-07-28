@@ -2,7 +2,8 @@
 #include "TsiSp003AppVer31.h"
 #include "BootTimer.h"
 
-TsiSp003AppVer31::TsiSp003AppVer31()
+TsiSp003AppVer31::TsiSp003AppVer31(bool & online)
+:TsiSp003AppVer10(online)
 {
 
 }

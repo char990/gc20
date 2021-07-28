@@ -2,7 +2,8 @@
 
 #include "LayerPhcs.h"
 
-LayerPhcs::LayerPhcs(std::string name)
+LayerPhcs::LayerPhcs(std::string name, bool & online)
+:online(online)
 {
     this->name = name+":LayerPhcs";
     sessionTimeout.Setms(-1);
@@ -19,13 +20,29 @@ int LayerPhcs::Rx(uint8_t * data, int len)
     uint8_t buf[1024];
     int n = 0;
     rcvd+=len;
-    upperLayer->Rx(data, len);
-    sessionTimeout.Setms(30000);
-    return n;
+    int r = upperLayer->Rx(data, len);
+    if(r==0)
+    {
+
+        sessionTimeout.Setms(30000);
+    }
+    else
+    {
+
+    }
+    return 0;
 }
 
 int LayerPhcs::Tx(uint8_t * data, int len)
 {
+    
+    
+    
+    
+    
+    
+    
+    
     return lowerLayer->Tx(data,len);
 }
 
