@@ -1,7 +1,6 @@
 #ifndef __PRESENTAIONLAYER_H__
 #define __PRESENTAIONLAYER_H__
 
-#include "TsiSp003ErrorCode.h"
 #include "ILayer.h"
 
 class TsiSp003Prst : public ILayer

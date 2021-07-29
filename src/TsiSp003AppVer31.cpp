@@ -1,6 +1,9 @@
 #include <vector>
 #include "TsiSp003AppVer31.h"
 #include "BootTimer.h"
+#include "DbHelper.h"
+#include "TsiSp003MiCode.h"
+#include "TsiSp003ErrorCode.h"
 
 TsiSp003AppVer31::TsiSp003AppVer31(bool & online)
 :TsiSp003AppVer10(online)
@@ -14,18 +17,45 @@ TsiSp003AppVer31::~TsiSp003AppVer31()
 
 int TsiSp003AppVer31::Rx(uint8_t * data, int len)
 {
-    if(NewMi(data, len)==0)
+    micode = *data;
+    switch (micode)
     {
-        return 0;
+    case MI_CODE::SignExtendedStatusRequest:
+        SignExtendedStatusRequest(data, len);
+        break;
+    case MI_CODE::SignSetGraphicsFrame:
+        SignSetGraphicsFrame(data, len);
+        break;
+    case MI_CODE::SignRequestStoredFMP:
+        SignRequestStoredFMP(data, len);
+        break;
+    default:
+        return TsiSp003AppVer10::Rx(data,len);
     }
-    int r = TsiSp003AppVer10::Rx(data,len);
-    if(r==0) return 0;
-    //printf("TsiSp003AppVer31::Rx\n");
-    return -1;
+    return 0;
 }
 
-int TsiSp003AppVer31::NewMi(uint8_t * data, int len)
+void TsiSp003AppVer31::SignExtendedStatusRequest(uint8_t *data, int len)
 {
-
-    return -1;
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
 }
+
+void TsiSp003AppVer31::SignSetGraphicsFrame(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
+}
+
+void TsiSp003AppVer31::SignRequestStoredFMP(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
+}
+

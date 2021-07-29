@@ -42,13 +42,49 @@ namespace Util
             return k;
         }
 
-        /// \brief  parse 1Hex to 2 Asc. Example: 0x1F => "1F"
+        /// \brief  parse 2 Asc to 1 Hex. Example: "1F" => 0x1F
+        /// \param      src : ascii buffer
+        /// \param      dst : hex buffer
+        /// \param      len : ascii len ( = hex_len *2)
+        /// \return     int: 0:success, -1:failed, there is invalid chars
+        static int ParseAscToHex(uint8_t *src, uint8_t *dst, int len)
+        {
+            if((len&1)==1 || len <=0)
+                return -1;
+            for(int i=0;i<len;i++)
+            {
+                int x = ParseAscToHex(src);
+                if(x!=0)
+                    return -1;
+                *dst=x;
+                dst++;
+                src+=2;
+            }
+            return 0;
+        }
+
+        /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F => "1F"
         static void ParseHexToAsc(uint8_t h, uint8_t *p)
         {
             static uint8_t ASC[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
             *p++ = ASC[(h >> 4)];
             *p = ASC[h & 0x0F];
         }
+
+        /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F => "1F"
+        /// \param      src : hex buffer
+        /// \param      dst : ascii buffer
+        /// \param      len : hex len ( = asc_len / 2)
+        static void ParseHexToAsc(uint8_t *src, uint8_t *dst, int len)
+        {
+            for(int i=0;i<len;i++)
+            {
+                ParseHexToAsc(*src, dst);
+                src++;
+                dst+=2;
+            }
+        }
+
 #if 0
     /// <summary>
     /// Get a uint8_t of upper hex Ascii from 0-F

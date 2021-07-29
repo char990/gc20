@@ -4,28 +4,16 @@
 
 int TsiSp003Prst::Rx(uint8_t * data, int len)
 {
-    if(len&1)
+    if(len>(BUF_SIZE*2))
     {
         return -1;
     }
-    len = len/2;
-    if(len>BUF_SIZE)
+    int x = Util::Cnvt::ParseAscToHex(data, buf, len);
+    if(x==-1)
     {
         return -1;
     }
-    uint8_t * src=data;
-    uint8_t * dst=buf;
-    for(int i=0;i<len;i++)
-    {
-        int x = Util::Cnvt::ParseAscToHex(src);
-        if(x==-1)
-        {
-            return -1;
-        }
-        src+=2;
-        *dst++=x;
-    }
-    return upperLayer->Rx(buf, len);
+    return upperLayer->Rx(buf, len/2);
 }
 
 int TsiSp003Prst::Tx(uint8_t * data, int len)
@@ -34,14 +22,7 @@ int TsiSp003Prst::Tx(uint8_t * data, int len)
     {
         return -1;
     }
-    uint8_t * src=data;
-    uint8_t * dst=buf;
-    for(int i=0;i<len;i++)
-    {
-        Util::Cnvt::ParseHexToAsc(*src, dst);
-        src++;
-        dst+=2;
-    }
+    Util::Cnvt::ParseHexToAsc(data, buf, len);
     return lowerLayer->Rx(buf, len*2);
 }
 

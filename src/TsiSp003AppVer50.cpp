@@ -1,37 +1,76 @@
 #include <vector>
 #include "TsiSp003AppVer50.h"
 #include "BootTimer.h"
+#include "DbHelper.h"
+#include "TsiSp003Const.h"
 
 extern void PrintTime();
 
-TsiSp003AppVer50::TsiSp003AppVer50(bool & online)
-:TsiSp003AppVer31(online)
+TsiSp003AppVer50::TsiSp003AppVer50(bool &online)
+    : TsiSp003AppVer31(online)
 {
-
 }
 TsiSp003AppVer50::~TsiSp003AppVer50()
 {
-    
 }
 
-int TsiSp003AppVer50::Rx(uint8_t * data, int len)
+int TsiSp003AppVer50::Rx(uint8_t *data, int len)
 {
-    if(NewMi(data, len)==0)
+    micode = *data;
+    switch (micode)
     {
-        return 0;
+    case MI_CODE::SignRequestStoredFMP:
+        SignRequestStoredFMP(data, len);
+        break;
+    case MI_CODE::SignSetHighResolutionGraphicsFrame:
+        SignSetHighResolutionGraphicsFrame(data, len);
+        break;
+    case MI_CODE::SignConfigurationRequest:
+        SignConfigurationRequest(data, len);
+        break;
+    case MI_CODE::SignDisplayAtomicFrames:
+        SignDisplayAtomicFrames(data, len);
+        break;
+    default:
+        if (TsiSp003AppVer31::Rx(data, len) == -1)
+        {
+            // if there is a new version TsiSp003, return -1
+            //return -1;
+            Reject(APP_ERROR::UnknownMi);
+            return 0;
+        }
     }
-    int r = TsiSp003AppVer31::Rx(data,len);
-    if(r==0) return 0;
-    //printf("TsiSp003AppVer50::Rx\n");
-    PrintTime();
-    uint8_t buf[128*1024];
-    Tx(buf, 128*1024);
-    return -1;
+    return 0;
 }
 
-int TsiSp003AppVer50::NewMi(uint8_t * data, int len)
+void TsiSp003AppVer50::SignRequestStoredFMP(uint8_t *data, int len)
 {
-
-    return -1;
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
 }
 
+void TsiSp003AppVer50::SignSetHighResolutionGraphicsFrame(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
+}
+
+void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
+}
+
+void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP_ERROR::SyntaxError);
+    Ack();
+}

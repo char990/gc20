@@ -50,8 +50,7 @@ private:
     uint8_t nr, ns;
     void IncNr();
     void IncNs();
-    uint16_t password;
-    uint8_t seed;
+
 
     int rcvd;
 

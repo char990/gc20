@@ -9,7 +9,7 @@
 #include "Epoll.h"
 #include "SerialPort.h"
 #include "TimerEvent.h"
-#include "TsiSp003Cfg.h"
+#include "DbHelper.h"
 #include "DbHelper.h"
 #include "TcpServer.h"
 #include "OprTcp.h"
@@ -50,6 +50,7 @@ int main()
     // mtrace();
     try
     {
+        srand (time(NULL));
         DbHelper::Instance().Init();
         Epoll::Instance().Init(64);
         TimerEvent timerEvt(10,"[tmrEvt:10ms]");
