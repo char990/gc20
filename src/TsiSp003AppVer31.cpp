@@ -2,8 +2,7 @@
 #include "TsiSp003AppVer31.h"
 #include "BootTimer.h"
 #include "DbHelper.h"
-#include "TsiSp003MiCode.h"
-#include "TsiSp003ErrorCode.h"
+#include "TsiSp003Const.h"
 
 TsiSp003AppVer31::TsiSp003AppVer31(bool & online)
 :TsiSp003AppVer10(online)

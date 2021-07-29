@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include "TsiSp003App.h"
-#include "TsiSp003MiCode.h"
-#include "TsiSp003ErrorCode.h"
+#include "TsiSp003Const.h"
 
 TsiSp003App::TsiSp003App(bool &online)
     : online(online), cfg(Database::Instance())

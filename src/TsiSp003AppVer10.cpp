@@ -1,7 +1,6 @@
 #include "TsiSp003AppVer10.h"
 #include "DbHelper.h"
-#include "TsiSp003MiCode.h"
-#include "TsiSp003ErrorCode.h"
+#include "TsiSp003Const.h"
 
 TsiSp003AppVer10::TsiSp003AppVer10(bool & online)
 :TsiSp003App(online)
