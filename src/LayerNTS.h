@@ -37,9 +37,7 @@ private:
     uint8_t IncN(uint8_t n);
     void MakeNondata(uint8_t a);
     void EndOfBlock(uint8_t *p, int len);
-
     int rcvd;
-
     uint8_t buf[MAX_ACK_DATA_PACKET_SIZE];
 };
 

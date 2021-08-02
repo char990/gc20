@@ -4,6 +4,9 @@
 #include <string>
 #include "ILayer.h"
 #include "IOnline.h"
+#include "TsiSp003Const.h"
+#include "DbHelper.h"
+#include "Controller.h"
 
 /// \brief TSiSp003 Application Layer base
 class TsiSp003App : public IUpperLayer, public IOnline
@@ -49,11 +52,17 @@ public:
     virtual int Tx(uint8_t * data, int len) { return lowerLayer->Tx(data, len); }
 
 protected:
+    DbHelper & db;
+    Controller & ctrl;
     bool online;
     uint8_t startSession;
     uint16_t password;
     uint8_t seed;
     uint8_t micode;
+    uint8_t appError;
+    
+
+    uint8_t txbuf[MAX_APP_PACKET_SIZE];
 
     void StartSession(uint8_t * data, int len);
     void Password(uint8_t * data, int len);

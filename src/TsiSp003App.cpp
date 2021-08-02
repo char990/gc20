@@ -1,9 +1,9 @@
 #include "TsiSp003App.h"
-#include "TsiSp003Const.h"
-#include "DbHelper.h"
 #include "Controller.h"
 
 TsiSp003App::TsiSp003App()
+:db(DbHelper::Instance())
+ ctrl(Controller::Instance())
 {
 }
 
@@ -50,6 +50,7 @@ void TsiSp003App::Clean()
 {
     online=false;
     startSession=0;
+    appError = APP_ERROR::AppNoError;
 }
 
 void TsiSp003App::Reject(uint8_t error)
@@ -59,6 +60,22 @@ void TsiSp003App::Reject(uint8_t error)
     buf[1] = micode;
     buf[2] = error;
     Tx(buf, 3);
+    /*
+    ACE_DEBUG((LM_DEBUG, "%s!!! cmd_Reject - error code %d : %s", LocaltimeStr(), apperror, apperrtomsg(apperror)));
+	unsigned char logapperror[]={
+		SNTXERR, LNGTHERR, DTCHKSMERR, NONASCIICHAR, FRAMETOOLARGE, UNDEFINEDSIGNNO,
+		FONTNOTSUPPORTED, COLOURNOTSUPPORTED, PFACILITYSWOVERRIDE, CONSPICUITYNOTSUP,
+		SIZEMISMATCH, FRAMETOOSMALL, INCORRECTPASSWORD};
+	for(int i=0;i<sizeof(logapperror)/sizeof(logapperror[0]);i++)
+	{
+		if(apperror == logapperror[i])
+		{
+			addLogEntry(EVENT,"cmd_Reject - error code %d : %s", apperror, apperrtomsg(apperror));
+			break;
+		}
+	}
+	protocolp->updateApperror(apperror);
+    */
 }
 
 void TsiSp003App::Ack()

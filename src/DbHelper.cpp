@@ -64,3 +64,7 @@ void DbHelper::DisplayTimeout(uint16_t v)
 {
 }
 
+char * DbHelper::MfcCode()
+{
+    return "GC20123456";
+}
