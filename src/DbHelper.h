@@ -39,6 +39,9 @@ public:
     
     uint16_t DisplayTimeout();
     void DisplayTimeout(uint16_t);
+
+    char * MfcCode();
+
 };
 
 #endif

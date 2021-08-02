@@ -3,8 +3,25 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "BootTimer.h"
+#include "Sign.h"
 
+class SignsInGroup
+{
+public:
+    SignsInGroup(int i):
+    :cnt(i)
+    {
+        signsInGrp = new Sign * [i];
+    }
+    ~SignsInGroup():
+    {
+        delete [] signsInGrp;
+    }
+    int cnt;
+    Sign ** signsInGrp;
+};
 
 class Controller
 {
@@ -16,6 +33,7 @@ public:
         static Controller instance;
         return instance;
     }
+    ~Controller();
 
     void Init();
 
@@ -23,13 +41,22 @@ public:
 
     void SessionLed(uint8_t v);
 
+    uint8_t ErrorCode();
+    uint8_t SignCnt();
 
 private:
-    Controller(){};
+    Controller();
     /// \brief Display timeout timer
     BootTimer displayTimeout;
-    uint8_t sessionLed;
 
+    Sign * signs;
+
+    SignsInGroup * groups;
+
+    uint8_t
+        signCnt,
+        sessionLed,
+        errorCode;
 };
 
 #endif
