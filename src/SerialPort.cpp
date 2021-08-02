@@ -18,15 +18,7 @@ SerialPort::SerialPort(const std::string &device, SerialPortConfig &config)
 
 SerialPort::~SerialPort()
 {
-	try
-	{
-		Close();
-	}
-	catch (...)
-	{
-		// We can't do anything about this!
-		// But we don't want to throw within destructor, so swallow
-	}
+	Close();
 }
 
 int SerialPort::Open()

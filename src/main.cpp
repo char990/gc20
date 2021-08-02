@@ -44,6 +44,7 @@ long Interval()
     return ms;
 }
 
+TimerEvent * tmrEvt;
 int main()
 {
     // setenv("MALLOC_TRACE","./test.log",1);
@@ -54,39 +55,37 @@ int main()
         DbHelper::Instance().Init();
         Epoll::Instance().Init(64);
         TimerEvent timerEvt(10,"[tmrEvt:10ms]");
-        IOperator::tmrEvent = &timerEvt;
+        tmrEvt = &timerEvt;
 
-        #define LINKS_PHCS   3   // from tcp:tsi-sp-003
+        #define LINKS_NTS   3   // from tcp:tsi-sp-003
         #define LINKS_WEB   2   // from web
         
         ObjectPool<OprTcp> webPool(LINKS_WEB);
         auto webpool = webPool.Pool();
         for(int i=0;i<webPool.Size();i++)
         {
-            webpool[i].Init("Tcp:WEB"+std::to_string(i), "WEB");
-            webpool[i].IdleTime(60*1000);
+            webpool[i].Init("Tcp"+std::to_string(i), "WEB", 60*1000);
         }
 
-        ObjectPool<OprTcp> phcsPool(LINKS_PHCS);
-        auto tcppool = phcsPool.Pool();
-        for(int i=0;i<phcsPool.Size();i++)
+        ObjectPool<OprTcp> ntsPool(LINKS_NTS);
+        auto tcppool = ntsPool.Pool();
+        for(int i=0;i<ntsPool.Size();i++)
         {
-            tcppool[i].Init("Tcp:PHCS"+std::to_string(i), "PHCS");
-            tcppool[i].IdleTime(60*1000);
+            tcppool[i].Init("Tcp"+std::to_string(i), "NTS", 60*1000);
         }
 
-        TcpServer tcpServerPhcs{59991, phcsPool};
+        TcpServer tcpServerPhcs{59991, ntsPool};
         TcpServer tcpServerWeb{59992, webPool};
 
-        SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 115200);
+        SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 38400);
         SerialPort rs232("/dev/ttyRS232", spCfg);
-        OprSp oprRs232(&rs232);
-        oprRs232.Init("RS232:PHCS", "PHCS");
+        OprSp oprRs232(rs232, "RS232", "NTS");
 
         spCfg.mode = SerialPortConfig::SpMode::RS485_01;
+        spCfg.baudrate = 115200;
         SerialPort com6("/dev/ttyCOM6", spCfg);
-        OprSp oprCom6(&com6);
-        oprCom6.Init("COM6:PHCS", "PHCS");
+        OprSp oprCom6(com6, "COM6", "NTS");
+
 
         /*************** Start ****************/
         while(1)

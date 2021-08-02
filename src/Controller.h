@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include "BootTimer.h"
 
 
 class Controller
@@ -16,10 +17,19 @@ public:
         return instance;
     }
 
+    void Init();
+
+    void RefreshDispTime();
+
+    void SessionLed(uint8_t v);
 
 
 private:
-    Controller() {}
+    Controller(){};
+    /// \brief Display timeout timer
+    BootTimer displayTimeout;
+    uint8_t sessionLed;
+
 };
 
 #endif

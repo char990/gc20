@@ -2,7 +2,7 @@
 #define __PRESENTAIONLAYER_H__
 
 #include "ILayer.h"
-
+#include "TsiSp003Const.h"
 class TsiSp003Prst : public ILayer
 {
 public:
@@ -10,15 +10,10 @@ public:
 
     int Tx(uint8_t * data, int len) override;
 
-    void PeriodicRun() override;
-
     void Clean() override;
 
-    void Release() override;
-
 private:
-    static const int BUF_SIZE = 128*1024+256;
-    uint8_t buf[BUF_SIZE];
+    uint8_t buf[MAX_APP_PACKET_SIZE*2];
 };
 
 #endif

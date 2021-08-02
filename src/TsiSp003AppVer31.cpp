@@ -1,11 +1,10 @@
-#include <vector>
 #include "TsiSp003AppVer31.h"
-#include "BootTimer.h"
-#include "DbHelper.h"
 #include "TsiSp003Const.h"
+#include "DbHelper.h"
+#include "Controller.h"
 
-TsiSp003AppVer31::TsiSp003AppVer31(bool & online)
-:TsiSp003AppVer10(online)
+
+TsiSp003AppVer31::TsiSp003AppVer31()
 {
 
 }

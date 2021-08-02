@@ -10,7 +10,7 @@
 class AppFactory
 {
 public:
-    AppFactory(bool & online);
+    AppFactory();
     ~AppFactory();
 
     TsiSp003App * GetApp(){ return app; };

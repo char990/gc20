@@ -26,9 +26,8 @@ config UciPln pln
 
 class UciPln
 {
-    static const char * filename = "UciPln";
     UciPln();
-    
+    const char *filename = "UciPln";
 };
 
 #endif

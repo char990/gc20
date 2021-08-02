@@ -82,8 +82,8 @@ void TcpServer::Accept()
         return;
     }
     SetNonblocking(connfd);
-    tcpOperator->Setup(connfd);
     tcpOperator->SetServer(this);
+    tcpOperator->Setup(connfd);
     printf("%s:Accept %s:[%d of %d]:%s\n",
         name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }

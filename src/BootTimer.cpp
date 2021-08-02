@@ -48,3 +48,8 @@ bool BootTimer::IsExpired()
     return ((_CLOCK_BOOTTIME.tv_sec>sec) ||
              (_CLOCK_BOOTTIME.tv_sec==sec && _CLOCK_BOOTTIME.tv_nsec>=ns));
 }
+
+void BootTimer::Clear()
+{
+    Setms(-1);
+}

@@ -12,11 +12,14 @@ class BootTimer
         void Setms(long ms);
 
         /// \brief		Set timer in us (1/1000000 second)
-        /// \param		us (If ms<0, set as LONG_MAX)
+        /// \param		us (If us<0, set as LONG_MAX)
         void Setus(long us);
 
         /// \brief		If the timer is expired
         bool IsExpired();
+
+        /// \brief		Clear timer, will be never expired
+        void Clear();
 
     private:
         time_t sec;

@@ -6,6 +6,8 @@
 
 #define TCPSPEED 1000
 
+extern TimerEvent * tmrEvt;
+
 OprTcp::OprTcp()
 {
 }
@@ -16,65 +18,9 @@ OprTcp::~OprTcp()
     {
         delete upperLayer;
     }
-    if (events > 0)
-    {
-        tmrEvent->Remove(this);
-        Epoll::Instance().DeleteEvent(this, events);
-    }
-    if (eventFd > 0)
-    {
-        close(eventFd);
-        eventFd = -1;
-    }
+    Release();
 }
 
-/* ILayer */
-/// \brief  Called by upperLayer
-int OprTcp::Tx(uint8_t *data, int len)
-{
-    return TxEvt(data, len);
-}
-
-/// \brief  Called by upperLayer
-void OprTcp::Release()
-{
-    if (eventFd > 0)
-    {
-        tmrEvent->Remove(this);
-        Epoll::Instance().DeleteEvent(this, events);
-        events = 0;
-        server->Release(this);
-    }
-}
-
-/// \brief  Called by IOperator
-int OprTcp::Rx(uint8_t * data, int len)
-{
-    tcpIdleTmr.Setms(idleTime);
-    return upperLayer->Rx(data, len);
-}
-
-/// \brief  Called by IOperator
-void OprTcp::PeriodicRun()
-{
-    if (tcpIdleTmr.IsExpired())
-    {
-        printf("Idle timeout. Disconnected\n");
-        Release();
-    }
-    else
-    {
-        upperLayer->PeriodicRun();
-    }
-}
-
-/// \brief  Called by IOperator
-void OprTcp::Clean()
-{
-    upperLayer->Clean();
-}
-
-/* IOperator */
 /// \brief  Called by Eepoll, receiving & sending handle
 void OprTcp::EventsHandle(uint32_t events)
 {
@@ -98,25 +44,27 @@ void OprTcp::EventsHandle(uint32_t events)
 }
 
 /// \brief  Called when instantiation
-void OprTcp::Init(std::string name_, std::string aType)
+void OprTcp::Init(std::string name_, std::string aType, int idle)
 {
-    name = name_ + ":OprTcp";
-    upperLayer = new LayerAdaptor(name, aType, this);
+    name = name_;
+    upperLayer = new LayerAdaptor(name, aType);
+    upperLayer->LowerLayer(this);
+    idleTime = idle;
 }
 
 /// \brief  Called when a new connection accepted
 void OprTcp::Setup(int fd)
 {
+    upperLayer->Clean();
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
     Epoll::Instance().AddEvent(this, events);
-    tmrEvent->Add(this);
+    tmrEvt->Add(this);
     tcpIdleTmr.Setms(idleTime);
-    Clean();
 }
 
-/// \brief  Called by ILayer.Tx()
-int OprTcp::TxEvt(uint8_t * data, int len)
+/// \brief  Called by upperLayer->Tx()
+int OprTcp::Tx(uint8_t * data, int len)
 {
     int x = TxBytes(data, len);
     if(x>0)
@@ -127,9 +75,13 @@ int OprTcp::TxEvt(uint8_t * data, int len)
 }
 
 /// \brief  Called by TimerEvt
-void OprTcp::PeriodicEvt()
+void OprTcp::PeriodicRun()
 {
-    PeriodicRun();
+    if (tcpIdleTmr.IsExpired())
+    {
+        printf("Idle timeout. Disconnected\n");
+        Release();
+    }
 }
 
 /// \brief  Called in EventsHandle
@@ -144,8 +96,9 @@ int OprTcp::RxHandle()
     }
     else
     {
-        Rx(buf, n);
         //printf("%d bytes\n", n);
+        tcpIdleTmr.Setms(idleTime);
+        //return upperLayer->Rx(data, len);
     }
     return n;
 }
@@ -156,8 +109,16 @@ void OprTcp::SetServer(TcpServer *svr)
     server = svr;
 }
 
-void OprTcp::IdleTime(int idleTime)
+/// \brief  
+void OprTcp::Release()
 {
-    this->idleTime = idleTime;
+    tcpIdleTmr.Clear();
+    tmrEvt->Remove(this);
+    if (events > 0)
+    {
+        Epoll::Instance().DeleteEvent(this, events);
+        events = 0;
+    }
+    server->Release(this);
+    eventFd = -1;
 }
-

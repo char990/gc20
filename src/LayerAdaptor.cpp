@@ -1,27 +1,33 @@
 #include <stdexcept>
 #include "LayerAdaptor.h"
-#include "LayerPhcs.h"
+#include "LayerNTS.h"
 #include "LayerWeb.h"
+#include "LayerDL.h"
 
-LayerAdaptor::LayerAdaptor(std::string name, std::string aType, ILayer * lowerLayer)
+LayerAdaptor::LayerAdaptor(std::string name_, std::string aType)
 {
-    if(aType.compare("PHCS")==0)
+    appFactory = new AppFactory();
+    appLayer = appFactory->GetApp();
+    prstLayer = new TsiSp003Prst();
+    dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
+    if(aType.compare("NTS")==0)
     {
-        midLayer = new LayerPhcs(name, online);
+        midLayer = new LayerNTS(name_, appLayer);
     }
     else if(aType.compare("WEB")==0)
     {
-        midLayer = new LayerWeb(name, online);
+        midLayer = new LayerWeb(name_, appLayer);
     }
     else
     {
         throw std::invalid_argument("Unkown adaptor type:"+aType);
     }
-    prstLayer = new TsiSp003Prst();
-    appFactory = new AppFactory(online);
-    appLayer = appFactory->GetApp();
+    // lowerLayer<->dlLayer<->midLayer<->prstLayer<->appLayer
+    // dlLayer layer, need lower&upper layer
+    // dlLayer->LowerLayer(lowerLayer); set in this->LowerLayer(lowerLayer)
+    dlLayer->UpperLayer(midLayer);
     // middle layer, need lower&upper layer
-    midLayer->LowerLayer(lowerLayer);
+    midLayer->LowerLayer(dlLayer);
     midLayer->UpperLayer(prstLayer);
     // presentation layer, need lower&upper layer
     prstLayer->LowerLayer(midLayer);
@@ -35,29 +41,15 @@ LayerAdaptor::~LayerAdaptor()
     delete appFactory;
     delete prstLayer;
     delete midLayer;
+    delete dlLayer;
 }
 
 int LayerAdaptor::Rx(uint8_t * data, int len)
 {
-    int r = midLayer->Rx(data,len);
-}
-
-int LayerAdaptor::Tx(uint8_t * data, int len)
-{
-    return midLayer->Tx(data,len);
-}
-
-void LayerAdaptor::PeriodicRun()
-{
-    return midLayer->PeriodicRun();
+    int r = dlLayer->Rx(data,len);
 }
 
 void LayerAdaptor::Clean()
 {
-    return midLayer->Clean();
-}
-
-void LayerAdaptor::Release()
-{
-    return midLayer->Release();
+    return dlLayer->Clean();
 }

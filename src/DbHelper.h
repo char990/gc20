@@ -22,6 +22,12 @@ public:
 
     uint8_t TsiSp003Ver();
 
+    uint8_t BroadcastId();
+    void BroadcastId(uint8_t);
+
+    uint8_t DeviceId();
+    void DeviceId(uint8_t);
+
     uint8_t SeedOffset();
     void SeedOffset(uint8_t);
 

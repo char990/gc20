@@ -3,39 +3,38 @@
 
 #include <string>
 #include "ILayer.h"
-#include "DbHelper.h"
+#include "IOnline.h"
 
 /// \brief TSiSp003 Application Layer base
-class TsiSp003App : public ILayer
+class TsiSp003App : public IUpperLayer, public IOnline
 {
 public:
-    TsiSp003App(bool & online);
+    TsiSp003App();
     virtual ~TsiSp003App();
 
     virtual std::string Version()=0;
 
-    /// \brief Transmitting function, called by upperlayer and call lowerlayer->Tx()
-    /// \param		data		data buffer
-    /// \param		len		    data length
-    /// \return     int         time in ms for sending all data
-    virtual int Tx(uint8_t * data, int len) override;
-
+    /*<------------------------------------------------------------------*/
     /// \brief Receiving Handle, called by Lower-Layer
     /// \param		data		data buffer
     /// \param		len		    data length
     /// \return     int         0: Command excuted; -1: failed
     virtual int Rx(uint8_t * data, int len) override;
 
-    /// \brief		Release current layer. Called by upperlayer and call lowerlayer->Release()
-    virtual void Release() override;
-
-    /// \brief		Periodic run. Called by lowerlayer->PeriodicRun() and call upperlayer->PeriodicRun()
-    virtual void PeriodicRun() override;
-
-    /// \brief		Init current layer. Called by lowerlayer->Init() and call upperlayer->Init()
+    /// \brief		Clean current layer. Called by lowerlayer->Clean() and call upperlayer->Clean()
     virtual void Clean() override;
+    /*------------------------------------------------------------------>*/
 
-    /// TsiSp003App is abse of App layer, only implement StartSession, Password & EndSession
+    /*<------------------------------------------------------------------*/
+    /// \brief		Online status, provide to session layer
+    virtual bool Online() override { return online; };
+    virtual void Online(bool v) override { online=v; };
+    /*------------------------------------------------------------------>*/
+
+
+    /*<------------------------------------------------------------------*/
+    /// TsiSp003App is base of App layer, only implement basic commands
+
     /// \brief  Reject
     void Reject(uint8_t error);
 
@@ -44,14 +43,17 @@ public:
     
     /// \brief      Check length, if not matched, Reject
     bool ChkLen(int len1, int len2);
+    /*------------------------------------------------------------------>*/
+
+    /// \brief call lowerlayer->Tx
+    virtual int Tx(uint8_t * data, int len) { return lowerLayer->Tx(data, len); }
 
 protected:
-    bool & online;
+    bool online;
     uint8_t startSession;
     uint16_t password;
     uint8_t seed;
     uint8_t micode;
-    DbHelper &cfg;
 
     void StartSession(uint8_t * data, int len);
     void Password(uint8_t * data, int len);

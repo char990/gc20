@@ -1,19 +1,14 @@
-#include <cstdlib>
 #include "TsiSp003App.h"
 #include "TsiSp003Const.h"
+#include "DbHelper.h"
+#include "Controller.h"
 
-TsiSp003App::TsiSp003App(bool &online)
-    : online(online), cfg(Database::Instance())
+TsiSp003App::TsiSp003App()
 {
 }
 
 TsiSp003App::~TsiSp003App()
 {
-}
-
-int TsiSp003App::Tx(uint8_t *data, int len)
-{
-    return lowerLayer->Tx(data, len);
 }
 
 int TsiSp003App::Rx(uint8_t *data, int len)
@@ -51,16 +46,10 @@ int TsiSp003App::Rx(uint8_t *data, int len)
     return 0;
 }
 
-void TsiSp003App::PeriodicRun()
-{
-}
-
 void TsiSp003App::Clean()
 {
-}
-
-void TsiSp003App::Release()
-{
+    online=false;
+    startSession=0;
 }
 
 void TsiSp003App::Reject(uint8_t error)
@@ -134,6 +123,7 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
     Ack();
 }
 
+///  ???
 void TsiSp003App::UpdateTime(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
@@ -141,6 +131,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     Reject(APP_ERROR::SyntaxError);
     Ack();
 }
+
 void TsiSp003App::SignSetDimmingLevel(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
@@ -148,6 +139,7 @@ void TsiSp003App::SignSetDimmingLevel(uint8_t *data, int len)
     Reject(APP_ERROR::SyntaxError);
     Ack();
 }
+
 void TsiSp003App::PowerONOFF(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
@@ -184,7 +176,7 @@ uint16_t TsiSp003App::MakePassword()
 {
     uint16_t passwd;
     uint8_t bit5, bit7, bit8;
-    passwd = (uint16_t)seed + cfg.SeedOffset();
+    passwd = (uint16_t)seed + DbHelper::Instance().SeedOffset();
     passwd = passwd & 0xFF;                  // set high byte to zero
     for (unsigned int ii = 0; ii < 16; ii++) // the process is cycled 16 times
     {
@@ -194,7 +186,7 @@ uint16_t TsiSp003App::MakePassword()
         passwd <<= 1; // shift left one position
         passwd = passwd + (bit5 ^ bit7 ^ bit8);
     }
-    return passwd + cfg.PasswdOffset();
+    return passwd + DbHelper::Instance().PasswdOffset();
 }
 
 bool TsiSp003App::ChkLen(int len1, int len2)

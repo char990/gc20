@@ -164,7 +164,7 @@ namespace ANNULUS
         Off = 0,
         Flashing = 0x08,
         On = 0x10
-    }
+    };
 }
 
 namespace CONSP
@@ -177,7 +177,7 @@ namespace CONSP
         WigWag,
         AllFlash,
         AllOn
-    }
+    };
 }
 
 namespace MULTI_COLOURS
@@ -257,5 +257,54 @@ namespace LOG_TYPE
         EventLog = 0x0D
     };
 }
+
+/// \brief High-res gfx frame size
+/// max size of a 24-bit RGB frame is 288*64*3 = 55296 bytes
+/// total bytes : 15 + 55296 = 55311
+#define MAX_HRGFRM_SIZE 55311
+
+/// \brief Gfx frame size
+// max size of a 4-bit frame is 256*64/2 = 8192 bytes
+// total bytes : 11 + 8192 = 8203
+#define MAX_GFXFRM_SIZE 8203
+
+/// \brief Text frame size
+// max size of a text frame is 255 bytes
+// total bytes : 9 + 255 = 264
+#define MAX_TXTFRM_SIZE 264
+
+/// \brief App packet size
+/// max size of app packet is HRG frame
+#define MAX_APP_PACKET_SIZE MAX_HRGFRM_SIZE
+
+
+/// \brief Data packet Header and End of Block size
+#define DATA_PACKET_HEADER_SIZE    8
+#define DATA_PACKET_EOB_SIZE    5
+
+/// \brief Data packet size
+/// max size of data packet is HRG frame at original format
+/// note: There are 1000 event logs, assume the logs size is less than MAX_HRGFRM_SIZE
+#define MAX_DATA_PACKET_SIZE (DATA_PACKET_HEADER_SIZE + MAX_HRGFRM_SIZE*2 + DATA_PACKET_EOB_SIZE)
+
+/// \brief Data packet size
+#define NON_DATA_PACKET_SIZE 10
+
+/// \brief Packet acknowledgment(Non data packet) + Data packet
+#define MAX_ACK_DATA_PACKET_SIZE (NON_DATA_PACKET_SIZE + MAX_DATA_PACKET_SIZE)
+
+namespace CTRL_CHAR
+{
+    enum
+    {
+        SOH = 1,
+        STX = 2,
+        ETX = 3,
+        EOT = 4,
+        ACK = 6,
+        NAK = 15
+    };
+}
+
 
 #endif

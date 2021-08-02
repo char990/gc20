@@ -22,7 +22,7 @@ config UciMsg msg
 
 class UciMsg
 {
-    static const char * filename = "UciMsg";
+    const char * filename = "UciMsg";
     UciMsg();
     
 };

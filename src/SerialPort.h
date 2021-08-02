@@ -56,7 +56,7 @@ public:
 
     /// \brief		Get current configuration
     /// \return     struct SerialPortConfig *
-    SerialPortConfig *Config() { return &spConfig; };
+    SerialPortConfig & Config() { return spConfig; };
 
     /// \brief		Opens the COM port for use.
     /// \return     0:success; -1:failed

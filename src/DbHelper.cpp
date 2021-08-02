@@ -14,6 +14,23 @@ uint8_t DbHelper::TsiSp003Ver()
     return 0x50;
 }
 
+
+uint8_t DbHelper::BroadcastId()
+{
+    return 0x00;
+}
+void DbHelper::BroadcastId(uint8_t v)
+{
+}
+
+uint8_t DbHelper::DeviceId()
+{
+    return 0x01;
+}
+void DbHelper::DeviceId(uint8_t v)
+{
+}
+
 uint8_t DbHelper::SeedOffset()
 {
     return 0xB1;

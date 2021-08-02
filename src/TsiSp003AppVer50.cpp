@@ -1,13 +1,12 @@
-#include <vector>
 #include "TsiSp003AppVer50.h"
-#include "BootTimer.h"
-#include "DbHelper.h"
 #include "TsiSp003Const.h"
+#include "DbHelper.h"
+#include "Controller.h"
+
 
 extern void PrintTime();
 
-TsiSp003AppVer50::TsiSp003AppVer50(bool &online)
-    : TsiSp003AppVer31(online)
+TsiSp003AppVer50::TsiSp003AppVer50()
 {
 }
 TsiSp003AppVer50::~TsiSp003AppVer50()

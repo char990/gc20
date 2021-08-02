@@ -6,7 +6,7 @@
 class TsiSp003AppVer31 : public TsiSp003AppVer10
 {
 public:
-    TsiSp003AppVer31(bool & online);
+    TsiSp003AppVer31();
     virtual ~TsiSp003AppVer31();
     virtual std::string Version() override { return "Ver3.1"; }
 

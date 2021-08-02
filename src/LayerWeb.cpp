@@ -5,10 +5,11 @@
 
 #include "LayerWeb.h"
 
-LayerWeb::LayerWeb(std::string name, bool & online)
+
+LayerWeb::LayerWeb(std::string name_, IOnline * online)
 :online(online)
 {
-    this->name = name+":LayerWeb";
+    name = name_ + ":" + "WEB";
 }
 
 LayerWeb::~LayerWeb()
@@ -19,7 +20,7 @@ int LayerWeb::Rx(uint8_t * data, int len)
 {
     uint8_t buf[65536];
     int n = 0;
-    online=true;
+    online->Online(true);
     upperLayer->Rx(buf,n);
 /*    
     while(1)
@@ -36,17 +37,7 @@ int LayerWeb::Tx(uint8_t * data, int len)
     return lowerLayer->Tx(data, len);
 }
 
-void LayerWeb::PeriodicRun()
-{
-        
-}
-
 void LayerWeb::Clean()
 {
-        
-}
-
-void LayerWeb::Release()
-{
-    lowerLayer->Release();
+    upperLayer->Clean();
 }

@@ -1,14 +1,13 @@
 #ifndef __TSISP003APPVER10_H__
 #define __TSISP003APPVER10_H__
 
-#include "DbHelper.h"
 #include "TsiSp003App.h"
 
 /// \brief  This is the base of TsiSp003 Application layer
 class TsiSp003AppVer10 : public TsiSp003App
 {
 public:
-    TsiSp003AppVer10(bool & online);
+    TsiSp003AppVer10();
     virtual ~TsiSp003AppVer10();
 
     virtual std::string Version() override { return "Ver1.0"; }

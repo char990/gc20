@@ -1,12 +1,11 @@
 #include <unistd.h>
 #include <cstring>
 #include "IOperator.h"
-
-TimerEvent * IOperator::tmrEvent;
+#include "Epoll.h"
 
 int IOperator::TxBytes(uint8_t * data, int len)
 {
-    if(txsize!=0 || len <=0 || len>OPR_TX_BUF_SIZE)
+    if(txsize!=0 || len <=0 || len>MAX_DATA_PACKET_SIZE)
     {
         return -1;
     }
@@ -26,14 +25,12 @@ int IOperator::TxBytes(uint8_t * data, int len)
     return len;
 }
 
-extern void PrintTime();
 void IOperator::ClrTx()
 {
     txsize=0;
     txcnt=0;
     events = EPOLLIN | EPOLLRDHUP;
     Epoll::Instance().ModifyEvent(this, events);
-    PrintTime();
 }
 
 int IOperator::TxHandle()
