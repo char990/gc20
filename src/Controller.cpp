@@ -20,6 +20,23 @@ Controller::~Controller()
     }
 }
 
+Controller::Controller()
+:signs(nullptr)
+{
+}
+
+Controller::~Controller()
+{
+    if(signs != nullptr)
+    {
+        delete [] signs;
+    }
+    if(groups != nullptr)
+    {
+        delete [] groups;
+    }
+}
+
 void Controller::Init()
 {
     signCnt=4;
