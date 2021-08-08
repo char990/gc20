@@ -1,10 +1,10 @@
 #include <stdexcept>
-#include "LayerAdaptor.h"
+#include "LayerManager.h"
 #include "LayerNTS.h"
 #include "LayerWeb.h"
 #include "LayerDL.h"
 
-LayerAdaptor::LayerAdaptor(std::string name_, std::string aType)
+LayerManager::LayerManager(std::string name_, std::string aType)
 {
     appFactory = new AppFactory();
     appLayer = appFactory->GetApp();
@@ -36,7 +36,7 @@ LayerAdaptor::LayerAdaptor(std::string name_, std::string aType)
     appLayer->LowerLayer(prstLayer);
 }
 
-LayerAdaptor::~LayerAdaptor()
+LayerManager::~LayerManager()
 {
     delete appFactory;
     delete prstLayer;
@@ -44,12 +44,12 @@ LayerAdaptor::~LayerAdaptor()
     delete dlLayer;
 }
 
-int LayerAdaptor::Rx(uint8_t * data, int len)
+int LayerManager::Rx(uint8_t * data, int len)
 {
     int r = dlLayer->Rx(data,len);
 }
 
-void LayerAdaptor::Clean()
+void LayerManager::Clean()
 {
     return dlLayer->Clean();
 }

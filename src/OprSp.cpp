@@ -1,14 +1,14 @@
 #include <unistd.h>
 #include <stdexcept>
 #include "OprSp.h"
-#include "LayerAdaptor.h"
+#include "LayerManager.h"
 #include "Epoll.h"
 
 OprSp::OprSp(SerialPort & sp, std::string name_, std::string aType)
 :sp(sp)
 {
     name = name_;
-    upperLayer = new LayerAdaptor(name, aType);
+    upperLayer = new LayerManager(name, aType);
     upperLayer->LowerLayer(this);
     upperLayer->Clean();
     sp.Open();

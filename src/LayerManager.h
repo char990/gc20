@@ -9,11 +9,11 @@
 #include "AppFactory.h"
 
 
-class LayerAdaptor : public IUpperLayer
+class LayerManager : public IUpperLayer
 {
 public:
-    LayerAdaptor(std::string name_, std::string aType);
-    ~LayerAdaptor();
+    LayerManager(std::string name_, std::string aType);
+    ~LayerManager();
 
     int Rx(uint8_t * data, int len) override;
 

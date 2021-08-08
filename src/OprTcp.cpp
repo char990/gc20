@@ -1,7 +1,7 @@
 #include <cstring>
 #include "OprTcp.h"
 #include "TcpServer.h"
-#include "LayerAdaptor.h"
+#include "LayerManager.h"
 #include "TimerEvent.h"
 
 #define TCPSPEED 1000
@@ -47,7 +47,7 @@ void OprTcp::EventsHandle(uint32_t events)
 void OprTcp::Init(std::string name_, std::string aType, int idle)
 {
     name = name_;
-    upperLayer = new LayerAdaptor(name, aType);
+    upperLayer = new LayerManager(name, aType);
     upperLayer->LowerLayer(this);
     idleTime = idle;
 }
