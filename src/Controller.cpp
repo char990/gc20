@@ -1,7 +1,8 @@
-#include "Controller.h"
-#include "SignHrg.h"
-#include "SignGfx.h"
-#include "SignTxt.h"
+#include <module/Controller.h>
+#include <module/SignHrg.h>
+#include <module/SignGfx.h>
+#include <module/SignTxt.h>
+
 
 Controller::Controller()
 :signs(nullptr)
@@ -12,57 +13,28 @@ Controller::~Controller()
 {
     if(signs != nullptr)
     {
+        for(int i=0;i<signCnt;i++)
+        {
+            delete signs[i];
+        }
         delete [] signs;
-    }
-    if(groups != nullptr)
-    {
-        delete [] groups;
-    }
-}
-
-Controller::Controller()
-:signs(nullptr)
-{
-}
-
-Controller::~Controller()
-{
-    if(signs != nullptr)
-    {
-        delete [] signs;
-    }
-    if(groups != nullptr)
-    {
-        delete [] groups;
     }
 }
 
 void Controller::Init()
 {
-    signCnt=4;
     displayTimeout.Clear();
-    signs = new SignTxt[signCnt];
+    signCnt=4;
+    signs = new Sign * [signCnt];
     for(int i=0;i<signCnt;i++)
     {
-        signs[i].SetId(i+1, (i&1)+1);
+        //auto s = ;
+        signs[i] = new SignTxt();
     }
-    groups = new SignsInGroup[2]{SignsInGroup(2),SignsInGroup(2)};
-    int ct[2];
-    ct[0]=0;
-    ct[1]=0;
-    for(int i=0;i<signCnt;i++)
-    {
-        if(signs[i].GroupId()==1)
-        {
-            groups[0].signsInGrp[ct[0]]=&signs[i];
-            ct[0]++;
-        }
-        else if(signs[i].GroupId()==2)
-        {
-            groups[0].signsInGrp[ct[1]]=&signs[i];
-            ct[1]++;
-        }
-    }
+    signs[0]->SetId(1, 1);
+    signs[1]->SetId(2, 1);
+    signs[2]->SetId(3, 2);
+    signs[3]->SetId(4, 2);
 }
 
 void Controller::RefreshDispTime()

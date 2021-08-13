@@ -1,8 +1,8 @@
-#include "Sign.h"
+#include <module/Sign.h>
 
 void Sign::SetId(uint8_t sid, uint8_t gid)
 {
-    signId = sid
+    signId = sid;
     groupId = gid;
 }
 
@@ -29,10 +29,4 @@ uint8_t * Sign::GetStatus(uint8_t *p)
     *p++=plnId;
     *p++=plnRev;
     return p;
-}
-
-
-uint8_t * Sign::GetExtStatus(uint8_t *p)
-{
-
 }

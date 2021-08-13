@@ -6,43 +6,20 @@
 #include <unistd.h>
 #include <mcheck.h>
 
-#include "Epoll.h"
-#include "SerialPort.h"
-#include "TimerEvent.h"
-#include "DbHelper.h"
-#include "DbHelper.h"
-#include "TcpServer.h"
-#include "OprTcp.h"
-#include "OprSp.h"
-#include "ObjectPool.h"
+#include <module/Epoll.h>
+#include <module/SerialPort.h>
+#include <module/TimerEvent.h>
+#include <uci/DbHelper.h>
+#include <module/TcpServer.h>
+#include <module/OprTcp.h>
+#include <module/OprSp.h>
+#include <module/ObjectPool.h>
+#include <module/Controller.h>
+
+#include <uci.h>
 
 using namespace std;
 
-
-void PrintTime()
-{
-    struct timespec _CLOCK_BOOTTIME;
-    clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
-    printf("[%ld.%09ld]\n",_CLOCK_BOOTTIME.tv_sec,_CLOCK_BOOTTIME.tv_nsec);
-}
-
-long Interval()
-{
-    static struct timespec start={0,0};
-    static struct timespec end;
-    clock_gettime(CLOCK_BOOTTIME, &end);
-    long ms = (end.tv_sec - start.tv_sec)*1000;
-    if(end.tv_nsec < start.tv_nsec)
-    {
-        ms += (end.tv_nsec + 1000000000 - start.tv_nsec)/1000000 - 1000;
-    }
-    else
-    {
-        ms += (end.tv_nsec - start.tv_nsec)/1000000;
-    }
-    start=end;
-    return ms;
-}
 
 TimerEvent * tmrEvt;
 int main()
@@ -54,6 +31,7 @@ int main()
         srand (time(NULL));
         DbHelper::Instance().Init();
         Epoll::Instance().Init(64);
+        Controller::Instance().Init();
         TimerEvent timerEvt(10,"[tmrEvt:10ms]");
         tmrEvt = &timerEvt;
 
