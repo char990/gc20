@@ -7,9 +7,10 @@
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
 
-TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool)
+TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tmr)
     : listenPort(listenPort),
-      oPool(oPool)
+      oPool(oPool),
+      tmrEvt(tmr)
 {
     name = "Tcp port:"+std::to_string(listenPort);
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -83,7 +84,7 @@ void TcpServer::Accept()
     }
     SetNonblocking(connfd);
     tcpOperator->SetServer(this);
-    tcpOperator->Setup(connfd);
+    tcpOperator->Setup(connfd,tmrEvt);
     printf("%s:Accept %s:[%d of %d]:%s\n",
         name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }

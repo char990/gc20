@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 
+#include <module/Epoll.h>
 #include <module/TimerEvent.h>
 
 TimerEvent::TimerEvent(int ms, std::string name):name(name)

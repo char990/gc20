@@ -16,12 +16,12 @@ RingBuffer::~RingBuffer()
 
 int RingBuffer::Write(uint8_t *src, int len)
 {
-
+    return 0;
 }
 
 int RingBuffer::Read(uint8_t *dst, int len)
 {
-
+    return 0;
 }
 
 void Drop(int n)

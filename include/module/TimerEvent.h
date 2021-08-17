@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include <module/Epoll.h>
+#include <module/IGcEvent.h>
 #include <module/IPeriodicRun.h>
 
 class TimerEvent : public IGcEvent

@@ -4,6 +4,7 @@
 #include <module/BootTimer.h>
 #include <module/IOperator.h>
 #include <module/IPeriodicRun.h>
+#include <module/TimerEvent.h>
 
 class TcpServer;
 
@@ -30,7 +31,7 @@ public:
     virtual void Init(std::string name_, std::string aType, int idle);
 
     /// \brief  Called when accept
-    virtual void Setup(int fd);
+    virtual void Setup(int fd, TimerEvent * tmr);
 
     /// \brief      Set Tcpserver for Release()
     void SetServer(TcpServer * server);
@@ -46,6 +47,7 @@ public:
 private:
     std::string name;
     TcpServer * server;
+    TimerEvent * tmrEvt;
     BootTimer tcpIdleTmr;
     int idleTime;
 

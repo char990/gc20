@@ -8,13 +8,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <module/IGcEvent.h>
+#include <module/TimerEvent.h>
 #include <module/OprTcp.h>
 #include <module/ObjectPool.h>
 
 class TcpServer : IGcEvent
 {
 public:
-    TcpServer(int listenPort, ObjectPool<OprTcp> & oPool);
+    TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tmr);
     ~TcpServer();
 
     /// \brief  Incoming... Accept
@@ -29,6 +30,7 @@ private:
     int listenPort;
     std::string name;
     ObjectPool<OprTcp> & oPool;
+    TimerEvent * tmrEvt;
     sockaddr_in myserver;
     void SetNonblocking(int sock);
 };

@@ -1,19 +1,17 @@
 #ifndef __DBHELPER_H__
 #define __DBHELPER_H__
 
+#include <module/IPeriodicRun.h>
 #include <module/SignCfg.h>
 #include <uci/UciProd.h>
 #include <uci/UciUser.h>
 #include <uci/UciFrm.h>
 #include <uci/UciMsg.h>
 #include <uci/UciPln.h>
+#include <module/TimerEvent.h>
 
-
-class DbHelper
+class DbHelper: public IPeriodicRun
 {
-private:
-    DbHelper() {};
-
 public:
     DbHelper(DbHelper const &) = delete;
     void operator=(DbHelper const &) = delete;
@@ -23,9 +21,16 @@ public:
         return instance;
     }
 
-    void Init();
+    /*< IPeriodicRun --------------------------------------------------*/
+    /// \brief  Called by TimerEvt
+    virtual void PeriodicRun() override;
+    /*--------------------------------------------------------->*/
+
+    void Init(TimerEvent * tmr);
 
     uint16_t HdrChksum();
+
+    void Sync();
 
     UciProd prodCfg;
     UciUser userCfg;
@@ -33,6 +38,15 @@ public:
     UciFrm uciFrm;
     UciMsg uciMsg;
     UciPln uciPln;
+
+protected:
+
+
+private:
+    DbHelper():sync(false){};
+    ~DbHelper();    
+    bool sync;
+    TimerEvent * tmrEvt;
 };
 
 #endif

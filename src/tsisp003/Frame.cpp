@@ -24,7 +24,7 @@ void Frame::CnvtFrm(char * frm, int len, int max)
     frmData = new uint8_t [len];
     if(Cnvt::ParseToU8(frm, frmData, len*2)!=0)
     {
-        appErr = APP::ERROR::LengthError;
+        appErr = APP::ERROR::SyntaxError;
     }
     else
     {
@@ -68,6 +68,10 @@ void FrmTxt::Frame(int len)
     if(frmData[0]!=MI::CODE::SignSetTextFrame)
     {
         appErr = APP::ERROR::UnknownMi;
+    }
+    else if(frmData[1]==0)
+    {
+        appErr = APP::ERROR::SyntaxError;
     }
     else if(len!=(9+frmData[6]) || len>(255+9))
     {
@@ -130,7 +134,7 @@ int FrmTxt::CheckColour(uint8_t font)
 std::string FrmTxt::ToString()
 {
     char buf[1024];
-    snprintf(buf,1023,"TextFrame:(appErr=%s) MI=0x%02X, Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+    snprintf(buf,1023,"TextFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
         appErr, micode, frmId, frmRev, font, colour, conspicuity, frmlen, crc);
     std::string s(buf);
     return s;

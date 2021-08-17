@@ -1,27 +1,43 @@
 #include <cstdio>
 #include <cstring>
+#include <stdexcept>
+#include <uci.h>
 #include <uci/UciFrm.h>
 #include <module/Utils.h>
-#include <uci/uci.h>
 
 
 using namespace Utils;
 
 UciFrm::UciFrm()
 {
+	for(int i=0;i<256;i++)
+	{
+		frms[i] = nullptr;
+	}
 }
+
+UciFrm::~UciFrm()
+{
+	for(int i=0;i<256;i++)
+	{
+		if(frms[i] != nullptr)
+		{
+			delete frms[i];
+		}
+	}
+}
+
 
 void UciFrm::LoadConfig()
 {
-	chkSum = 0;
+	chksum=0;
 	struct uci_context *ctx = uci_alloc_context();
 	uci_set_confdir(ctx, PATH);
 	struct uci_package *pkg = NULL;
 	if (UCI_OK != uci_load(ctx, PACKAGE, &pkg))
 	{
-		printf("Fatal: can't load uci user config\n");
 		uci_free_context(ctx);
-		exit(-1);
+		throw std::runtime_error("Can't load " + PATH + "/" + PACKAGE);
 	}
 	struct uci_section *section = uci_lookup_section(ctx, pkg, SECTION);
 	if (section != NULL)
@@ -60,7 +76,7 @@ void UciFrm::LoadConfig()
 			}
 			if (frm->appErr == APP::ERROR::AppNoError && frm->frmId == i)
 			{
-				chkSum += frm->crc;
+				chksum += frm->crc;
 				if (frms[i] != nullptr)
 				{
 					delete frms[i];
@@ -91,15 +107,15 @@ void UciFrm::Dump()
 
 uint16_t UciFrm::ChkSum()
 {
-	return chkSum;
+	return chksum;
 }
 
-Frame *UciFrm::GetFrame(int i)
+Frame *UciFrm::GetFrm(int i)
 {
 	return frms[i];
 }
 
-APP::ERROR UciFrm::SetFrame(uint8_t *buf, int len)
+uint8_t UciFrm::SetFrm(uint8_t *buf, int len)
 {
 	Frame *frm;
 	if (buf[0] == MI::CODE::SignSetTextFrame)
@@ -118,34 +134,34 @@ APP::ERROR UciFrm::SetFrame(uint8_t *buf, int len)
 	{
 		return APP::ERROR::UnknownMi;
 	}
-
-	if (frm->appErr == APP::ERROR::AppNoError)
+	uint8_t r = frm->appErr;
+	if (r == APP::ERROR::AppNoError)
 	{
 		int i = frm->frmId;
 		if (frms[i] != nullptr)
 		{
-			chkSum -= frms[i]->crc;
+			chksum-=frms[i]->crc;
 			delete frms[i];
 		}
 		frms[i] = frm;
-		chkSum += frms[i]->crc;
-		SaveFrame(i);
+		chksum+=frms[i]->crc;
 	}
 	else
 	{
 		delete frm;
 	}
+	return r;
 }
 
-void UciFrm::SaveFrame(int i)
+void UciFrm::SaveFrm(int i)
 {
 	if(i<1 || i>255)return;
 	char option[8];
-	sprintf(option,"frm_%03d",i);
+	sprintf(option,"frm_%d",i);
 	int len = (frms[i]->frmlen+9);
 	char *v = new char [len*2+1];
 	Cnvt::ParseToAsc(frms[i]->frmData, v, len);
-
+	v[len*2]='\0';
 	struct uci_context *ctx = uci_alloc_context();
 	uci_set_confdir(ctx, PATH);
 	struct uci_ptr ptr;

@@ -1,12 +1,12 @@
 #include <cstring>
 #include <module/OprTcp.h>
 #include <module/TcpServer.h>
+#include <module/Epoll.h>
 #include <layer/LayerManager.h>
-#include <module/TimerEvent.h>
 
 #define TCPSPEED 1000
 
-extern TimerEvent * tmrEvt;
+
 
 OprTcp::OprTcp()
 {
@@ -53,12 +53,13 @@ void OprTcp::Init(std::string name_, std::string aType, int idle)
 }
 
 /// \brief  Called when a new connection accepted
-void OprTcp::Setup(int fd)
+void OprTcp::Setup(int fd,TimerEvent * tmr)
 {
     upperLayer->Clean();
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
     Epoll::Instance().AddEvent(this, events);
+    tmrEvt=tmr;
     tmrEvt->Add(this);
     tcpIdleTmr.Setms(idleTime);
 }

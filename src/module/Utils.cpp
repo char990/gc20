@@ -80,11 +80,11 @@ int Cnvt::ParseToU8(char *p)
     return k;
 }
 
-int Cnvt::ParseToU8(char *src, uint8_t *dst, int len)
+int Cnvt::ParseToU8(char *src, uint8_t *dst, int srclen)
 {
-    if ((len & 1) == 1 || len <= 0)
+    if ((srclen & 1) == 1 || srclen <= 0)
         return -1;
-    len = len / 2;
+    int len = srclen / 2;
     for (int i = 0; i < len; i++)
     {
         int x = ParseToU8(src);
@@ -120,9 +120,9 @@ void Cnvt::ParseToAsc(uint8_t h, char *p)
     *p = ASC[h & 0x0F];
 }
 
-void Cnvt::ParseToAsc(uint8_t *src, char *dst, int len)
+void Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
 {
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < srclen; i++)
     {
         ParseToAsc(*src, dst);
         src++;
@@ -130,12 +130,12 @@ void Cnvt::ParseToAsc(uint8_t *src, char *dst, int len)
     }
 }
 
-int Cnvt::GetIntArray(char *src, int n, int *dst, int min, int max)
+int Cnvt::GetIntArray(char *src, int srcmax, int *dst, int min, int max)
 {
 	char delim[] = ",";
 	char *ptr = strtok(src, delim);
 	int cnt=0;
-	while(ptr != NULL && cnt < n)
+	while(ptr != NULL && cnt < srcmax)
 	{
 		int x = atoi(ptr);
 		if(x>=min && x<=max)

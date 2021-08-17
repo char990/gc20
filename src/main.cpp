@@ -21,7 +21,6 @@
 using namespace std;
 
 
-TimerEvent * tmrEvt;
 int main()
 {
     // setenv("MALLOC_TRACE","./test.log",1);
@@ -29,11 +28,11 @@ int main()
     try
     {
         srand (time(NULL));
-        DbHelper::Instance().Init();
         Epoll::Instance().Init(64);
+        TimerEvent timerEvt10ms(10,"[tmrEvt10ms:10ms]");
+        TimerEvent timerEvt1s(1000,"[tmrEvt1sec:1sec]");
+        DbHelper::Instance().Init(&timerEvt1s);
         Controller::Instance().Init();
-        TimerEvent timerEvt(10,"[tmrEvt:10ms]");
-        tmrEvt = &timerEvt;
 
         #define LINKS_NTS   3   // from tcp:tsi-sp-003
         #define LINKS_WEB   2   // from web
@@ -52,8 +51,8 @@ int main()
             tcppool[i].Init("Tcp"+std::to_string(i), "NTS", 60*1000);
         }
 
-        TcpServer tcpServerPhcs{59991, ntsPool};
-        TcpServer tcpServerWeb{59992, webPool};
+        TcpServer tcpServerPhcs{59991, ntsPool, &timerEvt1s};
+        TcpServer tcpServerWeb{59992, webPool, &timerEvt1s};
 
         SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 38400);
         SerialPort rs232("/dev/ttyRS232", spCfg);

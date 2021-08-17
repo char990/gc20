@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <uci/uci.h>
+#include <uci.h>
 #include <uci/UciCfg.h>
 #include <module/Utils.h>
 

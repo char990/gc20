@@ -33,9 +33,9 @@ namespace Utils
         /// \brief  parse 2 Asc to 1 Hex. Example: "1F....." => 0x1F......
         /// \param      src : ascii buffer
         /// \param      dst : hex buffer
-        /// \param      len : ascii len ( = hex_len *2)
+        /// \param      srclen : ascii len ( = hex_len *2)
         /// \return     int: 0:success, -1:failed, there is invalid chars
-        static int ParseToU8(char *src, uint8_t *dst, int len);
+        static int ParseToU8(char *src, uint8_t *dst, int srclen);
 
         /// \brief  parse Asc to uin16_6 hex. Example: "1F0A" => 0x1F0A
         /// \param      src : ascii buffer
@@ -48,18 +48,18 @@ namespace Utils
         /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F..... => "1F......."
         /// \param      src : hex buffer
         /// \param      dst : ascii buffer
-        /// \param      len : hex len ( = asc_len / 2)
-        static void ParseToAsc(uint8_t *src, char *dst, int len);
+        /// \param      srclen : hex len ( = asc_len / 2)
+        static void ParseToAsc(uint8_t *src, char *dst, int srclen);
 
         /// \brief	convert int string to array, "2,3,100" => {0x02,0x03,0x64}
         ///			If number is less than min or greater than max, just return
         /// \param	src: input
-        /// \param	n: max src size to be converted
+        /// \param	srcmax: max src size to be converted
         /// \param	dst: output
         /// \param	min: min
         /// \param	max: max
         /// \return numbers converted
-        int GetIntArray(char *src, int n, int *dst, int min, int max);
+        int GetIntArray(char *src, int srcmax, int *dst, int min, int max);
     };
 
     class Crc
