@@ -1,23 +1,24 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
+#include <stdexcept>
 #include <uci.h>
 #include <uci/UciCfg.h>
 #include <module/Utils.h>
-
-
+#include <module/MyDbg.h>
 
 UciCfg::UciCfg()
-//	: ctx ( NULL )
+	: ctx(nullptr)
 {
-//	ctx = uci_alloc_context();
 }
 
 UciCfg::~UciCfg()
 {
-	//uci_free_context ( ctx );
-	//ctx = NULL;
+	if (ctx != nullptr)
+	{
+		uci_free_context(ctx);
+		ctx = nullptr;
+	}
 }
 
 /*
@@ -48,26 +49,84 @@ float UciCfg::uci_lookup_option_float ( struct uci_context * uci, struct uci_sec
 
 #define UCI_BUF_SIZE 1024
 
-int UciCfg::UciGet(char * buf, int buflen)
+int UciCfg::UciGet(char *buf, int buflen)
 {
 	char cmd[UCI_BUF_SIZE];
-    snprintf(cmd,UCI_BUF_SIZE-1,"uci -c %s get %s.%s.%s",
-		uciOpt.path, uciOpt.package, uciOpt.section, uciOpt.option);
+	snprintf(cmd, UCI_BUF_SIZE - 1, "uci -c %s get %s.%s.%s",
+			 uciOpt.path, uciOpt.package, uciOpt.section, uciOpt.option);
 	return Utils::Exec::Run(cmd, buf, buflen);
 }
 
 int UciCfg::UciSet()
 {
 	char buf[UCI_BUF_SIZE];
-	snprintf(buf,UCI_BUF_SIZE-1,"uci -c %s set %s.%s.%s=%s",
-		uciOpt.path, uciOpt.package, uciOpt.section, uciOpt.option, uciOpt.value);
-	printf("%s\n",buf);
+	snprintf(buf, UCI_BUF_SIZE - 1, "uci -c %s set %s.%s.%s=%s",
+			 uciOpt.path, uciOpt.package, uciOpt.section, uciOpt.option, uciOpt.value);
+	printf("%s\n", buf);
 	return system(buf);
 }
 
 int UciCfg::UciCommit()
 {
 	char buf[UCI_BUF_SIZE];
-	snprintf(buf,UCI_BUF_SIZE-1,"uci -c %s commit %s", uciOpt.path, uciOpt.package);
+	snprintf(buf, UCI_BUF_SIZE - 1, "uci -c %s commit %s", uciOpt.path, uciOpt.package);
 	return system(buf);
+}
+
+void UciCfg::Open(const char *path, const char *package)
+{
+	ctx = uci_alloc_context();
+	if(ctx==nullptr)
+	{
+		MyThrow("Open '%s/%s' error. Can't alloc context.", path, package);
+	}
+	if (path != nullptr)
+	{
+		uci_set_confdir(ctx, path);
+	}
+	if (UCI_OK != uci_load(ctx, package, &pkg))
+	{
+		uci_free_context(ctx);
+		MyThrow("Can't load '%s/%s'.", path, package);
+	}
+}
+
+void UciCfg::Commit()
+{
+	if (ctx != nullptr && pkg != nullptr)
+	{
+		uci_commit(ctx, &pkg, false);
+	}
+}
+
+void UciCfg::Close()
+{
+	if (ctx != nullptr)
+	{
+		if (pkg != nullptr)
+		{
+			uci_unload(ctx, pkg);
+			pkg = nullptr;
+		}
+		uci_free_context(ctx);
+		ctx = nullptr;
+	}
+}
+
+void UciCfg::SetPtr(struct uci_ptr *ptr, const char * section, char *buf)
+{
+	snprintf(buf, 255, "%s.%s", pkg, section);
+	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK || !ptr->s)
+	{
+		MyThrow("Can't find section:%s", section);
+	}
+}
+
+void UciCfg::SetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf)
+{
+	snprintf(buf, 255, "%s.%s.%s", pkg, section, option);
+	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK || !ptr->s)
+	{
+		MyThrow("Can't find section:%s", section);
+	}
 }

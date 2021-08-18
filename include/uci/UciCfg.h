@@ -45,6 +45,31 @@ protected:
 	
 	/// \brief	
 	struct UciOpt uciOpt;
+
+
+	struct uci_context *ctx;
+	struct uci_package *pkg;
+
+	/// \brief	Open a package, context=>ctx, package=>pkg
+	/// \param	path : config dir, nullptr for default(/etc/config)
+	/// \param	package : package(file) name
+	/// \throw	If can't load path/package
+	void Open(const char *path, const char *package);
+	
+	/// \brief	Commit all changes
+	void Commit();
+
+	/// \brief	Close
+	void Close();
+
+	/// \brief	set ptr for uci_set
+	/// \param	ptr : uci_ptr
+	/// \param	section : section
+	/// \param	option : option
+	/// \param	buf : char buf[256] to store element
+	/// \throw	If can't load path/package
+	void SetPtr(struct uci_ptr *ptr, const char * section, char *buf);
+	void SetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf);
 };
 
 #endif

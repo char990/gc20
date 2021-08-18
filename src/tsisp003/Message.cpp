@@ -85,7 +85,7 @@ std::string Message::ToString()
     {
         if (msgEntries[i].frmId == 0)
         {
-            len = snprintf(buf+len, 1023-len, ", ";
+            len = snprintf(buf+len, 1023-len, ", ");
             break;
         }
         len = snprintf(buf + len, 1023 - len, "(%d,%d)", i + 1, msgEntries[i].frmId, msgEntries[i].onTime);

@@ -1,5 +1,5 @@
-#ifndef __FRAME_H__
-#define __FRAME_H__
+#ifndef __MESSAGE_H__
+#define __MESSAGE_H__
 
 #include <cstdint>
 #include <string>
@@ -9,7 +9,7 @@ struct MsgEntry
 {
     uint8_t frmId;
     uint8_t onTime;
-}
+};
 
 class Message
 {

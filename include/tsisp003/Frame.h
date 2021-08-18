@@ -44,9 +44,6 @@ public:
     /// \breif  ini frame with hex array
     FrmTxt(uint8_t * frm, int len);
     
-    /// \breif make frame
-    void Frame(int len);
-
     /// \brief delete [] frmData
     ~FrmTxt();
 
@@ -61,6 +58,10 @@ public:
     int CheckColour(uint8_t font);
 
     std::string ToString() override;
+
+private:
+    /// \breif make frame
+    void MakeFrame(int len);
 };
 
 class FrmGfx : public Frame

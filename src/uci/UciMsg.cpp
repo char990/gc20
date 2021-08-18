@@ -5,6 +5,8 @@
 #include <module/Utils.h>
 #include <uci/UciMsg.h>
 
+using namespace Utils;
+
 UciMsg::UciMsg(UciFrm &uciFrm)
 :uciFrm(uciFrm)
 {
@@ -25,7 +27,7 @@ UciMsg::~UciMsg()
 	}
 }
 
-void UciMsg::LoadConfig(UciFrm &uciFrm)
+void UciMsg::LoadConfig()
 {
 	chksum=0;
 	struct uci_context *ctx = uci_alloc_context();
@@ -34,7 +36,9 @@ void UciMsg::LoadConfig(UciFrm &uciFrm)
 	if (UCI_OK != uci_load(ctx, PACKAGE, &pkg))
 	{
 		uci_free_context(ctx);
-		throw std::runtime_error("Can't load " + PATH + "/" + PACKAGE);
+		char buf[1024];
+		snprintf(buf,1023,"Can't load %s/%s", PATH, PACKAGE);
+		throw std::runtime_error(buf);
 	}
 	struct uci_section *section = uci_lookup_section(ctx, pkg, SECTION);
 	if (section != NULL)
@@ -54,17 +58,18 @@ void UciMsg::LoadConfig(UciFrm &uciFrm)
 			if (r != 36)
 				continue;
 			Message  * msg = new Message(buf,36);
-            if ( frm->appErr == APP::ERROR::AppNoError && msg->msgId == i && CheckMsgEntries(msg) == 0 )
+            if ( msg->appErr == APP::ERROR::AppNoError && msg->msgId == i && CheckMsgEntries(msg) == 0 )
 			{
-                chksum += frm->crc;
-                if (frms[i] != nullptr)
+                if (msgs[i] != nullptr)
                 {
-                    delete frms[i];
+                	chksum -= msgs[i]->crc;
+                    delete msgs[i];
                 }
-                frms[i]=frm;
+                msgs[i]=msg;
+                chksum += msgs[i]->crc;
                 continue;
 			}
-			delete frm;
+			delete msg;
 		}
 	}
 	uci_unload(ctx, pkg);
@@ -160,5 +165,4 @@ void UciMsg::SaveMsg(int i)
 	uci_commit(ctx, &ptr.p, true);
 	uci_unload(ctx, ptr.p);
 	uci_free_context(ctx);
-	delete v;
 }

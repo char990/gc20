@@ -1,5 +1,5 @@
-#ifndef __UCIPLANS_H__
-#define __UCIPLANS_H__
+#ifndef __UCIPLN_H__
+#define __UCIPLN_H__
 
 #include <uci/UciCfg.h>
 /*
@@ -25,9 +25,9 @@ class UciPln : public UciCfg
 {
 public:
     UciPln();
-    char const* path = "./config";
-    char const* package = "UciPln";
-    char const* config = "pln";
+    char const* PATH = "./config";
+    char const* PACKGE = "UciPln";
+    char const* SECTION = "pln";
 
     void LoadConfig() override;
 	void Dump() override;

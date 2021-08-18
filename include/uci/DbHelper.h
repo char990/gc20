@@ -36,7 +36,7 @@ public:
     UciUser userCfg;
     SignCfg signCfg;
     UciFrm uciFrm;
-    UciMsg uciMsg;
+    UciMsg uciMsg{uciFrm};
     UciPln uciPln;
 
 protected:

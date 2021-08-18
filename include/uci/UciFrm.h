@@ -60,6 +60,7 @@ public:
     /// \param  i: frms index
     void SaveFrm(int i);
 
+    void TestSaveTxtFrm();
 private:
     Frame * frms[256];  // [0] is nullptr
     uint16_t chksum;

@@ -1,8 +1,9 @@
-#ifndef __MESSAGES_H__
-#define __MESSAGES_H__
+#ifndef __UCIMSG_H__
+#define __UCIMSG_H__
 
-#include <uci/UciCfg.h>
+#include <string>
 #include <tsisp003/Message.h>
+#include <uci/UciCfg.h>
 #include <uci/UciFrm.h>
 
 /*
@@ -25,10 +26,10 @@ class UciMsg : public UciCfg
 {
 public:
     UciMsg(UciFrm &uciFrm);
-    
-    char const* path = "./config";
-    char const* package = "UciMsg";
-    char const* config = "msg";
+    ~UciMsg();
+    char const* PATH = "./config";
+    char const* PACKAGE = "UciMsg";
+    char const* SECTION = "msg";
 
     /// \brief  load msgs[] from "UciMsg"
     void LoadConfig() override;

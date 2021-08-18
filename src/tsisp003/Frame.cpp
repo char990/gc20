@@ -45,7 +45,7 @@ FrmTxt::FrmTxt(char * frm, int len)
     CnvtFrm(frm, len, MAX_TXTFRM_SIZE);
     if(appErr==APP::ERROR::AppNoError)
     {
-        Frame(len/2);
+        MakeFrame(len/2);
     }
 }
 
@@ -59,11 +59,11 @@ FrmTxt::FrmTxt(uint8_t * frm, int len)
     {
         frmData = new uint8_t [len];
         memcpy(frmData, frm, len);
-        Frame(len/2);
+        MakeFrame(len);
     }
 }
 
-void FrmTxt::Frame(int len)
+void FrmTxt::MakeFrame(int len)
 {
     if(frmData[0]!=MI::CODE::SignSetTextFrame)
     {
