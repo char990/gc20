@@ -17,11 +17,11 @@ config UciFrm frm
     # frm_001 is text frame, same as SetTextFrame
     option frm_1  "0A01......"
 
-    # frm_100 is graphics frame, same as SetGfxFrame excepte for 'graphics frame data'
+    # frm_100 is graphics frame, same as SetGfxFrame except for 'bitmap data'
     # 'graphics frame data' saved in file:'frm_100'
     option frm_100  "0B64......"
 
-    # frm_101 is High-res graphics frame, same as SetHrGfxFrame excepte for 'hr graphics frame data'
+    # frm_101 is High-res graphics frame, same as SetHrGfxFrame except for 'bitmap data'
     # 'hr graphics frame data' saved in file:'frm_101'
     option frm_101  "1D65......"
 

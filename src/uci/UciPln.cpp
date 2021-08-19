@@ -1,11 +1,25 @@
 #include <uci/UciPln.h>
 #include <module/Utils.h>
 
-UciPln::UciPln()
+
+UciPln::UciPln(UciFrm &uciFrm, UciMsg &uciMsg) 
+:uciFrm(uciFrm), uciMsg(uciMsg)
 {
-    uciOpt.path = const_cast<char *>("./config");
-    uciOpt.package = const_cast<char *>("UciPln");
-	uciOpt.section = const_cast<char *>("pln");
+    for(int i=0;i<=255;i++)
+    {
+        plns[i]=nullptr;
+    }
+}
+
+UciPln::~UciPln() 
+{
+    for(int i=0;i<=255;i++)
+    {
+        if(plns[i]!=nullptr)
+        {
+            delete plns[i];
+        }
+    }
 }
 
 void UciPln::LoadConfig()
@@ -22,5 +36,5 @@ void UciPln::Dump()
 
 uint16_t UciPln::ChkSum()
 {
-    return 0x000A;
+    return chksum;
 }

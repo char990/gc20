@@ -111,6 +111,20 @@ int Cnvt::ParseToU16(char *src)
     return k;
 }
 
+int64_t Cnvt::ParseToU32(char *src)
+{
+    int64_t k = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        int x = ParseToU8(src);
+        if (x < 0)
+            return -1;
+        k = k * 0x100 + x;
+        src += 2;
+    }
+    return k;
+}
+
 void Cnvt::ParseToAsc(uint8_t h, char *p)
 {
     static char ASC[16] = {

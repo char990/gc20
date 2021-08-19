@@ -62,14 +62,18 @@ protected:
 	/// \brief	Close
 	void Close();
 
-	/// \brief	set ptr for uci_set
+	/// \brief	get ptr for uci_set
 	/// \param	ptr : uci_ptr
 	/// \param	section : section
 	/// \param	option : option
 	/// \param	buf : char buf[256] to store element
+	/// \return	is section or option found
 	/// \throw	If can't load path/package
-	void SetPtr(struct uci_ptr *ptr, const char * section, char *buf);
-	void SetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf);
+	///	 * Note: uci_lookup_ptr will automatically load a config package if necessary
+	///	 * @buf must not be constant, as it will be modified and used for the strings inside @ptr,
+	///	 * thus it must also be available as long as @ptr is in use.
+	bool GetPtr(struct uci_ptr *ptr, const char * section, char *buf);
+	bool GetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf);
 };
 
 #endif

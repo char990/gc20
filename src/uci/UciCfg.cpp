@@ -113,20 +113,22 @@ void UciCfg::Close()
 	}
 }
 
-void UciCfg::SetPtr(struct uci_ptr *ptr, const char * section, char *buf)
+bool UciCfg::GetPtr(struct uci_ptr *ptr, const char * section, char *buf)
 {
 	snprintf(buf, 255, "%s.%s", pkg, section);
-	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK || !ptr->s)
+	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't find section:%s", section);
+		MyThrow("Can't load package:%s", pkg);
 	}
+	return (ptr->flags & uci_ptr::UCI_LOOKUP_COMPLETE)!=0;
 }
 
-void UciCfg::SetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf)
+bool UciCfg::GetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf)
 {
 	snprintf(buf, 255, "%s.%s.%s", pkg, section, option);
-	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK || !ptr->s)
+	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't find section:%s", section);
+		MyThrow("Can't load package:%s", pkg);
 	}
+	return (ptr->flags & uci_ptr::UCI_LOOKUP_COMPLETE)!=0;
 }

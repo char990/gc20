@@ -37,10 +37,15 @@ namespace Utils
         /// \return     int: 0:success, -1:failed, there is invalid chars
         static int ParseToU8(char *src, uint8_t *dst, int srclen);
 
-        /// \brief  parse Asc to uin16_6 hex. Example: "1F0A" => 0x1F0A
+        /// \brief  parse Asc to uint16_t hex. Example: "1F0A" => 0x1F0A
         /// \param      src : ascii buffer
         /// \return     int: >0:success, -1:failed, there is invalid chars
         static int ParseToU16(char *src);
+
+        /// \brief  parse Asc to uint32_t hex. Example: "1F0A3456" => 0x1F0A3456
+        /// \param      src : ascii buffer
+        /// \return     int64_t: >0:success, -1:failed, there is invalid chars
+        static int64_t ParseToU32(char *src);
 
         /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F => "1F"
         static void ParseToAsc(uint8_t h, char *p);

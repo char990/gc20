@@ -249,18 +249,24 @@ namespace LOG
 
 /// \brief High-res gfx frame size
 /// max size of a 24-bit RGB frame is 288*64*3 = 55296 bytes
-/// total bytes : 15 + 55296 = 55311
-#define MAX_HRGFRM_SIZE 55311
+/// total bytes : 13 + 55296 + 2 = 55311
+#define HRGFRM_HEADER_SIZE 13
+#define MAX_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 288*64*3 + 2)
+#define MIN_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief Gfx frame size
-// max size of a 4-bit frame is 256*64/2 = 8192 bytes
-// total bytes : 11 + 8192 = 8203
-#define MAX_GFXFRM_SIZE 8203
+// max size of a 4-bit frame is 255*64/2 = 8160 bytes
+// total bytes : 9 + 8192 +2 = 8171
+#define GFXFRM_HEADER_SIZE 9
+#define MAX_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 255*64/2 + 2)
+#define MIN_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief Text frame size
 // max size of a text frame is 255 bytes
-// total bytes : 9 + 255 = 264
-#define MAX_TXTFRM_SIZE 264
+// total bytes : 7 + 255 + 2 = 264
+#define TXTFRM_HEADER_SIZE 7
+#define MAX_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 255 + 2)
+#define MIN_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief App packet size
 /// max size of app packet is HRG frame

@@ -1,3 +1,5 @@
+#include <unistd.h>
+#include <fcntl.h>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -10,7 +12,7 @@ using namespace Utils;
 
 UciFrm::UciFrm()
 {
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i <= 255; i++)
 	{
 		frms[i] = nullptr;
 	}
@@ -18,7 +20,7 @@ UciFrm::UciFrm()
 
 UciFrm::~UciFrm()
 {
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i <= 255; i++)
 	{
 		if (frms[i] != nullptr)
 		{
@@ -38,6 +40,7 @@ void UciFrm::LoadConfig()
 	}
 	struct uci_element *e;
 	struct uci_option *option;
+	char *fbuf = new char [MAX_HRGFRM_SIZE*2];
 	uci_foreach_element(&section->options, e)
 	{
 		if (memcmp(e->name, "frm_", 4) != 0)
@@ -48,20 +51,63 @@ void UciFrm::LoadConfig()
 			continue;
 		char *buf = option->v.string;
 		int r = strlen(buf);
-		if (r < 20)
-			continue;
 		int mi = Cnvt::ParseToU8(buf);
 		Frame *frm;
 		if (mi == MI::CODE::SignSetTextFrame)
 		{
+			if (r < MIN_TXTFRM_SIZE*2 || r > MAX_TXTFRM_SIZE*2)
+				continue;
 			frm = new FrmTxt(buf, r);
 		}
 		else if (mi == MI::CODE::SignSetGraphicsFrame)
 		{
+			if (r != (GFXFRM_HEADER_SIZE+2)*2)
+				continue;
+			int frmlen = Cnvt::ParseToU16(&buf[7*2]);
+			if (frmlen<1 || frmlen>(MAX_GFXFRM_SIZE-GFXFRM_HEADER_SIZE-2))
+				continue;
+			memcpy(fbuf, buf, GFXFRM_HEADER_SIZE*2);					// copy frame header
+			memcpy(fbuf+(GFXFRM_HEADER_SIZE+frmlen)*2, buf+r-2*2, 2*2);// copy frame crc
+			char filename[256];
+			snprintf(filename, 255, "%s/frm_%d", PATH, i);
+			int frm_fd = open(filename, O_RDONLY);
+			if(frm_fd>0)
+			{
+				int rdlen = read(frm_fd, fbuf+GFXFRM_HEADER_SIZE*2, frmlen * 2);
+				close(frm_fd);
+				if(rdlen!=frmlen*2)
+				{
+					continue;
+				}
+			}
+			r+=frmlen*2;
 			frm = new FrmGfx(buf, r);
 		}
 		else if (mi == MI::CODE::SignSetHighResolutionGraphicsFrame)
 		{
+			if (r != (HRGFRM_HEADER_SIZE+2)*2)
+				continue;
+			int64_t x = Cnvt::ParseToU32(&buf[9*2]);
+			if(x<0)
+				continue;
+			int frmlen = x;
+			if (frmlen<1 || frmlen>(MAX_HRGFRM_SIZE-HRGFRM_HEADER_SIZE-2))
+				continue;
+			memcpy(fbuf, buf, HRGFRM_HEADER_SIZE*2);					// copy frame header
+			memcpy(fbuf+(HRGFRM_HEADER_SIZE+frmlen)*2, buf+r-2*2, 2*2);// copy frame crc
+			char filename[256];
+			snprintf(filename, 255, "%s/frm_%d", PATH, i);
+			int frm_fd = open(filename, O_RDONLY);
+			if(frm_fd>0)
+			{
+				int rdlen = read(frm_fd, fbuf+HRGFRM_HEADER_SIZE*2, frmlen * 2);
+				close(frm_fd);
+				if(rdlen!=frmlen*2)
+				{
+					continue;
+				}
+			}
+			r+=frmlen*2;
 			frm = new FrmHrg(buf, r);
 		}
 		else
@@ -148,20 +194,50 @@ uint8_t UciFrm::SetFrm(uint8_t *buf, int len)
 
 void UciFrm::SaveFrm(int i)
 {
-	if (i < 1 || i > 255)
+	if (i < 1 || i > 255 || frms[i]==nullptr)
 		return;
 	Open(PATH, PACKAGE);
 	char section[256];
 	struct uci_ptr ptr;
-	SetPtr(&ptr, SECTION, section);
+	if(!GetPtr(&ptr, SECTION, section))
+	{
+		Close();
+		return;
+	}
+	int len;
+	char *v;
 	char option[8];
 	sprintf(option, "frm_%d", i);
-	int len = (frms[i]->frmlen + 9);
-	char *v = new char[len * 2 + 1];
-	Cnvt::ParseToAsc(frms[i]->frmData, v, len);
-	v[len * 2] = '\0';
 	ptr.option = option;
 	ptr.value = v;
+	if(frms[i]->micode==MI::CODE::SignSetTextFrame)
+	{
+		len = (frms[i]->frmlen + frms[i]->frmOffset + 2);
+		v = new char[len * 2 + 1];
+		Cnvt::ParseToAsc(frms[i]->frmData, v, len);
+		v[len * 2] = '\0';
+	}
+	else
+	{
+		len = (frms[i]->frmOffset + 2);
+		v = new char[len * 2 + 1];
+		Cnvt::ParseToAsc(frms[i]->frmData, v, len-2);
+		Cnvt::ParseToAsc(frms[i]->frmData+len-2, v+(len-2)*2, 2);
+		v[len * 2] = '\0';
+		
+		char * bitmap = new char[frms[i]->frmlen+1];
+		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmlen, bitmap, frms[i]->frmlen);
+		bitmap[frms[i]->frmlen * 2] = '\0';
+		char filename[256];
+		snprintf(filename, 255, "%s/frm_%d", PATH, i);
+		int frm_fd = open(filename, O_CREAT|O_WRONLY|O_TRUNC, 0770);
+		if(frm_fd>0)
+		{
+			write(frm_fd, bitmap, frms[i]->frmlen * 2);
+			close(frm_fd);
+		}
+		delete [] bitmap;
+	}
 	uci_set(ctx, &ptr);
 	Commit();
 	Close();
@@ -205,7 +281,11 @@ void UciFrm::TestSaveTxtFrm()
 	Open(PATH, PACKAGE);
 	char section[256];
 	struct uci_ptr ptr;
-	SetPtr(&ptr, SECTION, section);
+	if(!GetPtr(&ptr, SECTION, section))
+	{
+		Close();
+		return;
+	}
 
 	ptr.option = option;
 	ptr.value = v;

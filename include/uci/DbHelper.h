@@ -37,7 +37,7 @@ public:
     SignCfg signCfg;
     UciFrm uciFrm;
     UciMsg uciMsg{uciFrm};
-    UciPln uciPln;
+    UciPln uciPln{uciFrm,uciMsg};
 
 protected:
 
