@@ -2,16 +2,13 @@
 #define __UCICFG_H__
 
 #include <cstdint>
+#include <string>
 
-struct UciOpt
+struct OptVal
 {
-	char * path;
-	char * package;
-	char * section;
 	char * option;
 	char * value;
 };
-
 class UciCfg
 {
 public:
@@ -20,41 +17,29 @@ public:
 	virtual void LoadConfig() = 0;
 	virtual void Dump() = 0;
 
+	/// Get section, must call Open() before using
+    struct uci_section * GetSection(const char *name);						// don't care section type
+    struct uci_section * GetSection(const char *type, const char *name);	// both type & name should match
+
+	/// Get option in section, must call Open() before using
+	const char * GetStr(struct uci_section * section, const char * option);
+	int GetInt(struct uci_section * section, const char * option, int default, int min, int max);
+	uint32_t GetUint32(struct uci_section * section, const char * option, uint32_t default,uint32_t min, uint32_t max);
+	float GetFloat(struct uci_section * section, const char * option, float default);
+
 protected:
-/*
-	int uci_lookup_option_int ( struct uci_context * uci, struct uci_section * s, const char * name,
-								int default_value = 0 );
-	unsigned int uci_lookup_option_uint ( struct uci_context * uci, struct uci_section * s, const char * name,
-										  unsigned int default_value = 0 );
-	float uci_lookup_option_float ( struct uci_context * uci, struct uci_section * s, const char * name,
-										  float default_value = 0 );
-
-	struct uci_context * ctx;
-*/
-	/// \brief	Get option
-	/// \return >0:sucess, size of buf; -1:failed
-	int UciGet(char * buf, int buflen);
-
-	/// \brief	Set option
-	/// \return 0:sucess; others:failed:return of uci
-	int UciSet();
-
-	/// \brief	Commit all settings/changes
-	/// \return 0:sucess; others:failed:return of uci
-	int UciCommit();
 	
-	/// \brief	
-	struct UciOpt uciOpt;
-
-
 	struct uci_context *ctx;
 	struct uci_package *pkg;
 
+	/// config dir, nullptr for default(/etc/config)
+	std::string PATH;
+	/// package(file) name
+	std::string PACKAGE;
+
 	/// \brief	Open a package, context=>ctx, package=>pkg
-	/// \param	path : config dir, nullptr for default(/etc/config)
-	/// \param	package : package(file) name
 	/// \throw	If can't load path/package
-	void Open(const char *path, const char *package);
+	void Open();
 	
 	/// \brief	Commit all changes
 	void Commit();
@@ -74,6 +59,28 @@ protected:
 	///	 * thus it must also be available as long as @ptr is in use.
 	bool GetPtr(struct uci_ptr *ptr, const char * section, char *buf);
 	bool GetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf);
+
+	/// \brief	Save section.option.value
+	/// \param	section : section
+	/// \param	option : option
+	/// \param	value : value
+	/// \throw	If can't load path/package
+	void Save(const char * section, char * option, char * value);
+	void Save(const char * section, struct OptVal * optval);
+	void Save(const char * section, struct OptVal ** optval, int len);
+
+	/// \brief	OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()
+	/// \param	option : option
+	/// \param	value : value
+	/// \throw	If can't load path/package
+	char * bufSecSave;
+	void OpenSectionForSave(const char * section);
+	void OptionSave(char * option, char * value);
+	void OptionSave(struct OptVal * optval);
+	void OptionSave(struct OptVal ** optval, int len);
+	void OptionSaveInt(char * option, int value);
+	void CloseSectionForSave();
 };
+
 
 #endif

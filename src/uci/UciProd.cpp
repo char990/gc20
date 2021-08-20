@@ -4,8 +4,8 @@
 
 UciProd::UciProd()
 {
-    uciOpt.path = const_cast<char *>("/etc/config");
-    uciOpt.package = const_cast<char *>("goblin");
+    PATH = "/etc/config";
+    PACKAGE = "goblin";
 }
 
 void UciProd::LoadConfig()

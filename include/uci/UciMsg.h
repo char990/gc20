@@ -28,9 +28,8 @@ class UciMsg : public UciCfg
 public:
     UciMsg(UciFrm &uciFrm);
     ~UciMsg();
-    char const* PATH = "./config";
-    char const* PACKAGE = "UciMsg";
-    char const* SECTION = "msg";
+
+	std::string SECTION;
 
     /// \brief  load msgs[] from "UciMsg"
     void LoadConfig() override;

@@ -36,6 +36,9 @@ public:
     PlnEntry plnEntries[6];
     uint16_t crc;
     uint8_t enabled;
+    uint8_t *plnData;
+    int plnDataLen;
+    
 
     std::string ToString();
 };

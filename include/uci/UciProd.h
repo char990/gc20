@@ -7,18 +7,17 @@ class UciProd : public UciCfg
 {
 public:
     UciProd();
-    char const* PATH = "/etc/config";
-    char const* PACKAGE = "goblin";
-    char const* SECTION = "frm";
 
+    bool IsChanged();
+    
     void LoadConfig() override;
-	void Dump() override;
+    void Dump() override;
 
     uint8_t TsiSp003Ver();
-    char * MfcCode();
+    char *MfcCode();
 
     int ColourBits();
-    
+
     int MaxTextFrmLen();
     int MinGfxFrmLen();
     int MaxGfxFrmLen();
@@ -31,6 +30,9 @@ public:
     int PixelRows();
     int PixelColumns();
     int Pixels();
+
+private:
+    bool isChanged;
 };
 
 #endif

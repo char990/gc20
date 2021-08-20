@@ -1,15 +1,18 @@
 #include <cstdio>
 #include <cstring>
-#include <stdexcept>
 #include <uci.h>
 #include <module/Utils.h>
 #include <uci/UciMsg.h>
+#include <module/MyDbg.h>
 
 using namespace Utils;
 
 UciMsg::UciMsg(UciFrm &uciFrm)
 :uciFrm(uciFrm)
 {
+    PATH = "./config";
+    PACKAGE = "UciMsg";
+	SECTION = "msg";
 	for(int i=0;i<=255;i++)
 	{
 		msgs[i] = nullptr;
@@ -31,15 +34,11 @@ void UciMsg::LoadConfig()
 {
 	chksum=0;
 	chksum = 0;
-	Open(PATH, PACKAGE);
-	struct uci_section *section = uci_lookup_section(ctx, pkg, SECTION);
-	if (section == NULL)
-	{
-		MyThrow("Can't load %s/%s.%s", PATH, PACKAGE, SECTION);
-	}
+	Open();
+	struct uci_section *sec = GetSection(SECTION.c_str());
 	struct uci_element *e;
 	struct uci_option *option;
-	uci_foreach_element(&section->options, e)
+	uci_foreach_element(&sec->options, e)
 	{
 		if (memcmp(e->name, "msg_", 4) != 0)
 			continue;
@@ -73,8 +72,8 @@ void UciMsg::LoadConfig()
 
 int UciMsg::CheckMsgEntries(Message  * msg)
 {
-    int r=-1;
-    for(int i=0;i<6;i++)
+    int i=0;
+    while(i<6)
     {
         uint8_t fid = msg->msgEntries[i].frmId;
         if(fid==0)
@@ -87,18 +86,15 @@ int UciMsg::CheckMsgEntries(Message  * msg)
             {
                 return 1;
             }
-            else
-            {
-                r=0;
-            }
         }
+		i++;
     }
-    return r;
+    return (i==0)?-1:0;
 }
 
 void UciMsg::Dump()
 {
-	for (int i = 1; i < 255; i++)
+	for (int i = 1; i <= 255; i++)
 	{
 		if (msgs[i] != nullptr)
 		{
@@ -143,22 +139,10 @@ void UciMsg::SaveMsg(int i)
 {
 	Message * msg = msgs[i];
 	if(i<1 || i>255 || msg ==nullptr)return;
-	Open(PATH, PACKAGE);
-	char section[256];
-	struct uci_ptr ptr;
-	if(!GetPtr(&ptr, SECTION, section))
-	{
-		Close();
-		return;
-	}
-	char option[8];
+    char option[8];
 	sprintf(option,"msg_%d",i);
 	char v[36+1];
 	Cnvt::ParseToAsc(msg->msgData, v, msg->msgDatalen);
     v[msg->msgDatalen*2]='\0';
-	ptr.option = option;
-	ptr.value = v;
-	uci_set(ctx, &ptr);
-	Commit();
-	Close();
+    Save(SECTION.c_str(), option, v);
 }

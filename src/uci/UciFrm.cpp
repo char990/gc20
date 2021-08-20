@@ -12,6 +12,9 @@ using namespace Utils;
 
 UciFrm::UciFrm()
 {
+    PATH = "./config";
+    PACKAGE = "UciFrm";
+    SECTION = "frm";
 	for (int i = 0; i <= 255; i++)
 	{
 		frms[i] = nullptr;
@@ -32,20 +35,16 @@ UciFrm::~UciFrm()
 void UciFrm::LoadConfig()
 {
 	chksum = 0;
-	Open(PATH, PACKAGE);
-	struct uci_section *section = uci_lookup_section(ctx, pkg, SECTION);
-	if (section == NULL)
-	{
-		MyThrow("Can't load %s/%s.%s", PATH, PACKAGE, SECTION);
-	}
+	Open();
+	struct uci_section *sec = GetSection(SECTION.c_str());
 	struct uci_element *e;
 	struct uci_option *option;
 	char *fbuf = new char [MAX_HRGFRM_SIZE*2];
-	uci_foreach_element(&section->options, e)
+	uci_foreach_element(&sec->options, e)
 	{
 		if (memcmp(e->name, "frm_", 4) != 0)
 			continue;
-		struct uci_option *option = uci_to_option(e);
+		option = uci_to_option(e);
 		int i = atoi(e->name + 4);
 		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
 			continue;
@@ -196,22 +195,12 @@ void UciFrm::SaveFrm(int i)
 {
 	if (i < 1 || i > 255 || frms[i]==nullptr)
 		return;
-	Open(PATH, PACKAGE);
-	char section[256];
-	struct uci_ptr ptr;
-	if(!GetPtr(&ptr, SECTION, section))
-	{
-		Close();
-		return;
-	}
+
 	int len;
 	char *v;
-	char option[8];
-	sprintf(option, "frm_%d", i);
-	ptr.option = option;
-	ptr.value = v;
 	if(frms[i]->micode==MI::CODE::SignSetTextFrame)
 	{
+		// make option.value
 		len = (frms[i]->frmlen + frms[i]->frmOffset + 2);
 		v = new char[len * 2 + 1];
 		Cnvt::ParseToAsc(frms[i]->frmData, v, len);
@@ -219,17 +208,11 @@ void UciFrm::SaveFrm(int i)
 	}
 	else
 	{
-		len = (frms[i]->frmOffset + 2);
-		v = new char[len * 2 + 1];
-		Cnvt::ParseToAsc(frms[i]->frmData, v, len-2);
-		Cnvt::ParseToAsc(frms[i]->frmData+len-2, v+(len-2)*2, 2);
-		v[len * 2] = '\0';
-		
-		char * bitmap = new char[frms[i]->frmlen+1];
-		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmlen, bitmap, frms[i]->frmlen);
-		bitmap[frms[i]->frmlen * 2] = '\0';
+		// save bitmap
+		char * bitmap = new char[frms[i]->frmlen*2];
+		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmOffset, bitmap, frms[i]->frmlen);
 		char filename[256];
-		snprintf(filename, 255, "%s/frm_%d", PATH, i);
+		snprintf(filename, 255, "%s/frm_%d", PATH.c_str(), i);
 		int frm_fd = open(filename, O_CREAT|O_WRONLY|O_TRUNC, 0770);
 		if(frm_fd>0)
 		{
@@ -237,10 +220,17 @@ void UciFrm::SaveFrm(int i)
 			close(frm_fd);
 		}
 		delete [] bitmap;
+		// make option.value
+		len = (frms[i]->frmOffset + 2);
+		v = new char[len * 2 + 1];
+		Cnvt::ParseToAsc(frms[i]->frmData, v, frms[i]->frmOffset);
+		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmOffset, v+frms[i]->frmOffset*2, 2);
+		v[len * 2] = '\0';
 	}
-	uci_set(ctx, &ptr);
-	Commit();
-	Close();
+
+	char option[8];
+	sprintf(option, "frm_%d", i);
+    Save(SECTION.c_str(), option, v);	
 	delete v;
 }
 
@@ -278,10 +268,10 @@ void UciFrm::TestSaveTxtFrm()
 	char option[8];
 	int len = TestSaveTxtFrm_len + 9;
 	char v[len * 2 + 1];
-	Open(PATH, PACKAGE);
+	Open();
 	char section[256];
 	struct uci_ptr ptr;
-	if(!GetPtr(&ptr, SECTION, section))
+	if(!GetPtr(&ptr, SECTION.c_str(), section))
 	{
 		Close();
 		return;

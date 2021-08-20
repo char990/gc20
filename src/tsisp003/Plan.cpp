@@ -42,37 +42,28 @@ Plan::Plan(char *cpln, int clen)
 Plan::Plan(uint8_t *xpln, int xlen)
 {
     micode = xpln[0];
-    msgId = xpln[1];
-    msgRev = xpln[2];
-    transTime = xpln[3];
+    plnId = xpln[1];
+    plnRev = xpln[2];
+    weekdays = xpln[3];
     if (xlen < (4+6*1+1) || xlen > (4+6*6)) // no crc & enable flag
     {
         appErr = APP::ERROR::LengthError;
     }
-    {
-        appErr = APP::ERROR::LengthError;
-    }
-    else if (micode != MI::CODE::SignSetMessage)
+    else if (micode != MI::CODE::SignSetPlan)
     {
         appErr = APP::ERROR::UnknownMi;
     }
-    else if (msgId == 0)
+    else if (plnId == 0 || (weekdays&0x80)!=0)
     {
         appErr = APP::ERROR::SyntaxError;
     }
     else
     {
         uint8_t *p = xpln+4;
-        bool frmId0=false;
         for(int i=0;i<6;i++)
         {
-            msgEntries[i].frmId = 0;
-            msgEntries[i].onTime = 0;
-        }
-        for(int i=0;i<6;i++)
-        {
-            msgEntries[i].frmId = *p++;
-            if(msgEntries[i].frmId==0)
+            plnEntries[i].type = *p++;
+            if(plnEntries[i].type==0)
             {
                 if(i==0)
                 {
@@ -81,7 +72,11 @@ Plan::Plan(uint8_t *xpln, int xlen)
                 }
                 break;
             }
-            msgEntries[i].onTime = *p++;
+            plnEntries[i].fmId = *p++;
+            plnEntries[i].start.hour = *p++;
+            plnEntries[i].start.min = *p++;
+            plnEntries[i].stop.hour = *p++;
+            plnEntries[i].stop.min = *p++;
         }
         if(p!=xpln+xlen)
         {
@@ -91,6 +86,11 @@ Plan::Plan(uint8_t *xpln, int xlen)
         {
             appErr = APP::ERROR::AppNoError;
             crc = Crc::Crc16_1021(xpln, xlen);
+            plnDataLen = xlen +2;
+            plnData = new uint8_t [plnDataLen];
+            memcpy(plnData, xpln, xlen);
+            plnData[plnDataLen - 2] = crc/0x100;
+            plnData[plnDataLen - 1] = crc;
         }
     }
 }

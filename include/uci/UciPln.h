@@ -32,12 +32,10 @@ class UciPln : public UciCfg
 public:
     UciPln(UciFrm &uciFrm, UciMsg &uciMsg);
     ~UciPln();
-    char const* PATH = "./config";
-    char const* PACKGE = "UciPln";
-    char const* SECTION = "pln";
 
+    std::string SECTION;
 
-    /// \brief  load msgs[] from "UciMsg"
+    /// \brief  load plns[] from "UciPln"
     void LoadConfig() override;
 
 	void Dump() override;
@@ -72,7 +70,6 @@ private:
     UciFrm &uciFrm;
     UciMsg &uciMsg;
 };
-
 
 
 #endif

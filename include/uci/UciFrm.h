@@ -33,9 +33,8 @@ class UciFrm : public UciCfg
 public:
     UciFrm();
     ~UciFrm();
-    char const* PATH = "./config";
-    char const* PACKAGE = "UciFrm";
-    char const* SECTION = "frm";
+
+    std::string SECTION;
 
     /// \brief  load frms[] from "UciFrm"
     void LoadConfig() override;
