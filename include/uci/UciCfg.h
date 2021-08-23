@@ -3,11 +3,12 @@
 
 #include <cstdint>
 #include <string>
+#include <uci.h>
 
 struct OptVal
 {
-	char * option;
-	char * value;
+	const char * option;
+	const char * value;
 };
 class UciCfg
 {
@@ -23,9 +24,8 @@ public:
 
 	/// Get option in section, must call Open() before using
 	const char * GetStr(struct uci_section * section, const char * option);
-	int GetInt(struct uci_section * section, const char * option, int default, int min, int max);
-	uint32_t GetUint32(struct uci_section * section, const char * option, uint32_t default,uint32_t min, uint32_t max);
-	float GetFloat(struct uci_section * section, const char * option, float default);
+	int GetInt(struct uci_section * section, const char * option, int min, int max);
+	uint32_t GetUint32(struct uci_section * section, const char * option, uint32_t min, uint32_t max);
 
 protected:
 	
@@ -65,7 +65,7 @@ protected:
 	/// \param	option : option
 	/// \param	value : value
 	/// \throw	If can't load path/package
-	void Save(const char * section, char * option, char * value);
+	void Save(const char * section, const char * option, const char * value);
 	void Save(const char * section, struct OptVal * optval);
 	void Save(const char * section, struct OptVal ** optval, int len);
 
@@ -73,13 +73,18 @@ protected:
 	/// \param	option : option
 	/// \param	value : value
 	/// \throw	If can't load path/package
+	struct uci_ptr ptrSecSave;
 	char * bufSecSave;
 	void OpenSectionForSave(const char * section);
-	void OptionSave(char * option, char * value);
+	void OptionSave(const char * option, const char * value);
 	void OptionSave(struct OptVal * optval);
 	void OptionSave(struct OptVal ** optval, int len);
-	void OptionSaveInt(char * option, int value);
+	void OptionSaveInt(const char * option, int value);
 	void CloseSectionForSave();
+
+	void PrintOption_2x(const char * option, int x);
+	void PrintOption_4x(const char * option, int x);
+	void PrintOption_d(const char * option, int x);
 };
 
 

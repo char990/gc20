@@ -104,3 +104,12 @@ int UciProd::Pixels()
     return PixelRows()*PixelColumns();
 }
 
+int UciProd::Signs() 
+{
+    return 4;
+}
+
+int UciProd::MaxFont()
+{
+    return 2;
+}

@@ -1,9 +1,13 @@
+#include <unistd.h>
+#include <fcntl.h>
 #include <cstdio>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
-#include <time.h>
+#include <cerrno>
+#include <ctime>
 #include <module/Utils.h>
+#include <module/MyDbg.h>
 
 
 using namespace Utils;
@@ -144,15 +148,19 @@ void Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
     }
 }
 
-int Cnvt::GetIntArray(char *src, int srcmax, int *dst, int min, int max)
+int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
 {
-	char delim[] = ",";
-	char *ptr = strtok(src, delim);
+    char buf[256];
+    memcpy(buf,src,255);
+    buf[255]='\0'; // copy max 255 chars
+    char delim[] = ",:;";
+	char *ptr = buf;
 	int cnt=0;
 	while(ptr != NULL && cnt < srcmax)
 	{
-		int x = atoi(ptr);
-		if(x>=min && x<=max)
+        errno=0;          
+        int x = strtol(ptr, nullptr, 0);
+		if(errno==0 && x>=min && x<=max)
 		{
 			*dst++=x;
 			cnt++;
@@ -163,7 +171,7 @@ int Cnvt::GetIntArray(char *src, int srcmax, int *dst, int min, int max)
 		}
 		ptr = strtok(NULL, delim);
 	}
-	return cnt;	
+	return cnt;
 }
 
 const uint8_t Crc::crc8_table[256] =
@@ -395,7 +403,7 @@ uint32_t Crc::Crc32(uint8_t *buf, int len, uint32_t precrc)
 }
 
 
-int Exec::Run(char* cmd, char * outbuf, int buf_len)
+int Exec::Run(const char* cmd, char * outbuf, int buf_len)
 {
     auto pipe = popen(cmd, "r");
     if (!pipe)
@@ -436,6 +444,41 @@ int Exec::Run(char* cmd, char * outbuf, int buf_len)
     cnt--;
     outbuf[cnt]='\0';
     return cnt;
+}
+
+void Exec::CopyFile(const char *src, const char *dst)
+{
+    int srcfd = open(src, O_RDONLY);
+    if(srcfd<0)
+    {
+        MyThrow("Can't open %s to read", src);
+    }
+    int dstfd = open(dst, O_WRONLY|O_TRUNC, 0660);
+    if(dstfd<0)
+    {
+        MyThrow("Can't open %s to write", dst);
+    }
+    uint8_t buf[1024];
+    while(1)
+    {
+        ssize_t rd = read(srcfd, &buf[0], sizeof(buf));
+        if(rd<0)
+        {
+            close(srcfd);
+            close(dstfd);
+            MyThrow("Read %s error",src);
+        }
+        if (rd==0) break;
+        ssize_t wr = write(dstfd, &buf[0], rd);
+        if(rd!=wr)
+        {
+            close(srcfd);
+            close(dstfd);
+            MyThrow("Write %s error",dst);
+        }
+    }
+    close(srcfd);
+    close(dstfd);
 }
 
 void Time::PrintTime()

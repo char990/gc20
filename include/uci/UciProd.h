@@ -31,6 +31,10 @@ public:
     int PixelColumns();
     int Pixels();
 
+    int Signs();
+
+    int MaxFont();
+
 private:
     bool isChanged;
 };

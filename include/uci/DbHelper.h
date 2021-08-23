@@ -33,7 +33,7 @@ public:
     void Sync();
 
     UciProd prodCfg;
-    UciUser userCfg;
+    UciUser userCfg{prodCfg};
     SignCfg signCfg;
     UciFrm uciFrm;
     UciMsg uciMsg{uciFrm};

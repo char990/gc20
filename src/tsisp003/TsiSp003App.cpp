@@ -215,7 +215,7 @@ uint16_t TsiSp003App::MakePassword()
         passwd <<= 1; // shift left one position
         passwd = passwd + (bit5 ^ bit7 ^ bit8);
     }
-    return passwd + DbHelper::Instance().userCfg.PasswdOffset();
+    return passwd + DbHelper::Instance().userCfg.PasswordOffset();
 }
 
 bool TsiSp003App::ChkLen(int len1, int len2)

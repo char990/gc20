@@ -3,12 +3,7 @@
 
 
 #include <uci/UciCfg.h>
-
-struct GrpSign
-{
-    uint8_t sId;
-    uint8_t gId;
-};
+#include <uci/UciProd.h>
 
 typedef struct ExtSwCfg {
 	uint16_t dispTime;
@@ -27,7 +22,7 @@ typedef struct ExtSwCfg {
 class UciUser : public UciCfg
 {
 public:
-    UciUser();
+    UciUser(UciProd &uciProd);
     ~UciUser();
 
     bool IsChanged();
@@ -37,8 +32,8 @@ public:
 
     void LoadFactoryDefault();
 
-    uint8_t BroadcastAddr() { return broadcastAddr;};
-    void BroadcastAddr(uint8_t);
+    uint8_t BroadcastId() { return broadcastId;};
+    void BroadcastId(uint8_t);
 
     uint8_t DeviceId() { return deviceId;};
     void DeviceId(uint8_t);
@@ -70,12 +65,18 @@ public:
     uint8_t LockedMsg() { return lockedMsg;};
     void LockedMsg(uint8_t);
 
+    uint8_t LastFrmTime() { return lastFrmTime;};
+    void LastFrmTime(uint8_t);
 
+    uint8_t ComportTMC() { return comportTMC;};
+    void ComportTMC(uint8_t);
 
+    uint8_t Tz() { return tz;};
+    void Tz(uint8_t);
+    const char * TZ();
 
-
-    uint16_t PasswdOffset() { return passwdOffset;};
-    void PasswdOffset(uint16_t);
+    uint16_t PasswordOffset() { return passwordOffset;};
+    void PasswordOffset(uint16_t);
 
     uint16_t SessionTimeout() { return sessionTimeout;};
     void SessionTimeout(uint16_t);
@@ -98,21 +99,26 @@ public:
     uint16_t *Luminance(){ return luminance; };
     void Luminance(uint16_t * p);
 
+    uint8_t *DawnDusk(){ return dawnDusk; };
+    void DawnDusk(uint8_t *p);
+
     int SignN() { return signN;};
     void SignN(int);
 
-    struct GrpSign * GrpSign() { return grpSign;};
+    uint8_t * GroupCfg() { return groupCfg;};
 
-    ExtSwCfg *ExtSwCfgX(int i);
+    ExtSwCfg *ExtSwCfgX(int i){return &extSwCfg[i];};
 
-    void Commit();
+    void SetUciUserConfig(const char *option, char * value);
 
 private:
+
     bool isChanged;
+    UciProd &uciProd;
     struct uci_section *sec;
     
     uint8_t
-        broadcastAddr,
+        broadcastId,
         deviceId,
         seedOffset,
         fan1OnTemp,
@@ -122,10 +128,13 @@ private:
         defaultFont,
         defaultColour,
         lockedFrm,
-        lockedMsg;
+        lockedMsg,
+        comportTMC,
+        tz,
+        lastFrmTime;
 
     uint16_t
-        passwdOffset,
+        passwordOffset,
         sessionTimeout,
         displayTimeout,
         svcPort,
@@ -134,15 +143,55 @@ private:
 
     int baudrateTMC;
 
-    char tz[16];
     char shakehandsPassword[11];
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 
     int signN;
-    struct GrpSign * grpSign;
+    uint8_t * groupCfg;
 
     ExtSwCfg extSwCfg[3];
+
+    const char * SECTION_NAME="user_cfg";
+
+    const char * _DeviceId="DeviceId";
+    const char * _BroadcastId="BroadcastId";
+    const char * _SeedOffset="SeedOffset";
+    const char * _PasswordOffset="PasswordOffset";
+    const char * _SvcPort="SvcPort";
+    const char * _WebPort="WebPort";
+    const char * _BaudrateTMC="BaudrateTMC";
+
+    const char * _OverTemp="OverTemp";
+    const char * _Fan1OnTemp="Fan1OnTemp";
+    const char * _Fan2OnTemp="Fan2OnTemp";
+    const char * _Humidity="Humidity";
+
+    const char * _SessionTimeout="SessionTimeout";
+    const char * _DisplayTimeout="DisplayTimeout";
+    const char * _DefaultFont="DefaultFont";
+    const char * _DefaultColour="DefaultColour";
+
+    const char * _MultiLedFaultThreshold="MultiLedFaultThreshold";
+
+    const char * _LockedFrm="LockedFrm";
+    const char * _LockedMsg="LockedMsg";
+    const char * _LastFrmTime="LastFrmTime";
+    
+
+    const char * _TZ="TZ";
+    const char * _ShakehandsPassword="ShakehandsPassword";
+    const char * _Luminance="Luminance";
+    const char * _DawnDusk="DawnDusk";
+    const char * _ComportTMC="ComportTMC";
+    const char * _GroupCfg="GroupCfg";
+    const char * _ExtSw_Cfg="ExtSw_Cfg";
+
+    void PrintExtSwCfg(int i, char *buf);
+    void PrintDawnDusk(char *buf);
+    void PrintGroupCfg(char *buf);
+    void PrintLuminance(char *buf);
+    
 };
 
 #endif

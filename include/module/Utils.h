@@ -64,7 +64,7 @@ namespace Utils
         /// \param	min: min
         /// \param	max: max
         /// \return numbers converted
-        int GetIntArray(char *src, int srcmax, int *dst, int min, int max);
+        static int GetIntArray(const char *src, int srcmax, int *dst, int min, int max);
     };
 
     class Crc
@@ -154,7 +154,13 @@ namespace Utils
         /// \param      outbuf:output
         /// \param      len:output buffer size
         /// \return     -1:failed; >=0:output size(include 0x0a attached)
-        static int Run(char *cmd, char *outbuf, int len);
+        static int Run(const char *cmd, char *outbuf, int len);
+    
+        /// \brief      Copy a file
+        /// \param      src:
+        /// \param      dst:
+        static void CopyFile(const char *src, const char *dst);
+    
     };
 
     class Time
