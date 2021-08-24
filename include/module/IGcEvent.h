@@ -3,7 +3,7 @@
 
 #include <cstdio>
 #include <string>
-#include <stdexcept>
+#include <module/MyDbg.h>
 class IGcEvent
 {
 public:
@@ -15,9 +15,7 @@ public:
 
     virtual void UnknownEvents(std::string name, uint32_t events)
     {
-        char buf[256];
-        snprintf(buf,255,"[%s]Unkown events=0x%08X", name.c_str(), events);
-        throw std::runtime_error(buf);
+        MyThrow("[%s]Unkown events=0x%08X", name.c_str(), events);
     }
 
     /// \brief  This is the events set to Epoll, could be used for DeleteEvent()

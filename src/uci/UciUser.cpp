@@ -7,12 +7,8 @@
 
 using namespace Utils;
 
-const char *ComPort[7] = {
+const char *ComPort[3] = {
     "MODEM",
-    "COM1",
-    "COM2",
-    "COM3",
-    "COM4",
     "COM5",
     "COM6",
 };

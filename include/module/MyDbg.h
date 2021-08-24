@@ -9,7 +9,6 @@
 #define PrintDbg(...)
 #endif
 
-void MyThrow(const char * fmt, ...);
-
+extern void MyThrow(const char * fmt, ...);
 
 #endif

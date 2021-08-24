@@ -4,7 +4,7 @@
 #include <termios.h>
 
 #include <cstring>
-#include <stdexcept>
+#include <module/MyDbg.h>
 
 #include <module/SerialPort.h>
 
@@ -46,7 +46,7 @@ void SerialPort::ConfigureTermios()
 	// Get current settings (will be stored in termios structure)
 	if (tcgetattr(spFileDesc, &tty) != 0)
 	{
-		throw std::runtime_error("tcgetattr() failed: " + spDevice);
+		MyThrow("tcgetattr() failed: %s", spDevice.c_str());
 	}
 	//================= (.c_cflag) ===============//
 
@@ -101,7 +101,7 @@ void SerialPort::ConfigureTermios()
 		tty.c_cflag |= B921600;
 		break;
 	default:
-		throw invalid_argument("baudrate unrecognized: " + std::to_string(spConfig.baudrate));
+		MyThrow("baudrate unrecognized: %d", spConfig.baudrate);
 	}
 
 	//===================== (.c_oflag) =================//
@@ -144,7 +144,7 @@ void SerialPort::ConfigureTermios()
 	tcflush(spFileDesc, TCIFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		throw std::runtime_error("tcsetattr() failed: " + spDevice);
+		MyThrow("tcsetattr() failed: %s", spDevice.c_str());
 	}
 }
 
@@ -155,7 +155,7 @@ int SerialPort::Close()
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
-			throw std::runtime_error("Close() failed: " + spDevice);
+			MyThrow("Close() failed: %s", spDevice.c_str());
 		}
 		spFileDesc = -1;
 	}

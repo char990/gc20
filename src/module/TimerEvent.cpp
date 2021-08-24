@@ -2,7 +2,7 @@
 #include <cstdio>
 
 #include <unistd.h>
-
+#include <module/MyDbg.h>
 #include <module/Epoll.h>
 #include <module/TimerEvent.h>
 
@@ -20,12 +20,12 @@ TimerEvent::TimerEvent(int ms, std::string name):name(name)
     eventFd = timerfd_create(CLOCK_BOOTTIME, TFD_NONBLOCK);
     if(eventFd == -1)
     {
-		throw std::runtime_error("timerfd_create() failed");
+		MyThrow ("timerfd_create() failed");
     }
 
     if(timerfd_settime(eventFd, 0, &new_value, NULL) == -1)
     {
-		throw std::runtime_error("timerfd_settime() failed");
+		MyThrow ("timerfd_settime() failed");
     }
     ticks = 1000 / ms;
     sec=0;
@@ -48,7 +48,7 @@ void TimerEvent::EventsHandle(uint32_t events)
         int r = read(eventFd,&buf,sizeof(uint64_t));
         if(r<0)
         {
-            throw std::runtime_error(name + "InEvent failed:read");
+            MyThrow("%s:EventsHandle(): read failed", name.c_str());
         }
         if(++cnt==ticks)
         {
@@ -72,6 +72,13 @@ void TimerEvent::EventsHandle(uint32_t events)
 
 void TimerEvent::Add(IPeriodicRun * evt)
 {
+    for(int i=0;i<pEvts.size();i++)
+    {
+        if(pEvts[i]==evt)
+        {
+            return;
+        }
+    }
     for(int i=0;i<pEvts.size();i++)
     {
         if(pEvts[i]==nullptr)

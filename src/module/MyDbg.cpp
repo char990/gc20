@@ -1,11 +1,11 @@
-#include <cstdio>
 #include <cstdarg>
 #include <stdexcept>
 
-static char MyThrowBuf[1024];
+#include <module/MyDbg.h>
 
 void MyThrow(const char * fmt, ...)
 {
+	static char MyThrowBuf[1024];
 	va_list args;
 	va_start(args, fmt);
 	int len = vsnprintf(MyThrowBuf, 1024-1 , fmt, args);

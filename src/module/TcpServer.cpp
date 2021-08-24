@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <stdexcept>
+#include <module/MyDbg.h>
 
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
@@ -15,7 +15,7 @@ TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tm
     name = "Tcp port:"+std::to_string(listenPort);
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
-        throw std::runtime_error(name+":socket() failed");
+        MyThrow("%s:socket() failed", name.c_str());
     }
     SetNonblocking(eventFd);
 
@@ -27,21 +27,21 @@ TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tm
     int reuse=1;
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
     {
-        throw std::runtime_error(name+":setsockopt(SO_REUSEADDR) failed");
+        MyThrow("%s:setsockopt(SO_REUSEADDR) failed", name.c_str());
     }
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0)
     {
-        throw std::runtime_error(name+":setsockopt(SO_REUSEPORT) failed");
+        MyThrow("%s:setsockopt(SO_REUSEPORT) failed", name.c_str());
     }
         
     if (bind(eventFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
     {
-        throw std::runtime_error(name+":bind() failed");
+        MyThrow("%s:bind() failed", name.c_str());
     }
 
     if (listen(eventFd, oPool.Size()) < 0)
     {
-        throw std::runtime_error(name+":listen() failed");
+        MyThrow("%s:listen() failed", name.c_str());
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
@@ -73,7 +73,7 @@ void TcpServer::Accept()
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
-        throw std::runtime_error(name+":accept() failed");
+        MyThrow("%s:accept() failed", name.c_str());
     }
     OprTcp * tcpOperator = oPool.Pop();
     if(tcpOperator==nullptr)
@@ -103,11 +103,11 @@ void TcpServer::SetNonblocking(int sock)
     opts = fcntl(sock, F_GETFL);
     if (opts < 0)
     {
-        throw std::runtime_error(name+":SetNonblocking()-fcntl(sock, F_GETFL) failed");
+        MyThrow("%s:SetNonblocking()-fcntl(sock, F_GETFL) failed", name.c_str());
     }
     opts = opts | O_NONBLOCK;
     if (fcntl(sock, F_SETFL, opts) < 0)
     {
-        throw std::runtime_error(name+":SetNonblocking()-fcntl(sock, F_SETFL) failed");
+        MyThrow("%s:SetNonblocking()-fcntl(sock, F_SETFL) failed", name.c_str());
     }
 }

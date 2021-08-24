@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include <stdexcept>
+#include <module/MyDbg.h>
 #include <module/OprSp.h>
 #include <layer/LayerManager.h>
 #include <module/Epoll.h>
@@ -41,8 +41,7 @@ void OprSp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        printf("Disconnected:events=0x%08X\n", events);
-        throw std::runtime_error(name + " closed");
+        MyThrow ("%s closed: events=0x%08X\n", name, events);
     }
     else if (events & EPOLLIN)
     {
@@ -65,8 +64,7 @@ int OprSp::RxHandle()
     int n = read(eventFd, buf, 4096);
     if (n <= 0)
     {
-        printf("disconnected\n");
-        throw std::runtime_error(name + " read error");
+        MyThrow ("%s: read error", name);
     }
     else
     {

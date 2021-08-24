@@ -1,9 +1,8 @@
-#include <stdexcept>
 #include <layer/LayerManager.h>
 #include <layer/LayerNTS.h>
 #include <layer/LayerWeb.h>
 #include <layer/LayerDL.h>
-
+#include <module/MyDbg.h>
 LayerManager::LayerManager(std::string name_, std::string aType)
 {
     appFactory = new AppFactory();
@@ -23,7 +22,7 @@ LayerManager::LayerManager(std::string name_, std::string aType)
     }
     else
     {
-        throw std::invalid_argument("Unkown adaptor type:"+aType);
+        MyThrow ("Unkown adaptor type:%s", aType.c_str());
     }
     // lowerLayer<->dlLayer<->midLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer

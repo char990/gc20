@@ -3,7 +3,6 @@
 
 #include <time.h>
 #include <sys/timerfd.h>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
