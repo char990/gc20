@@ -19,6 +19,10 @@ UciCfg::~UciCfg()
 
 struct uci_section *UciCfg::GetSection(const char *name)
 {
+	if (ctx == nullptr)
+	{
+		Open();
+	}
 	struct uci_section *sec = uci_lookup_section(ctx, pkg, name);
 	if (sec == NULL)
 	{
@@ -29,12 +33,15 @@ struct uci_section *UciCfg::GetSection(const char *name)
 
 struct uci_section *UciCfg::GetSection(const char *type, const char *name)
 {
-	struct uci_section *sec = uci_lookup_section(ctx, pkg, name);
-	if (sec == NULL || strcmp(type, sec->type) != 0)
+	struct uci_section *sec;
+	while(1)
 	{
-		MyThrow("Can't load %s/%s.%s", PATH.c_str(), PACKAGE.c_str(), name);
+		sec = GetSection(name);
+		if (strcmp(type, sec->type) == 0)
+		{
+			return sec;
+		}
 	}
-	return sec;
 }
 
 const char *UciCfg::GetStr(struct uci_section *section, const char *option)
@@ -51,13 +58,13 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option '%s'", option);
+		MyThrow("Can't find option: %s.%s.%s", PACKAGE.c_str(), section, option);
 	}
 	errno=0;
 	int x = strtol(str, NULL, 0);
 	if (errno!=0 || x < min || x > max)
 	{
-		MyThrow("Invalid option '%s' = %d [%d-%d]", option, x, min, max);
+		MyThrow("Invalid option: %s.%s.%s='%d' [%d-%d]", PACKAGE.c_str(), section, option, x, min, max);
 	}
 	return x;
 }
@@ -67,13 +74,13 @@ uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option '%s'", option);
+		MyThrow("Can't find option: %s.%s.%s", PACKAGE.c_str(), section, option);
 	}
 	errno=0;
 	uint32_t x = strtoul(str, NULL, 0);
 	if (errno!=0 || x < min || x > max)
 	{
-		MyThrow("Invalid option '%s' = %u [%u-%u]", option, x, min, max);
+		MyThrow("Invalid option: %s.%s.%s='%u' [%u-%u]", PACKAGE.c_str(), section, option, x, min, max);
 	}
 	return x;
 }
@@ -117,24 +124,24 @@ void UciCfg::Close()
 	}
 }
 
-bool UciCfg::GetPtr(struct uci_ptr *ptr, const char *section, char *buf)
+bool UciCfg::LoadPtr(const char *section, char *buf)
 {
-	snprintf(buf, 255, "%s.%s", pkg, section);
-	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK)
+	snprintf(buf, 255, "%s.%s", PACKAGE.c_str(), section);
+	if (uci_lookup_ptr(ctx, &ptrSecSave, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't load package:%s", pkg);
+		MyThrow("Can't load package:%s", PACKAGE.c_str());
 	}
-	return (ptr->flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
+	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
 
-bool UciCfg::GetPtr(struct uci_ptr *ptr, const char *section, const char *option, char *buf)
+bool UciCfg::LoadPtr(const char *section, const char *option, char *buf)
 {
-	snprintf(buf, 255, "%s.%s.%s", pkg, section, option);
-	if (uci_lookup_ptr(ctx, ptr, buf, true) != UCI_OK)
+	snprintf(buf, 255, "%s.%s.%s", PACKAGE.c_str(), section, option);
+	if (uci_lookup_ptr(ctx, &ptrSecSave, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't load package:%s", pkg);
+		MyThrow("Can't load package:%s", PACKAGE.c_str());
 	}
-	return (ptr->flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
+	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
 
 void UciCfg::Save(const char *section, const char *option, const char *value)
@@ -142,9 +149,8 @@ void UciCfg::Save(const char *section, const char *option, const char *value)
 	OpenSectionForSave(section);
 	ptrSecSave.option = option;
 	ptrSecSave.value = value;
-	uci_set(ctx, &ptrSecSave);
+	SetByPtr();
 	CloseSectionForSave();
-	Close();
 }
 
 void UciCfg::Save(const char *section, struct OptVal *optval)
@@ -159,17 +165,26 @@ void UciCfg::Save(const char *section, struct OptVal **optval, int len)
 	{
 		ptrSecSave.option = optval[i]->option;
 		ptrSecSave.value = optval[i]->value;
-		uci_set(ctx, &ptrSecSave);
+		SetByPtr();
 	}
 	CloseSectionForSave();
-	Close();
+}
+
+void UciCfg::SetByPtr()
+{
+	int r = uci_set(ctx, &ptrSecSave);
+	if(r!=UCI_OK)
+	{
+		MyThrow ("SetByPtr failed(return %d): %s.%s.%s=%s", r,
+			ptrSecSave.package, ptrSecSave.section, ptrSecSave.option, ptrSecSave.value);
+	}
 }
 
 void UciCfg::OpenSectionForSave(const char *section)
 {
 	Open();
 	bufSecSave = new char[256];
-	if (!GetPtr(&ptrSecSave, section, bufSecSave))
+	if (!LoadPtr(section, bufSecSave))
 	{
 		MyThrow("OpenSectionForSave failed : section=%s", section);
 	}
@@ -178,6 +193,7 @@ void UciCfg::OpenSectionForSave(const char *section)
 void UciCfg::CloseSectionForSave()
 {
 	Commit();
+	Close();
 	if (bufSecSave != nullptr)
 	{
 		delete[] bufSecSave;
@@ -189,7 +205,7 @@ void UciCfg::OptionSave(const char *option, const char *value)
 {
 	ptrSecSave.option = option;
 	ptrSecSave.value = value;
-	uci_set(ctx, &ptrSecSave);
+	SetByPtr();
 }
 
 void UciCfg::OptionSave(struct OptVal *optval)
@@ -208,21 +224,28 @@ void UciCfg::OptionSave(struct OptVal **optval, int len)
 void UciCfg::OptionSaveInt(const char * option, int value) 
 {
 	char buf[32];
-	sprintf(buf,"%d",value);
+	sprintf(buf,"'%d'",value);
+	OptionSave(option, buf);
+}
+
+void UciCfg::OptionSaveWord(const char * option, char * word) 
+{
+	char buf[32];
+	sprintf(buf,"'%s'",word);
 	OptionSave(option, buf);
 }
 
 void UciCfg::PrintOption_2x(const char * option, int x)
 {
-	printf("\t%s='0x%02X'\n", option, x);
+	printf("\t%s '0x%02X'\n", option, x);
 }
 
 void UciCfg::PrintOption_4x(const char * option, int x)
 {
-	printf("\t%s='0x%04X'\n", option, x);
+	printf("\t%s '0x%04X'\n", option, x);
 }
 
 void UciCfg::PrintOption_d(const char * option, int x)
 {
-	printf("\t%s='%d'\n", option, x);
+	printf("\t%s '%d'\n", option, x);
 }

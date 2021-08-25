@@ -268,26 +268,17 @@ void UciFrm::TestSaveTxtFrm()
 	char option[8];
 	int len = TestSaveTxtFrm_len + 9;
 	char v[len * 2 + 1];
-	Open();
-	char section[256];
-	struct uci_ptr ptr;
-	if(!GetPtr(&ptr, SECTION.c_str(), section))
-	{
-		Close();
-		return;
-	}
-
-	ptr.option = option;
-	ptr.value = v;
+	OpenSectionForSave(SECTION.c_str());
+	ptrSecSave.option = option;
+	ptrSecSave.value = v;
 	for (int i = 1; i <= 255; i++)
 	{
 		sprintf(option, "frm_%d", i);
 		Cnvt::ParseToAsc(frms[i]->frmData, v, len);
 		v[len * 2] = '\0';
-		uci_set(ctx, &ptr);
+		SetByPtr();
 	}
-	
-	Commit();
-	Close();
+	CloseSectionForSave();
+
 #endif
 }

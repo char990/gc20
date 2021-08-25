@@ -3,6 +3,20 @@
 
 #include <string>
 
+#define STANDARDBPS_SIZE 10
+#define EXTENDEDBPS_SIZE (STANDARDBPS_SIZE+3)
+
+extern int ALLOWEDBPS[EXTENDEDBPS_SIZE];
+
+struct ComDev
+{
+    const char * name;
+    const char * device;
+}
+
+#define COMPORT_SIZE 7
+extern struct ComDev COMPORTS[COMPORT_SIZE];
+
 class SerialPortConfig
 {
 public:
@@ -49,7 +63,7 @@ class SerialPort
 {
 public:
     /// \brief		Constructor that sets up serial port with parameters.
-    SerialPort(const std::string &device, SerialPortConfig &config);
+    SerialPort(const char *device, SerialPortConfig &config);
 
     /// \brief		Destructor. Closes serial port if still open.
     virtual ~SerialPort();
@@ -72,19 +86,9 @@ public:
     int GetFd() { return spFileDesc; };
 
 private:
-    /*
-        std::string names[7][2] = {
-        {"RS232", "/dev/ttymxc3"},
-        {"COM1", "/dev/ttymxc2"},
-        {"COM2", "/dev/ttymxc1"},
-        {"COM3", "/dev/ttymxc5"},
-        {"COM4", "/dev/ttymxc4"},
-        {"COM5", "/dev/ttySC1"},
-        {"COM6", "/dev/ttySC0"},
-        };*/
 
     /// \brief      The file path to the serial port device (e.g. "/dev/ttyUSB0").
-    std::string spDevice;
+    const char * spDevice;
 
     /// \brief		Serial port configuration.
     struct SerialPortConfig spConfig;

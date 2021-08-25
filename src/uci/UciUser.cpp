@@ -4,22 +4,17 @@
 #include <module/MyDbg.h>
 #include <module/Utils.h>
 #include <module/Tz_AU.h>
+#include <module/SerialPort.h>
 
 using namespace Utils;
-
-const char *ComPort[3] = {
-    "MODEM",
-    "COM5",
-    "COM6",
-};
 
 UciUser::UciUser(UciProd &uciProd)
 :uciProd(uciProd)
 {
-    PATH = "/etc/config";
-    PACKAGE = "goblin_user";
-    isChanged = false;
-    groupCfg = new uint8_t[uciProd.Signs()];
+    PATH = "./config";
+    PACKAGE = "gcuser";
+    DEFAULT_FILE = "./config/gcuser.def";
+    groupCfg = new uint8_t[uciProd.NumberOfSigns()];
 }
 
 UciUser::~UciUser()
@@ -40,22 +35,32 @@ void UciUser::LoadConfig()
     broadcastId = GetInt(sec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
-        MyThrow("DeviceId(%d) should not be same as BroadcastId(%d)", deviceId, broadcastId);
+        MyThrow("UciUser::DeviceId(%d) should not be same as BroadcastId(%d)", deviceId, broadcastId);
     }
     seedOffset = GetInt(sec, _SeedOffset, 0, 255);
     fan1OnTemp = GetInt(sec, _Fan1OnTemp, 0, 100 );
     fan2OnTemp = GetInt(sec, _Fan2OnTemp, 0, 100 );
     overTemp = GetInt(sec, _OverTemp, 0, 100);
     humidity = GetInt(sec, _Humidity, 0, 100);
-    defaultFont = GetInt(sec, _DefaultFont, 1, uciProd.MaxFont());
-    defaultColour = GetInt(sec, _DefaultColour, 1, 9);
-    for(int i=0;i<9;i++)
+    defaultFont = GetInt(sec, _DefaultFont, 1, MAX_FONT);
+    if(!uciProd.bFont.GetBit(defaultFont))
     {
-        if(defaultColour)
-        {
-            MyThrow("DefaultColour(%d) is not valid", defaultColour);
-        }
+        MyThrow("UciUser::DefaultFont(%d) is not valid", defaultFont);
     }
+    defaultColour = GetInt(sec, _DefaultColour, 1, MAX_MONOCOLOUR);
+    if(!uciProd.bTxtFrmColour.GetBit(defaultFont))
+    {
+        MyThrow("UciUser::DefaultColour(%d) is not valid in TextFrameColour", defaultColour);
+    }
+    if(!uciProd.bGfxFrmColour.GetBit(defaultFont))
+    {
+        MyThrow("UciUser::DefaultColour(%d) is not valid in GfxFrameColour", defaultColour);
+    }
+    if(!uciProd.bHrgFrmColour.GetBit(defaultFont))
+    {
+        MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
+    }
+
     lockedFrm = GetInt(sec, _LockedFrm, 0, 255);
     lockedMsg = GetInt(sec, _LockedMsg, 0, 255);
     passwordOffset = GetInt(sec, _PasswordOffset, 0, 0xFFFF);
@@ -63,35 +68,46 @@ void UciUser::LoadConfig()
     sessionTimeout = GetInt(sec, _SessionTimeout, 0, 0xFFFF);
     svcPort = GetInt(sec, _SvcPort, 1024, 0xFFFF);
     webPort = GetInt(sec, _WebPort, 1024, 0xFFFF);
-    if (deviceId == broadcastId)
+    if (svcPort == webPort)
     {
-        MyThrow("SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort);
+        MyThrow("UciUser::SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort);
     }
     multiLedFaultThreshold = GetInt(sec, _MultiLedFaultThreshold, 0, 0xFFFF);
-    baudrateTMC = GetInt(sec, _BaudrateTMC, 0, 115200);
-    
-    str = GetStr(sec, _ComportTMC);
-    comportTMC = 7;
+
+    baudrate = GetInt(sec, _Baudrate, ALLOWEDBPS[0], ALLOWEDBPS[STANDARDBPS_SIZE-1]);
+    {
+        for(cnt=0;cnt<STANDARDBPS_SIZE;cnt++)
+        {
+            if(baudrate==ALLOWEDBPS[i])break;
+        }
+        if(cnt==STANDARDBPS_SIZE)
+        {
+            MyThrow("UciUser::Unknown Baudrate");
+        }
+    }
+
+    str = GetStr(sec, _ComPort);
+    comPort = COMPORT_SIZE;
     if (str != NULL)
     {
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < COMPORT_SIZE; i++)
         {
-            if (strcmp(ComPort[i], str) == 0)
+            if (strcmp(COMPORTS[i].name, str) == 0)
             {
-                comportTMC = i;
+                comPort = i;
                 break;
             }
         }
     }
-    if(comportTMC == 7)
+    if(comPort == COMPORT_SIZE)
     {
-        MyThrow("ComportTMC error");
+        MyThrow("UciUser::Unknown ComPort:%s", str);
     }
 
     str = GetStr(sec, _ShakehandsPassword);
     if(str==NULL)
     {
-        strcpy(shakehandsPassword, "Br1ghtw@y");
+        strcpy(shakehandsPassword, "brightway");
     }
     else
     {
@@ -106,7 +122,7 @@ void UciUser::LoadConfig()
     {
         cbuf[5]=m+'1'; // ExtSw_Cfg
         str = GetStr(sec, cbuf);
-        cnt = Cnvt::GetIntArray(cbuf, 4, ibuf, 0, 65535);
+        cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if(cnt==4)
         {
             extSwCfg[m].dispTime = ibuf[0];
@@ -116,11 +132,12 @@ void UciUser::LoadConfig()
         }
         else
         {
-            MyThrow("%s error", cbuf);
+            MyThrow("UciUser::%s error: %s", cbuf, str);
         }
     }
 
 	str = GetStr(sec, _TZ);
+    tz=NUMBER_OF_TZ;
     if(str!=NULL)
     {
         for(int i=0;i<NUMBER_OF_TZ;i++)
@@ -132,9 +149,9 @@ void UciUser::LoadConfig()
             }
         }
     }
-    else
+    if(i==NUMBER_OF_TZ)
     {
-        MyThrow("TZ error");
+        MyThrow("UciUser::TZ error:%s",str);
     }
 
     str = GetStr(sec, _DawnDusk);
@@ -145,7 +162,7 @@ void UciUser::LoadConfig()
         {
             if(ibuf[cnt]>23)
             {
-                MyThrow("DawnDusk Error: Hour>23");
+                MyThrow("UciUser::DawnDusk Error: Hour>23");
             }
         }
         for(cnt=0;cnt<16;cnt++)
@@ -155,7 +172,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        MyThrow("DawnDusk Error: cnt!=16");
+        MyThrow("UciUser::DawnDusk Error: cnt!=16");
     }
 
     str = GetStr(sec, _Luminance);
@@ -166,7 +183,7 @@ void UciUser::LoadConfig()
         {
             if(ibuf[cnt]>=ibuf[cnt+1])
             {
-                MyThrow("Luminance Error: [%d]%d>[%d]%d",cnt,ibuf[cnt], cnt+1, ibuf[cnt+1]);
+                MyThrow("UciUser::Luminance Error: [%d]%d>[%d]%d",cnt,ibuf[cnt], cnt+1, ibuf[cnt+1]);
             }
         }
         for(cnt=0;cnt<16;cnt++)
@@ -176,11 +193,11 @@ void UciUser::LoadConfig()
     }
     else
     {
-        MyThrow("Luminance Error: cnt!=16");
+        MyThrow("UciUser::Luminance Error: cnt!=16");
     }
 
     str = GetStr(sec, _GroupCfg);
-    int signs=uciProd.Signs();
+    int signs=uciProd.NumberOfSigns();
     cnt=Cnvt::GetIntArray(str, signs, ibuf, 1, signs);
     if(cnt==signs)
     {
@@ -191,7 +208,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        MyThrow("GroupCfg Error: cnt!=%d",signs);
+        MyThrow("UciUser::GroupCfg Error: cnt!=%d",signs);
     }
 
     Close();
@@ -200,11 +217,24 @@ void UciUser::LoadConfig()
 
 void UciUser::LoadFactoryDefault()
 {
-    char deffile[256];
-    snprintf(deffile,255,"%s/%s.def", PATH,PACKAGE);
     char ucifile[256];
     snprintf(ucifile,255,"%s/%s", PATH,PACKAGE);
-    Exec::CopyFile(deffile,ucifile);
+    Exec::CopyFile(DEFAULT_FILE,ucifile);
+	UserOpen();
+    OptionSaveInt(_DeviceId, DeviceId());
+    OptionSaveInt(_BroadcastId, BroadcastId());
+	UserClose();
+    isChanged = true;
+}
+
+void UciUser::UserOpen()
+{
+    OpenSectionForSave(SECTION_NAME);
+}
+
+void UciUser::UserClose()
+{
+    CloseSectionForSave();
 }
 
 void UciUser::Dump()
@@ -218,7 +248,7 @@ void UciUser::Dump()
     PrintOption_4x(_PasswordOffset, PasswordOffset());
     PrintOption_d(_SvcPort, SvcPort());
     PrintOption_d(_WebPort, WebPort());
-    PrintOption_d(_BaudrateTMC, BaudrateTMC());
+    PrintOption_d(_Baudrate, Baudrate());
     PrintOption_d(_OverTemp, OverTemp());
     PrintOption_d(_Fan1OnTemp, Fan1OnTemp());
     PrintOption_d(_Fan2OnTemp, Fan2OnTemp());
@@ -232,25 +262,28 @@ void UciUser::Dump()
     PrintOption_d(_LockedMsg, LockedMsg());
     PrintOption_d(_LastFrmTime, LastFrmTime());
 
-	printf ( "\t%s=%s\n", _TZ, TZ() );
-	printf ( "\t%s=%s\n", _ComportTMC, ComPort[ComportTMC()] );
+	printf ( "\t%s '%s'\n", _TZ, TZ() );
+	printf ( "\t%s '%s'\n", _ComPort, COMPORTS[ComPort()] );
     
     char buf[256];
 
-	for(int i=0;i<3;i++)
+    int len = strlen(_ExtSw_Cfg);
+    strcpy(buf,_ExtSw_Cfg);
+    for(int i=0;i<3;i++)
 	{
-		PrintExtSwCfg(i, buf);
-        printf( "\tExtSw%dCfg=%s\n",i+1, buf);
+		buf[5]=i+'1';
+        PrintExtSwCfg(i, buf+len);
+        printf("\t%s\n",buf);
 	}
 
 	PrintLuminance(buf);
-	printf ( "\%s=%s\n", _Luminance, buf);
+	printf ( "\t%s %s\n", _Luminance, buf);
 
 	PrintDawnDusk(buf);
-	printf ( "\%s=%s\n", _DawnDusk, buf);
+	printf ( "\t%s %s\n", _DawnDusk, buf);
 
 	PrintGroupCfg(buf);
-	printf ( "\%s=%s\n", _GroupCfg, buf);
+	printf ( "\t%s %s\n", _GroupCfg, buf);
 
 	printf ( "\n---------------\n" );
 }
@@ -284,11 +317,11 @@ void UciUser::PrintDawnDusk(char *buf)
         {
             if(i==15)
             {
-                len+=sprintf (buf+len, ":%u'", *p);
+                len+=sprintf (buf+len, "%02u'", *p);
             }
             else
             {
-                len+=sprintf (buf+len, ":%u,", *p);
+                len+=sprintf (buf+len, "%02u,", *p);
             }
         }
         p++;
@@ -297,7 +330,7 @@ void UciUser::PrintDawnDusk(char *buf)
 
 void UciUser::PrintGroupCfg(char *buf)
 {
-    int signs=uciProd.Signs();
+    int signs=uciProd.NumberOfSigns();
     uint8_t * gcfg=GroupCfg();
     int len=0;
     for(int i=0;i<signs;i++)
@@ -306,7 +339,7 @@ void UciUser::PrintGroupCfg(char *buf)
         {
             len+=sprintf (buf+len, "'%u,", *(gcfg+i));
         }
-        else if(i=signs-1)
+        else if(i==signs-1)
         {
             len+=sprintf (buf+len, "%u'", *(gcfg+i));
         }
@@ -327,7 +360,7 @@ void UciUser::PrintLuminance(char *buf)
         {
             len+=sprintf (buf+len, "'%u,", *(lum+i));
         }
-		if(i==15)
+		else if(i==15)
         {
             len+=sprintf (buf+len, "%u'", *(lum+i));
         }
@@ -338,13 +371,14 @@ void UciUser::PrintLuminance(char *buf)
     }
 }
 
+    /// --------setter--------
+
 void UciUser::BroadcastId(uint8_t v)
 {
     if(broadcastId!=v)
     {
         broadcastId=v;
         OptionSaveInt(_BroadcastId, v);
-        isChanged = true;
     }
 }
 
@@ -354,47 +388,178 @@ void UciUser::DeviceId(uint8_t v)
     {
         deviceId=v;
         OptionSaveInt(_DeviceId, v);
-        isChanged = true;
     }
 }
 
 void UciUser::SeedOffset(uint8_t v)
 {
+    if(seedOffset!=v)
+    {
+        seedOffset=v;
+        OptionSaveInt(_SeedOffset, v);
+    }
+}
+
+void UciUser::Fan1OnTemp(uint8_t v)
+{
+    if(fan1OnTemp!=v)
+    {
+        fan1OnTemp=v;
+        OptionSaveInt(_Fan1OnTemp, v);
+    }
+}
+
+void UciUser::Fan2OnTemp(uint8_t v)
+{
+    if(fan2OnTemp!=v)
+    {
+        fan2OnTemp=v;
+        OptionSaveInt(_Fan2OnTemp, v);
+    }
+}
+
+void UciUser::OverTemp(uint8_t v)
+{
+    if(overTemp!=v)
+    {
+        overTemp=v;
+        OptionSaveInt(_OverTemp, v);
+    }
+}
+
+void UciUser::Humidity(uint8_t v)
+{
+    if(humidity!=v)
+    {
+        humidity=v;
+        OptionSaveInt(_Humidity, v);
+    }
+}
+
+void UciUser::DefaultFont(uint8_t v)
+{
+    if(defaultFont!=v)
+    {
+        defaultFont=v;
+        OptionSaveInt(_DefaultFont, v);
+    }
+}
+
+void UciUser::DefaultColour(uint8_t v)
+{
+    if(defaultColour!=v)
+    {
+        defaultColour=v;
+        OptionSaveInt(defaultColour, v);
+    }
+}
+
+void UciUser::LockedFrm(uint8_t v)
+{
+    if(lockedFrm!=v)
+    {
+        lockedFrm=v;
+        OptionSaveInt(_LockedFrm, v);
+    }
+}
+
+void UciUser::LockedMsg(uint8_t v)
+{
+    if(lockedMsg!=v)
+    {
+        lockedMsg=v;
+        OptionSaveInt(_LockedMsg, v);
+    }
+}
+
+void UciUser::LastFrmTime(uint8_t v)
+{
+    if(lastFrmTime!=v)
+    {
+        lastFrmTime=v;
+        OptionSaveInt(_LastFrmTime, v);
+    }
+}
+
+void UciUser::MultiLedFaultThreshold(uint8_t v)
+{
+    if(multiLedFaultThreshold!=v)
+    {
+        multiLedFaultThreshold=v;
+        OptionSaveInt(_MultiLedFaultThreshold, v);
+    }
+}
+
+void UciUser::ComPort(uint8_t v)
+{
+    if(comPort!=v)
+    {
+        comPort=v;
+        OptionSaveWord(_ComPort, COMPORTS[comPort]);
+    }
 }
 
 void UciUser::PasswordOffset(uint16_t v)
 {
-    isChanged = true;
+    if(passwordOffset!=v)
+    {
+        passwordOffset=v;
+        OptionSaveInt(_PasswordOffset, v);
+    }
 }
 
 void UciUser::SessionTimeout(uint16_t v)
 {
-    isChanged = true;
+    if(sessionTimeout!=v)
+    {
+        sessionTimeout=v;
+        OptionSaveInt(_SessionTimeout, v);
+    }
 }
 
 void UciUser::DisplayTimeout(uint16_t v)
 {
-    isChanged = true;
+    if(displayTimeout!=v)
+    {
+        displayTimeout=v;
+        OptionSaveInt(_DisplayTimeout, v);
+    }
 }
 
 void UciUser::SvcPort(uint16_t v)
 {
-    isChanged = true;
+    if(svcPort!=v)
+    {
+        svcPort=v;
+        OptionSaveInt(_SvcPort, v);
+    }
 }
 
 void UciUser::WebPort(uint16_t v)
 {
-    isChanged = true;
+    if(webPort!=v)
+    {
+        webPort=v;
+        OptionSaveInt(_WebPort, v);
+    }
 }
 
-void UciUser::BaudrateTMC(int v)
+void UciUser::Baudrate(int v)
 {
-    isChanged = true;
+    if(baudrate!=v)
+    {
+        baudrate=v;
+        OptionSaveInt(_Baudrate, v);
+    }
 }
 
 void UciUser::Tz(uint8_t tz)
 {
-    isChanged = true;
+    if(tz!=v)
+    {
+        tz=v;
+        OptionSaveWord(_TZ, Tz_AU::tz_au[tz].city);
+    }
 }
 
 const char * UciUser::TZ()
@@ -404,69 +569,47 @@ const char * UciUser::TZ()
 
 void UciUser::DawnDusk(uint8_t *p)
 {
-    memcpy(dawnDusk, p, sizeof(dawnDusk));
-    char buf[1024];
-    int len = 0;
-    char *pb = buf;
-    for (int i = 0; i < 8; i++)
+    if(memcmp(p, dawnDusk, sizeof(dawnDusk))!=0)
     {
-        for (int j = 0; j < 2; j++)
-        {
-            unsigned char v = dawnDusk[i * 2 + j];
-            if (j == 0)
-            {
-                if (i == 0)
-                {
-                    len = sprintf(pb, "'%u:", v);
-                }
-                else
-                {
-                    len = sprintf(pb, "%u:", v);
-                }
-            }
-            else
-            {
-                if (i == 7)
-                {
-                    len = sprintf(pb, "%02u'", v);
-                }
-                else
-                {
-                    len = sprintf(pb, "%02u,", v);
-                }
-            }
-            pb += len;
-        }
+        memcpy(dawnDusk, p, sizeof(dawnDusk));
+        char buf[1024];
+        PrintLuminance(buf);
+        OptionSave(_Luminance, buf);
     }
-    SetUciUserConfig(_DawnDusk, buf);
 }
 
 void UciUser::Luminance(uint16_t *p)
 {
-    memcpy(luminance, p, sizeof(luminance));
-    char buf[1024];
-    int len = 0;
-    char *pb = buf;
-    for (int i = 0; i < 16; i++)
+    if(memcmp(luminance, p, sizeof(luminance))!=0)
     {
-        if (i == 0)
-        {
-            len = sprintf(pb, "'%u,", luminance[i]);
-        }
-        else if (i == 15)
-        {
-            len = sprintf(pb, "%u'", luminance[i]);
-        }
-        else
-        {
-            len = sprintf(pb, "%u,", luminance[i]);
-        }
-        pb += len;
+        memcpy(luminance, p, sizeof(luminance));
+        char buf[1024];
+        PrintLuminance(buf);
+        OptionSave(_Luminance, buf);
     }
-    SetUciUserConfig(_Luminance, buf);
 }
 
-void UciUser::SetUciUserConfig(const char *option, char * value)
+void UciUser::GroupCfg(uint8_t *p)
 {
+    if(memcmp(groupCfg, p, uciProd.NumberOfSigns())!=0)
+    {
+        memcpy(groupCfg, p, uciProd.NumberOfSigns());
+        char buf[1024];
+        PrintGroupCfg(buf);
+        OptionSave(_GroupCfg, buf);
+    }
+}
 
+void UciUser::ExtSwCfgX(int i, ExtSwCfg *cfg)
+{
+    if(!extSwCfg[i].Equal(cfg))
+    {
+        memcpy(&extSwCfg[i], cfg, sizeof(ExtSwCfg));
+        char op[32];
+        strcpy(op,_ExtSw_Cfg);
+        op[5]=i+'1';
+        char buf[1024];
+        PrintExtSwCfg(i,buf);
+        OptionSave(op, buf);
+    }
 }

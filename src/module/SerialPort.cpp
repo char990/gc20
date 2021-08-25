@@ -10,7 +10,21 @@
 
 using namespace std;
 
-SerialPort::SerialPort(const std::string &device, SerialPortConfig &config)
+int ALLOWEDBPS[EXTENDEDBPS_SIZE]={
+	300,600,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600
+};
+
+struct ComDev COMPORTS[COMPORT_SIZE] = {
+    {"MODEM", "/dev/ttymxc3"},
+    {"COM1", "/dev/ttymxc2"},
+    {"COM2", "/dev/ttymxc1"},
+    {"COM3", "/dev/ttymxc5"},
+    {"COM4", "/dev/ttymxc4"},
+    {"COM5", "/dev/ttySC1"},
+    {"COM6", "/dev/ttySC0"},
+};
+
+SerialPort::SerialPort(const char *device, SerialPortConfig &config)
 	: spConfig(config), spDevice(device), spFileDesc(-1)
 {
 	spConfig.Bytebits();
@@ -28,7 +42,7 @@ int SerialPort::Open()
 
 	// O_RDONLY for read-only, O_WRONLY for write only, O_RDWR for both read/write access
 	// 3rd, optional parameter is mode_t mode
-	spFileDesc = open(spDevice.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+	spFileDesc = open(spDevice, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	// Check status
 	if (spFileDesc == -1)
 	{
@@ -46,7 +60,7 @@ void SerialPort::ConfigureTermios()
 	// Get current settings (will be stored in termios structure)
 	if (tcgetattr(spFileDesc, &tty) != 0)
 	{
-		MyThrow("tcgetattr() failed: %s", spDevice.c_str());
+		MyThrow("tcgetattr() failed: %s", spDevice);
 	}
 	//================= (.c_cflag) ===============//
 
@@ -144,7 +158,7 @@ void SerialPort::ConfigureTermios()
 	tcflush(spFileDesc, TCIFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		MyThrow("tcsetattr() failed: %s", spDevice.c_str());
+		MyThrow("tcsetattr() failed: %s", spDevice);
 	}
 }
 
@@ -155,7 +169,7 @@ int SerialPort::Close()
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
-			MyThrow("Close() failed: %s", spDevice.c_str());
+			MyThrow("Close() failed: %s", spDevice);
 		}
 		spFileDesc = -1;
 	}

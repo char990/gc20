@@ -25,95 +25,77 @@ public:
     UciUser(UciProd &uciProd);
     ~UciUser();
 
-    bool IsChanged();
+    const char *DEFAULT_FILE; 
 
     void LoadConfig() override;
 	void Dump() override;
 
+    /// \brief  UserOpen() => Change option value => UserClose()
+    void UserOpen();
+    void UserClose();
+
+    /// \brief  Load factory default. Call UserOpen/UserClose inside
+    ///         Copy 'goblin_user.def' to 'goblin_user.def' and set DeviceId & BroadcastId
     void LoadFactoryDefault();
 
+    /// --------getter--------
     uint8_t BroadcastId() { return broadcastId;};
-    void BroadcastId(uint8_t);
-
     uint8_t DeviceId() { return deviceId;};
-    void DeviceId(uint8_t);
-
     uint8_t SeedOffset() { return seedOffset;};
-    void SeedOffset(uint8_t);
-
     uint8_t Fan1OnTemp() { return fan1OnTemp;};
-    void Fan1OnTemp(uint8_t);
-
     uint8_t Fan2OnTemp() { return fan2OnTemp;};
-    void Fan2OnTemp(uint8_t);
-
     uint8_t OverTemp() { return overTemp;};
-    void OverTemp(uint8_t);
-
     uint8_t Humidity() { return humidity;};
-    void Humidity(uint8_t);
-
     uint8_t DefaultFont() { return defaultFont;};
-    void DefaultFont(uint8_t);
-
     uint8_t DefaultColour() { return defaultColour;};
-    void DefaultColour(uint8_t);
-
     uint8_t LockedFrm() { return lockedFrm;};
-    void LockedFrm(uint8_t);
-
     uint8_t LockedMsg() { return lockedMsg;};
-    void LockedMsg(uint8_t);
-
     uint8_t LastFrmTime() { return lastFrmTime;};
-    void LastFrmTime(uint8_t);
-
-    uint8_t ComportTMC() { return comportTMC;};
-    void ComportTMC(uint8_t);
-
+    uint8_t ComPort() { return comPort;};
     uint8_t Tz() { return tz;};
-    void Tz(uint8_t);
     const char * TZ();
-
     uint16_t PasswordOffset() { return passwordOffset;};
-    void PasswordOffset(uint16_t);
-
     uint16_t SessionTimeout() { return sessionTimeout;};
-    void SessionTimeout(uint16_t);
-    
     uint16_t DisplayTimeout() { return displayTimeout;};
-    void DisplayTimeout(uint16_t);
-
     uint16_t SvcPort() { return svcPort;};
-    void SvcPort(uint16_t);
-
     uint16_t WebPort() { return webPort;};
-    void WebPort(uint16_t);
-
     uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold;};
-    void MultiLedFaultThreshold(uint16_t);
-
-    int BaudrateTMC() { return baudrateTMC;};
-    void BaudrateTMC(int);
-
+    int Baudrate() { return baudrate;};
     uint16_t *Luminance(){ return luminance; };
-    void Luminance(uint16_t * p);
-
     uint8_t *DawnDusk(){ return dawnDusk; };
-    void DawnDusk(uint8_t *p);
-
-    int SignN() { return signN;};
-    void SignN(int);
-
     uint8_t * GroupCfg() { return groupCfg;};
-
     ExtSwCfg *ExtSwCfgX(int i){return &extSwCfg[i];};
 
-    void SetUciUserConfig(const char *option, char * value);
+
+    /// --------setter--------
+    void BroadcastId(uint8_t);
+    void DeviceId(uint8_t);
+    void SeedOffset(uint8_t);
+    void Fan1OnTemp(uint8_t);
+    void Fan2OnTemp(uint8_t);
+    void OverTemp(uint8_t);
+    void Humidity(uint8_t);
+    void DefaultFont(uint8_t);
+    void DefaultColour(uint8_t);
+    void LockedFrm(uint8_t);
+    void LockedMsg(uint8_t);
+    void LastFrmTime(uint8_t);
+    void ComPort(uint8_t);
+    void Tz(uint8_t);
+    void PasswordOffset(uint16_t);
+    void SessionTimeout(uint16_t);
+    void DisplayTimeout(uint16_t);
+    void SvcPort(uint16_t);
+    void WebPort(uint16_t);
+    void MultiLedFaultThreshold(uint16_t);
+    void Baudrate(int);
+    void Luminance(uint16_t *);
+    void DawnDusk(uint8_t *);
+    void GroupCfg(uint8_t *);
+    void ExtSwCfgX(int i, ExtSwCfg *cfg);
 
 private:
 
-    bool isChanged;
     UciProd &uciProd;
     struct uci_section *sec;
     
@@ -129,7 +111,7 @@ private:
         defaultColour,
         lockedFrm,
         lockedMsg,
-        comportTMC,
+        comPort,
         tz,
         lastFrmTime;
 
@@ -141,13 +123,12 @@ private:
         webPort,
         multiLedFaultThreshold;
 
-    int baudrateTMC;
+    int baudrate;
 
     char shakehandsPassword[11];
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 
-    int signN;
     uint8_t * groupCfg;
 
     ExtSwCfg extSwCfg[3];
@@ -160,7 +141,7 @@ private:
     const char * _PasswordOffset="PasswordOffset";
     const char * _SvcPort="SvcPort";
     const char * _WebPort="WebPort";
-    const char * _BaudrateTMC="BaudrateTMC";
+    const char * _Baudrate="Baudrate";
 
     const char * _OverTemp="OverTemp";
     const char * _Fan1OnTemp="Fan1OnTemp";
@@ -183,7 +164,7 @@ private:
     const char * _ShakehandsPassword="ShakehandsPassword";
     const char * _Luminance="Luminance";
     const char * _DawnDusk="DawnDusk";
-    const char * _ComportTMC="ComportTMC";
+    const char * _ComPort="ComPort";
     const char * _GroupCfg="GroupCfg";
     const char * _ExtSw_Cfg="ExtSw_Cfg";
 

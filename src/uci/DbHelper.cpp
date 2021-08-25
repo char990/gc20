@@ -9,6 +9,7 @@ DbHelper::~DbHelper()
 void DbHelper::Init(TimerEvent * tmr)
 {
     uciFrm.LoadConfig();
+    userCfg.LoadConfig();
     tmrEvt = tmr;
     tmrEvt->Add(this);
 }

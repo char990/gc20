@@ -31,6 +31,8 @@ protected:
 	
 	struct uci_context *ctx;
 	struct uci_package *pkg;
+	struct uci_ptr ptrSecSave;
+	char * bufSecSave;
 
 	/// config dir, nullptr for default(/etc/config)
 	std::string PATH;
@@ -48,7 +50,6 @@ protected:
 	void Close();
 
 	/// \brief	get ptr for uci_set
-	/// \param	ptr : uci_ptr
 	/// \param	section : section
 	/// \param	option : option
 	/// \param	buf : char buf[256] to store element
@@ -57,10 +58,14 @@ protected:
 	///	 * Note: uci_lookup_ptr will automatically load a config package if necessary
 	///	 * @buf must not be constant, as it will be modified and used for the strings inside @ptr,
 	///	 * thus it must also be available as long as @ptr is in use.
-	bool GetPtr(struct uci_ptr *ptr, const char * section, char *buf);
-	bool GetPtr(struct uci_ptr *ptr, const char * section, const char * option, char *buf);
+	bool LoadPtr(const char * section, char *buf);
+	bool LoadPtr(const char * section, const char * option, char *buf);
 
-	/// \brief	Save section.option.value
+	/// \brief	Set section.option.value by ptrSecSave
+	/// \throw	uci_set failed
+	void SetByPtr();
+
+	/// \brief	Save a section.option.value, open/close inside the function
 	/// \param	section : section
 	/// \param	option : option
 	/// \param	value : value
@@ -69,17 +74,17 @@ protected:
 	void Save(const char * section, struct OptVal * optval);
 	void Save(const char * section, struct OptVal ** optval, int len);
 
-	/// \brief	OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()
+	/// \brief	save multi option.value
+	///			steps: OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()
 	/// \param	option : option
 	/// \param	value : value
 	/// \throw	If can't load path/package
-	struct uci_ptr ptrSecSave;
-	char * bufSecSave;
 	void OpenSectionForSave(const char * section);
 	void OptionSave(const char * option, const char * value);
 	void OptionSave(struct OptVal * optval);
 	void OptionSave(struct OptVal ** optval, int len);
 	void OptionSaveInt(const char * option, int value);
+	void OptionSaveWord(const char * option, char * word);
 	void CloseSectionForSave();
 
 	void PrintOption_2x(const char * option, int x);

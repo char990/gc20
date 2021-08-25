@@ -174,5 +174,18 @@ namespace Utils
         long Interval();
     };
 
+
+    class BitOption
+    {
+    public:
+        BitOption();
+        BitOption(uint32_t v);
+        uint32_t Get();
+        void SetBit(int b);
+        void ClrBit(int b);
+        bool GetBit(int b);
+    private:
+        uint32_t bits;
+    };
 } // namespace Utils
 #endif

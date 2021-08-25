@@ -288,6 +288,9 @@ namespace LOG
 /// \brief Packet acknowledgment(Non data packet) + Data packet
 #define MAX_ACK_DATA_PACKET_SIZE (NON_DATA_PACKET_SIZE + MAX_DATA_PACKET_SIZE)
 
+#define MAX_FONT 5
+#define MAX_MONOCOLOUR 9
+
 namespace CTRL_CHAR
 {
     enum

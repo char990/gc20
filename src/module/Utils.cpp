@@ -153,8 +153,8 @@ int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
     char buf[256];
     memcpy(buf,src,255);
     buf[255]='\0'; // copy max 255 chars
-    char delim[] = ",:;";
-	char *ptr = buf;
+    char delim[] = ",:;. ";
+	char *ptr = strtok (buf, delim);
 	int cnt=0;
 	while(ptr != NULL && cnt < srcmax)
 	{
@@ -504,4 +504,34 @@ long Time::Interval()
     }
     start=end;
     return ms;
+}
+
+BitOption::BitOption()
+:bits(0)
+{
+
+}
+
+BitOption::BitOption(uint32_t v)
+:bits(v)
+{
+
+}
+
+uint32_t BitOption::Get()
+{
+    return bits;
+}
+
+void BitOption::SetBit(int b)
+{
+    bits |= MASK_BIT[b];
+}
+void BitOption::ClrBit(int b)
+{
+    bits &= ~MASK_BIT[b];
+}
+bool BitOption::GetBit(int b)
+{
+    return (bits&MASK_BIT[b])!=0;
 }

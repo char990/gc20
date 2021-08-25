@@ -35,6 +35,7 @@ public:
     UciProd prodCfg;
     UciUser userCfg{prodCfg};
     SignCfg signCfg;
+
     UciFrm uciFrm;
     UciMsg uciMsg{uciFrm};
     UciPln uciPln{uciFrm,uciMsg};

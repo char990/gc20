@@ -55,13 +55,13 @@ int main()
         TcpServer tcpServerWeb{59992, webPool, &timerEvt1s};
 
         SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, 38400);
-        SerialPort rs232("/dev/ttyRS232", spCfg);
-        OprSp oprRs232(rs232, "RS232", "NTS");
+        SerialPort rs232(COMPORTS[0].device, spCfg);
+        OprSp oprRs232(rs232, COMPORTS[0].name, "NTS");
 
         spCfg.mode = SerialPortConfig::SpMode::RS485_01;
         spCfg.baudrate = 115200;
-        SerialPort com6("/dev/ttyCOM6", spCfg);
-        OprSp oprCom6(com6, "COM6", "NTS");
+        SerialPort com6(COMPORTS[6].device, spCfg);
+        OprSp oprCom6(com6, COMPORTS[6].name, "NTS");
 
 
         /*************** Start ****************/
