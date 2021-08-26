@@ -205,7 +205,7 @@ uint16_t TsiSp003App::MakePassword()
     uint16_t passwd;
     uint8_t bit5, bit7, bit8;
     passwd = session->Seed();
-    passwd += DbHelper::Instance().userCfg.SeedOffset();
+    passwd += DbHelper::Instance().uciUser.SeedOffset();
     passwd = passwd & 0xFF;                  // set high byte to zero
     for (unsigned int ii = 0; ii < 16; ii++) // the process is cycled 16 times
     {
@@ -215,7 +215,7 @@ uint16_t TsiSp003App::MakePassword()
         passwd <<= 1; // shift left one position
         passwd = passwd + (bit5 ^ bit7 ^ bit8);
     }
-    return passwd + DbHelper::Instance().userCfg.PasswordOffset();
+    return passwd + DbHelper::Instance().uciUser.PasswordOffset();
 }
 
 bool TsiSp003App::ChkLen(int len1, int len2)

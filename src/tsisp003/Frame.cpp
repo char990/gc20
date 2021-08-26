@@ -54,7 +54,7 @@ int Frame::CheckConspicuity()
 FrmTxt::FrmTxt(char * frm, int len)
 {
     frmOffset=TXTFRM_HEADER_SIZE;
-    CnvtFrm(frm, len, (frmOffset+2+1), (frmOffset+2+DbHelper::Instance().prodCfg.MaxTextFrmLen()));
+    CnvtFrm(frm, len, (frmOffset+2+1), (frmOffset+2+DbHelper::Instance().uciProd.MaxTextFrmLen()));
     if(appErr==APP::ERROR::AppNoError)
     {
         MakeFrame(len/2);
@@ -68,7 +68,7 @@ FrmTxt::FrmTxt(uint8_t * frm, int len)
     {
         appErr = APP::ERROR::FrameTooSmall;
     }
-    else if(len>DbHelper::Instance().prodCfg.MaxTextFrmLen())
+    else if(len>DbHelper::Instance().uciProd.MaxTextFrmLen())
     {
         appErr = APP::ERROR::FrameTooLarge;
     }
@@ -174,8 +174,8 @@ FrmGfx::FrmGfx(char * frm, int len)
 {
     frmOffset=GFXFRM_HEADER_SIZE;
     CnvtFrm(frm, len,
-        frmOffset+2+DbHelper::Instance().prodCfg.MinGfxFrmLen(),
-        frmOffset+2+DbHelper::Instance().prodCfg.MaxGfxFrmLen());
+        frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen(),
+        frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen());
     if(appErr==APP::ERROR::AppNoError)
     {
         MakeFrame(len/2);
@@ -185,8 +185,8 @@ FrmGfx::FrmGfx(char * frm, int len)
 FrmGfx::FrmGfx(uint8_t * frm, int len)
 {
     frmOffset=GFXFRM_HEADER_SIZE;
-    if( len < frmOffset+2+DbHelper::Instance().prodCfg.MinGfxFrmLen() ||
-        len > frmOffset+2+DbHelper::Instance().prodCfg.MaxGfxFrmLen())
+    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen() ||
+        len > frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen())
     {
         appErr = APP::ERROR::LengthError;
     }
@@ -209,7 +209,7 @@ FrmGfx::~FrmGfx()
 
 void FrmGfx::MakeFrame(int len)
 {
-    UciProd & prod = DbHelper::Instance().prodCfg;
+    UciProd & prod = DbHelper::Instance().uciProd;
     micode=frmData[0];
     frmId=frmData[1];
     frmRev=frmData[2];
@@ -254,7 +254,7 @@ void FrmGfx::MakeFrame(int len)
 
 void FrmGfx::CheckLength(int len)
 {
-    int pixels = DbHelper::Instance().prodCfg.Pixels();
+    int pixels = DbHelper::Instance().uciProd.Pixels();
     if(len!=(frmOffset+2+frmlen))
     {
         appErr = APP::ERROR::LengthError;
@@ -308,8 +308,8 @@ FrmHrg::FrmHrg(char * frm, int len)
 {
     frmOffset=HRGFRM_HEADER_SIZE;
     CnvtFrm(frm, len,
-        frmOffset+2+DbHelper::Instance().prodCfg.MinHrgFrmLen(),
-        frmOffset+2+DbHelper::Instance().prodCfg.MaxHrgFrmLen());
+        frmOffset+2+DbHelper::Instance().uciProd.MinHrgFrmLen(),
+        frmOffset+2+DbHelper::Instance().uciProd.MaxHrgFrmLen());
     if(appErr==APP::ERROR::AppNoError)
     {
         MakeFrame(len/2);
@@ -319,8 +319,8 @@ FrmHrg::FrmHrg(char * frm, int len)
 FrmHrg::FrmHrg(uint8_t * frm, int len)
 {
     frmOffset=HRGFRM_HEADER_SIZE;
-    if( len < frmOffset+2+DbHelper::Instance().prodCfg.MinHrgFrmLen() ||
-        len > frmOffset+2+DbHelper::Instance().prodCfg.MaxHrgFrmLen())
+    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinHrgFrmLen() ||
+        len > frmOffset+2+DbHelper::Instance().uciProd.MaxHrgFrmLen())
     {
         appErr = APP::ERROR::LengthError;
     }
@@ -344,7 +344,7 @@ FrmHrg::~FrmHrg()
 
 void FrmHrg::MakeFrame(int len)
 {
-    UciProd & prod = DbHelper::Instance().prodCfg;
+    UciProd & prod = DbHelper::Instance().uciProd;
     micode=frmData[0];
     frmId=frmData[1];
     frmRev=frmData[2];
@@ -400,7 +400,7 @@ void FrmHrg::CheckLength(int len)
     }
     else
     {
-        int pixels = DbHelper::Instance().prodCfg.Pixels();
+        int pixels = DbHelper::Instance().uciProd.Pixels();
         int x=0;
         if(colour<FRM::COLOUR::MultipleColours)
         {

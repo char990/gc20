@@ -32,8 +32,8 @@ public:
 
     void Sync();
 
-    UciProd prodCfg;
-    UciUser userCfg{prodCfg};
+    UciProd uciProd;
+    UciUser uciUser{uciProd};
     SignCfg signCfg;
 
     UciFrm uciFrm;

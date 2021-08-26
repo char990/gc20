@@ -212,7 +212,7 @@ void UciFrm::SaveFrm(int i)
 		char * bitmap = new char[frms[i]->frmlen*2];
 		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmOffset, bitmap, frms[i]->frmlen);
 		char filename[256];
-		snprintf(filename, 255, "%s/frm_%d", PATH.c_str(), i);
+		snprintf(filename, 255, "%s/frm_%d", PATH, i);
 		int frm_fd = open(filename, O_CREAT|O_WRONLY|O_TRUNC, 0770);
 		if(frm_fd>0)
 		{

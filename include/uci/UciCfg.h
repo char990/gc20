@@ -35,9 +35,9 @@ protected:
 	char * bufSecSave;
 
 	/// config dir, nullptr for default(/etc/config)
-	std::string PATH;
+	const char * PATH;
 	/// package(file) name
-	std::string PACKAGE;
+	const char * PACKAGE;
 
 	/// \brief	Open a package, context=>ctx, package=>pkg
 	/// \throw	If can't load path/package
@@ -84,12 +84,14 @@ protected:
 	void OptionSave(struct OptVal * optval);
 	void OptionSave(struct OptVal ** optval, int len);
 	void OptionSaveInt(const char * option, int value);
-	void OptionSaveWord(const char * option, char * word);
+	/// chars will be changed to 'chars' then OptionSave()
+	void OptionSaveChars(const char * option, const char * chars);
 	void CloseSectionForSave();
 
 	void PrintOption_2x(const char * option, int x);
 	void PrintOption_4x(const char * option, int x);
 	void PrintOption_d(const char * option, int x);
+	void PrintOption_f(const char * option, float x);
 };
 
 

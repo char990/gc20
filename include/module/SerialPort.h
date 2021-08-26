@@ -12,7 +12,7 @@ struct ComDev
 {
     const char * name;
     const char * device;
-}
+};
 
 #define COMPORT_SIZE 7
 extern struct ComDev COMPORTS[COMPORT_SIZE];

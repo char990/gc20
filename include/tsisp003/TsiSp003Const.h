@@ -304,5 +304,8 @@ namespace CTRL_CHAR
     };
 }
 
+#define TSISP003VER_SIZE    3
+
+extern const char * TSISP003VER[TSISP003VER_SIZE];
 
 #endif

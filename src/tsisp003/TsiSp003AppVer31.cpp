@@ -44,7 +44,7 @@ void TsiSp003AppVer31::SignExtendedStatusRequest(uint8_t *data, int len)
     txbuf[0] = MI::CODE::SignExtendedStatusReply;
     txbuf[1] = IsOnline() ? 1 : 0 ;
     txbuf[2] = appError;
-    memcpy(txbuf+3, db.prodCfg.MfcCode(), 10);
+    memcpy(txbuf+3, db.uciProd.MfcCode(), 10);
     Time2Buf(txbuf+13);
     txbuf[20] = ctrl.ErrorCode();
     int scnt = ctrl.SignCnt();

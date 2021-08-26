@@ -4,17 +4,20 @@
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/UciCfg.h>
 #include <module/Utils.h>
+#include <string>
 
 struct SignConnection
 {
     uint32_t com_ip;
     int bps_port;
-}
+    std::string ToString();
+};
 
 class UciProd : public UciCfg
 {
 public:
     UciProd();
+    ~UciProd();
 
     void LoadConfig() override;
     void Dump() override;
@@ -33,10 +36,9 @@ public:
     int Pixels();
 
     // getter
-    char * TsiSp003Ver() { return &tsiSp003Ver[0]};
-    char * MfcCode() { return &mfcCode[0]};
-    char * FontName(int i) { return &fontName[MAX_FONT+1][0]; };
-    struct SignConnection * Sign(int i) { return &signs[i-1]; };
+    char * MfcCode() { return &mfcCode[0]; };
+    char * FontName(int i) { return &fontName[i][0]; };
+    struct SignConnection * Sign(int i) { return &signs[i]; };
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
     uint16_t SlaveRqstStTo() { return slaveRqstStTo; };
@@ -45,20 +47,21 @@ public:
     uint16_t SlaveDispDly() { return slaveDispDly; };
     uint16_t SlaveCmdDly() { return slaveCmdDly; };
 
-    uint16_t LightSensorMidday() { return LightSensorMidday; };
-    uint16_t LightSensorMidnight() { return LightSensorMidnight; };
-    uint16_t LightSensor18Hours() { return LightSensor18Hours; };
-    uint16_t DriverFaultDebounce() { return DriverFaultDebounce; };
-    uint16_t LedFaultDebounce() { return LedFaultDebounce; };
-    uint16_t OverTempDebounce() { return OverTempDebounce; };
-    uint16_t SelftestDebounce() { return SelftestDebounce; };
-    uint16_t OfflineDebounce() { return OfflineDebounce; };
-    uint16_t LightSensorFaultDebounce() { return LightSensorFaultDebounce; };
-    uint16_t LanternFaultDebounce() { return LanternFaultDebounce; };
-    uint16_t SlaveVoltageLow() { return SlaveVoltageLow; };
-    uint16_t SlaveVoltageHigh() { return SlaveVoltageHigh; };
+    uint16_t LightSensorMidday() { return lightSensorMidday; };
+    uint16_t LightSensorMidnight() { return lightSensorMidnight; };
+    uint16_t LightSensor18Hours() { return lightSensor18Hours; };
+    uint16_t DriverFaultDebounce() { return driverFaultDebounce; };
+    uint16_t LedFaultDebounce() { return ledFaultDebounce; };
+    uint16_t OverTempDebounce() { return overTempDebounce; };
+    uint16_t SelftestDebounce() { return selftestDebounce; };
+    uint16_t OfflineDebounce() { return offlineDebounce; };
+    uint16_t LightSensorFaultDebounce() { return lightSensorFaultDebounce; };
+    uint16_t LanternFaultDebounce() { return lanternFaultDebounce; };
+    uint16_t SlaveVoltageLow() { return slaveVoltageLow; };
+    uint16_t SlaveVoltageHigh() { return slaveVoltageHigh; };
     uint16_t LightSensorScale() { return lightSensorScale; };
 
+    uint8_t TsiSp003Ver() { return tsiSp003Ver;};
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
@@ -74,9 +77,10 @@ public:
 
 private:
     const char * SECTION_NAME="ctrller_cfg";
+    struct uci_section *sec;
 
+    ///  ---------- option -----------
     // string
-    const char * _TsiSp003Ver="TsiSp003Ver";
     const char * _MfcCode="MfcCode";
     // int array
     const char * _Font="Font";
@@ -106,6 +110,7 @@ private:
     const char * _SlaveVoltageLow="SlaveVoltageLow";
     const char * _SlaveVoltageHigh="SlaveVoltageHigh";
     /// uint8_t
+    const char * _TsiSp003Ver="TsiSp003Ver";
     const char * _NumberOfSigns="NumberOfSigns";
     const char * _SlavePowerUpDelay="SlavePowerUpDelay";
     const char * _ColourBits="ColourBits";
@@ -115,8 +120,13 @@ private:
     // float
     const char * _LightSensorScale="LightSensorScale";
 
-    char tsiSp003Ver[8];
-    char mfcCode[7];
+    // items : 1-n
+    const char * _Sign="Sign";      // Sign1-x
+    // const char * _Font="Font";   // Font0-x
+
+
+    /// ---------- option ----------
+    char mfcCode[11];
 
     char fontName[MAX_FONT+1][8];
     
@@ -136,7 +146,7 @@ private:
         ledFaultDebounce,
         overTempDebounce,
         selftestDebounce,
-        offlineDebounce
+        offlineDebounce,
         lightSensorFaultDebounce,
         lanternFaultDebounce,
         slaveVoltageLow,
@@ -148,14 +158,16 @@ private:
         colourBits,
         isResetLogAllowed,
         isUpgradeAllowed,
-        numberOfSigns;
+        numberOfSigns,
+        tsiSp003Ver;
 
-    BitOption bFont;
-    BitOption bConspicuity;
-    BitOption bAnnulus;
-    BitOption bTxtFrmColour;
-    BitOption bGfxFrmColour;
-    BitOption bHrgFrmColour;
+    Utils::BitOption bFont;
+    Utils::BitOption bConspicuity;
+    Utils::BitOption bAnnulus;
+    Utils::BitOption bTxtFrmColour;
+    Utils::BitOption bGfxFrmColour;
+    Utils::BitOption bHrgFrmColour;
+    void ReadBitOption(struct uci_section *section, const char * option, Utils::BitOption &bo);
 };
 
 #endif

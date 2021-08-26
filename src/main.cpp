@@ -18,6 +18,10 @@
 
 #include <uci.h>
 
+
+const char * FirmwareMajorVer = "02";
+const char * FirmwareMinorVer = "01";
+
 using namespace std;
 
 

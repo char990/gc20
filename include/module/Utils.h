@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 #include <cstdint>
+#include <string>
 
 namespace Utils
 {
@@ -160,7 +161,12 @@ namespace Utils
         /// \param      src:
         /// \param      dst:
         static void CopyFile(const char *src, const char *dst);
-    
+
+
+        /// \brief      Check if a file/dir exists
+        static bool FileExists(const char *path);
+        static bool DirExists(const char *path);
+
     };
 
     class Time
@@ -180,10 +186,12 @@ namespace Utils
     public:
         BitOption();
         BitOption(uint32_t v);
+        void Set(uint32_t v);
         uint32_t Get();
         void SetBit(int b);
         void ClrBit(int b);
         bool GetBit(int b);
+        std::string ToString();
     private:
         uint32_t bits;
     };

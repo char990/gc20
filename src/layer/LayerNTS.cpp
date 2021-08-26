@@ -49,7 +49,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
         return 0;
     }
     int addr = Cnvt::ParseToU8((char *)data+5);
-    UciUser & cfg = DbHelper::Instance().userCfg;
+    UciUser & cfg = DbHelper::Instance().uciUser;
     if(addr!=cfg.DeviceId() || addr==cfg.BroadcastId())
     {
         return 0;
@@ -122,7 +122,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
 
 int LayerNTS::Tx(uint8_t *data, int len)
 {
-    UciUser & cfg = DbHelper::Instance().userCfg;
+    UciUser & cfg = DbHelper::Instance().uciUser;
     if(_addr==cfg.BroadcastId())
     {// no reply for broadcast
         return 0;
@@ -176,7 +176,7 @@ void LayerNTS::MakeNondata(uint8_t a)
 {
     txbuf[0]=a;
     Cnvt::ParseToAsc(_nr,(char *)txbuf+1);
-    Cnvt::ParseToAsc(DbHelper::Instance().userCfg.DeviceId(),(char *)txbuf+3);
+    Cnvt::ParseToAsc(DbHelper::Instance().uciUser.DeviceId(),(char *)txbuf+3);
     EndOfBlock(txbuf, 5);
 }
 

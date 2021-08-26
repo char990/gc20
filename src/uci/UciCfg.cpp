@@ -26,7 +26,7 @@ struct uci_section *UciCfg::GetSection(const char *name)
 	struct uci_section *sec = uci_lookup_section(ctx, pkg, name);
 	if (sec == NULL)
 	{
-		MyThrow("Can't load %s/%s.%s", PATH.c_str(), PACKAGE.c_str(), name);
+		MyThrow("Can't load %s/%s.%s", PATH, PACKAGE, name);
 	}
 	return sec;
 }
@@ -48,7 +48,7 @@ const char *UciCfg::GetStr(struct uci_section *section, const char *option)
 {
 	if (ctx == nullptr || section == nullptr)
 	{
-		MyThrow("OPEN '%s/%s' and get *section before calling", PATH.c_str(), PACKAGE.c_str());
+		MyThrow("OPEN '%s/%s' and get *section before calling", PATH, PACKAGE);
 	}
 	return uci_lookup_option_string(ctx, section, option);
 }
@@ -58,13 +58,13 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option: %s.%s.%s", PACKAGE.c_str(), section, option);
+		MyThrow("Can't find option: %s.%s.%s", PACKAGE, section->e.name, option);
 	}
 	errno=0;
 	int x = strtol(str, NULL, 0);
 	if (errno!=0 || x < min || x > max)
 	{
-		MyThrow("Invalid option: %s.%s.%s='%d' [%d-%d]", PACKAGE.c_str(), section, option, x, min, max);
+		MyThrow("Invalid option: %s.%s.%s='%d' [%d-%d]", PACKAGE, section->e.name, option, x, min, max);
 	}
 	return x;
 }
@@ -74,13 +74,13 @@ uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option: %s.%s.%s", PACKAGE.c_str(), section, option);
+		MyThrow("Can't find option: %s.%s.%s", PACKAGE, section->e.name, option);
 	}
 	errno=0;
 	uint32_t x = strtoul(str, NULL, 0);
 	if (errno!=0 || x < min || x > max)
 	{
-		MyThrow("Invalid option: %s.%s.%s='%u' [%u-%u]", PACKAGE.c_str(), section, option, x, min, max);
+		MyThrow("Invalid option: %s.%s.%s='%u' [%u-%u]", PACKAGE, section->e.name, option, x, min, max);
 	}
 	return x;
 }
@@ -90,15 +90,15 @@ void UciCfg::Open()
 	ctx = uci_alloc_context();
 	if (ctx == nullptr)
 	{
-		MyThrow("Open '%s/%s' error. Can't alloc context.", PATH.c_str(), PACKAGE.c_str());
+		MyThrow("Open '%s/%s' error. Can't alloc context.", PATH, PACKAGE);
 	}
-	uci_set_confdir(ctx, PATH.c_str());
-	if (UCI_OK != uci_load(ctx, PACKAGE.c_str(), &pkg))
+	uci_set_confdir(ctx, PATH);
+	if (UCI_OK != uci_load(ctx, PACKAGE, &pkg))
 	{
 		uci_free_context(ctx);
 		ctx = nullptr;
 		pkg = nullptr;
-		MyThrow("Can't load '%s/%s'.", PATH.c_str(), PACKAGE.c_str());
+		MyThrow("Can't load '%s/%s'.", PATH, PACKAGE);
 	}
 }
 
@@ -126,20 +126,20 @@ void UciCfg::Close()
 
 bool UciCfg::LoadPtr(const char *section, char *buf)
 {
-	snprintf(buf, 255, "%s.%s", PACKAGE.c_str(), section);
+	snprintf(buf, 255, "%s.%s", PACKAGE, section);
 	if (uci_lookup_ptr(ctx, &ptrSecSave, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't load package:%s", PACKAGE.c_str());
+		MyThrow("Can't load package:%s", PACKAGE);
 	}
 	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
 
 bool UciCfg::LoadPtr(const char *section, const char *option, char *buf)
 {
-	snprintf(buf, 255, "%s.%s.%s", PACKAGE.c_str(), section, option);
+	snprintf(buf, 255, "%s.%s.%s", PACKAGE, section, option);
 	if (uci_lookup_ptr(ctx, &ptrSecSave, buf, true) != UCI_OK)
 	{
-		MyThrow("Can't load package:%s", PACKAGE.c_str());
+		MyThrow("Can't load package:%s", PACKAGE);
 	}
 	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
@@ -228,10 +228,10 @@ void UciCfg::OptionSaveInt(const char * option, int value)
 	OptionSave(option, buf);
 }
 
-void UciCfg::OptionSaveWord(const char * option, char * word) 
+void UciCfg::OptionSaveChars(const char * option, const char * chars) 
 {
-	char buf[32];
-	sprintf(buf,"'%s'",word);
+	char buf[1024];
+	snprintf(buf, 1023, "'%s'", chars);
 	OptionSave(option, buf);
 }
 
@@ -248,4 +248,9 @@ void UciCfg::PrintOption_4x(const char * option, int x)
 void UciCfg::PrintOption_d(const char * option, int x)
 {
 	printf("\t%s '%d'\n", option, x);
+}
+
+void UciCfg::PrintOption_f(const char * option, float x)
+{
+	printf("\t%s '%f'\n", option, x);
 }

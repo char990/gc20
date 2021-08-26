@@ -2,22 +2,27 @@
 #include <tsisp003/TsiSp003AppVer10.h>
 #include <tsisp003/TsiSp003AppVer31.h>
 #include <tsisp003/TsiSp003AppVer50.h>
-#include <uci/DbHelper.h>
+
+
 
 AppFactory::AppFactory()
 {
-    auto ver = DbHelper::Instance().prodCfg.TsiSp003Ver();
-    if(ver==0x10)
+    auto ver = DbHelper::Instance().uciProd.TsiSp003Ver();
+    if(ver==0)
     {
         app = new TsiSp003AppVer10();
     }
-    if(ver==0x31)
+    else if(ver==1)
     {
         app = new TsiSp003AppVer31();
     }
-    else    //    if(ver==0x50) default
+    else if(ver=2)
     {
         app = new TsiSp003AppVer50();
+    }
+    else
+    {
+        MyThrow("Unknow TsiSp003Ver %d",ver);
     }
 }
 

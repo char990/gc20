@@ -43,20 +43,20 @@ void UciUser::LoadConfig()
     overTemp = GetInt(sec, _OverTemp, 0, 100);
     humidity = GetInt(sec, _Humidity, 0, 100);
     defaultFont = GetInt(sec, _DefaultFont, 1, MAX_FONT);
-    if(!uciProd.bFont.GetBit(defaultFont))
+    if(!uciProd.IsFont(defaultFont))
     {
         MyThrow("UciUser::DefaultFont(%d) is not valid", defaultFont);
     }
     defaultColour = GetInt(sec, _DefaultColour, 1, MAX_MONOCOLOUR);
-    if(!uciProd.bTxtFrmColour.GetBit(defaultFont))
+    if(!uciProd.IsTxtFrmColour(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in TextFrameColour", defaultColour);
     }
-    if(!uciProd.bGfxFrmColour.GetBit(defaultFont))
+    if(!uciProd.IsGfxFrmColour(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in GfxFrameColour", defaultColour);
     }
-    if(!uciProd.bHrgFrmColour.GetBit(defaultFont))
+    if(!uciProd.IsHrgFrmColour(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
     }
@@ -78,30 +78,12 @@ void UciUser::LoadConfig()
     {
         for(cnt=0;cnt<STANDARDBPS_SIZE;cnt++)
         {
-            if(baudrate==ALLOWEDBPS[i])break;
+            if(baudrate==ALLOWEDBPS[cnt])break;
         }
         if(cnt==STANDARDBPS_SIZE)
         {
             MyThrow("UciUser::Unknown Baudrate");
         }
-    }
-
-    str = GetStr(sec, _ComPort);
-    comPort = COMPORT_SIZE;
-    if (str != NULL)
-    {
-        for (int i = 0; i < COMPORT_SIZE; i++)
-        {
-            if (strcmp(COMPORTS[i].name, str) == 0)
-            {
-                comPort = i;
-                break;
-            }
-        }
-    }
-    if(comPort == COMPORT_SIZE)
-    {
-        MyThrow("UciUser::Unknown ComPort:%s", str);
     }
 
     str = GetStr(sec, _ShakehandsPassword);
@@ -140,16 +122,16 @@ void UciUser::LoadConfig()
     tz=NUMBER_OF_TZ;
     if(str!=NULL)
     {
-        for(int i=0;i<NUMBER_OF_TZ;i++)
+        for(int cnt=0;cnt<NUMBER_OF_TZ;cnt++)
         {
-            if(strcasecmp(str,Tz_AU::tz_au[i].city)==0)
+            if(strcasecmp(str,Tz_AU::tz_au[cnt].city)==0)
             {
-                tz=i;
+                tz=cnt;
                 break;
             }
         }
     }
-    if(i==NUMBER_OF_TZ)
+    if(cnt==NUMBER_OF_TZ)
     {
         MyThrow("UciUser::TZ error:%s",str);
     }
@@ -196,8 +178,34 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::Luminance Error: cnt!=16");
     }
 
-    str = GetStr(sec, _GroupCfg);
     int signs=uciProd.NumberOfSigns();
+
+    str = GetStr(sec, _ComPort);
+    comPort = COMPORT_SIZE;
+    if (str != NULL)
+    {
+        for (int i = 0; i < COMPORT_SIZE; i++)
+        {
+            if (strcmp(COMPORTS[i].name, str) == 0)
+            {
+                comPort = i;
+                break;
+            }
+        }
+    }
+    for(int i=0;i<signs;i++)
+    {
+        if(comPort==uciProd.Sign(i)->com_ip)
+        {
+            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COMPORTS[i].name, i+1);
+        }
+    }
+    if(comPort == COMPORT_SIZE)
+    {
+        MyThrow("UciUser::Unknown ComPort:%s", str);
+    }
+
+    str = GetStr(sec, _GroupCfg);
     cnt=Cnvt::GetIntArray(str, signs, ibuf, 1, signs);
     if(cnt==signs)
     {
@@ -224,7 +232,6 @@ void UciUser::LoadFactoryDefault()
     OptionSaveInt(_DeviceId, DeviceId());
     OptionSaveInt(_BroadcastId, BroadcastId());
 	UserClose();
-    isChanged = true;
 }
 
 void UciUser::UserOpen()
@@ -240,7 +247,7 @@ void UciUser::UserClose()
 void UciUser::Dump()
 {
 	printf ( "\n---------------\n" );
-	printf ( "UCI User Configs:\n" );
+	printf ( "%s/%s.%s\n", PATH, PACKAGE, SECTION_NAME);
 	printf ( "---------------\n" );
     PrintOption_d(_DeviceId, DeviceId());
     PrintOption_d(_BroadcastId, BroadcastId());
@@ -267,8 +274,7 @@ void UciUser::Dump()
     
     char buf[256];
 
-    int len = strlen(_ExtSw_Cfg);
-    strcpy(buf,_ExtSw_Cfg);
+    int len=sprintf(buf,"%s ", _ExtSw_Cfg);
     for(int i=0;i<3;i++)
 	{
 		buf[5]=i+'1';
@@ -337,15 +343,15 @@ void UciUser::PrintGroupCfg(char *buf)
 	{
 		if(i==0)
         {
-            len+=sprintf (buf+len, "'%u,", *(gcfg+i));
-        }
-        else if(i==signs-1)
-        {
-            len+=sprintf (buf+len, "%u'", *(gcfg+i));
+            len+=sprintf (buf+len, "'%u", *(gcfg+i));
         }
         else
         {
-            len+=sprintf (buf+len, "%u,", *(gcfg+i));
+            len+=sprintf (buf+len, ",%u", *(gcfg+i));
+        }
+        if(i==signs-1)
+        {
+            len+=sprintf (buf+len, "'");
         }
     }
 }
@@ -358,18 +364,19 @@ void UciUser::PrintLuminance(char *buf)
 	{
 		if(i==0)
         {
-            len+=sprintf (buf+len, "'%u,", *(lum+i));
-        }
-		else if(i==15)
-        {
-            len+=sprintf (buf+len, "%u'", *(lum+i));
+            len+=sprintf (buf+len, "'%u", *(lum+i));
         }
         else
         {
-            len+=sprintf (buf+len, "%u,", *(lum+i));
+            len+=sprintf (buf+len, ",%u", *(lum+i));
+        }
+		if(i==15)
+        {
+            len+=sprintf (buf+len, "'");
         }
     }
 }
+
 
     /// --------setter--------
 
@@ -450,7 +457,7 @@ void UciUser::DefaultColour(uint8_t v)
     if(defaultColour!=v)
     {
         defaultColour=v;
-        OptionSaveInt(defaultColour, v);
+        OptionSaveInt(_DefaultColour, v);
     }
 }
 
@@ -481,7 +488,16 @@ void UciUser::LastFrmTime(uint8_t v)
     }
 }
 
-void UciUser::MultiLedFaultThreshold(uint8_t v)
+void UciUser::ComPort(uint8_t v)
+{
+    if(comPort!=v)
+    {
+        comPort=v;
+        OptionSaveChars(_ComPort, COMPORTS[comPort].name);
+    }
+}
+
+void UciUser::MultiLedFaultThreshold(uint16_t v)
 {
     if(multiLedFaultThreshold!=v)
     {
@@ -490,14 +506,6 @@ void UciUser::MultiLedFaultThreshold(uint8_t v)
     }
 }
 
-void UciUser::ComPort(uint8_t v)
-{
-    if(comPort!=v)
-    {
-        comPort=v;
-        OptionSaveWord(_ComPort, COMPORTS[comPort]);
-    }
-}
 
 void UciUser::PasswordOffset(uint16_t v)
 {
@@ -553,12 +561,12 @@ void UciUser::Baudrate(int v)
     }
 }
 
-void UciUser::Tz(uint8_t tz)
+void UciUser::Tz(uint8_t v)
 {
     if(tz!=v)
     {
         tz=v;
-        OptionSaveWord(_TZ, Tz_AU::tz_au[tz].city);
+        OptionSaveChars(_TZ, Tz_AU::tz_au[tz].city);
     }
 }
 

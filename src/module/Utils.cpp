@@ -1,18 +1,21 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <cstdio>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
 #include <ctime>
+#include <string>
+#include <sstream>
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 
 
 using namespace Utils;
 
-const uint32_t MASK_BIT[32] = {
+const uint32_t Utils::MASK_BIT[32] = {
     0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
     0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000,
     0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
@@ -481,6 +484,34 @@ void Exec::CopyFile(const char *src, const char *dst)
     close(dstfd);
 }
 
+bool Exec::FileExists(const char *filename)
+{
+    struct stat fileStat; 
+    if ( stat(filename, &fileStat) )
+    {
+        return false;
+    }
+    if ( !S_ISREG(fileStat.st_mode) )
+    {
+        return false;
+    }
+    return true;
+}
+
+bool Exec::DirExists(const char *dirname)
+{
+    struct stat fileStat;
+    if ( stat(dirname, &fileStat) )
+    {
+        return false;
+    }
+    if ( !S_ISDIR(fileStat.st_mode) )
+    {
+        return false;
+    }
+    return true;
+}
+
 void Time::PrintTime()
 {
     struct timespec _CLOCK_BOOTTIME;
@@ -518,6 +549,11 @@ BitOption::BitOption(uint32_t v)
 
 }
 
+void BitOption::Set(uint32_t v)
+{
+    bits=v;
+}
+
 uint32_t BitOption::Get()
 {
     return bits;
@@ -535,3 +571,24 @@ bool BitOption::GetBit(int b)
 {
     return (bits&MASK_BIT[b])!=0;
 }
+
+std::string BitOption::ToString()
+{
+    char buf[128];
+    int len=0;
+    for(int i=0;i<32;i++)
+    {
+        if(GetBit(i))
+        {
+            if(len>0)
+            {
+                sprintf(buf+len,",");
+                len++;
+            }
+            len+=sprintf(buf+len,"%d",i);
+        }
+    }
+    std::string s{buf};
+    return s;
+}
+
