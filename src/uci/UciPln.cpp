@@ -84,7 +84,7 @@ void UciPln::SavePln(int i)
 	char v[36+1];
 	Cnvt::ParseToAsc(pln->plnData, v, pln->plnDataLen);
     v[pln->plnDataLen*2]='\0';
-    Save(SECTION.c_str(), option, v);
+    Save(SECTION, option, v);
 }
 
 int UciPln::CheckPlnEntries(Plan  * pln) 

@@ -5,7 +5,7 @@
 #include <string>
 #include <list>
 #include <module/BootTimer.h>
-#include <module/Sign.h>
+#include <sign/Sign.h>
 
 class Controller
 {

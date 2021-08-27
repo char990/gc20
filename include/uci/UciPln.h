@@ -33,7 +33,7 @@ public:
     UciPln(UciFrm &uciFrm, UciMsg &uciMsg);
     ~UciPln();
 
-    std::string SECTION;
+    const char * SECTION;
 
     /// \brief  load plns[] from "UciPln"
     void LoadConfig() override;

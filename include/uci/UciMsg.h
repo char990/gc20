@@ -29,7 +29,7 @@ public:
     UciMsg(UciFrm &uciFrm);
     ~UciMsg();
 
-	std::string SECTION;
+	const char * SECTION;
 
     /// \brief  load msgs[] from "UciMsg"
     void LoadConfig() override;

@@ -14,7 +14,7 @@
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
 #include <module/ObjectPool.h>
-#include <module/Controller.h>
+#include <sign/Controller.h>
 
 #include <uci.h>
 
@@ -35,7 +35,7 @@ int main()
         Epoll::Instance().Init(64);
         TimerEvent timerEvt10ms(10,"[tmrEvt10ms:10ms]");
         TimerEvent timerEvt1s(1000,"[tmrEvt1sec:1sec]");
-        DbHelper::Instance().Init(&timerEvt1s);
+        DbHelper::Instance().Init();
         Controller::Instance().Init();
 
         #define LINKS_NTS   3   // from tcp:tsi-sp-003

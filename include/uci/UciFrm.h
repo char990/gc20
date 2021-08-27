@@ -34,7 +34,7 @@ public:
     UciFrm();
     ~UciFrm();
 
-    std::string SECTION;
+    const char * SECTION;
 
     /// \brief  load frms[] from "UciFrm"
     void LoadConfig() override;

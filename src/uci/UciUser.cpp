@@ -25,29 +25,29 @@ UciUser::~UciUser()
 void UciUser::LoadConfig()
 {
     Open();
-    sec = GetSection(SECTION_NAME);
+    struct uci_section *uciSec = GetSection(SECTION_NAME);
     char cbuf[16];
     int ibuf[16];
     const char *str;
     int cnt;
 
-    deviceId = GetInt(sec, _DeviceId, 0, 255);
-    broadcastId = GetInt(sec, _BroadcastId, 0, 255);
+    deviceId = GetInt(uciSec, _DeviceId, 0, 255);
+    broadcastId = GetInt(uciSec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
         MyThrow("UciUser::DeviceId(%d) should not be same as BroadcastId(%d)", deviceId, broadcastId);
     }
-    seedOffset = GetInt(sec, _SeedOffset, 0, 255);
-    fan1OnTemp = GetInt(sec, _Fan1OnTemp, 0, 100 );
-    fan2OnTemp = GetInt(sec, _Fan2OnTemp, 0, 100 );
-    overTemp = GetInt(sec, _OverTemp, 0, 100);
-    humidity = GetInt(sec, _Humidity, 0, 100);
-    defaultFont = GetInt(sec, _DefaultFont, 1, MAX_FONT);
+    seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
+    fan1OnTemp = GetInt(uciSec, _Fan1OnTemp, 0, 100 );
+    fan2OnTemp = GetInt(uciSec, _Fan2OnTemp, 0, 100 );
+    overTemp = GetInt(uciSec, _OverTemp, 0, 100);
+    humidity = GetInt(uciSec, _Humidity, 0, 100);
+    defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
     if(!uciProd.IsFont(defaultFont))
     {
         MyThrow("UciUser::DefaultFont(%d) is not valid", defaultFont);
     }
-    defaultColour = GetInt(sec, _DefaultColour, 1, MAX_MONOCOLOUR);
+    defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
     if(!uciProd.IsTxtFrmColour(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in TextFrameColour", defaultColour);
@@ -61,20 +61,20 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
     }
 
-    lockedFrm = GetInt(sec, _LockedFrm, 0, 255);
-    lockedMsg = GetInt(sec, _LockedMsg, 0, 255);
-    passwordOffset = GetInt(sec, _PasswordOffset, 0, 0xFFFF);
-    displayTimeout = GetInt(sec, _DisplayTimeout, 0, 0xFFFF);
-    sessionTimeout = GetInt(sec, _SessionTimeout, 0, 0xFFFF);
-    svcPort = GetInt(sec, _SvcPort, 1024, 0xFFFF);
-    webPort = GetInt(sec, _WebPort, 1024, 0xFFFF);
+    lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
+    lockedMsg = GetInt(uciSec, _LockedMsg, 0, 255);
+    passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);
+    displayTimeout = GetInt(uciSec, _DisplayTimeout, 0, 0xFFFF);
+    sessionTimeout = GetInt(uciSec, _SessionTimeout, 0, 0xFFFF);
+    svcPort = GetInt(uciSec, _SvcPort, 1024, 0xFFFF);
+    webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)
     {
         MyThrow("UciUser::SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort);
     }
-    multiLedFaultThreshold = GetInt(sec, _MultiLedFaultThreshold, 0, 0xFFFF);
+    multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
-    baudrate = GetInt(sec, _Baudrate, ALLOWEDBPS[0], ALLOWEDBPS[STANDARDBPS_SIZE-1]);
+    baudrate = GetInt(uciSec, _Baudrate, ALLOWEDBPS[0], ALLOWEDBPS[STANDARDBPS_SIZE-1]);
     {
         for(cnt=0;cnt<STANDARDBPS_SIZE;cnt++)
         {
@@ -86,7 +86,7 @@ void UciUser::LoadConfig()
         }
     }
 
-    str = GetStr(sec, _ShakehandsPassword);
+    str = GetStr(uciSec, _ShakehandsPassword);
     if(str==NULL)
     {
         strcpy(shakehandsPassword, "brightway");
@@ -103,7 +103,7 @@ void UciUser::LoadConfig()
     for(int m=0; m<3 ; m++)
     {
         cbuf[5]=m+'1'; // ExtSw_Cfg
-        str = GetStr(sec, cbuf);
+        str = GetStr(uciSec, cbuf);
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if(cnt==4)
         {
@@ -118,7 +118,7 @@ void UciUser::LoadConfig()
         }
     }
 
-	str = GetStr(sec, _TZ);
+	str = GetStr(uciSec, _TZ);
     tz=NUMBER_OF_TZ;
     if(str!=NULL)
     {
@@ -136,7 +136,7 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::TZ error:%s",str);
     }
 
-    str = GetStr(sec, _DawnDusk);
+    str = GetStr(uciSec, _DawnDusk);
     cnt=Cnvt::GetIntArray(str, 16, ibuf, 0, 59);
     if(cnt==16)
     {
@@ -157,7 +157,7 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::DawnDusk Error: cnt!=16");
     }
 
-    str = GetStr(sec, _Luminance);
+    str = GetStr(uciSec, _Luminance);
     cnt=Cnvt::GetIntArray(str, 16, ibuf, 1, 65535);
     if(cnt==16)
     {
@@ -180,7 +180,7 @@ void UciUser::LoadConfig()
 
     int signs=uciProd.NumberOfSigns();
 
-    str = GetStr(sec, _ComPort);
+    str = GetStr(uciSec, _ComPort);
     comPort = COMPORT_SIZE;
     if (str != NULL)
     {
@@ -205,7 +205,7 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::Unknown ComPort:%s", str);
     }
 
-    str = GetStr(sec, _GroupCfg);
+    str = GetStr(uciSec, _GroupCfg);
     cnt=Cnvt::GetIntArray(str, signs, ibuf, 1, signs);
     if(cnt==signs)
     {

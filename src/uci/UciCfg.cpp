@@ -23,23 +23,23 @@ struct uci_section *UciCfg::GetSection(const char *name)
 	{
 		Open();
 	}
-	struct uci_section *sec = uci_lookup_section(ctx, pkg, name);
-	if (sec == NULL)
+	struct uci_section *uciSec = uci_lookup_section(ctx, pkg, name);
+	if (uciSec == NULL)
 	{
 		MyThrow("Can't load %s/%s.%s", PATH, PACKAGE, name);
 	}
-	return sec;
+	return uciSec;
 }
 
 struct uci_section *UciCfg::GetSection(const char *type, const char *name)
 {
-	struct uci_section *sec;
+	struct uci_section *uciSec;
 	while(1)
 	{
-		sec = GetSection(name);
-		if (strcmp(type, sec->type) == 0)
+		uciSec = GetSection(name);
+		if (strcmp(type, uciSec->type) == 0)
 		{
-			return sec;
+			return uciSec;
 		}
 	}
 }

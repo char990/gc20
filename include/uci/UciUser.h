@@ -97,7 +97,6 @@ public:
 private:
 
     UciProd &uciProd;
-    struct uci_section *sec;
     
     uint8_t
         broadcastId,

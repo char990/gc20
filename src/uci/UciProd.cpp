@@ -6,6 +6,7 @@
 #include <module/SerialPort.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
+#include <sign/SignFactory.h>
 
 extern const char *FirmwareMajorVer;
 extern const char *FirmwareMinorVer;
@@ -45,41 +46,30 @@ UciProd::UciProd()
 {
     PATH = "./config";
     PACKAGE = "gcprod";
-    signs = nullptr;
+    signCn = nullptr;
 }
 
 UciProd::~UciProd()
 {
-    if (signs != nullptr)
+    if (signCn != nullptr)
     {
-        delete[] signs;
+        delete[] signCn;
     }
 }
 
 void UciProd::LoadConfig()
 {
     Open();
-    sec = GetSection(SECTION_NAME);
+    struct uci_section *uciSec = GetSection(SECTION_NAME);
     char cbuf[16];
     int ibuf[16];
     const char *str;
     int cnt;
 
-    str = GetStr(sec, _TsiSp003Ver);
-    for (cnt = 0; cnt < TSISP003VER_SIZE; cnt++)
-    {
-        if (strcmp(str, TSISP003VER[cnt]) == 0)
-        {
-            tsiSp003Ver = cnt;
-            break;
-        }
-    }
-    if (tsiSp003Ver == TSISP003VER_SIZE)
-    {
-        MyThrow("UciProd Error: Unknown TsiSp003Ver '%s'", str);
-    }
+    tsiSp003Ver = SelectStr(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
+    signType = SelectStr(uciSec, _SignType, SIGNTYPE, SIGNTYPE_SIZE);
 
-    str = GetStr(sec, _MfcCode);
+    str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
         sprintf(mfcCode, "%s%s%s", str, FirmwareMajorVer, FirmwareMinorVer);
@@ -89,9 +79,9 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: MfcCode length should be 6");
     }
 
-    slaveRqstInterval = GetInt(sec, _SlaveRqstInterval, 10, 1000);
-    slaveRqstStTo = GetInt(sec, _SlaveRqstStTo, 10, 1000);
-    slaveRqstExtTo = GetInt(sec, _SlaveRqstExtTo, 10, 1000);
+    slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 1000);
+    slaveRqstStTo = GetInt(uciSec, _SlaveRqstStTo, 10, 1000);
+    slaveRqstExtTo = GetInt(uciSec, _SlaveRqstExtTo, 10, 1000);
     if (slaveRqstStTo > slaveRqstInterval)
     {
         MyThrow("UciProd Error: SlaveRqstStTo(%d) > SlaveRqstInterval(%d)", slaveRqstStTo, slaveRqstInterval);
@@ -100,9 +90,9 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: SlaveRqstExtTo(%d) > SlaveRqstInterval(%d)", slaveRqstExtTo, slaveRqstInterval);
     }
-    slaveSetStFrmDly = GetInt(sec, _SlaveSetStFrmDly, 10, 1000);
-    slaveDispDly = GetInt(sec, _SlaveDispDly, 10, 1000);
-    slaveCmdDly = GetInt(sec, _SlaveCmdDly, 10, 1000);
+    slaveSetStFrmDly = GetInt(uciSec, _SlaveSetStFrmDly, 10, 1000);
+    slaveDispDly = GetInt(uciSec, _SlaveDispDly, 10, 1000);
+    slaveCmdDly = GetInt(uciSec, _SlaveCmdDly, 10, 1000);
     if (slaveCmdDly > slaveSetStFrmDly)
     {
         MyThrow("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)", slaveCmdDly, slaveSetStFrmDly);
@@ -112,45 +102,45 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: SlaveCmdDly(%d) > SlaveDispDly(%d)", slaveCmdDly, slaveDispDly);
     }
 
-    lightSensorMidday = GetInt(sec, _LightSensorMidday, 1, 65535);
-    lightSensorMidnight = GetInt(sec, _LightSensorMidnight, 1, 65535);
-    lightSensor18Hours = GetInt(sec, _LightSensor18Hours, 1, 65535);
-    driverFaultDebounce = GetInt(sec, _DriverFaultDebounce, 1, 65535);
-    overTempDebounce = GetInt(sec, _OverTempDebounce, 1, 65535);
-    selftestDebounce = GetInt(sec, _SelftestDebounce, 1, 65535);
-    offlineDebounce = GetInt(sec, _OfflineDebounce, 1, 65535);
-    lightSensorFaultDebounce = GetInt(sec, _LightSensorFaultDebounce, 1, 65535);
-    lanternFaultDebounce = GetInt(sec, _LanternFaultDebounce, 1, 65535);
-    slaveVoltageLow = GetInt(sec, _SlaveVoltageLow, 1, 65535);
-    slaveVoltageHigh = GetInt(sec, _SlaveVoltageHigh, 1, 65535);
+    lightSensorMidday = GetInt(uciSec, _LightSensorMidday, 1, 65535);
+    lightSensorMidnight = GetInt(uciSec, _LightSensorMidnight, 1, 65535);
+    lightSensor18Hours = GetInt(uciSec, _LightSensor18Hours, 1, 65535);
+    driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 1, 65535);
+    overTempDebounce = GetInt(uciSec, _OverTempDebounce, 1, 65535);
+    selftestDebounce = GetInt(uciSec, _SelftestDebounce, 1, 65535);
+    offlineDebounce = GetInt(uciSec, _OfflineDebounce, 1, 65535);
+    lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 1, 65535);
+    lanternFaultDebounce = GetInt(uciSec, _LanternFaultDebounce, 1, 65535);
+    slaveVoltageLow = GetInt(uciSec, _SlaveVoltageLow, 1, 65535);
+    slaveVoltageHigh = GetInt(uciSec, _SlaveVoltageHigh, 1, 65535);
     if (slaveVoltageLow > slaveVoltageHigh)
     {
         MyThrow("UciProd Error: SlaveVoltageLow(%d) > SlaveVoltageHigh(%d)", slaveVoltageLow, slaveVoltageHigh);
     }
-    lightSensorScale = GetInt(sec, _LightSensorScale, 1, 65535);
+    lightSensorScale = GetInt(uciSec, _LightSensorScale, 1, 65535);
 
-    slavePowerUpDelay = GetInt(sec, _SlavePowerUpDelay, 1, 255);
-    colourBits = GetInt(sec, _ColourBits, 1, 24);
+    slavePowerUpDelay = GetInt(uciSec, _SlavePowerUpDelay, 1, 255);
+    colourBits = GetInt(uciSec, _ColourBits, 1, 24);
     if (colourBits != 1 && colourBits != 4 && colourBits != 24)
     {
         MyThrow("UciProd Error: ColourBits(%d) Only 1/4/24 allowed", colourBits);
     }
-    isResetLogAllowed = GetInt(sec, _IsResetLogAllowed, 0, 1);
-    isUpgradeAllowed = GetInt(sec, _IsUpgradeAllowed, 0, 1);
-    numberOfSigns = GetInt(sec, _NumberOfSigns, 1, 16);
+    isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
+    isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
+    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
 
-    signs = new struct SignConnection[numberOfSigns];
+    signCn = new struct SignConnection[numberOfSigns];
     for (int i = 1; i <= numberOfSigns; i++)
     {
         sprintf(cbuf, "%s%d", _Sign, i);
-        str = GetStr(sec, cbuf);
+        str = GetStr(uciSec, cbuf);
         uint32_t x1, x2, x3, x4, x5;
         if (sscanf(str, "%u.%u.%u.%u:%u", &x1, &x2, &x3, &x4, &x5) == 5)
         {
             if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
             {
-                signs[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
-                signs[i - 1].bps_port = x5;
+                signCn[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
+                signCn[i - 1].bps_port = x5;
                 continue;
             }
         }
@@ -163,7 +153,7 @@ void UciProd::LoadConfig()
             }
             if (cnt < COMPORT_SIZE)
             {
-                signs[i - 1].com_ip = cnt;
+                signCn[i - 1].com_ip = cnt;
                 const char *bps = strchr(str, ':');
                 if (bps != NULL)
                 {
@@ -177,7 +167,7 @@ void UciProd::LoadConfig()
                         }
                         if (cnt < EXTENDEDBPS_SIZE)
                         {
-                            signs[i - 1].bps_port = x5;
+                            signCn[i - 1].bps_port = x5;
                             continue;
                         }
                     }
@@ -187,12 +177,12 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s '%s'", cbuf, str);
     }
 
-    ReadBitOption(sec, _Font, bFont);
-    ReadBitOption(sec, _Conspicuity, bConspicuity);
-    ReadBitOption(sec, _Annulus, bAnnulus);
-    ReadBitOption(sec, _TxtFrmColour, bTxtFrmColour);
-    ReadBitOption(sec, _GfxFrmColour, bGfxFrmColour);
-    ReadBitOption(sec, _HrgFrmColour, bHrgFrmColour);
+    ReadBitOption(uciSec, _Font, bFont);
+    ReadBitOption(uciSec, _Conspicuity, bConspicuity);
+    ReadBitOption(uciSec, _Annulus, bAnnulus);
+    ReadBitOption(uciSec, _TxtFrmColour, bTxtFrmColour);
+    ReadBitOption(uciSec, _GfxFrmColour, bGfxFrmColour);
+    ReadBitOption(uciSec, _HrgFrmColour, bHrgFrmColour);
 
     // Font0 'P5X7'
     for (int i = 0; i < MAX_FONT + 1; i++)
@@ -200,7 +190,7 @@ void UciProd::LoadConfig()
         if (bFont.GetBit(i))
         {
             sprintf(cbuf, "%s%d", _Font, i);
-            str = GetStr(sec, cbuf);
+            str = GetStr(uciSec, cbuf);
             if (strlen(str) > 0 && strlen(str) < 8)
             {
                 sprintf(cbuf, "font/%s", str);
@@ -215,6 +205,24 @@ void UciProd::LoadConfig()
         }
     }
 
+    mappedColoursTable[0]=0;
+    for(int i=1;i<10,i++)
+    {
+        str = GetStr(uciSec, COLOUR_NAME[i]);
+        for(cnt=1;cnt<10;cnt++)
+        {
+            if(strcmp(str, COLOUR_NAME[cnt])==0)
+            {
+                mappedColoursTable[i]=cnt;
+                break;
+            }
+        }
+        if(cnt==10)
+        {
+            MyThrow("UciProd Error: colour map %s undefined", COLOUR_NAME[i]);
+        }
+    }
+
     Close();
     Dump();
 }
@@ -226,6 +234,7 @@ void UciProd::Dump()
     printf("---------------\n");
 
     printf("\t%s '%s'\n", _TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
+    printf("\t%s '%s'\n", _SignType, SIGNTYPE[SignType()]);
     printf("\t%s '%s'\n", _MfcCode, MfcCode());
 
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
@@ -271,14 +280,20 @@ void UciProd::Dump()
     printf("\t%s '%s'\n", _TxtFrmColour, bTxtFrmColour.ToString().c_str());
     printf("\t%s '%s'\n", _GfxFrmColour, bGfxFrmColour.ToString().c_str());
     printf("\t%s '%s'\n", _HrgFrmColour, bHrgFrmColour.ToString().c_str());
+    
+    printf("\tColour map:\n");
+    for(int i=1;i<10,i++)
+    {
+        printf("\t%s '%s'\n", COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
+    }
 
     printf("\n---------------\n");
 }
 
-void UciProd::ReadBitOption(struct uci_section *sec, const char *option, BitOption &bo)
+void UciProd::ReadBitOption(struct uci_section *uciSec, const char *option, BitOption &bo)
 {
     int ibuf[32];
-    const char *str = GetStr(sec, option);
+    const char *str = GetStr(uciSec, option);
     if (str != NULL)
     {
         int cnt = Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
@@ -295,68 +310,15 @@ void UciProd::ReadBitOption(struct uci_section *sec, const char *option, BitOpti
     MyThrow("UciProd Error: %s", option);
 }
 
-int UciProd::MaxTextFrmLen()
+int UciProd::SelectStr(uci_section * uciSec, const char *option, const char *collection, int cSize)
 {
-    return 255;
-}
-
-int UciProd::MinGfxFrmLen()
-{
-    return (Pixels() + 7) / 8;
-}
-
-int UciProd::MaxGfxFrmLen()
-{
-    switch (ColourBits())
+    const char *str = GetStr(uciSec, option);
+    for (int cnt = 0; cnt < cSize; cnt++)
     {
-    case 1:
-        return (Pixels() + 7) / 8;
-    case 4:
-        return (Pixels() + 2) / 2;
-    default:
-        return 0;
+        if (strcmp(str, collection[cnt]) == 0)
+        {
+            return cnt;
+        }
     }
-}
-
-int UciProd::MinHrgFrmLen()
-{
-    return (Pixels() + 7) / 8;
-}
-
-int UciProd::MaxHrgFrmLen()
-{
-    switch (ColourBits())
-    {
-    case 1:
-        return (Pixels() + 7) / 8;
-    case 4:
-        return (Pixels() + 2) / 2;
-    default:
-        return (Pixels() * 3);
-    }
-}
-
-int UciProd::CharRows()
-{
-    return 3;
-}
-
-int UciProd::CharColumns()
-{
-    return 18;
-}
-
-int UciProd::PixelRows()
-{
-    return 64;
-}
-
-int UciProd::PixelColumns()
-{
-    return 288;
-}
-
-int UciProd::Pixels()
-{
-    return PixelRows() * PixelColumns();
+    MyThrow("UciProd Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
 }

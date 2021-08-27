@@ -36,11 +36,11 @@ void UciFrm::LoadConfig()
 {
 	chksum = 0;
 	Open();
-	struct uci_section *sec = GetSection(SECTION.c_str());
+	struct uci_section *uciSec = GetSection(SECTION);
 	struct uci_element *e;
 	struct uci_option *option;
 	char *fbuf = new char [MAX_HRGFRM_SIZE*2];
-	uci_foreach_element(&sec->options, e)
+	uci_foreach_element(&uciSec->options, e)
 	{
 		if (memcmp(e->name, "frm_", 4) != 0)
 			continue;
@@ -230,7 +230,7 @@ void UciFrm::SaveFrm(int i)
 
 	char option[8];
 	sprintf(option, "frm_%d", i);
-    Save(SECTION.c_str(), option, v);	
+    Save(SECTION, option, v);	
 	delete v;
 }
 
@@ -268,7 +268,7 @@ void UciFrm::TestSaveTxtFrm()
 	char option[8];
 	int len = TestSaveTxtFrm_len + 9;
 	char v[len * 2 + 1];
-	OpenSectionForSave(SECTION.c_str());
+	OpenSectionForSave(SECTION);
 	ptrSecSave.option = option;
 	ptrSecSave.value = v;
 	for (int i = 1; i <= 255; i++)

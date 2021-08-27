@@ -22,23 +22,12 @@ public:
     void LoadConfig() override;
     void Dump() override;
 
-    int MaxTextFrmLen();
-    int MinGfxFrmLen();
-    int MaxGfxFrmLen();
-    int MinHrgFrmLen();
-    int MaxHrgFrmLen();
-
-    int CharRows();
-    int CharColumns();
-
-    int PixelRows();
-    int PixelColumns();
-    int Pixels();
 
     // getter
     char * MfcCode() { return &mfcCode[0]; };
     char * FontName(int i) { return &fontName[i][0]; };
-    struct SignConnection * Sign(int i) { return &signs[i]; };
+    struct SignConnection * SignCn(int i) { return &signCn[i]; };
+    uint8_t * MappedColoursTable() {return &mappedColoursTable[0]; };
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
     uint16_t SlaveRqstStTo() { return slaveRqstStTo; };
@@ -62,6 +51,7 @@ public:
     uint16_t LightSensorScale() { return lightSensorScale; };
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver;};
+    uint8_t SignType() { return signType;};
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
@@ -77,11 +67,10 @@ public:
 
 private:
     const char * SECTION_NAME="ctrller_cfg";
-    struct uci_section *sec;
-
     ///  ---------- option -----------
     // string
     const char * _MfcCode="MfcCode";
+    const char * _SignType="SignType";
     // int array
     const char * _Font="Font";
     const char * _Conspicuity="Conspicuity";
@@ -129,8 +118,8 @@ private:
     char mfcCode[11];
 
     char fontName[MAX_FONT+1][8];
-    
-    struct SignConnection * signs;
+
+    struct SignConnection * signCn;
 
     uint16_t
         slaveRqstInterval,
@@ -159,7 +148,10 @@ private:
         isResetLogAllowed,
         isUpgradeAllowed,
         numberOfSigns,
+        signType,
         tsiSp003Ver;
+
+	uint8_t mappedColoursTable[10];				// colourtable[0] is always 0
 
     Utils::BitOption bFont;
     Utils::BitOption bConspicuity;

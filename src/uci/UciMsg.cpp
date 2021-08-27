@@ -35,10 +35,10 @@ void UciMsg::LoadConfig()
 	chksum=0;
 	chksum = 0;
 	Open();
-	struct uci_section *sec = GetSection(SECTION.c_str());
+	struct uci_section *uciSec = GetSection(SECTION);
 	struct uci_element *e;
 	struct uci_option *option;
-	uci_foreach_element(&sec->options, e)
+	uci_foreach_element(&uciSec->options, e)
 	{
 		if (memcmp(e->name, "msg_", 4) != 0)
 			continue;
@@ -144,5 +144,5 @@ void UciMsg::SaveMsg(int i)
 	char v[36+1];
 	Cnvt::ParseToAsc(msg->msgData, v, msg->msgDatalen);
     v[msg->msgDatalen*2]='\0';
-    Save(SECTION.c_str(), option, v);
+    Save(SECTION, option, v);
 }
