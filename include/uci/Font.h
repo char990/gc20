@@ -7,7 +7,7 @@
 
 /********* Font definition *********
 1. Font file name looks like P5X7/F12X20
-2. File name length is 1-7
+2. File name length is 1-15
 3. Font file is binary file
 4. First 8-byte is font info
     bytesPerCell=buf[0]*0x100+buf[1];
@@ -28,22 +28,23 @@
     [0]: bit7: with decender, bit0-6: dot columns
 
     [1 - (bytesPerCell-1)] : dot data
+    data is arranged such that the leftmost column of the character is in the most significant bit of the 2-byte required.
 
     E.g. character '/' in a 10 columns x 11 rows font
     row uses 16 binary bits (2-byte)
-    data is arranged such that the leftmost column of the character is in the most significant bit of the 2-byte required.
 
-    0000000110xxxxxx	( x represents an unused bit)
-    0000000110xxxxxx
-    0000001110xxxxxx
-    0000011100xxxxxx
-    0000111000xxxxxx
-    0001110000xxxxxx
-    0011100000xxxxxx
-    0111000000xxxxxx
-    1110000000xxxxxx
-    1100000000xxxxxx
-    1100000000xxxxxx
+      1234567890123456 ( x represents an unused bit)
+    1 .......●●.xxxxxx
+    2 .......●●.xxxxxx
+    3 ......●●●.xxxxxx
+    4 .....●●●..xxxxxx
+    5 ....●●●...xxxxxx
+    6 ...●●●....xxxxxx
+    7 ..●●●.....xxxxxx
+    8 .●●●......xxxxxx
+    9 ●●●.......xxxxxx
+    0 ●●........xxxxxx
+    1 ●●........xxxxxx
 
     converting to a more compact hex form produces 10 rows of 2 bytes each ;
     0x01,0x80,
@@ -61,14 +62,68 @@
     The whole cell data would be :
     {10,0x01,0x80,0x01,0x80,0x03,0x80,0x07,0x00,0x0E,0x00,0x1C,0x00,0x38,0x00,0x70,0x00,0xE0,0x00,0xC0,0x00,0xC0,0x00}
 
+
+    E.g. character 'g' in a 12 columns x 16 rows font
+    row uses 16 binary bits (2-byte)
+
+    1234567890123456 ( x represents an unused bit)
+    1 ............xxxx
+    2 ............xxxx
+    3 ...●●●●●....xxxx
+    4 ..●●●●●●●...xxxx
+    5 ..●●...●●...xxxx
+    6 ..●●...●●...xxxx
+    7 ..●●...●●...xxxx
+    8 ..●●...●●...xxxx
+    9 ..●●...●●...xxxx
+    0 ..●●...●●...xxxx
+    1 ..●●●●●●●...xxxx
+    2 ...●●●●●●...xxxx
+    3 .......●●...xxxx
+    4 .......●●...xxxx
+    5 ...●●●●●●...xxxx
+    6 ...●●●●●....xxxx
+
+    If there is no decender(=0), the whole cell data would be :
+    {12, 0x00,0x00, 0x00,0x00, 0x1F,0x00, 0x3F,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x3F,0x80, 0x1F,0x80, 0x01,0x80, 0x01,0x80, 0x1F,0x80, 0x1F,0x00}
+
+    If there is decender(=4), he whole cell data would be : (just with 0x80 attached to first byte)
+    {0x80+12, 0x00,0x00, 0x00,0x00, 0x1F,0x00, 0x3F,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x3F,0x80, 0x1F,0x80, 0x01,0x80, 0x01,0x80, 0x1F,0x80, 0x1F,0x00}
+    And dot matrix looks like 12X20 with descender=4 （Insert 4 empty line at head）
+    1234567890123456 ( x represents an unused bit)
+    1 ............xxxx
+    2 ............xxxx
+    3 ............xxxx
+    4 ............xxxx
+    5 ............xxxx
+    6 ............xxxx
+    7 ...●●●●●....xxxx
+    8 ..●●●●●●●...xxxx
+    9 ..●●...●●...xxxx
+    0 ..●●...●●...xxxx
+    1 ..●●...●●...xxxx
+    2 ..●●...●●...xxxx
+    3 ..●●...●●...xxxx
+    4 ..●●...●●...xxxx
+    5 ..●●●●●●●...xxxx
+    6 ...●●●●●●...xxxx
+    7 .......●●...xxxx
+    8 .......●●...xxxx
+    9 ...●●●●●●...xxxx
+    0 ...●●●●●....xxxx
+
+    The matrix data would be
+    |4 empty lines                            |, then the dot data
+    {0x00,0x00, 0x00,0x00, 0x00,0x00, 0x00,0x00, 0x00,0x00, 0x00,0x00, 0x1F,0x00, 0x3F,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x31,0x80, 0x3F,0x80, 0x1F,0x80, 0x01,0x80, 0x01,0x80, 0x1F,0x80, 0x1F,0x00}
+
     */
 
 class Font
 {
 public:
-    Font(const char *fontName);
+    Font(const char *fontname);
     ~Font();
-    const char *FontName() { return fontName; };
+    const char *FontName() { return &fontName[0]; };
 
     uint16_t BytesPerCell() { return  bytesPerCell; }; 
     uint8_t ColumnsPerCell() { return  columnsPerCell; }; 
@@ -94,7 +149,7 @@ public:
     int GetWidth(char *s);
 
 private:
-    const char *fontName;
+    char fontName[16];
     uint16_t bytesPerCell;
     uint8_t columnsPerCell;
     uint8_t rowsPerCell;
@@ -103,7 +158,7 @@ private:
     uint8_t lineSpacing;
     uint8_t descender;
 
-    uint8_t * cellPtr[0x7F-0x20+1];  // 0x20 - 0x7F
+    uint8_t * cellPtr[0x80-0x20];  // 0x20 - 0x7F
 };
 
 #endif

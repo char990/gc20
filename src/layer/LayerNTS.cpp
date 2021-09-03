@@ -38,7 +38,7 @@ LayerNTS::~LayerNTS()
 
 int LayerNTS::Rx(uint8_t *data, int len)
 {
-    if(len<15 || (len&1)==0 || data[7]!=CTRL_CHAR::STX)
+    if(len<15 || (len&1)==0 || data[7]!=DATALINK::CTRL_CHAR::STX)
     {
         return 0;
     }
@@ -81,7 +81,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 }
                 else
                 {// ns nr not matched
-                    MakeNondata(CTRL_CHAR::NAK);
+                    MakeNondata(DATALINK::CTRL_CHAR::NAK);
                     lowerLayer->Tx(txbuf, 10);
                     return 0;
                 }
@@ -127,13 +127,13 @@ int LayerNTS::Tx(uint8_t *data, int len)
     {// no reply for broadcast
         return 0;
     }
-    MakeNondata(CTRL_CHAR::ACK);
+    MakeNondata(DATALINK::CTRL_CHAR::ACK);
     char *p=(char *)txbuf+NON_DATA_PACKET_SIZE;
-    *p=CTRL_CHAR::SOH; p++;
+    *p=DATALINK::CTRL_CHAR::SOH; p++;
     Cnvt::ParseToAsc(_ns,p); p+=2;
     Cnvt::ParseToAsc(_nr,p); p+=2;
     Cnvt::ParseToAsc(cfg.DeviceId(),p); p+=2;
-    *p=CTRL_CHAR::STX; p++;
+    *p=DATALINK::CTRL_CHAR::STX; p++;
     memcpy(p,data,len);
     EndOfBlock(txbuf+NON_DATA_PACKET_SIZE, len+DATA_PACKET_HEADER_SIZE);
     lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE+DATA_PACKET_HEADER_SIZE+len+DATA_PACKET_EOB_SIZE);
@@ -188,5 +188,5 @@ void LayerNTS::EndOfBlock(uint8_t *p, int len)
     p+=2;
     Cnvt::ParseToAsc(crc,(char *)p);
     p+=2;
-    *p=CTRL_CHAR::ETX;
+    *p=DATALINK::CTRL_CHAR::ETX;
 }

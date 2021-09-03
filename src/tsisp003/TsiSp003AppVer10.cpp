@@ -2,7 +2,7 @@
 #include <tsisp003/TsiSp003AppVer10.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <module/Controller.h>
+#include <sign/Scheduler.h>
 #include <module/Utils.h>
 
 using namespace Utils;
@@ -84,13 +84,13 @@ void TsiSp003AppVer10::HeartbeatPoll(uint8_t *data, int len)
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16>>8;
     txbuf[11] = i16&0xff;
-    txbuf[12] = ctrl.ErrorCode();
-    int scnt = ctrl.SignCnt();
+    txbuf[12] = scheduler.ErrorCode();
+    int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
     for(int i=0;i<scnt;i++)
     {
-        p=ctrl.signs[i]->GetStatus(p);
+        p=scheduler.signs[i]->GetStatus(p);
     }
     Tx(txbuf, p-txbuf);
 }

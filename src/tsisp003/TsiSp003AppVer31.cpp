@@ -46,13 +46,13 @@ void TsiSp003AppVer31::SignExtendedStatusRequest(uint8_t *data, int len)
     txbuf[2] = appError;
     memcpy(txbuf+3, db.uciProd.MfcCode(), 10);
     Time2Buf(txbuf+13);
-    txbuf[20] = ctrl.ErrorCode();
-    int scnt = ctrl.SignCnt();
+    txbuf[20] = scheduler.ErrorCode();
+    int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];
     for(int i=0;i<scnt;i++)
     {
-        p=ctrl.signs[i]->GetExtStatus(p);
+        p=scheduler.signs[i]->GetExtStatus(p);
     }
     int applen = p-txbuf;
     uint16_t crc = Crc::Crc16_1021(txbuf, applen);

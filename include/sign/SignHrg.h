@@ -1,9 +1,9 @@
 #ifndef __SIGNHRG_H__
 #define __SIGNHRG_H__
 
-#include <module/Sign.h>
+#include <sign/SignGfx.h>
 
-class SignHrg : public Sign
+class SignHrg : public SignGfx
 {
 public:
     virtual void PeriodicRun() override ;

@@ -193,16 +193,16 @@ void UciUser::LoadConfig()
             }
         }
     }
+    if(comPort == COMPORT_SIZE)
+    {
+        MyThrow("UciUser::Unknown ComPort:%s", str);
+    }
     for(int i=0;i<signs;i++)
     {
         if(comPort==uciProd.Sign(i)->com_ip)
         {
             MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COMPORTS[i].name, i+1);
         }
-    }
-    if(comPort == COMPORT_SIZE)
-    {
-        MyThrow("UciUser::Unknown ComPort:%s", str);
     }
 
     str = GetStr(uciSec, _GroupCfg);

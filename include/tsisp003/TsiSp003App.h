@@ -5,7 +5,7 @@
 #include <layer/ILayer.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <module/Controller.h>
+#include <sign/Scheduler.h>
 #include <layer/ISession.h>
 
 /// \brief TSiSp003 Application Layer base
@@ -51,7 +51,7 @@ public:
 
 protected:
     DbHelper & db;
-    Controller & ctrl;
+    Scheduler & scheduler;
     ISession *session;
 
     uint8_t micode;

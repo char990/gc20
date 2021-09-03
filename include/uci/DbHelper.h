@@ -6,7 +6,6 @@
 #include <uci/UciFrm.h>
 #include <uci/UciMsg.h>
 #include <uci/UciPln.h>
-#include <uci/Font.h>
 
 class DbHelper: public IPeriodicRun
 {
@@ -28,14 +27,12 @@ public:
     UciFrm uciFrm;
     UciMsg uciMsg{uciFrm};
     UciPln uciPln{uciFrm,uciMsg};
-    Font * GetFont(int i);
 protected:
 
 
 private:
     DbHelper(){};
     ~DbHelper();    
-    Font *fonts;
 };
 
 #endif

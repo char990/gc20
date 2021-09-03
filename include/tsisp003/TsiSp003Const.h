@@ -291,9 +291,9 @@ namespace LOG
 #define MAX_FONT 5
 #define MAX_MONOCOLOUR 9
 
-namespace CTRL_CHAR
+namespace DATALINK
 {
-    enum
+    enum CTRL_CHAR
     {
         SOH = 1,
         STX = 2,
@@ -307,5 +307,12 @@ namespace CTRL_CHAR
 #define TSISP003VER_SIZE    3
 
 extern const char * TSISP003VER[TSISP003VER_SIZE];
+
+namespace CTRLLER_STATE
+{
+    enum FCLTSWITCH {FS_AUTO, FS_MSG1, FS_MSG2, FS_OFF=255};
+    enum EXTSWITCH {EXT_NONE, EXT_SW3, EXT_SW4, EXT_SW5};
+    enum DISPSTATE {DISP_NONE, DISP_FRM, DISP_MSG, DISP_PLN, DISP_FCLTSW, DISP_EXTSW, DISP_PWR_OFF, DISP_DISABLED};
+}
 
 #endif

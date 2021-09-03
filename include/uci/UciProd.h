@@ -5,6 +5,7 @@
 #include <uci/UciCfg.h>
 #include <module/Utils.h>
 #include <string>
+#include <uci/Font.h>
 
 struct SignConnection
 {
@@ -25,7 +26,7 @@ public:
 
     // getter
     char * MfcCode() { return &mfcCode[0]; };
-    char * FontName(int i) { return &fontName[i][0]; };
+    Font * GetFont(int i) { return &fonts[i]; };
     struct SignConnection * SignCn(int i) { return &signCn[i]; };
     uint8_t * MappedColoursTable() {return &mappedColoursTable[0]; };
 
@@ -55,6 +56,13 @@ public:
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
+    uint8_t PixelRowsPerTile() { return pixelRowsPerTile; };
+    uint8_t PixelColumnsPerTile() { return pixelColumnsPerTile; };
+    uint8_t TileRowsPerSlave() { return tileRowsPerSlave; };
+    uint8_t TileColumnsPerSlave() { return tileColumnsPerSlave; };
+    uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
+    uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
+
     bool IsResetLogAllowed() { return isResetLogAllowed!=0; };
     bool IsUpgradeAllowed() { return isUpgradeAllowed!=0; };
 
@@ -64,6 +72,17 @@ public:
     bool IsTxtFrmColour(int i) { return bTxtFrmColour.GetBit(i); };
     bool IsGfxFrmColour(int i) { return bGfxFrmColour.GetBit(i); };
     bool IsHrgFrmColour(int i) { return bHrgFrmColour.GetBit(i); };
+
+    // configurations calculated from other configurations
+    uint8_t CharRows(int fontX);
+    uint8_t CharColumns(int fontX);
+    uint16_t PixelRows() {return pixelRows;};
+    uint16_t PixelColumns() {return pixelColumns;};
+    uint32_t Pixels() {return pixels;};
+    uint8_t ExtStsRplSignType() { return extStsRplSignType; };
+    uint8_t ConfigRplSignType() { return configRplSignType; };
+    int MinGfxFrmLen() { return minGfxFrmLen; };
+    int MaxGfxFrmLen() { return maxGfxFrmLen; };
 
 private:
     const char * SECTION_NAME="ctrller_cfg";
@@ -105,6 +124,12 @@ private:
     const char * _ColourBits="ColourBits";
     const char * _IsResetLogAllowed="IsResetLogAllowed";
     const char * _IsUpgradeAllowed="IsUpgradeAllowed";
+    const char * _PixelRowsPerTile="PixelRowsPerTile";
+    const char * _PixelColumnsPerTile="PixelColumnsPerTile";
+    const char * _TileRowsPerSlave="TileRowsPerSlave";
+    const char * _TileColumnsPerSlave="TileColumnsPerSlave";
+    const char * _SlaveRowsPerSign="SlaveRowsPerSign";
+    const char * _SlaveColumnsPerSign="SlaveColumnsPerSign";
 
     // float
     const char * _LightSensorScale="LightSensorScale";
@@ -113,11 +138,9 @@ private:
     const char * _Sign="Sign";      // Sign1-x
     // const char * _Font="Font";   // Font0-x
 
-
-    /// ---------- option ----------
     char mfcCode[11];
 
-    char fontName[MAX_FONT+1][8];
+    Font *fonts[MAX_FONT+1];
 
     struct SignConnection * signCn;
 
@@ -143,13 +166,19 @@ private:
         lightSensorScale;
 
     uint8_t
+        tsiSp003Ver,
         slavePowerUpDelay,
         colourBits,
         isResetLogAllowed,
         isUpgradeAllowed,
         numberOfSigns,
         signType,
-        tsiSp003Ver;
+        pixelRowsPerTile,
+        pixelColumnsPerTile,
+        tileRowsPerSlave,
+        tileColumnsPerSlave,
+        slaveRowsPerSign,
+        slaveColumnsPerSign;
 
 	uint8_t mappedColoursTable[10];				// colourtable[0] is always 0
 
@@ -159,7 +188,16 @@ private:
     Utils::BitOption bTxtFrmColour;
     Utils::BitOption bGfxFrmColour;
     Utils::BitOption bHrgFrmColour;
-    void ReadBitOption(struct uci_section *section, const char * option, Utils::BitOption &bo);
+
+    // configurations calculated from other configurations
+    uint16_t pixelRows;
+    uint16_t pixelColumns;
+    uint32_t pixels;
+    uint8_t extStsRplSignType;
+    uint8_t configRplSignType;
+    
+    int minGfxFrmLen;
+    int maxGfxFrmLen;
 };
 
 #endif

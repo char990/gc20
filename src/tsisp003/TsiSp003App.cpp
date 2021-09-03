@@ -1,9 +1,9 @@
 #include <tsisp003/TsiSp003App.h>
-#include <module/Controller.h>
+#include <sign/Scheduler.h>
 
 TsiSp003App::TsiSp003App()
 :db(DbHelper::Instance()),
- ctrl(Controller::Instance()),
+ scheduler(Scheduler::Instance()),
  session(nullptr)
 {
 }

@@ -3,16 +3,16 @@
 #include <uci/Font.h>
 #include <module/Utils.h>
 
-Font::Font(const char *fontName)
-    : fontName(fontName)
+Font::Font(const char *fontname)
 {
+    strncpy(fontName, fontname, 15);
     for (int i = 0; i < (0x7F - 0x20); i++)
     {
         cellPtr[i] = nullptr;
     }
-    uint8_t buf[MAX_FONT_DOT / 8];
+    uint8_t buf[MAX_FONT_DOT / 8+1];
     sprintf(buf, "font/%s", fontName);
-    int fd = open(buf, O_RDONLY);
+    int fd = open((const char *)buf, O_RDONLY);
     if (fd < 0)
     {
         MyThrow("Can't open file %s", fontName);
@@ -94,3 +94,6 @@ uint8_t Font::GetWidth(char *s)
     }
     return x;
 }
+
+
+

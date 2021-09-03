@@ -254,3 +254,38 @@ void UciCfg::PrintOption_f(const char * option, float x)
 {
 	printf("\t%s '%f'\n", option, x);
 }
+
+void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, BitOption &bo)
+{
+    int ibuf[32];
+    const char *str = GetStr(uciSec, option);
+    if (str != NULL)
+    {
+        int cnt = Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
+        if (cnt != 0)
+        {
+            bo.Set(0);
+            for (int i = 0; i < cnt; i++)
+            {
+                bo.SetBit(ibuf[i]);
+            }
+            return;
+        }
+    }
+    MyThrow("UciProd Error: %s", option);
+}
+
+int UciCfg::SelectStr(struct uci_section * uciSec, const char *option, const char *collection, int cSize)
+{
+    const char *str = GetStr(uciSec, option);
+    for (int cnt = 0; cnt < cSize; cnt++)
+    {
+        if (strcmp(str, collection[cnt]) == 0)
+        {
+            return cnt;
+        }
+    }
+    MyThrow("UciProd Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
+}
+
+

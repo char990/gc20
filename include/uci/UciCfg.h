@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <uci.h>
+#include <module/Utils.h>
 
 struct OptVal
 {
@@ -26,6 +27,8 @@ public:
 	const char * GetStr(struct uci_section * section, const char * option);
 	int GetInt(struct uci_section * section, const char * option, int min, int max);
 	uint32_t GetUint32(struct uci_section * section, const char * option, uint32_t min, uint32_t max);
+    void ReadBitOption(struct uci_section *section, const char * option, Utils::BitOption &bo);
+    int SelectStr(struct uci_section * uciSec, const char *option, const char *collection, int cSize);
 
 protected:
 	

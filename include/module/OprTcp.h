@@ -15,14 +15,14 @@ public:
     OprTcp();
     ~OprTcp();
 
-    /*< IOperator --------------------------------------------------*/
+    /*< IOperator ----------------------------------------------*/
     /// \brief  Called by upperLayer
     virtual int Tx(uint8_t * data, int len) override;
     /// \brief  Called by Eepoll, receiving & sending handle
     virtual void EventsHandle(uint32_t events) override;
     /*--------------------------------------------------------->*/
 
-    /*< IPeriodicRun --------------------------------------------------*/
+    /*< IPeriodicRun -------------------------------------------*/
     /// \brief  Called by TimerEvt
     virtual void PeriodicRun() override;
     /*--------------------------------------------------------->*/

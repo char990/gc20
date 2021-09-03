@@ -47,6 +47,10 @@ UciProd::UciProd()
     PATH = "./config";
     PACKAGE = "gcprod";
     signCn = nullptr;
+    for(int i=0;i<MAX_FONT+1;i++)
+    {
+        fonts[i]=nullptr;
+    }
 }
 
 UciProd::~UciProd()
@@ -54,6 +58,21 @@ UciProd::~UciProd()
     if (signCn != nullptr)
     {
         delete[] signCn;
+    }
+    for(int i=0;i<MAX_FONT+1;i++)
+    {
+        Font * v=fonts[i];
+        if(v!=nullptr)
+        {
+            delete fonts[i];
+            for(int j=i;j<MAX_FONT+1;j++)
+            {
+                if(v==fonts[j])
+                {
+                    fonts[j]=nullptr;
+                }
+            }
+        }
     }
 }
 
@@ -68,6 +87,13 @@ void UciProd::LoadConfig()
 
     tsiSp003Ver = SelectStr(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
     signType = SelectStr(uciSec, _SignType, SIGNTYPE, SIGNTYPE_SIZE);
+
+    pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
+    pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
+    tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
+    tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
+    slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
+    slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
 
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
@@ -178,6 +204,10 @@ void UciProd::LoadConfig()
     }
 
     ReadBitOption(uciSec, _Font, bFont);
+    if(!bFont.GetBit(0))
+    {
+        MyThrow("UciProd Error: Font : Default(0) is not enabled");
+    }
     ReadBitOption(uciSec, _Conspicuity, bConspicuity);
     ReadBitOption(uciSec, _Annulus, bAnnulus);
     ReadBitOption(uciSec, _TxtFrmColour, bTxtFrmColour);
@@ -185,23 +215,40 @@ void UciProd::LoadConfig()
     ReadBitOption(uciSec, _HrgFrmColour, bHrgFrmColour);
 
     // Font0 'P5X7'
+    // Font1 'F5X7'
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         if (bFont.GetBit(i))
         {
             sprintf(cbuf, "%s%d", _Font, i);
             str = GetStr(uciSec, cbuf);
-            if (strlen(str) > 0 && strlen(str) < 8)
+            if(str==NULL)
             {
-                sprintf(cbuf, "font/%s", str);
-                if (Exec::FileExists(cbuf))
-                {
-                    strcpy(&fontName[i][0], str);
-                    continue;
-                }
-                MyThrow("UciProd Error: %s%d '%s'(file not exist)", _Font, i, cbuf);
+                MyThrow("UciProd Error: There is no option %s", cbuf);
             }
-            MyThrow("UciProd Error: %s '%s'(file name length too long >7)", cbuf, str);
+            if(strlen(str) > 15)
+            {
+                MyThrow("UciProd Error: %s '%s'(file name length too long >15)", cbuf, str);
+            }
+            if(i>0)
+            {
+                int j;
+                for(j=0;j<i;i++)
+                {
+                    if(strcmp(str, fonts[j]->FontName())==0)
+                    {
+                        break;
+                    }
+                }
+                if(j<i)
+                {// found a loaded font
+                    fonts[i] = fonts[j];
+                }
+                else
+                {// new font to load
+                    fonts[i] = new Font(str);
+                }
+            }
         }
     }
 
@@ -225,6 +272,46 @@ void UciProd::LoadConfig()
 
     Close();
     Dump();
+
+    
+    pixelRows = (uint16_t)pixelRowsPerTile * tileRowsPerSlave * slaveRowsPerSign;
+    pixelColumns = (uint16_t)pixelColumnsPerTile * tileColumnsPerSlave * slaveColumnsPerSign;
+    pixels = (uint32_t)pixelRows * pixelColumns;
+
+    extStsRplSignType = mfcCode[5]-'0';
+    if(extStsRplSignType==0)
+    {
+        configRplSignType=0;
+    }
+    else if(extStsRplSignType==1 || extStsRplSignType==2)
+    {
+        switch(colourBits)
+        {
+            case 1:
+                configRplSignType = 1;
+            case 4:
+                configRplSignType = 2;
+            case 24:
+                configRplSignType = 3;
+            default:
+                MyThrow("Unknown ColourBits in UciProd");
+        }
+    }
+    else
+    {
+        MyThrow("Unknown extStSignType:%d",extStsRplSignType);
+    }
+
+    minGfxFrmLen = (pixels + 7) / 8;
+    switch (colourBits)
+    {
+    case 1:
+        maxGfxFrmLen = (pixels + 7) / 8;
+    case 4:
+        maxGfxFrmLen = (pixels + 1) / 2;
+    default:
+        maxGfxFrmLen = pixels*3;
+    }
 }
 
 void UciProd::Dump()
@@ -242,6 +329,12 @@ void UciProd::Dump()
     {
         printf("\t%s%d '%s'\n", _Sign, i, Sign(i)->ToString().c_str());
     }
+    PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
+    PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
+    PrintOption_d(_TileRowsPerSlave, TileRowsPerSlave());
+    PrintOption_d(_TileColumnsPerSlave, TileColumnsPerSlave());
+    PrintOption_d(_SlaveRowsPerSign, SlaveRowsPerSign());
+    PrintOption_d(_SlaveColumnsPerSign, SlaveColumnsPerSign());
 
     PrintOption_d(_SlaveRqstInterval, SlaveRqstInterval());
     PrintOption_d(_SlaveRqstStTo, SlaveRqstStTo());
@@ -272,7 +365,7 @@ void UciProd::Dump()
     {
         if (bFont.GetBit(i))
         {
-            printf("\t%s%d '%s'\n", _Font, i, FontName(i));
+            printf("\t%s%d '%s'\n", _Font, i, fonts[i].FontName());
         }
     }
     printf("\t%s '%s'\n", _Conspicuity, bConspicuity.ToString().c_str());
@@ -290,35 +383,18 @@ void UciProd::Dump()
     printf("\n---------------\n");
 }
 
-void UciProd::ReadBitOption(struct uci_section *uciSec, const char *option, BitOption &bo)
+uint8_t UciProd::CharRows(int i)
 {
-    int ibuf[32];
-    const char *str = GetStr(uciSec, option);
-    if (str != NULL)
-    {
-        int cnt = Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
-        if (cnt != 0)
-        {
-            bo.Set(0);
-            for (int i = 0; i < cnt; i++)
-            {
-                bo.SetBit(ibuf[i]);
-            }
-            return;
-        }
-    }
-    MyThrow("UciProd Error: %s", option);
+    return (bFont.GetBit(i))?
+        (pixelRows + fonts[i]->LineSpacing())/(fonts[i]->RowsPerCell()+fonts[i]->LineSpacing())
+        : 0 ;
 }
 
-int UciProd::SelectStr(uci_section * uciSec, const char *option, const char *collection, int cSize)
+uint8_t UciProd::CharColumns(int i)
 {
-    const char *str = GetStr(uciSec, option);
-    for (int cnt = 0; cnt < cSize; cnt++)
-    {
-        if (strcmp(str, collection[cnt]) == 0)
-        {
-            return cnt;
-        }
-    }
-    MyThrow("UciProd Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
+    return (bFont.GetBit(i))?
+        (pixelColumns + fonts[i]->CharSpacing())/(fonts[i]->ColumnsPerCell()+fonts[i]->CharSpacing())
+        : 0 ;
 }
+
+

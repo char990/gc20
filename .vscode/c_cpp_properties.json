@@ -10,8 +10,9 @@
             ],
             "defines": [],
             "compilerPath": "/home/build/project_6ull/build_myir/build_imx6ull_warrior/tmp/work/cortexa7t2hf-neon-fslc-linux-gnueabi/goblin/git-r0/recipe-sysroot-native/usr/bin/arm-fslc-linux-gnueabi/arm-fslc-linux-gnueabi-g++",
-            "cStandard": "gnu17",
-            "cppStandard": "c++11"
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-arm"
         }
     ],
     "version": 4
