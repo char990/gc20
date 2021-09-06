@@ -21,21 +21,16 @@ struct Display
 class Sign : public IPeriodicRun
 {
 public:
-    Sign();
+    Sign(uint8_t sid);
     virtual ~Sign();
 
     void PeriodicRun() override = 0;
     
-    void SetId(uint8_t sid, uint8_t gid);
     uint8_t SignId();
-    uint8_t GroupId();
     uint8_t * GetStatus(uint8_t *p);
     virtual uint8_t * GetExtStatus(uint8_t *p)=0;
 
 protected:
-    uint8_t
-        groupId;
-
     uint8_t
         signId,
         errCode,
@@ -43,10 +38,6 @@ protected:
         reportFrmId,
         reportMsgId,
         reportPlnId;
-
-    uint8_t
-        dimMode,
-        dimLevel;
 
     Display currentDisp;
     Display currentDispBak;

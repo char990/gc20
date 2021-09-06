@@ -38,6 +38,7 @@ LayerNTS::~LayerNTS()
 
 int LayerNTS::Rx(uint8_t *data, int len)
 {
+    StatusLed::Instance().ReloadDataSt();
     if(len<15 || (len&1)==0 || data[7]!=DATALINK::CTRL_CHAR::STX)
     {
         return 0;
@@ -122,6 +123,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
 
 int LayerNTS::Tx(uint8_t *data, int len)
 {
+    StatusLed::Instance().ReloadDataSt();
     UciUser & cfg = DbHelper::Instance().uciUser;
     if(_addr==cfg.BroadcastId())
     {// no reply for broadcast

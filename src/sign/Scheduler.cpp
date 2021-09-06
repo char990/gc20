@@ -1,18 +1,23 @@
 #include <sign/Scheduler.h>
-#include <sign/SignHrg.h>
-#include <sign/SignGfx.h>
-#include <sign/SignTxt.h>
+#include <sign/Vms.h>
+#include <sign/Islus.h>
 #include <module/ptcpp.h>
 
-
-
 Scheduler::Scheduler()
-:signs(nullptr),tmrEvt(nullptr)
+:signs(nullptr),groups(nullptr),tmrEvt(nullptr)
 {
 }
 
 Scheduler::~Scheduler()
 {
+    if(groups != nullptr)
+    {
+        for(int i=0;i<groupCnt;i++)
+        {
+            delete groups[i];
+        }
+        delete [] groups;
+    }
     if(signs != nullptr)
     {
         for(int i=0;i<signCnt;i++)
@@ -27,38 +32,65 @@ Scheduler::~Scheduler()
     }
 }
 
-void Scheduler::Init(TimerEvent *tmrEvt)
+void Scheduler::Init(TimerEvent *tmrEvt1)
 {
-    if(tmrEvt!=nullptr)
+    if(tmrEvt1!=nullptr)
     {
         MyThrow ( "Re-invoke Scheduler::Init()" );
     }
-    this->tmrEvt=tmrEvt;
+    tmrEvt=tmrEvt1;
     tmrEvt->Add(this);
     displayTimeout.Clear();
-    UciProd &prod = DbHelper::Instance().uciProd;
-    int signCnt=prod.NumberOfSigns();
-    Sign::signCfg.MakeSignCfg(prod.SignType());
 
+    // sign init
+    int signCnt=DbHelper::Instance().uciProd.NumberOfSigns();
     signs = new Sign * [signCnt];
+    switch(DbHelper::Instance().uciProd.SignType())
+    {
+        case 0:
+            for(int i=0;i<signCnt;i++)
+            {
+                signs[i] = new Vms(i+1);
+            }
+        break;
+        case 1:
+            for(int i=0;i<signCnt;i++)
+            {
+                signs[i] = new Islus(i+1);
+            }
+        break;
+    }
+
+    // group init
+    uint8_t *groupcfg = DbHelper::Instance().uciUser.GroupCfg();
+    groupCnt=0;
     for(int i=0;i<signCnt;i++)
     {
-        if()
-        //auto s = ;
-        signs[i] = new SignTxt();
+        if(groupcfg[i]>groupCnt)
+        {
+            groupCnt=groupcfg[i];
+        }
     }
-    signs[0]->SetId(1, 1);
-    signs[1]->SetId(2, 1);
-    signs[2]->SetId(3, 2);
-    signs[3]->SetId(4, 2);
+    groups = new Group * [groupCnt];
+    for(int i=0;i<groupCnt;i++)
+    {
+        groups[i] = new Group(i+1);
+    }
+    for(int i=0;i<signCnt;i++)
+    {
+        groups[groupcfg[i]]->Add(signs[i]);
+    }
+    for(int i=0;i<groupCnt;i++)
+    {
+        if(groups[i].GrpSigns().size==0)
+        {
+            MyThrow("Error:There is no sign in Group[%d]", i+1);
+        }
+    }
 }
 
 void Scheduler::PeriodicRun()
 {// run every 10ms
-
-
-
-
     if(displayTimeout.IsExpired())
     {
         displayTimeout.Clear();

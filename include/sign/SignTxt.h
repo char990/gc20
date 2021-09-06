@@ -1,13 +1,12 @@
 #ifndef __SIGNTXT_H__
 #define __SIGNTXT_H__
 
-#include <module/Sign.h>
+#include <module/SignDisp.h>
 
-class SignTxt : public Sign
+class SignTxt : public SignDisp
 {
 public:
-    virtual void PeriodicRun() override ;
-    virtual uint8_t * GetExtStatus(uint8_t *p) override;
+    virtual uint8_t *GetExtStatus(uint8_t *p) override;
 };
 
 #endif

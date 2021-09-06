@@ -15,13 +15,13 @@ int ALLOWEDBPS[EXTENDEDBPS_SIZE]={
 };
 
 struct ComDev COMPORTS[COMPORT_SIZE] = {
-    {"MODEM", "/dev/ttymxc3", 0},
-    {"COM1", "/dev/ttymxc2", 0},
-    {"COM2", "/dev/ttymxc1", 0},
-    {"COM3", "/dev/ttymxc5", 0},
-    {"COM4", "/dev/ttymxc4", 0},
-    {"COM5", "/dev/ttySC1", 0},
-    {"COM6", "/dev/ttySC0", 0},
+    {"MODEM", "/dev/ttymxc3"},
+    {"COM1", "/dev/ttymxc2"},
+    {"COM2", "/dev/ttymxc1"},
+    {"COM3", "/dev/ttymxc5"},
+    {"COM4", "/dev/ttymxc4"},
+    {"COM5", "/dev/ttySC1"},
+    {"COM6", "/dev/ttySC0"},
 };
 
 SerialPort::SerialPort(const char *device, SerialPortConfig &config)

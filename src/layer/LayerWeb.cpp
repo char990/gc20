@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include <layer/LayerWeb.h>
-
+#include <layer/StatusLed.h>
 
 LayerWeb::LayerWeb(std::string name_)
 {
@@ -17,6 +17,7 @@ LayerWeb::~LayerWeb()
 
 int LayerWeb::Rx(uint8_t * data, int len)
 {
+    StatusLed::Instance().ReloadDataSt();
     uint8_t buf[65536];
     int n = 0;
     upperLayer->Rx(buf,n);
@@ -34,6 +35,7 @@ int LayerWeb::Rx(uint8_t * data, int len)
 
 int LayerWeb::Tx(uint8_t * data, int len)
 {
+    StatusLed::Instance().ReloadDataSt();
     return lowerLayer->Tx(data, len);
 }
 

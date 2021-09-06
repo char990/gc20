@@ -15,8 +15,8 @@
 #include <module/OprSp.h>
 #include <module/ObjectPool.h>
 #include <sign/Scheduler.h>
+#include <layer/StatusLed.h>
 
-#include <uci.h>
 
 
 const char * FirmwareMajorVer = "01";
@@ -35,12 +35,13 @@ int main()
         #define LINKS_NTS   3   // from tcp-tsi-sp-003-nts
         #define LINKS_WEB   2   // from web
 
-        // 2(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) = 28
+        // 2(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 29
         Epoll::Instance().Init(32);
         TimerEvent timerEvt10ms(10,"[tmrEvt10ms:10ms]");
         TimerEvent timerEvt1s(1000,"[tmrEvt1sec:1sec]");
         DbHelper::Instance().Init();
         Scheduler::Instance().Init(&timerEvt10ms);
+        StatusLed::Instance().Init(&timerEvt10ms);
         
         ObjectPool<OprTcp> webPool(LINKS_WEB);
         auto webpool = webPool.Pool();
@@ -53,50 +54,35 @@ int main()
         auto tcppool = ntsPool.Pool();
         for(int i=0;i<ntsPool.Size();i++)
         {
-            tcppool[i].Init("Tcp"+std::to_string(i), "NTS", 60*1000);
+            tcppool[i].Init("Tcp"+std::to_string(i), "NTS", (DbHelper::Instance().uciProd.SessionTimeout()+60)*1000);
         }
 
         TcpServer tcpServerPhcs{DbHelper::Instance().uciProd.SvcPort(), ntsPool, &timerEvt1s};
         TcpServer tcpServerWeb{DbHelper::Instance().uciProd.WebPort(), webPool, &timerEvt1s};
         
+
+        // init serial ports
         SerialPort * sp[COMPORT_SIZE];
         for(int i=0;i<COMPORT_SIZE;i++)
         {
             sp[i]=nullptr;
         }
 
-        uint8_t cp = DbHelper::Instance().uciUser.ComPort();
-        int bps = DbHelper::Instance().uciUser.Baudrate();
-        SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, bps);
-        if(cp==0)
-        {
-            SerialPort rs232(COMPORTS[0].device, spCfg);
-            OprSp oprRs232(rs232, COMPORTS[0].name, "NTS");
-        }
-        else
-        {
-
-        }
-
-        for(int i=1;i<COMPORT_SIZE;i++)
-        {
-            if(COMPORTS[i].bps != 0)
-        }        
-        // ComDev COMPORTS[COMPORT_SIZE]
-        if(COMPORTS[0].bps != 0)
-        {
-            SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, COMPORTS[0].bps);
-            SerialPort rs232(COMPORTS[0].device, spCfg);
-            OprSp oprRs232(rs232, COMPORTS[0].name, "NTS");
-        }
-
-        for(int i=1;i<COMPORT_SIZE;i++)
-        {
-            if(COMPORTS[i].bps != 0)
+        OprSp * oprSp;
+        { // tsi-sp-003 : serial port
+            int cp = DbHelper::Instance().uciUser.ComPort();
+            int bps = DbHelper::Instance().uciUser.Baudrate();
+            if(cp==0)
             {
-                SerialPortConfig spCfg(SerialPortConfig::SpMode::RS485_01, COMPORTS[i].bps);
-                SerialPort rs232(COMPORTS[i].device, spCfg);
-                OprSp oprRs232(rs232, COMPORTS[i].name, "NTS");
+                SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, bps);
+                sp[0] = new SerialPort(COMPORTS[0].device, spCfg);
+                oprSp = new OprSp(*sp[0], COMPORTS[0].name, "NTS");
+            }
+            else
+            {
+                SerialPortConfig spCfg(SerialPortConfig::SpMode::RS485_01, bps);
+                sp[cp] = new SerialPort(COMPORTS[cp].device, spCfg);
+                oprSp = new OprSp(*sp[cp], COMPORTS[cp].name, "NTS");
             }
         }
 

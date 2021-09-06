@@ -34,6 +34,7 @@ public:
     uint8_t ErrorCode();
     
     Sign ** signs;
+    Group ** groups;
 
 private:
     Scheduler();

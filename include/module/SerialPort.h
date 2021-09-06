@@ -12,7 +12,6 @@ struct ComDev
 {
     const char * name;
     const char * device;
-    int bps;
 };
 
 #define COMPORT_SIZE 7

@@ -6,7 +6,6 @@
 class SignGfx : public SignTxt
 {
 public:
-    virtual void PeriodicRun() override;
     virtual uint8_t * GetExtStatus(uint8_t *p) override;
 };
 
