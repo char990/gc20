@@ -99,18 +99,17 @@ void UciUser::LoadConfig()
         shakehandsPassword[len]='\0';
     }
 
-    strcpy(cbuf, _ExtSw_Cfg);
     for(int m=0; m<3 ; m++)
     {
-        cbuf[5]=m+'1'; // ExtSw_Cfg
+        sprintf(cbuf,"%s%d", _ExtSw, m+1); // ExtSw_
         str = GetStr(uciSec, cbuf);
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if(cnt==4)
         {
-            extSwCfg[m].dispTime = ibuf[0];
-            extSwCfg[m].reserved = ibuf[1];
-            extSwCfg[m].emergency = ibuf[2];
-            extSwCfg[m].flashingOv = ibuf[3];
+            extSw[m].dispTime = ibuf[0];
+            extSw[m].reserved = ibuf[1];
+            extSw[m].emergency = ibuf[2];
+            extSw[m].flashingOv = ibuf[3];
         }
         else
         {
@@ -254,37 +253,35 @@ void UciUser::Dump()
     PrintOption_d(_LockedMsg, LockedMsg());
     PrintOption_d(_LastFrmOn, LastFrmOn());
 
-	printf ( "\t%s '%s'\n", _TZ, TZ() );
-	printf ( "\t%s '%s'\n", _ComPort, COM_NAME[ComPort()] );
+	PrintOption_str(_TZ, TZ() );
+	PrintOption_str(_ComPort, COM_NAME[ComPort()] );
     
     char buf[256];
 
-    int len=sprintf(buf,"%s ", _ExtSw_Cfg);
     for(int i=0;i<3;i++)
 	{
-		buf[5]=i+'1';
-        PrintExtSwCfg(i, buf+len);
-        printf("\t%s\n",buf);
+		sprintf(buf, "%s%d", _ExtSw, i+1);
+        PrintExtSw(i, buf+128);
+        PrintOption_str(buf,buf+128);
 	}
 
 	PrintLuminance(buf);
-	printf ( "\t%s %s\n", _Luminance, buf);
+	printf ( "\t%s \t%s\n", _Luminance, buf);
 
 	PrintDawnDusk(buf);
-	printf ( "\t%s %s\n", _DawnDusk, buf);
+	printf ( "\t%s \t%s\n", _DawnDusk, buf);
 
 	PrintGroupCfg(buf);
-	printf ( "\t%s %s\n", _GroupCfg, buf);
+	printf ( "\t%s \t%s\n", _GroupCfg, buf);
 
 	printf ( "\n---------------\n" );
 }
 
-void UciUser::PrintExtSwCfg(int i, char *buf)
+void UciUser::PrintExtSw(int i, char *buf)
 {
-    ExtSwCfg * exswcfg=ExtSwCfgX(i);
+    ExtSw * exswcfg=ExtSwCfgX(i);
     sprintf (buf, "'%d,%d,%d,%d'",
 		exswcfg->dispTime, exswcfg->reserved, exswcfg->emergency, exswcfg->flashingOv);
-
 }
 
 void UciUser::PrintDawnDusk(char *buf)
@@ -593,16 +590,16 @@ void UciUser::GroupCfg(uint8_t *p)
     }
 }
 
-void UciUser::ExtSwCfgX(int i, ExtSwCfg *cfg)
+void UciUser::ExtSwCfgX(int i, ExtSw *cfg)
 {
-    if(!extSwCfg[i].Equal(cfg))
+    if(!extSw[i].Equal(cfg))
     {
-        memcpy(&extSwCfg[i], cfg, sizeof(ExtSwCfg));
+        memcpy(&extSw[i], cfg, sizeof(ExtSw));
         char op[32];
-        strcpy(op,_ExtSw_Cfg);
+        strcpy(op,_ExtSw);
         op[5]=i+'1';
         char buf[1024];
-        PrintExtSwCfg(i,buf);
+        PrintExtSw(i,buf);
         OptionSave(op, buf);
     }
 }

@@ -91,9 +91,9 @@ void TsiSp003AppVer21::HeartbeatPoll(uint8_t *data, int len)
     int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
-    for(int i=0;i<scnt;i++)
+    for(int i=1;i<=scnt;i++)
     {
-        p=Scheduler::Instance().unitedSigns[i]->GetStatus(p);
+        p=Scheduler::Instance().GetUnitedSign(i)->GetStatus(p);
     }
     Tx(txbuf, p-txbuf);
 }

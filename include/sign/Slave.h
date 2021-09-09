@@ -47,8 +47,6 @@ public:
 
     int DecodeExtStRpl(uint8_t * buf, int len);
 
-    // Convert 2 bytes uint8_t to uint16_t
-    uint16_t GetU16(uint8_t *p);
 };
 
 #endif

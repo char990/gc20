@@ -34,14 +34,12 @@ struct uci_section *UciCfg::GetSection(const char *name)
 struct uci_section *UciCfg::GetSection(const char *type, const char *name)
 {
 	struct uci_section *uciSec;
-	while(1)
+	uciSec = GetSection(name);
+	if (strcmp(type, uciSec->type) != 0)
 	{
-		uciSec = GetSection(name);
-		if (strcmp(type, uciSec->type) == 0)
-		{
-			return uciSec;
-		}
+		MyThrow("Section type not matched: %s/%s.%s : %s!=%s", PATH, PACKAGE, name, type, uciSec->type);
 	}
+	return uciSec;
 }
 
 const char *UciCfg::GetStr(struct uci_section *section, const char *option)
@@ -50,7 +48,12 @@ const char *UciCfg::GetStr(struct uci_section *section, const char *option)
 	{
 		MyThrow("OPEN '%s/%s' and get *section before calling", PATH, PACKAGE);
 	}
-	return uci_lookup_option_string(ctx, section, option);
+	const char * str = uci_lookup_option_string(ctx, section, option);
+	if(str==NULL)
+	{
+	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+	}
+	return str;
 }
 
 int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int max)
@@ -58,7 +61,7 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option: %s.%s.%s", PACKAGE, section->e.name, option);
+	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
 	}
 	errno=0;
 	int x = strtol(str, NULL, 0);
@@ -74,7 +77,7 @@ uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint
 	const char *str = GetStr(section, option);
 	if(str==NULL)
 	{
-		MyThrow("Can't find option: %s.%s.%s", PACKAGE, section->e.name, option);
+	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
 	}
 	errno=0;
 	uint32_t x = strtoul(str, NULL, 0);
@@ -237,22 +240,27 @@ void UciCfg::OptionSaveChars(const char * option, const char * chars)
 
 void UciCfg::PrintOption_2x(const char * option, int x)
 {
-	printf("\t%s '0x%02X'\n", option, x);
+	printf("\t%s \t'0x%02X'\n", option, x);
 }
 
 void UciCfg::PrintOption_4x(const char * option, int x)
 {
-	printf("\t%s '0x%04X'\n", option, x);
+	printf("\t%s \t'0x%04X'\n", option, x);
 }
 
 void UciCfg::PrintOption_d(const char * option, int x)
 {
-	printf("\t%s '%d'\n", option, x);
+	printf("\t%s \t'%d'\n", option, x);
 }
 
 void UciCfg::PrintOption_f(const char * option, float x)
 {
-	printf("\t%s '%f'\n", option, x);
+	printf("\t%s \t'%f'\n", option, x);
+}
+
+void UciCfg::PrintOption_str(const char * option, const char *str)
+{
+	printf("\t%s \t'%s'\n", option, str);
 }
 
 void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, Utils::BitOption &bo)
@@ -285,7 +293,7 @@ int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, cons
             return cnt;
         }
     }
-    MyThrow("Uci Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
+    MyThrow("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str);
 	return 0; // avoid warning
 }
 

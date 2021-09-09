@@ -71,7 +71,7 @@ void Tz_AU::Init_Tz(unsigned char i)
 void Tz_AU::InitTzIndex(char * city)
 {
     tz_index=4;
-    if(city!=NULL)
+    if(city!=nullptr)
     {
         for(int i=0;i<NUMBER_OF_TZ;i++)
         {

@@ -53,6 +53,11 @@ Plan * UciPln::GetPln(int i)
     return plns[i];
 }
 
+uint8_t UciPln::GetPlnRev(int i)
+{
+	return (i==0) ? 0 : plns[i]->plnRev;
+}
+
 uint8_t UciPln::SetPln(uint8_t * buf, int len) 
 {
 	Plan * pln = new Plan(buf,len);

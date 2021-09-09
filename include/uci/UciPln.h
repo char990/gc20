@@ -46,6 +46,9 @@ public:
     /// \brief  Get plns[i]
     Plan * GetPln(int i);
 
+    /// \brief  Get plns[i]->plnRev, plns[0] is 0
+    uint8_t GetPlnRev(int i);
+
     /// \brief  Set a plan from hex array, e.g. app layer data of SighSetPlan
     ///         plan will be stored in plns[] (but not saved in "UciPln")
     ///         new plan is at disable state

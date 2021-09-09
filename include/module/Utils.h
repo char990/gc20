@@ -66,6 +66,10 @@ namespace Utils
         /// \param	max: max
         /// \return numbers converted
         static int GetIntArray(const char *src, int srcmax, int *dst, int min, int max);
+
+
+        /// \brief Convert 2 bytes uint8_t to uint16_t
+        static uint16_t GetU16(uint8_t *p);
     };
 
     class Crc

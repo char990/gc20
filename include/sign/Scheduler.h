@@ -33,13 +33,16 @@ public:
 
     uint8_t CtrllerErr();
     
-    IUnitedSign ** unitedSigns;
-    Group ** groups;
+    IUnitedSign * GetUnitedSign(uint8_t signId) { return unitedSigns[signId-1]; };
 
-
+    Group * GetGroup(uint8_t grpId) { return groups[grpId-1]; };
 private:
     Scheduler();
     ~Scheduler();
+
+    IUnitedSign ** unitedSigns;
+
+    Group ** groups;
 
     TimerEvent *tmrEvt;
 

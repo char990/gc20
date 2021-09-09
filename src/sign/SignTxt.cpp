@@ -13,12 +13,15 @@ SignTxt::~SignTxt()
 
 }
 
-uint8_t *SignTxt::GetExtStatus(uint8_t *p)
+uint8_t *SignTxt::GetExtStatus(uint8_t *pbuf)
 {
+    UciProd & prod = DbHelper::Instance().uciProd;
+    uint8_t *p=pbuf;
     *p++=signId;
-    *p++=0;         // text(0),gfx(1),advgfx(2)
-    *p++=3;         // rows
-    *p++=18;        // columns
+    uint8_t signtype=prod.ExtStsRplSignType();
+    *p++=signtype;
+    *p++=prod.CharRows(0);
+    *p++=prod.CharColumns(0);
     *p++=signErr;
     *p++=dimMode;
     *p++=dimLevel;

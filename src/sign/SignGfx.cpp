@@ -28,6 +28,7 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *pbuf)
         *p++=signErr;
         *p++=dimMode;
         *p++=dimLevel;
+        *p++=0;
         break;
         case 2:
         *p++=prod.CharRows(0);
@@ -35,6 +36,7 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *pbuf)
         *p++=signErr;
         *p++=dimMode;
         *p++=dimLevel;
+        *p++=12;
         *p++=prod.PixelRows()/0x100;
         *p++=prod.PixelRows()&0xff;
         *p++=prod.PixelColumns()/0x100;
@@ -47,9 +49,10 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *pbuf)
             *p++=font->LineSpacing();
             *p++=strlen(prod.ColourLeds());
             *p++=prod.ColourBits();
+            *p++=0;
+            *p++=0;
         }
         break;
     }
-    *p++=0;
     return p;
 }

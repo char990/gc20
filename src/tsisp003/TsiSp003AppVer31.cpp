@@ -50,9 +50,9 @@ void TsiSp003AppVer31::SignExtendedStatusRequest(uint8_t *data, int len)
     int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];
-    for(int i=0;i<scnt;i++)
+    for(int i=1;i<=scnt;i++)
     {
-        p=Scheduler::Instance().unitedSigns[i]->GetExtStatus(p);
+        p=Scheduler::Instance().GetUnitedSign(i)->GetExtStatus(p);
     }
     int applen = p-txbuf;
     uint16_t crc = Crc::Crc16_1021(txbuf, applen);

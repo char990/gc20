@@ -44,8 +44,11 @@ public:
     /// \brief  Sum all frames's crc
     uint16_t ChkSum();
 
-    /// \brief  Get frms[i], check frm->micode to get type
+    /// \brief  Get frms[i], check frm->micode to get type, frms[0] is nullptr
     Frame * GetFrm(int i);
+
+    /// \brief  Get frms[i]->frmRev, frms[0] is 0
+    uint8_t GetFrmRev(int i);
 
     /// \brief  Set a frame from hex array, e.g. app layer data of SighSetTextFrame
     ///         frame will be stored in frms[] (but not saved in "UciFrm")

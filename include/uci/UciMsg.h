@@ -42,6 +42,9 @@ public:
     /// \brief  Get msgs[i]
     Message * GetMsg(int i);
 
+    /// \brief  Get msgs[i]->msgRev, msgs[0] is 0
+    uint8_t GetMsgRev(int i);
+
     /// \brief  Set a msg from hex array, e.g. app layer data of SighSetMessage
     ///         frame will be stored in msgs[] (but not saved in "UciMsg")
     /// \param  buf: hex array

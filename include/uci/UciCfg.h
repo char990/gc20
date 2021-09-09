@@ -95,6 +95,7 @@ protected:
 	void PrintOption_4x(const char * option, int x);
 	void PrintOption_d(const char * option, int x);
 	void PrintOption_f(const char * option, float x);
+	void PrintOption_str(const char * option, const char * str);
 };
 
 

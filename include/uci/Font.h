@@ -154,9 +154,9 @@ private:
     uint8_t columnsPerCell;
     uint8_t rowsPerCell;
     uint8_t bytesPerCellRow;
+    uint8_t descender;
     uint8_t charSpacing;
     uint8_t lineSpacing;
-    uint8_t descender;
 
     uint8_t * cellPtr[0x80-0x20];  // 0x20 - 0x7F
 };

@@ -113,6 +113,12 @@ Message *UciMsg::GetMsg(int i)
 	return msgs[i];
 }
 
+
+uint8_t UciMsg::GetMsgRev(int i)
+{
+	return (i==0) ? 0 : msgs[i]->msgRev;
+}
+
 uint8_t UciMsg::SetMsg(uint8_t *buf, int len)
 {
 	Message * msg = new Message(buf,len);

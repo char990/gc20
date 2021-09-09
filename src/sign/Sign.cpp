@@ -14,11 +14,11 @@ uint8_t *Sign::GetStatus(uint8_t *p)
     *p++ = signErr;
     *p++ = en_dis;
     *p++ = reportFrmId;
-    *p++ = db.uciFrm.GetFrm(reportFrmId)->frmRev;
+    *p++ = db.uciFrm.GetFrmRev(reportFrmId);
     *p++ = reportMsgId;
-    *p++ = db.uciMsg.GetMsg(reportMsgId)->msgRev;
+    *p++ = db.uciMsg.GetMsgRev(reportMsgId);
     *p++ = reportPlnId;
-    *p++ = db.uciPln.GetPln(reportPlnId)->plnRev;
+    *p++ = db.uciPln.GetPlnRev(reportPlnId);
     return p;
 }
 

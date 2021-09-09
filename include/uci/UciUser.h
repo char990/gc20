@@ -5,19 +5,19 @@
 #include <uci/UciCfg.h>
 #include <uci/UciProd.h>
 
-typedef struct ExtSwCfg {
+typedef struct ExtSw {
 	uint16_t dispTime;
 	uint8_t reserved;
 	uint8_t emergency;
 	uint8_t flashingOv;
-	bool Equal(struct ExtSwCfg* v)
+	bool Equal(struct ExtSw* v)
 	{
 		return (	dispTime==v->dispTime &&
 					reserved==v->reserved &&
 					emergency==v->emergency &&
 					flashingOv==v->flashingOv );
 	};
-}ExtSwCfg;
+}ExtSw;
 
 class UciUser : public UciCfg
 {
@@ -64,7 +64,8 @@ public:
     uint16_t *Luminance(){ return luminance; };
     uint8_t *DawnDusk(){ return dawnDusk; };
     uint8_t * GroupCfg() { return groupCfg;};
-    ExtSwCfg *ExtSwCfgX(int i){return &extSwCfg[i];};
+    uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId-1]; };
+    ExtSw *ExtSwCfgX(int i){return &extSw[i];};
 
 
     /// --------setter--------
@@ -92,7 +93,7 @@ public:
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
     void GroupCfg(uint8_t *);
-    void ExtSwCfgX(int i, ExtSwCfg *cfg);
+    void ExtSwCfgX(int i, ExtSw *cfg);
 
 private:
 
@@ -130,7 +131,7 @@ private:
 
     uint8_t * groupCfg;
 
-    ExtSwCfg extSwCfg[3];
+    ExtSw extSw[3];
 
     const char * SECTION_NAME="user_cfg";
 
@@ -165,9 +166,9 @@ private:
     const char * _DawnDusk="DawnDusk";
     const char * _ComPort="ComPort";
     const char * _GroupCfg="GroupCfg";
-    const char * _ExtSw_Cfg="ExtSw_Cfg";
+    const char * _ExtSw="ExtSw";
 
-    void PrintExtSwCfg(int i, char *buf);
+    void PrintExtSw(int i, char *buf);
     void PrintDawnDusk(char *buf);
     void PrintGroupCfg(char *buf);
     void PrintLuminance(char *buf);

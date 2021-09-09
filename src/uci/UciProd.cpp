@@ -47,9 +47,9 @@ UciProd::UciProd()
     PATH = "./config";
     PACKAGE = "UciProd";
     signCn = nullptr;
-    for(int i=0;i<MAX_FONT+1;i++)
+    for (int i = 0; i < MAX_FONT + 1; i++)
     {
-        fonts[i]=nullptr;
+        fonts[i] = nullptr;
     }
 }
 
@@ -59,17 +59,17 @@ UciProd::~UciProd()
     {
         delete[] signCn;
     }
-    for(int i=0;i<MAX_FONT+1;i++)
+    for (int i = 0; i < MAX_FONT + 1; i++)
     {
-        Font * v=fonts[i];
-        if(v!=nullptr)
+        Font *v = fonts[i];
+        if (v != nullptr)
         {
             delete fonts[i];
-            for(int j=i;j<MAX_FONT+1;j++)
+            for (int j = i; j < MAX_FONT + 1; j++)
             {
-                if(v==fonts[j])
+                if (v == fonts[j])
                 {
-                    fonts[j]=nullptr;
+                    fonts[j] = nullptr;
                 }
             }
         }
@@ -146,12 +146,12 @@ void UciProd::LoadConfig()
     lightSensorScale = GetInt(uciSec, _LightSensorScale, 1, 65535);
 
     slavePowerUpDelay = GetInt(uciSec, _SlavePowerUpDelay, 1, 255);
-    
+
     str = GetStr(uciSec, _ColourLeds);
     cnt = strlen(str);
-    if(cnt>=1 && cnt<=4)
+    if (cnt >= 1 && cnt <= 4)
     {
-        strcpy(colourLeds,str);
+        strcpy(colourLeds, str);
     }
     else
     {
@@ -163,7 +163,7 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: %s(%d) Only 1/4/24 allowed", _ColourBits, colourBits);
     }
-    if( (strlen(colourLeds)==1 && colourBits!=1) || (strlen(colourLeds)!=1 && colourBits==1) )
+    if ((strlen(colourLeds) == 1 && colourBits != 1) || (strlen(colourLeds) != 1 && colourBits == 1))
     {
         MyThrow("UciProd Error: %s(%d) not matched with %s('%s')", _ColourBits, colourBits, _ColourLeds, colourLeds);
     }
@@ -221,7 +221,7 @@ void UciProd::LoadConfig()
     }
 
     ReadBitOption(uciSec, _Font, bFont);
-    if(!bFont.GetBit(0))
+    if (!bFont.GetBit(0))
     {
         MyThrow("UciProd Error: Font : Default(0) is not enabled");
     }
@@ -235,53 +235,47 @@ void UciProd::LoadConfig()
     // Font1 'F5X7'
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
+        fonts[i] = nullptr;
         if (bFont.GetBit(i))
         {
             sprintf(cbuf, "%s%d", _Font, i);
             str = GetStr(uciSec, cbuf);
-            if(str==NULL)
-            {
-                MyThrow("UciProd Error: There is no option %s", cbuf);
-            }
-            if(strlen(str) > 15)
+            if (strlen(str) > 15)
             {
                 MyThrow("UciProd Error: %s '%s'(file name length too long >15)", cbuf, str);
             }
-            if(i>0)
+            int j;
+            for (j = 0; j < i; j++)
             {
-                int j;
-                for(j=0;j<i;i++)
+                if (fonts[j] != nullptr && strcmp(str, fonts[j]->FontName()) == 0)
                 {
-                    if(strcmp(str, fonts[j]->FontName())==0)
-                    {
-                        break;
-                    }
+                    break;
                 }
-                if(j<i)
-                {// found a loaded font
-                    fonts[i] = fonts[j];
-                }
-                else
-                {// new font to load
-                    fonts[i] = new Font(str);
-                }
+            }
+            if (j < i)
+            { // found a loaded font
+                fonts[i] = fonts[j];
+            }
+            else
+            { // new font to load
+                fonts[i] = new Font(str);
             }
         }
     }
 
-    mappedColoursTable[0]=0;
-    for(int i=1;i<10;i++)
+    mappedColoursTable[0] = 0;
+    for (int i = 1; i < 10; i++)
     {
         str = GetStr(uciSec, COLOUR_NAME[i]);
-        for(cnt=1;cnt<10;cnt++)
+        for (cnt = 1; cnt < 10; cnt++)
         {
-            if(strcmp(str, COLOUR_NAME[cnt])==0)
+            if (strcmp(str, COLOUR_NAME[cnt]) == 0)
             {
-                mappedColoursTable[i]=cnt;
+                mappedColoursTable[i] = cnt;
                 break;
             }
         }
-        if(cnt==10)
+        if (cnt == 10)
         {
             MyThrow("UciProd Error: colour map %s undefined", COLOUR_NAME[i]);
         }
@@ -290,33 +284,36 @@ void UciProd::LoadConfig()
     Close();
     Dump();
 
-    
     pixelRows = (uint16_t)pixelRowsPerTile * tileRowsPerSlave * slaveRowsPerSign;
     pixelColumns = (uint16_t)pixelColumnsPerTile * tileColumnsPerSlave * slaveColumnsPerSign;
     pixels = (uint32_t)pixelRows * pixelColumns;
 
-    extStsRplSignType = mfcCode[5]-'0';
-    if(extStsRplSignType==0)
+    extStsRplSignType = mfcCode[5] - '0';
+    if (extStsRplSignType == 0)
     {
-        configRplSignType=0;
+        configRplSignType = 0;
     }
-    else if(extStsRplSignType==1 || extStsRplSignType==2)
+    else if (extStsRplSignType == 1 || extStsRplSignType == 2)
     {
-        switch(colourBits)
+        switch (colourBits)
         {
-            case 1:
-                configRplSignType = 1;
-            case 4:
-                configRplSignType = 2;
-            case 24:
-                configRplSignType = 3;
-            default:
-                MyThrow("Unknown ColourBits in UciProd");
+        case 1:
+            configRplSignType = 1;
+            break;
+        case 4:
+            configRplSignType = 2;
+            break;
+        case 24:
+            configRplSignType = 3;
+            break;
+        default:
+            MyThrow("Unknown ColourBits in UciProd");
+            break;
         }
     }
     else
     {
-        MyThrow("Unknown extStSignType:%d(MfcCode error?)",extStsRplSignType);
+        MyThrow("Unknown extStSignType:%d(MfcCode error?)", extStsRplSignType);
     }
 
     minGfxFrmLen = (pixels + 7) / 8;
@@ -324,10 +321,13 @@ void UciProd::LoadConfig()
     {
     case 1:
         maxGfxFrmLen = (pixels + 7) / 8;
+        break;
     case 4:
         maxGfxFrmLen = (pixels + 1) / 2;
+        break;
     default:
-        maxGfxFrmLen = pixels*3;
+        maxGfxFrmLen = pixels * 3;
+        break;
     }
 }
 
@@ -337,14 +337,14 @@ void UciProd::Dump()
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION_NAME);
     printf("---------------\n");
 
-    printf("\t%s '%s'\n", _TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
-    //printf("\t%s '%s'\n", _ProdType, PRODTYPE[ProdType()]);
-    printf("\t%s '%s'\n", _MfcCode, MfcCode());
+    PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
+    PrintOption_str(_ProdType, PRODTYPE[ProdType()]);
+    PrintOption_str(_MfcCode, MfcCode());
 
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
     for (int i = 0; i < NumberOfSigns(); i++)
     {
-        printf("\t%s%d '%s'\n", _Sign, i, SignCn(i)->ToString().c_str());
+        printf("\t%s%d \t'%s'\n", _Sign, i, SignCn(i)->ToString().c_str());
     }
     PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
     PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
@@ -377,26 +377,26 @@ void UciProd::Dump()
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
 
-    printf("\t%s '%s'\n", _ColourLeds, ColourLeds());
+    PrintOption_str(_ColourLeds, ColourLeds());
 
-    printf("\t%s '%s'\n", _Font, bFont.ToString().c_str());
+    PrintOption_str(_Font, bFont.ToString().c_str());
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         if (bFont.GetBit(i))
         {
-            printf("\t%s%d '%s'\n", _Font, i, Fonts(i)->FontName());
+            printf("\t%s%d \t'%s'\n", _Font, i, Fonts(i)->FontName());
         }
     }
-    printf("\t%s '%s'\n", _Conspicuity, bConspicuity.ToString().c_str());
-    printf("\t%s '%s'\n", _Annulus, bAnnulus.ToString().c_str());
-    printf("\t%s '%s'\n", _TxtFrmColour, bTxtFrmColour.ToString().c_str());
-    printf("\t%s '%s'\n", _GfxFrmColour, bGfxFrmColour.ToString().c_str());
-    printf("\t%s '%s'\n", _HrgFrmColour, bHrgFrmColour.ToString().c_str());
-    
+    PrintOption_str(_Conspicuity, bConspicuity.ToString().c_str());
+    PrintOption_str(_Annulus, bAnnulus.ToString().c_str());
+    PrintOption_str(_TxtFrmColour, bTxtFrmColour.ToString().c_str());
+    PrintOption_str(_GfxFrmColour, bGfxFrmColour.ToString().c_str());
+    PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
+
     printf("\tColour map:\n");
-    for(int i=1;i<10;i++)
+    for (int i = 1; i < 10; i++)
     {
-        printf("\t%s '%s'\n", COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
+        PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
     }
 
     printf("\n---------------\n");
@@ -404,16 +404,12 @@ void UciProd::Dump()
 
 uint8_t UciProd::CharRows(int i)
 {
-    return (bFont.GetBit(i))?
-        (pixelRows + fonts[i]->LineSpacing())/(fonts[i]->RowsPerCell()+fonts[i]->LineSpacing())
-        : 0 ;
+    return (bFont.GetBit(i)) ? (pixelRows + fonts[i]->LineSpacing()) / (fonts[i]->RowsPerCell() + fonts[i]->LineSpacing())
+                             : 0;
 }
 
 uint8_t UciProd::CharColumns(int i)
 {
-    return (bFont.GetBit(i))?
-        (pixelColumns + fonts[i]->CharSpacing())/(fonts[i]->ColumnsPerCell()+fonts[i]->CharSpacing())
-        : 0 ;
+    return (bFont.GetBit(i)) ? (pixelColumns + fonts[i]->CharSpacing()) / (fonts[i]->ColumnsPerCell() + fonts[i]->CharSpacing())
+                             : 0;
 }
-
-

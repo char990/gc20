@@ -27,7 +27,7 @@ using namespace std;
 
 void PrintBorder()
 {
-	#define BoerderSize (27+11+1+8)
+	#define BoerderSize (16+10+11+1+8+2)
 	char buf[BoerderSize+1];
 	memset(buf,'*',BoerderSize);
 	buf[BoerderSize]='\0';
@@ -104,20 +104,20 @@ int main()
             for(int i=0;i<DbHelper::Instance().uciProd.NumberOfSigns();i++)
             {
                 struct SignConnection * cn = DbHelper::Instance().uciProd.SignCn(i);
+                if(cn->com_ip==cp)
+                {
+                    MyThrow("Sign%d COM setting conflicts with UciUser.Comport", i+1);
+                }
                 if(cn->com_ip < COMPORT_SIZE)
                 {// com port
-                    if(sp[i]==nullptr)
+                    if(sp[cn->com_ip]==nullptr)
                     {
                         SerialPortConfig spCfg(SerialPortConfig::SpMode::RS485_01, cn->bps_port);
                         sp[cn->com_ip] = new SerialPort(COM_DEV[cn->com_ip], spCfg);
                     }
                     else
                     {
-                        if(cn->com_ip==cp)
-                        {
-                            MyThrow("Sign%d COM setting conflicts with UciUser.Comport", i+1);
-                        }
-                        if(sp[i]->Config().baudrate != cn->bps_port)
+                        if(sp[cn->com_ip]->Config().baudrate != cn->bps_port)
                         {
                             MyThrow("Sign%d baudrate error. All bps on %s should be same", i+1, COM_NAME[cn->com_ip]);
                         }

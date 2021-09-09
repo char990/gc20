@@ -153,6 +153,11 @@ Frame *UciFrm::GetFrm(int i)
 	return frms[i];
 }
 
+uint8_t UciFrm::GetFrmRev(int i)
+{
+	return (i==0) ? 0 : frms[i]->frmRev;
+}
+
 uint8_t UciFrm::SetFrm(uint8_t *buf, int len)
 {
 	Frame *frm;

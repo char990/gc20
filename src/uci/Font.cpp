@@ -28,21 +28,22 @@ Font::Font(const char *fontname)
         close(fd);
         MyThrow("Read file %s failed", fn);
     }
-    bytesPerCell = buf[0] * 0x100 + buf[1];
-    columnsPerCell = buf[2];
-    rowsPerCell = buf[3];
-    bytesPerCellRow = buf[4];
-    charSpacing = buf[5];
-    lineSpacing = buf[6];
-    descender = buf[7];
+    uint8_t *p=buf;
+    bytesPerCell = Utils::Cnvt::GetU16(p); p+=2;
+    columnsPerCell = *p++;
+    rowsPerCell =  *p++;
+    bytesPerCellRow =  *p++;
+    descender =  *p++;
+    charSpacing =  *p++;
+    lineSpacing =  *p++;
     // assume the smallest font is 4*6, largest font is 64*64
     if (bytesPerCell != (1 + bytesPerCellRow * rowsPerCell) ||
         columnsPerCell < 4 || columnsPerCell > 64 ||
         rowsPerCell < 6 || rowsPerCell > 64 ||
         bytesPerCellRow != ((columnsPerCell + 7) / 8) ||
-        charSpacing < 1 || charSpacing > 16 ||
-        lineSpacing < 1 || lineSpacing > 16 ||
-        descender < 1 || descender > lineSpacing)
+        charSpacing > 16 ||
+        lineSpacing > 16 ||
+        descender > lineSpacing)
     {
         close(fd);
         MyThrow("Corrupt data in file %s", fontName);

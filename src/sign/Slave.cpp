@@ -1,6 +1,9 @@
 #include <cstring>
 #include <sign/Slave.h>
 #include <module/MyDbg.h>
+#include <module/Utils.h>
+
+using namespace Utils;
 
 uint8_t Slave::numberOfTiles=0;
 uint8_t Slave::numberOfColours=0;
@@ -44,9 +47,9 @@ int Slave::DecodeStRpl(uint8_t * buf, int len)
     lanternFan = buf[6];
     lightSensorFault = buf[7];
     currentFrmId = buf[8];
-    currentFrmCrc = GetU16(buf+9);
+    currentFrmCrc = Cnvt::GetU16(buf+9);
     nextFrmId = buf[11];
-    nextFrmCrc = GetU16(buf+12);
+    nextFrmCrc = Cnvt::GetU16(buf+12);
     return 0;
 }
 
@@ -75,18 +78,13 @@ int Slave::DecodeExtStRpl(uint8_t * buf, int len)
     controlByte=buf[2];
     for(int i=0;i<4;i++)
     {
-        dimming[i] = GetU16(buf+3+i*2);
+        dimming[i] = Cnvt::GetU16(buf+3+i*2);
     }
-    voltage = GetU16(buf+11);
-    hours = GetU16(buf+13);
-    temperature = GetU16(buf+15);
+    voltage = Cnvt::GetU16(buf+11);
+    hours = Cnvt::GetU16(buf+13);
+    temperature = Cnvt::GetU16(buf+15);
     humidity=buf[17];
-    lux=GetU16(buf+18);
+    lux=Cnvt::GetU16(buf+18);
     memcpy(numberOfFaultyLed, buf+22, numberOfTiles*numberOfColours);
     return 0;
-}
-
-uint16_t Slave::GetU16(uint8_t *p)
-{
-    return (*p)*0x100+(*(p+1));
 }

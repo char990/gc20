@@ -34,13 +34,13 @@ Scheduler::~Scheduler()
     }
 }
 
-void Scheduler::Init(TimerEvent *tmrEvt1)
+void Scheduler::Init(TimerEvent *tmrEvt_)
 {
-    if(tmrEvt1!=nullptr)
+    if(tmrEvt!=nullptr)
     {
         MyThrow ( "Re-invoke Scheduler::Init()" );
     }
-    tmrEvt=tmrEvt1;
+    tmrEvt=tmrEvt_;
     tmrEvt->Add(this);
     displayTimeout.Clear();
 
@@ -64,13 +64,13 @@ void Scheduler::Init(TimerEvent *tmrEvt1)
     }
 
     // group init
-    uint8_t *groupcfg = DbHelper::Instance().uciUser.GroupCfg();
     groupCnt=0;
-    for(int i=0;i<signCnt;i++)
+    for(int i=1;i<=signCnt;i++)
     {
-        if(groupcfg[i]>groupCnt)
+        uint8_t gid=DbHelper::Instance().uciUser.GetGroupIdOfSign(i);
+        if(gid>groupCnt)
         {
-            groupCnt=groupcfg[i];
+            groupCnt=gid;
         }
     }
     groups = new Group * [groupCnt];
@@ -78,9 +78,9 @@ void Scheduler::Init(TimerEvent *tmrEvt1)
     {
         groups[i] = new Group(i+1);
     }
-    for(int i=0;i<signCnt;i++)
+    for(int i=1;i<=signCnt;i++)
     {
-        groups[groupcfg[i]]->Add(unitedSigns[i]);
+        GetGroup(DbHelper::Instance().uciUser.GetGroupIdOfSign(i))->Add(GetUnitedSign(i));
     }
     for(int i=0;i<groupCnt;i++)
     {
