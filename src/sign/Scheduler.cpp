@@ -1,10 +1,12 @@
 #include <sign/Scheduler.h>
 #include <sign/Vms.h>
 #include <sign/Islus.h>
-#include <module/ptcpp.h>
+#include <uci/DbHelper.h>
+//#include <module/ptcpp.h>
+
 
 Scheduler::Scheduler()
-:signs(nullptr),groups(nullptr),tmrEvt(nullptr)
+:unitedSigns(nullptr),groups(nullptr),tmrEvt(nullptr)
 {
 }
 
@@ -18,13 +20,13 @@ Scheduler::~Scheduler()
         }
         delete [] groups;
     }
-    if(signs != nullptr)
+    if(unitedSigns != nullptr)
     {
         for(int i=0;i<signCnt;i++)
         {
-            delete signs[i];
+            delete unitedSigns[i];
         }
-        delete [] signs;
+        delete [] unitedSigns;
     }
     if(tmrEvt != nullptr)
     {
@@ -43,20 +45,20 @@ void Scheduler::Init(TimerEvent *tmrEvt1)
     displayTimeout.Clear();
 
     // sign init
-    int signCnt=DbHelper::Instance().uciProd.NumberOfSigns();
-    signs = new Sign * [signCnt];
-    switch(DbHelper::Instance().uciProd.SignType())
+    signCnt=DbHelper::Instance().uciProd.NumberOfSigns();
+    unitedSigns = new IUnitedSign * [signCnt];
+    switch(DbHelper::Instance().uciProd.ProdType())
     {
         case 0:
             for(int i=0;i<signCnt;i++)
             {
-                signs[i] = new Vms(i+1);
+                unitedSigns[i] = new Vms(i+1);
             }
         break;
         case 1:
             for(int i=0;i<signCnt;i++)
             {
-                signs[i] = new Islus(i+1);
+                unitedSigns[i] = new Islus(i+1);
             }
         break;
     }
@@ -78,11 +80,11 @@ void Scheduler::Init(TimerEvent *tmrEvt1)
     }
     for(int i=0;i<signCnt;i++)
     {
-        groups[groupcfg[i]]->Add(signs[i]);
+        groups[groupcfg[i]]->Add(unitedSigns[i]);
     }
     for(int i=0;i<groupCnt;i++)
     {
-        if(groups[i].GrpSigns().size==0)
+        if(groups[i]->grpSigns.size()==0)
         {
             MyThrow("Error:There is no sign in Group[%d]", i+1);
         }
@@ -112,8 +114,8 @@ void Scheduler::SessionLed(uint8_t v)
     sessionLed = v;
 }
 
-uint8_t Scheduler::ErrorCode()
+uint8_t Scheduler::CtrllerErr()
 {
-    return errorCode;
+    return ctrllerErr;
 }
 

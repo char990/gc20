@@ -41,6 +41,9 @@ public:
         this->upperLayer = upperLayer;
     }
 
+    /// \brief Chekc if Tx() is ready, called by upperlayer before calling Tx()
+    virtual bool IsTxReady() = 0;
+
     /// \brief Transmitting function, called by upperlayer
     /// \param		data		data buffer
     /// \param		len		    data length

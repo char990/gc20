@@ -2,33 +2,29 @@
 #define __GROUP_H__
 
 #include <vector>
-#include <sign/Sign.h>
+#include <sign/IUnitedSign.h>
 
 
 
 class Group
 {
 public:
-    Group();
+    Group(uint8_t groupId);
     ~Group();
 
     //Getter
     uint8_t GroupId() { return groupId; };
-    uint8_t DimMode() { return dimMode; };
-    uint8_t DimLevel() { return dimLevel; };
 
     // Add a sign into this group
-    void Add(Sign * sign);
-    vector<Sign *> &GrpSigns(){ return grpSigns; };
+    void Add(IUnitedSign * sign);
+
+    std::vector<IUnitedSign *> grpSigns;
 
 private:
 
-    vector<Sign *> grpSigns;
 
     uint8_t
-        groupId,
-        dimMode,
-        dimLevel;
+        groupId;
 };
 
 #endif

@@ -89,6 +89,8 @@ void TcpServer::Accept()
         name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 
+
+// todo: check status before release() and wait if there is sending
 void TcpServer::Release(OprTcp * tcpOperator)
 {
     close(tcpOperator->GetFd());

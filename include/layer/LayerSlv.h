@@ -1,15 +1,15 @@
-#ifndef __LAYERWEB_H__
-#define __LAYERWEB_H__
+#ifndef __LAYERSLV_H__
+#define __LAYERSLV_H__
 #include <string>
 #include <cstdint>
 #include <layer/ILayer.h>
 #include <module/IOperator.h>
 
-class LayerWeb : public ILayer
+class LayerSlv : public ILayer
 {
 public:
-    LayerWeb(std::string name_);
-    ~LayerWeb();
+    LayerSlv(std::string name_);
+    ~LayerSlv();
 
     int Rx(uint8_t * data, int len) override;
 

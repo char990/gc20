@@ -51,7 +51,7 @@ public:
 
 protected:
     DbHelper & db;
-    Scheduler & scheduler;
+    //Scheduler & scheduler;
     ISession *session;
 
     uint8_t micode;

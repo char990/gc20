@@ -28,6 +28,7 @@ INCLUDE  := -Iinclude/
 SRC      :=                      \
 	$(wildcard src/layer/*.cpp) \
 	$(wildcard src/module/*.cpp) \
+	$(wildcard src/sign/*.cpp) \
 	$(wildcard src/tsisp003/*.cpp) \
 	$(wildcard src/uci/*.cpp) \
 	$(wildcard src/*.cpp)         \
@@ -51,6 +52,7 @@ $(APP_DIR)/$(TARGET): $(OBJECTS)
 .PHONY: all build clean debug release info
 
 build:
+	@clear
 	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)
 

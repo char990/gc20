@@ -1,5 +1,5 @@
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#ifndef __TIMEREVENT_H__
+#define __TIMEREVENT_H__
 
 #include <time.h>
 #include <sys/timerfd.h>

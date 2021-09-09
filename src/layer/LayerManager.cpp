@@ -5,12 +5,12 @@
 #include <module/MyDbg.h>
 LayerManager::LayerManager(std::string name_, std::string aType)
 {
-    appFactory = new AppFactory();
-    appLayer = appFactory->GetApp();
-    prstLayer = new TsiSp003Prst();
-    dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
     if(aType.compare("NTS")==0)
     {
+        appFactory = new AppFactory();
+        appLayer = appFactory->GetApp();
+        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
+        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
         LayerNTS *layerNTS = new LayerNTS(name_);
         midLayer = layerNTS;
         //ISession *s = layerNTS;
@@ -18,6 +18,18 @@ LayerManager::LayerManager(std::string name_, std::string aType)
     }
     else if(aType.compare("WEB")==0)
     {
+        appFactory = new AppFactory();
+        appLayer = appFactory->GetApp();
+        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
+        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
+        midLayer = new LayerWeb(name_);
+    }
+    else if(aType.compare("SLV")==0)
+    {
+        appFactory = nullptr;
+        appLayer = appFactory->GetApp();
+        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
+        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
         midLayer = new LayerWeb(name_);
     }
     else
@@ -40,10 +52,22 @@ LayerManager::LayerManager(std::string name_, std::string aType)
 
 LayerManager::~LayerManager()
 {
-    delete appFactory;
-    delete prstLayer;
-    delete midLayer;
-    delete dlLayer;
+    if(appFactory)
+    {
+        delete appFactory;
+    }
+    if(prstLayer)
+    {
+        delete prstLayer;
+    }
+    if(midLayer)
+    {
+        delete midLayer;
+    }
+    if(dlLayer)
+    {
+        delete dlLayer;
+    }
 }
 
 int LayerManager::Rx(uint8_t * data, int len)

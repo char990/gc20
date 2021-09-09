@@ -3,7 +3,7 @@
 
 TsiSp003App::TsiSp003App()
 :db(DbHelper::Instance()),
- scheduler(Scheduler::Instance()),
+ //scheduler(Scheduler::Instance()),
  session(nullptr)
 {
 }

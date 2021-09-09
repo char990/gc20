@@ -143,10 +143,10 @@ public:
     uint8_t *GetCell(char c);
 
     /// \brief Get char width
-    int GetWidth(char c);
+    uint8_t GetWidth(char c);
 
     /// \brief Get string width
-    int GetWidth(char *s);
+    uint8_t GetWidth(char *s);
 
 private:
     char fontName[16];

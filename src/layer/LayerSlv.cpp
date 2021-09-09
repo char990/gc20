@@ -1,50 +1,30 @@
-#include <stdexcept>
-#include <cstring>
-#include <uci/DbHelper.h>
-#include <layer/LayerNTS.h>
+#include <cstdio>
+#include <unistd.h>
+
+#include <layer/LayerSlv.h>
+#include <module/MyDbg.h>
 #include <module/Utils.h>
-#include <layer/StatusLed.h>
+#include <uci/DbHelper.h>
 
 using namespace Utils;
 
-const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE]={
-    MI::CODE::SystemReset,
-    MI::CODE::UpdateTime,
-    MI::CODE::EndSession,
-    MI::CODE::SignSetTextFrame,
-    MI::CODE::SignSetGraphicsFrame,
-    MI::CODE::SignSetMessage,
-    MI::CODE::SignSetPlan,
-    MI::CODE::SignDisplayFrame,
-    MI::CODE::SignDisplayMessage,
-    MI::CODE::EnablePlan,
-    MI::CODE::DisablePlan,
-    MI::CODE::SignSetDimmingLevel,
-    MI::CODE::PowerONOFF,
-    MI::CODE::ResetFaultLog,
-    MI::CODE::SignSetHighResolutionGraphicsFrame,
-    MI::CODE::SignDisplayAtomicFrames
-};
-
-LayerNTS::LayerNTS(std::string name_)
+LayerSlv::LayerSlv(std::string name_)
 {
-    name = name_ + ":" + "NTS";
-    sessionTimeout.Clear();
-    session = ISession::SESSION::OFF_LINE;
+    name = name_ + ":" + "SLV";
 }
 
-LayerNTS::~LayerNTS()
+LayerSlv::~LayerSlv()
 {
 }
 
-int LayerNTS::Rx(uint8_t *data, int len)
+int LayerSlv::Rx(uint8_t * data, int len)
 {
-    StatusLed::Instance().ReloadDataSt();
+    #if 0
     if(len<15 || (len&1)==0 || data[7]!=DATALINK::CTRL_CHAR::STX)
     {
         return 0;
     }
-    uint16_t crc1 = Crc::Crc16_1021(data,len-5);
+    uint16_t crc1 = Crc::Crc16_8005(data,len-5);
     uint16_t crc2 = Cnvt::ParseToU16((char *)data+len-5);
     if(crc1!=crc2)
     {
@@ -119,17 +99,18 @@ int LayerNTS::Rx(uint8_t *data, int len)
     {
         sessionTimeout.Setms(cfg.SessionTimeout()*1000);
     }
+    #endif
     return 0;
 }
 
-
-bool LayerNTS::IsTxReady()
+bool LayerSlv::IsTxReady()
 {
     return lowerLayer->IsTxReady();
 }
 
-int LayerNTS::Tx(uint8_t *data, int len)
+int LayerSlv::Tx(uint8_t * data, int len)
 {
+    #if 0
     StatusLed::Instance().ReloadDataSt();
     UciUser & cfg = DbHelper::Instance().uciUser;
     if(_addr==cfg.BroadcastId())
@@ -144,53 +125,6 @@ int LayerNTS::Tx(uint8_t *data, int len)
     Cnvt::ParseToAsc(cfg.DeviceId(),p); p+=2;
     *p=DATALINK::CTRL_CHAR::STX; p++;
     memcpy(p,data,len);
-    EndOfBlock(txbuf+NON_DATA_PACKET_SIZE, len+DATA_PACKET_HEADER_SIZE);
-    lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE+DATA_PACKET_HEADER_SIZE+len+DATA_PACKET_EOB_SIZE);
-    if(session==ISession::SESSION::ON_LINE)
-    {
-        _ns=IncN(_ns);
-    }
-    return 0;
-}
-
-void LayerNTS::Clean()
-{
-    _nr = 0;
-    _ns = 0;
-    upperLayer->Clean();
-    sessionTimeout.Setms(0);
-}
-
-/// -------------------------------------------------------
-enum ISession::SESSION LayerNTS::Session()
-{
-    return session;
-}
-
-void LayerNTS::Session(enum ISession::SESSION v)
-{
-    session = v;
-    _nr = 0;
-    _ns = 0;
-}
-
-/// -------------------------------------------------------
-uint8_t LayerNTS::IncN(uint8_t n)
-{
-    n++;
-    return (n == 0) ? 1 : n ;
-}
-
-void LayerNTS::MakeNondata(uint8_t a)
-{
-    txbuf[0]=a;
-    Cnvt::ParseToAsc(_nr,(char *)txbuf+1);
-    Cnvt::ParseToAsc(DbHelper::Instance().uciUser.DeviceId(),(char *)txbuf+3);
-    EndOfBlock(txbuf, 5);
-}
-
-void LayerNTS::EndOfBlock(uint8_t *p, int len)
-{
     uint16_t crc = Crc::Crc16_1021(p,len);
     p+=len;
     Cnvt::ParseToAsc(crc>>8,(char *)p);
@@ -198,4 +132,19 @@ void LayerNTS::EndOfBlock(uint8_t *p, int len)
     Cnvt::ParseToAsc(crc,(char *)p);
     p+=2;
     *p=DATALINK::CTRL_CHAR::ETX;
+
+
+    EndOfBlock(txbuf+NON_DATA_PACKET_SIZE, len+DATA_PACKET_HEADER_SIZE);
+    lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE+DATA_PACKET_HEADER_SIZE+len+DATA_PACKET_EOB_SIZE);
+    if(session==ISession::SESSION::ON_LINE)
+    {
+        _ns=IncN(_ns);
+    }
+    #endif
+    return 0;
+}
+
+void LayerSlv::Clean()
+{
+    upperLayer->Clean();
 }

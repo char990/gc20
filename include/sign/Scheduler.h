@@ -1,12 +1,13 @@
-#ifndef __CONTORLLER_H__
-#define __CONTORLLER_H__
+#ifndef __SCHEDULER_H__
+#define __SCHEDULER_H__
 
 #include <cstdint>
 #include <string>
 #include <module/BootTimer.h>
 #include <module/IPeriodicRun.h>
 #include <module/TimerEvent.h>
-#include <sign/Sign.h>
+#include <sign/IUnitedSign.h>
+#include <sign/Group.h>
 
 class Scheduler : public IPeriodicRun
 {
@@ -18,7 +19,6 @@ public:
         static Scheduler instance;
         return instance;
     }
-    ~Scheduler();
 
     /*< IPeriodicRun -------------------------------------------*/
     /// \brief  Called by TimerEvt
@@ -31,13 +31,15 @@ public:
 
     void SessionLed(uint8_t v);
 
-    uint8_t ErrorCode();
+    uint8_t CtrllerErr();
     
-    Sign ** signs;
+    IUnitedSign ** unitedSigns;
     Group ** groups;
+
 
 private:
     Scheduler();
+    ~Scheduler();
 
     TimerEvent *tmrEvt;
 
@@ -46,7 +48,9 @@ private:
 
     uint8_t
         sessionLed,
-        errorCode;
+        ctrllerErr,
+        groupCnt,
+        signCnt;
 
 };
 

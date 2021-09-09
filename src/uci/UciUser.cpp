@@ -12,8 +12,8 @@ UciUser::UciUser(UciProd &uciProd)
 :uciProd(uciProd)
 {
     PATH = "./config";
-    PACKAGE = "gcuser";
-    DEFAULT_FILE = "./config/gcuser.def";
+    PACKAGE = "UciUser";
+    DEFAULT_FILE = "./config/UciUser.def";
     groupCfg = new uint8_t[uciProd.NumberOfSigns()];
 }
 
@@ -178,45 +178,30 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::Luminance Error: cnt!=16");
     }
 
-    int signs=uciProd.NumberOfSigns();
+    int numberOfSigns=uciProd.NumberOfSigns();
 
     str = GetStr(uciSec, _ComPort);
-    comPort = COMPORT_SIZE;
-    if (str != NULL)
+    comPort = GetIntFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
+    for(int i=0;i<numberOfSigns;i++)
     {
-        for (int i = 0; i < COMPORT_SIZE; i++)
+        if(comPort==uciProd.SignCn(i)->com_ip)
         {
-            if (strcmp(COMPORTS[i].name, str) == 0)
-            {
-                comPort = i;
-                break;
-            }
-        }
-    }
-    if(comPort == COMPORT_SIZE)
-    {
-        MyThrow("UciUser::Unknown ComPort:%s", str);
-    }
-    for(int i=0;i<signs;i++)
-    {
-        if(comPort==uciProd.Sign(i)->com_ip)
-        {
-            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COMPORTS[i].name, i+1);
+            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i], i+1);
         }
     }
 
     str = GetStr(uciSec, _GroupCfg);
-    cnt=Cnvt::GetIntArray(str, signs, ibuf, 1, signs);
-    if(cnt==signs)
+    cnt=Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
+    if(cnt==numberOfSigns)
     {
-        for(cnt=0;cnt<signs;cnt++)
+        for(cnt=0;cnt<numberOfSigns;cnt++)
         {
             groupCfg[cnt]=ibuf[cnt];
         }
     }
     else
     {
-        MyThrow("UciUser::GroupCfg Error: cnt!=%d",signs);
+        MyThrow("UciUser::GroupCfg Error: cnt!=%d",numberOfSigns);
     }
 
     Close();
@@ -267,10 +252,10 @@ void UciUser::Dump()
     PrintOption_d(_MultiLedFaultThreshold, MultiLedFaultThreshold());
     PrintOption_d(_LockedFrm, LockedFrm());
     PrintOption_d(_LockedMsg, LockedMsg());
-    PrintOption_d(_LastFrmTime, LastFrmTime());
+    PrintOption_d(_LastFrmOn, LastFrmOn());
 
 	printf ( "\t%s '%s'\n", _TZ, TZ() );
-	printf ( "\t%s '%s'\n", _ComPort, COMPORTS[ComPort()] );
+	printf ( "\t%s '%s'\n", _ComPort, COM_NAME[ComPort()] );
     
     char buf[256];
 
@@ -479,12 +464,12 @@ void UciUser::LockedMsg(uint8_t v)
     }
 }
 
-void UciUser::LastFrmTime(uint8_t v)
+void UciUser::LastFrmOn(uint8_t v)
 {
-    if(lastFrmTime!=v)
+    if(lastFrmOn!=v)
     {
-        lastFrmTime=v;
-        OptionSaveInt(_LastFrmTime, v);
+        lastFrmOn=v;
+        OptionSaveInt(_LastFrmOn, v);
     }
 }
 
@@ -493,7 +478,7 @@ void UciUser::ComPort(uint8_t v)
     if(comPort!=v)
     {
         comPort=v;
-        OptionSaveChars(_ComPort, COMPORTS[comPort].name);
+        OptionSaveChars(_ComPort, COM_NAME[comPort]);
     }
 }
 

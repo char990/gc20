@@ -50,7 +50,7 @@ public:
     uint8_t DefaultColour() { return defaultColour;};
     uint8_t LockedFrm() { return lockedFrm;};
     uint8_t LockedMsg() { return lockedMsg;};
-    uint8_t LastFrmTime() { return lastFrmTime;};
+    uint8_t LastFrmOn() { return lastFrmOn;};
     uint8_t ComPort() { return comPort;};
     uint8_t Tz() { return tz;};
     const char * TZ();
@@ -79,7 +79,7 @@ public:
     void DefaultColour(uint8_t);
     void LockedFrm(uint8_t);
     void LockedMsg(uint8_t);
-    void LastFrmTime(uint8_t);
+    void LastFrmOn(uint8_t);
     void ComPort(uint8_t);
     void Tz(uint8_t);
     void PasswordOffset(uint16_t);
@@ -112,7 +112,7 @@ private:
         lockedMsg,
         comPort,
         tz,
-        lastFrmTime;
+        lastFrmOn;
 
     uint16_t
         passwordOffset,
@@ -156,7 +156,7 @@ private:
 
     const char * _LockedFrm="LockedFrm";
     const char * _LockedMsg="LockedMsg";
-    const char * _LastFrmTime="LastFrmTime";
+    const char * _LastFrmOn="LastFrmOn";
     
 
     const char * _TZ="TZ";

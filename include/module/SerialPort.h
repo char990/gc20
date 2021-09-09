@@ -8,14 +8,9 @@
 
 extern int ALLOWEDBPS[EXTENDEDBPS_SIZE];
 
-struct ComDev
-{
-    const char * name;
-    const char * device;
-};
-
 #define COMPORT_SIZE 7
-extern struct ComDev COMPORTS[COMPORT_SIZE];
+extern const char * COM_NAME[COMPORT_SIZE];
+extern const char * COM_DEV[COMPORT_SIZE];
 
 class SerialPortConfig
 {

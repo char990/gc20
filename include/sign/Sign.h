@@ -5,10 +5,6 @@
 #include <module/IPeriodicRun.h>
 #include <tsisp003/TsiSp003Const.h>
 
-
-#define SIGNTYPE_SIZE 2
-extern const char *SIGNTYPE[SIGNTYPE_SIZE];
-
 struct Display
 {
     Display():dispState(CTRLLER_STATE::DISPSTATE::DISP_NONE){};
@@ -16,28 +12,40 @@ struct Display
     uint8_t plnId;
     uint8_t msgId;
     uint8_t frmId;
-}
+};
 
-class Sign : public IPeriodicRun
+class Sign// : public IPeriodicRun
 {
 public:
     Sign(uint8_t sid);
-    virtual ~Sign();
+    virtual ~Sign(){};
 
-    void PeriodicRun() override = 0;
+    //void PeriodicRun() override = 0;
     
-    uint8_t SignId();
     uint8_t * GetStatus(uint8_t *p);
     virtual uint8_t * GetExtStatus(uint8_t *p)=0;
+
+    void SetDimming(uint8_t dimming);
 
 protected:
     uint8_t
         signId,
-        errCode,
+        signErr;
+    
+    uint8_t       // for sign status reply
         en_dis,
         reportFrmId,
         reportMsgId,
         reportPlnId;
+
+    uint8_t       // for sign ext-status reply
+        dimMode,
+        dimLevel;
+
+    // settings
+    uint8_t
+        dimming;
+
 
     Display currentDisp;
     Display currentDispBak;

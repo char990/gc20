@@ -305,9 +305,10 @@ namespace DATALINK
 }
 
 #define TSISP003VER_SIZE    3
-
 extern const char * TSISP003VER[TSISP003VER_SIZE];
 
+#define PRODTYPE_SIZE 2
+extern const char *PRODTYPE[PRODTYPE_SIZE];
 namespace CTRLLER_STATE
 {
     enum FCLTSWITCH {FS_AUTO, FS_MSG1, FS_MSG2, FS_OFF=255};

@@ -1,7 +1,9 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <cstring>
 #include <uci/Font.h>
 #include <module/Utils.h>
+#include <module/MyDbg.h>
 
 Font::Font(const char *fontname)
 {
@@ -10,19 +12,21 @@ Font::Font(const char *fontname)
     {
         cellPtr[i] = nullptr;
     }
-    uint8_t buf[MAX_FONT_DOT / 8+1];
-    sprintf(buf, "font/%s", fontName);
-    int fd = open((const char *)buf, O_RDONLY);
+
+    char fn[16];
+    sprintf(fn, "font/%s", fontName);
+    int fd = open(fn, O_RDONLY);
     if (fd < 0)
     {
-        MyThrow("Can't open file %s", fontName);
+        MyThrow("Can't open file %s", fn);
     }
+    uint8_t buf[MAX_FONT_DOT / 8+1];
     int n;
-    n = read(buf, 8);
+    n = read(fd, buf, 8);
     if (n != 8)
     {
         close(fd);
-        MyThrow("Read file %s failed", fontName);
+        MyThrow("Read file %s failed", fn);
     }
     bytesPerCell = buf[0] * 0x100 + buf[1];
     columnsPerCell = buf[2];
@@ -45,7 +49,7 @@ Font::Font(const char *fontname)
     }
     for (int i = 0; i < (0x7F - 0x20); i++)
     {
-        n = read(buf, bytesPerCell);
+        n = read(fd, buf, bytesPerCell);
         if (n != bytesPerCell)
         {
             break;
@@ -70,23 +74,29 @@ Font::~Font()
 uint8_t *Font::GetCell(char c)
 {
     if (c < 0x20 || c >= 127 || c == 0x5F)
+    {
         c = 0x20;
+    }
     return cellPtr[c-0x20];
 }
 
 uint8_t Font::GetWidth(char c)
 {
     if (c < 0x20 || c >= 127 || c == 0x5F)
+    {
         c = 0x20;
+    }
     uint8_t *cell = cellPtr[c - 0x20];
     return (*cell) & 0x7F;
 }
 
 uint8_t Font::GetWidth(char *s)
 {
-    int len = strlen(s)
+    int len = strlen(s);
     if (len == 0)
+    {
         return 0;
+    }
     int x = (len-1)*charSpacing;
     for(int i=0;i<len;i++)
     {

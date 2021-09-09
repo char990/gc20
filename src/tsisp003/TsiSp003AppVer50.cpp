@@ -1,8 +1,7 @@
 #include <tsisp003/TsiSp003AppVer50.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <module/Controller.h>
-
+#include <sign/Scheduler.h>
 
 extern void PrintTime();
 

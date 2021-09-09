@@ -9,6 +9,9 @@
 class IOperator : public IGcEvent , public ILowerLayer
 {
 public:
+    virtual ~IOperator(){};
+    bool IsTxRdy() { return txsize==0 ; };
+
     int TxBytes(uint8_t * data, int len);
     int TxHandle();
     void ClrTx();

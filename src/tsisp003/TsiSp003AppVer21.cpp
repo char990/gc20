@@ -1,5 +1,5 @@
 #include <ctime>
-#include <tsisp003/TsiSp003AppVer10.h>
+#include <tsisp003/TsiSp003AppVer21.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
 #include <sign/Scheduler.h>
@@ -8,16 +8,16 @@
 using namespace Utils;
 using namespace std;
 
-TsiSp003AppVer10::TsiSp003AppVer10()
+TsiSp003AppVer21::TsiSp003AppVer21()
 {
 
 }
-TsiSp003AppVer10::~TsiSp003AppVer10()
+TsiSp003AppVer21::~TsiSp003AppVer21()
 {
     
 }
 
-void TsiSp003AppVer10::Time2Buf(uint8_t *p)
+void TsiSp003AppVer21::Time2Buf(uint8_t *p)
 {
     struct tm t;
     time_t t_=time(nullptr);
@@ -32,7 +32,7 @@ void TsiSp003AppVer10::Time2Buf(uint8_t *p)
     *p++=t.tm_sec;
 }
 
-int TsiSp003AppVer10::Rx(uint8_t * data, int len)
+int TsiSp003AppVer21::Rx(uint8_t * data, int len)
 {
     micode = *data;
     switch (micode)
@@ -42,6 +42,9 @@ int TsiSp003AppVer10::Rx(uint8_t * data, int len)
         break;
     case MI::CODE::SignSetTextFrame:
         SignSetTextFrame(data, len);
+        break;
+    case MI::CODE::SignSetGraphicsFrame:
+        SignSetGraphicsFrame(data, len);
         break;
     case MI::CODE::SignSetMessage:
         SignSetMessage(data, len);
@@ -73,7 +76,7 @@ int TsiSp003AppVer10::Rx(uint8_t * data, int len)
     return 0;
 }
 
-void TsiSp003AppVer10::HeartbeatPoll(uint8_t *data, int len)
+void TsiSp003AppVer21::HeartbeatPoll(uint8_t *data, int len)
 {
     if (ChkLen(len, 1) == false)
         return;
@@ -84,18 +87,18 @@ void TsiSp003AppVer10::HeartbeatPoll(uint8_t *data, int len)
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16>>8;
     txbuf[11] = i16&0xff;
-    txbuf[12] = scheduler.ErrorCode();
+    txbuf[12] = Scheduler::Instance().CtrllerErr();
     int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
     for(int i=0;i<scnt;i++)
     {
-        p=scheduler.signs[i]->GetStatus(p);
+        p=Scheduler::Instance().unitedSigns[i]->GetStatus(p);
     }
     Tx(txbuf, p-txbuf);
 }
 
-void TsiSp003AppVer10::SignSetTextFrame(uint8_t *data, int len)
+void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -103,7 +106,7 @@ void TsiSp003AppVer10::SignSetTextFrame(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::SignDisplayFrame(uint8_t *data, int len)
+void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -111,7 +114,7 @@ void TsiSp003AppVer10::SignDisplayFrame(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::SignSetMessage(uint8_t *data, int len)
+void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -119,7 +122,7 @@ void TsiSp003AppVer10::SignSetMessage(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::SignDisplayMessage(uint8_t *data, int len)
+void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -127,7 +130,7 @@ void TsiSp003AppVer10::SignDisplayMessage(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::SignSetPlan(uint8_t *data, int len)
+void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -135,7 +138,7 @@ void TsiSp003AppVer10::SignSetPlan(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::EnablePlan(uint8_t *data, int len)
+void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -143,7 +146,7 @@ void TsiSp003AppVer10::EnablePlan(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::DisablePlan(uint8_t *data, int len)
+void TsiSp003AppVer21::EnablePlan(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -151,7 +154,7 @@ void TsiSp003AppVer10::DisablePlan(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::RequestEnabledPlans(uint8_t *data, int len)
+void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;
@@ -159,7 +162,15 @@ void TsiSp003AppVer10::RequestEnabledPlans(uint8_t *data, int len)
     Ack();
 }
 
-void TsiSp003AppVer10::SignRequestStoredFMP(uint8_t *data, int len)
+void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
+{
+    if (ChkLen(len, 3) == false)
+        return;
+    Reject(APP::ERROR::SyntaxError);
+    Ack();
+}
+
+void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;

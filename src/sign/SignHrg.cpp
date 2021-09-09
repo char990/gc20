@@ -1,8 +1,20 @@
+#include <cstring>
+#include <uci/DbHelper.h>
 #include <sign/SignHrg.h>
 
 
-uint8_t *SignHrg::GetExtStatus(uint8_t *p)
+SignHrg::SignHrg(uint8_t signId)
+:SignGfx(signId)
 {
-    return nullptr;
+
 }
 
+SignHrg::~SignHrg()
+{
+
+}
+
+uint8_t *SignHrg::GetExtStatus(uint8_t *p)
+{
+    return SignGfx::GetExtStatus(p);
+}

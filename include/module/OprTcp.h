@@ -17,7 +17,10 @@ public:
 
     /*< IOperator ----------------------------------------------*/
     /// \brief  Called by upperLayer
+    virtual bool IsTxReady() override { return IsTxRdy(); };
+    /// \brief  Called by upperLayer
     virtual int Tx(uint8_t * data, int len) override;
+
     /// \brief  Called by Eepoll, receiving & sending handle
     virtual void EventsHandle(uint32_t events) override;
     /*--------------------------------------------------------->*/

@@ -7,7 +7,7 @@
 #include <uci/UciMsg.h>
 #include <uci/UciPln.h>
 
-class DbHelper: public IPeriodicRun
+class DbHelper
 {
 public:
     DbHelper(DbHelper const &) = delete;
@@ -26,13 +26,12 @@ public:
 
     UciFrm uciFrm;
     UciMsg uciMsg{uciFrm};
-    UciPln uciPln{uciFrm,uciMsg};
+    UciPln uciPln{uciFrm, uciMsg};
+
 protected:
-
-
 private:
     DbHelper(){};
-    ~DbHelper();    
+    ~DbHelper();
 };
 
 #endif

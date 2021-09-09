@@ -26,7 +26,7 @@ public:
 
     // getter
     char * MfcCode() { return &mfcCode[0]; };
-    Font * GetFont(int i) { return &fonts[i]; };
+    Font * Fonts(int i) { return fonts[i]; };
     struct SignConnection * SignCn(int i) { return &signCn[i]; };
     uint8_t * MappedColoursTable() {return &mappedColoursTable[0]; };
 
@@ -52,7 +52,7 @@ public:
     uint16_t LightSensorScale() { return lightSensorScale; };
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver;};
-    uint8_t SignType() { return signType;};
+    uint8_t ProdType() { return prodType;};
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
@@ -62,6 +62,8 @@ public:
     uint8_t TileColumnsPerSlave() { return tileColumnsPerSlave; };
     uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
     uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
+
+    char * ColourLeds() { return colourLeds; };
 
     bool IsResetLogAllowed() { return isResetLogAllowed!=0; };
     bool IsUpgradeAllowed() { return isUpgradeAllowed!=0; };
@@ -89,7 +91,7 @@ private:
     ///  ---------- option -----------
     // string
     const char * _MfcCode="MfcCode";
-    const char * _SignType="SignType";
+    const char * _ProdType="ProdType";
     // int array
     const char * _Font="Font";
     const char * _Conspicuity="Conspicuity";
@@ -122,6 +124,7 @@ private:
     const char * _NumberOfSigns="NumberOfSigns";
     const char * _SlavePowerUpDelay="SlavePowerUpDelay";
     const char * _ColourBits="ColourBits";
+    const char * _ColourLeds="ColourLeds";
     const char * _IsResetLogAllowed="IsResetLogAllowed";
     const char * _IsUpgradeAllowed="IsUpgradeAllowed";
     const char * _PixelRowsPerTile="PixelRowsPerTile";
@@ -172,13 +175,15 @@ private:
         isResetLogAllowed,
         isUpgradeAllowed,
         numberOfSigns,
-        signType,
+        prodType,
         pixelRowsPerTile,
         pixelColumnsPerTile,
         tileRowsPerSlave,
         tileColumnsPerSlave,
         slaveRowsPerSign,
         slaveColumnsPerSign;
+
+    char colourLeds[5];
 
 	uint8_t mappedColoursTable[10];				// colourtable[0] is always 0
 

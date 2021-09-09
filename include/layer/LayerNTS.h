@@ -20,6 +20,8 @@ public:
 
     int Rx(uint8_t * data, int len) override;
 
+    bool IsTxReady() override;
+
     int Tx(uint8_t * data, int len) override;
 
     void Clean() override;

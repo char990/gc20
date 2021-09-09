@@ -1,9 +1,9 @@
 #ifndef __TSISP003APPVER31_H__
 #define __TSISP003APPVER31_H__
 
-#include <tsisp003/TsiSp003AppVer10.h>
+#include <tsisp003/TsiSp003AppVer21.h>
 
-class TsiSp003AppVer31 : public TsiSp003AppVer10
+class TsiSp003AppVer31 : public TsiSp003AppVer21
 {
 public:
     TsiSp003AppVer31();

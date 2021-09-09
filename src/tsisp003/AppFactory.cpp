@@ -1,7 +1,7 @@
 #include <tsisp003/AppFactory.h>
-#include <tsisp003/TsiSp003AppVer10.h>
-#include <tsisp003/TsiSp003AppVer31.h>
-#include <tsisp003/TsiSp003AppVer50.h>
+#include <tsisp003/QLD21.h>
+#include <tsisp003/NSW31.h>
+#include <tsisp003/NSW50.h>
 
 
 
@@ -10,15 +10,15 @@ AppFactory::AppFactory()
     auto ver = DbHelper::Instance().uciProd.TsiSp003Ver();
     if(ver==0)
     {
-        app = new TsiSp003AppVer10();
+        app = new QLD21();
     }
     else if(ver==1)
     {
-        app = new TsiSp003AppVer31();
+        app = new NSW31();
     }
     else if(ver=2)
     {
-        app = new TsiSp003AppVer50();
+        app = new NSW50();
     }
     else
     {

@@ -54,7 +54,7 @@ int Frame::CheckConspicuity()
 FrmTxt::FrmTxt(char * frm, int len)
 {
     frmOffset=TXTFRM_HEADER_SIZE;
-    CnvtFrm(frm, len, (frmOffset+2+1), (frmOffset+2+DbHelper::Instance().uciProd.MaxTextFrmLen()));
+    CnvtFrm(frm, len, (frmOffset+2+1), (frmOffset+2+255));
     if(appErr==APP::ERROR::AppNoError)
     {
         MakeFrame(len/2);
@@ -68,7 +68,7 @@ FrmTxt::FrmTxt(uint8_t * frm, int len)
     {
         appErr = APP::ERROR::FrameTooSmall;
     }
-    else if(len>DbHelper::Instance().uciProd.MaxTextFrmLen())
+    else if(len>255 || 0/* if text could fit in the sign: X chars * Y chars*/)
     {
         appErr = APP::ERROR::FrameTooLarge;
     }
@@ -308,8 +308,8 @@ FrmHrg::FrmHrg(char * frm, int len)
 {
     frmOffset=HRGFRM_HEADER_SIZE;
     CnvtFrm(frm, len,
-        frmOffset+2+DbHelper::Instance().uciProd.MinHrgFrmLen(),
-        frmOffset+2+DbHelper::Instance().uciProd.MaxHrgFrmLen());
+        frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen(),
+        frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen());
     if(appErr==APP::ERROR::AppNoError)
     {
         MakeFrame(len/2);
@@ -319,8 +319,8 @@ FrmHrg::FrmHrg(char * frm, int len)
 FrmHrg::FrmHrg(uint8_t * frm, int len)
 {
     frmOffset=HRGFRM_HEADER_SIZE;
-    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinHrgFrmLen() ||
-        len > frmOffset+2+DbHelper::Instance().uciProd.MaxHrgFrmLen())
+    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen() ||
+        len > frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen())
     {
         appErr = APP::ERROR::LengthError;
     }

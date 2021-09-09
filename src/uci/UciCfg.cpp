@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include <uci/UciCfg.h>
-#include <module/Utils.h>
+
 #include <module/MyDbg.h>
 
 UciCfg::UciCfg()
@@ -255,13 +255,13 @@ void UciCfg::PrintOption_f(const char * option, float x)
 	printf("\t%s '%f'\n", option, x);
 }
 
-void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, BitOption &bo)
+void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, Utils::BitOption &bo)
 {
     int ibuf[32];
     const char *str = GetStr(uciSec, option);
     if (str != NULL)
     {
-        int cnt = Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
+        int cnt = Utils::Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
         if (cnt != 0)
         {
             bo.Set(0);
@@ -272,10 +272,10 @@ void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, BitOp
             return;
         }
     }
-    MyThrow("UciProd Error: %s", option);
+    MyThrow("Uci Error: %s.%s", uciSec->e.name, option);
 }
 
-int UciCfg::SelectStr(struct uci_section * uciSec, const char *option, const char *collection, int cSize)
+int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, const char **collection, int cSize)
 {
     const char *str = GetStr(uciSec, option);
     for (int cnt = 0; cnt < cSize; cnt++)
@@ -285,7 +285,8 @@ int UciCfg::SelectStr(struct uci_section * uciSec, const char *option, const cha
             return cnt;
         }
     }
-    MyThrow("UciProd Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
+    MyThrow("Uci Error: option %s.%s '%s' is not defined", uciSec->e.name, option, str);
+	return 0; // avoid warning
 }
 
 

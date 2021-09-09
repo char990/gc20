@@ -24,6 +24,14 @@ OprSp::~OprSp()
     sp.Close();
 }
 
+/*< IOperator --------------------------------------------------*/
+
+/// \brief  Called by upperLayer
+bool OprSp::IsTxReady()
+{
+    return IsTxRdy();
+}
+
 /// \brief  Called by upperLayer
 int OprSp::Tx(uint8_t *data, int len)
 {
@@ -35,7 +43,6 @@ int OprSp::Tx(uint8_t *data, int len)
     return (x==0 ? 1 : x);
 }
 
-/*< IOperator --------------------------------------------------*/
 /// \brief  Called by Eepoll, receiving & sending handle
 void OprSp::EventsHandle(uint32_t events)
 {

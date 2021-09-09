@@ -6,7 +6,7 @@
 #include <module/SerialPort.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
-#include <sign/SignFactory.h>
+#include <sign/Sign.h>
 
 extern const char *FirmwareMajorVer;
 extern const char *FirmwareMinorVer;
@@ -18,7 +18,7 @@ std::string SignConnection::ToString()
     char buf[32];
     if (com_ip < COMPORT_SIZE)
     {
-        sprintf(buf, "%s:%d", COMPORTS[com_ip].name, bps_port);
+        sprintf(buf, "%s:%d", COM_NAME[com_ip], bps_port);
     }
     else
     {
@@ -45,7 +45,7 @@ const char *COLOUR_NAME[10] = {
 UciProd::UciProd()
 {
     PATH = "./config";
-    PACKAGE = "gcprod";
+    PACKAGE = "UciProd";
     signCn = nullptr;
     for(int i=0;i<MAX_FONT+1;i++)
     {
@@ -85,8 +85,8 @@ void UciProd::LoadConfig()
     const char *str;
     int cnt;
 
-    tsiSp003Ver = SelectStr(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
-    signType = SelectStr(uciSec, _SignType, SIGNTYPE, SIGNTYPE_SIZE);
+    tsiSp003Ver = GetIntFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
+    prodType = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
 
     pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
     pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
@@ -146,11 +146,28 @@ void UciProd::LoadConfig()
     lightSensorScale = GetInt(uciSec, _LightSensorScale, 1, 65535);
 
     slavePowerUpDelay = GetInt(uciSec, _SlavePowerUpDelay, 1, 255);
+    
+    str = GetStr(uciSec, _ColourLeds);
+    cnt = strlen(str);
+    if(cnt>=1 && cnt<=4)
+    {
+        strcpy(colourLeds,str);
+    }
+    else
+    {
+        MyThrow("UciProd Error: %s(%s)", _ColourLeds, str);
+    }
+
     colourBits = GetInt(uciSec, _ColourBits, 1, 24);
     if (colourBits != 1 && colourBits != 4 && colourBits != 24)
     {
-        MyThrow("UciProd Error: ColourBits(%d) Only 1/4/24 allowed", colourBits);
+        MyThrow("UciProd Error: %s(%d) Only 1/4/24 allowed", _ColourBits, colourBits);
     }
+    if( (strlen(colourLeds)==1 && colourBits!=1) || (strlen(colourLeds)!=1 && colourBits==1) )
+    {
+        MyThrow("UciProd Error: %s(%d) not matched with %s('%s')", _ColourBits, colourBits, _ColourLeds, colourLeds);
+    }
+
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
@@ -174,7 +191,7 @@ void UciProd::LoadConfig()
         {
             for (cnt = 0; cnt < COMPORT_SIZE; cnt++)
             {
-                if (memcmp(str, COMPORTS[cnt].name, 4) == 0)
+                if (memcmp(str, COM_NAME[cnt], 4) == 0)
                     break;
             }
             if (cnt < COMPORT_SIZE)
@@ -253,7 +270,7 @@ void UciProd::LoadConfig()
     }
 
     mappedColoursTable[0]=0;
-    for(int i=1;i<10,i++)
+    for(int i=1;i<10;i++)
     {
         str = GetStr(uciSec, COLOUR_NAME[i]);
         for(cnt=1;cnt<10;cnt++)
@@ -299,7 +316,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("Unknown extStSignType:%d",extStsRplSignType);
+        MyThrow("Unknown extStSignType:%d(MfcCode error?)",extStsRplSignType);
     }
 
     minGfxFrmLen = (pixels + 7) / 8;
@@ -321,13 +338,13 @@ void UciProd::Dump()
     printf("---------------\n");
 
     printf("\t%s '%s'\n", _TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
-    printf("\t%s '%s'\n", _SignType, SIGNTYPE[SignType()]);
+    //printf("\t%s '%s'\n", _ProdType, PRODTYPE[ProdType()]);
     printf("\t%s '%s'\n", _MfcCode, MfcCode());
 
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
     for (int i = 0; i < NumberOfSigns(); i++)
     {
-        printf("\t%s%d '%s'\n", _Sign, i, Sign(i)->ToString().c_str());
+        printf("\t%s%d '%s'\n", _Sign, i, SignCn(i)->ToString().c_str());
     }
     PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
     PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
@@ -360,12 +377,14 @@ void UciProd::Dump()
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
 
+    printf("\t%s '%s'\n", _ColourLeds, ColourLeds());
+
     printf("\t%s '%s'\n", _Font, bFont.ToString().c_str());
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         if (bFont.GetBit(i))
         {
-            printf("\t%s%d '%s'\n", _Font, i, fonts[i].FontName());
+            printf("\t%s%d '%s'\n", _Font, i, Fonts(i)->FontName());
         }
     }
     printf("\t%s '%s'\n", _Conspicuity, bConspicuity.ToString().c_str());
@@ -375,7 +394,7 @@ void UciProd::Dump()
     printf("\t%s '%s'\n", _HrgFrmColour, bHrgFrmColour.ToString().c_str());
     
     printf("\tColour map:\n");
-    for(int i=1;i<10,i++)
+    for(int i=1;i<10;i++)
     {
         printf("\t%s '%s'\n", COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
     }

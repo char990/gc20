@@ -1,6 +1,7 @@
 #include <sign/Group.h>
 
-Group::Group()
+Group::Group(uint8_t groupId)
+:groupId(groupId)
 {
 
 }
@@ -10,7 +11,7 @@ Group::~Group()
 
 }
 
-void Group::Add(Sign *sign)
+void Group::Add(IUnitedSign *sign)
 {
     grpSigns.push_back(sign);
 }

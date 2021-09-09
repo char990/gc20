@@ -33,6 +33,11 @@ int LayerWeb::Rx(uint8_t * data, int len)
 */    return n;
 }
 
+bool LayerWeb::IsTxReady()
+{
+    return lowerLayer->IsTxReady();
+}
+
 int LayerWeb::Tx(uint8_t * data, int len)
 {
     StatusLed::Instance().ReloadDataSt();

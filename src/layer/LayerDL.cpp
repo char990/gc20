@@ -52,6 +52,12 @@ int LayerDL::Rx(uint8_t *data, int len)
     return 0;
 }
 
+
+bool LayerDL::IsTxReady()
+{
+    return lowerLayer->IsTxReady();
+}
+
 int LayerDL::Tx(uint8_t *data, int len)
 {
     return lowerLayer->Tx(data, len);

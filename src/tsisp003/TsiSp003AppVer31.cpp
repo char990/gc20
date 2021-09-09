@@ -3,7 +3,7 @@
 #include <tsisp003/TsiSp003AppVer31.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <module/Controller.h>
+#include <sign/Scheduler.h>
 #include <module/Utils.h>
 
 using namespace Utils;
@@ -32,7 +32,7 @@ int TsiSp003AppVer31::Rx(uint8_t * data, int len)
         SignRequestStoredFMP(data, len);
         break;
     default:
-        return TsiSp003AppVer10::Rx(data,len);
+        return TsiSp003AppVer21::Rx(data,len);
     }
     return 0;
 }
@@ -46,13 +46,13 @@ void TsiSp003AppVer31::SignExtendedStatusRequest(uint8_t *data, int len)
     txbuf[2] = appError;
     memcpy(txbuf+3, db.uciProd.MfcCode(), 10);
     Time2Buf(txbuf+13);
-    txbuf[20] = scheduler.ErrorCode();
+    txbuf[20] = Scheduler::Instance().CtrllerErr();
     int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];
     for(int i=0;i<scnt;i++)
     {
-        p=scheduler.signs[i]->GetExtStatus(p);
+        p=Scheduler::Instance().unitedSigns[i]->GetExtStatus(p);
     }
     int applen = p-txbuf;
     uint16_t crc = Crc::Crc16_1021(txbuf, applen);
