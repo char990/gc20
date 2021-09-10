@@ -7,48 +7,44 @@
 
 using namespace Utils;
 
-Message::Message(char *cmsg, int clen)
+APP::ERROR Message::Init(char *cmsg, int clen)
 {
-    if ((clen&1)==1 || clen < (4+2*1+1+2)*2 || clen > (4+2*6+2)*2) // with crc
+    micode=0;
+    if ((clen&1)==1 || clen < (MSG_LEN_MIN+2)*2 || clen > (MSG_LEN_MAX+2)*2) // with crc
     {
-        appErr = APP::ERROR::LengthError;
+        return APP::ERROR::LengthError;
     }
     int xlen=clen/2;
-    uint8_t *xmsg = new uint8_t[xlen];
+    uint8_t xmsg[MSG_LEN_MAX+2];
     if (Cnvt::ParseToU8(cmsg, xmsg, clen) != 0)
     {
-        appErr = APP::ERROR::SyntaxError;
-        return;
+        return APP::ERROR::SyntaxError;
     }
     uint16_t c = Crc::Crc16_1021(xmsg, xlen-2);
     if ((c / 0x100) == xmsg[xlen-2] || (c & 0xFF) == xmsg[xlen-1])
     {
-        Message(xmsg, xlen-2);
+        return Init(xmsg, xlen-2);
     }
-    else
-    {
-        appErr = APP::ERROR::DataChksumError;
-    }
-    delete [] xmsg;
+    return APP::ERROR::DataChksumError;
 }
 
-Message::Message(uint8_t *xmsg, int xlen)
+APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
 {
-    micode = xmsg[0];
+    micode=0;
     msgId = xmsg[1];
     msgRev = xmsg[2];
     transTime = xmsg[3];
-    if (xlen < (4+2*1+1) || xlen > (4+2*6)) // no crc
+    if (xlen < MSG_LEN_MIN || xlen > MSG_LEN_MAX) // no crc
     {
-        appErr = APP::ERROR::LengthError;
+        return APP::ERROR::LengthError;
     }
-    else if (micode != MI::CODE::SignSetMessage)
+    else if (xmsg[0] != MI::CODE::SignSetMessage)
     {
-        appErr = APP::ERROR::UnknownMi;
+        return APP::ERROR::UnknownMi;
     }
     else if (msgId == 0)
     {
-        appErr = APP::ERROR::SyntaxError;
+        return APP::ERROR::SyntaxError;
     }
     else
     {
@@ -60,44 +56,53 @@ Message::Message(uint8_t *xmsg, int xlen)
             {
                 if(i==0)
                 {
-                    appErr = APP::ERROR::SyntaxError;
-                    return;
+                    return APP::ERROR::SyntaxError;
                 }
                 break;
             }
             msgEntries[i].onTime = *p++;
         }
-        if(p!=xmsg+xlen)
+        if(p==xmsg+xlen)
         {
-            appErr = APP::ERROR::SyntaxError;
+            micode = xmsg[0];
+            uint8_t buf[MSG_LEN_MAX];
+            int len = ToArray(buf);
+            crc = Crc::Crc16_1021(buf, len);
+            return APP::ERROR::AppNoError;
         }
-        else
-        {
-            appErr = APP::ERROR::AppNoError;
-            crc = Crc::Crc16_1021(xmsg, xlen);
-            msgDatalen = xlen +2;
-            msgData = new uint8_t [msgDatalen];
-            memcpy(msgData, xmsg, xlen);
-            msgData[msgDatalen - 2] = crc/0x100;
-            msgData[msgDatalen - 1] = crc;
-        }
+        return APP::ERROR::SyntaxError;
     }
 }
 
-Message::~Message()
+int Message::ToArray(uint8_t *pbuf)
 {
-    if(msgData!=nullptr)
+    uint8_t *p=pbuf;
+    *p++=micode;
+    *p++=msgId;
+    *p++=msgRev;
+    *p++=transTime;
+    for(int i=0;i<6;i++)
     {
-        delete msgData;
+        *p++=msgEntries[i].frmId;
+        if(msgEntries[i].frmId==0)
+        {
+            break;
+        }
+        *p++=msgEntries[i].onTime;
     }
+    return p-pbuf;
 }
 
 std::string Message::ToString()
 {
+    if(micode==0)
+    {
+        return "Message undefined";
+    }
     char buf[1024];
     int len = 0;
-    len = snprintf(buf, 1023, "Message:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, TransT=%d, ",
-                   appErr, micode, msgId, msgRev, transTime);
+    len = snprintf(buf, 1023, "Message: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, ",
+                   micode, msgId, msgRev, transTime);
     for (int i = 0; i < 6; i++)
     {
         if (msgEntries[i].frmId == 0)

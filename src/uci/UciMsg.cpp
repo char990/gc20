@@ -13,31 +13,21 @@ UciMsg::UciMsg(UciFrm &uciFrm)
     PATH = "./config";
     PACKAGE = "UciMsg";
 	SECTION = "msg";
-	for(int i=0;i<=255;i++)
-	{
-		msgs[i] = nullptr;
-	}
 }
 
 UciMsg::~UciMsg()
 {
-	for(int i=0;i<=255;i++)
-	{
-		if(msgs[i] != nullptr)
-		{
-			delete msgs[i];
-		}
-	}
 }
 
 void UciMsg::LoadConfig()
 {
-	chksum=0;
 	chksum = 0;
 	Open();
 	struct uci_section *uciSec = GetSection(SECTION);
 	struct uci_element *e;
 	struct uci_option *option;
+
+	Message  msg;
 	uci_foreach_element(&uciSec->options, e)
 	{
 		if (memcmp(e->name, "msg_", 4) != 0)
@@ -47,23 +37,12 @@ void UciMsg::LoadConfig()
 		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
 			continue;
 		char *buf = option->v.string;
-		int r = strlen(buf);
-		if (r != 36)
-			continue;
-		Message  * msg = new Message(buf,36);
-		if ( msg->appErr == APP::ERROR::AppNoError && msg->msgId == i && CheckMsgEntries(msg) == 0 )
+        APP::ERROR r = msg.Init(buf, strlen(buf));
+		if ( r == APP::ERROR::AppNoError && msg.msgId == i && CheckMsgEntries(&msg) == 0 )
 		{
-			if (msgs[i] != nullptr)
-			{
-				chksum -= msgs[i]->crc;
-				delete msgs[i];
-			}
-			msgs[i]=msg;
-			chksum += msgs[i]->crc;
-		}
-		else
-		{
-			delete msg;
+            chksum-=msgs[i].crc;
+            msgs[i] = msg;
+            chksum+=msg.crc;
 		}
 	}
 	Close();
@@ -96,9 +75,9 @@ void UciMsg::Dump()
 {
 	for (int i = 1; i <= 255; i++)
 	{
-		if (msgs[i] != nullptr)
+		if (msgs[i].micode != 0)
 		{
-			printf("%s\n", msgs[i]->ToString().c_str());
+			printf("%s\n", msgs[i].ToString().c_str());
 		}
 	}
 }
@@ -110,45 +89,38 @@ uint16_t UciMsg::ChkSum()
 
 Message *UciMsg::GetMsg(int i)
 {
-	return msgs[i];
+	return &msgs[i];
 }
-
 
 uint8_t UciMsg::GetMsgRev(int i)
 {
-	return (i==0) ? 0 : msgs[i]->msgRev;
+	return (i==0) ? 0 : msgs[i].msgRev;
 }
 
-uint8_t UciMsg::SetMsg(uint8_t *buf, int len)
+APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
 {
-	Message * msg = new Message(buf,len);
-    uint8_t r = msg->appErr;
+	Message msg;
+    APP::ERROR r = msg.Init(buf,len);
 	if (r == APP::ERROR::AppNoError)
 	{
-		int i = msg->msgId;
-		if (msgs[i] != nullptr)
-		{
-        	chksum-=msgs[i]->crc;
-			delete msgs[i];
-		}
+		int i = msg.msgId;
+      	chksum-=msgs[i].crc;
 		msgs[i] = msg;
-    	chksum+=msgs[i]->crc;
-	}
-	else
-	{
-		delete msg;
+    	chksum+=msg.crc;
 	}
 	return r;
 }
 
 void UciMsg::SaveMsg(int i)
 {
-	Message * msg = msgs[i];
-	if(i<1 || i>255 || msg ==nullptr)return;
+	if(i<1 || i>255 || msgs[i].micode==0)return;
     char option[8];
 	sprintf(option,"msg_%d",i);
-	char v[36+1];
-	Cnvt::ParseToAsc(msg->msgData, v, msg->msgDatalen);
-    v[msg->msgDatalen*2]='\0';
+	uint8_t a[MSG_LEN_MAX];
+	char v[(MSG_LEN_MAX+2)*2+1];
+	int len = msgs[i].ToArray(a);
+	char * p = Cnvt::ParseToAsc(a, v, len);
+    p = Cnvt::ParseU16ToAsc(msgs[i].crc, p);
+	*p='\0';
     Save(SECTION, option, v);
 }

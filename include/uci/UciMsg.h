@@ -50,7 +50,7 @@ public:
     /// \param  buf: hex array
     /// \param  len: array length
     /// \return APP::ERROR
-    uint8_t SetMsg(uint8_t * buf, int len);
+    APP::ERROR SetMsg(uint8_t * buf, int len);
 
     /// \brief  Save msgs[i] to "UciMsg", with CRC attached
     ///         When TsiSp003 set a msg, call SetMsg then SaveMsg
@@ -63,7 +63,7 @@ public:
     int CheckMsgEntries(Message  * msg);
 
 private:
-    Message * msgs[256];  // [0] is nullptr
+    Message msgs[256];  // [0] is undefined
     uint16_t chksum;
     UciFrm &uciFrm;
 };

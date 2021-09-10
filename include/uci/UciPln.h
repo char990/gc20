@@ -55,7 +55,7 @@ public:
     /// \param  buf: hex array
     /// \param  len: array length
     /// \return APP::ERROR
-    uint8_t SetPln(uint8_t * buf, int len);
+    APP::ERROR SetPln(uint8_t * buf, int len);
 
     /// \brief  Save plns[i] to "UciPln", with CRC and en/dis attached
     ///         When TsiSp003 set a plan, call SetMsg then SaveMsg
@@ -68,7 +68,7 @@ public:
     int CheckPlnEntries(Plan  * pln);
 
 private:
-    Plan * plns[256];  // [0] is nullptr
+    Plan plns[256];  // [0] is nullptr
     uint16_t chksum;
     UciFrm &uciFrm;
     UciMsg &uciMsg;

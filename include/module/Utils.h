@@ -48,14 +48,20 @@ namespace Utils
         /// \return     int64_t: >0:success, -1:failed, there is invalid chars
         static int64_t ParseToU32(char *src);
 
-        /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F => "1F"
-        static void ParseToAsc(uint8_t h, char *p);
+        /// \brief  parse uint8_t to 2 Asc. Example: 0x1F => "1F"
+        /// \return     next byte of dst
+        static char * ParseToAsc(uint8_t h, char *dst);
 
-        /// \brief  parse 1 Hex to 2 Asc. Example: 0x1F..... => "1F......."
+        /// \brief  parse uint8_t array to 2 Asc. Example: 0x1F 0x2A 0x3E ... => "1F2A3E......"
         /// \param      src : hex buffer
         /// \param      dst : ascii buffer
         /// \param      srclen : hex len ( = asc_len / 2)
-        static void ParseToAsc(uint8_t *src, char *dst, int srclen);
+        /// \return     next byte of dst
+        static char * ParseToAsc(uint8_t *src, char *dst, int srclen);
+
+        /// \brief  parse uint16_t to 4 Asc. Example: 0x1F09 => "1F09"
+        /// \return     next byte of dst
+        static char * ParseU16ToAsc(uint16_t h, char *dst);
 
         /// \brief	convert int string to array, "2,3,100" => {0x02,0x03,0x64}
         ///			If number is less than min or greater than max, just return

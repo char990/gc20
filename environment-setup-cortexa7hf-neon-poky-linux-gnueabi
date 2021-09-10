@@ -13,7 +13,7 @@ export CXX="arm-fslc-linux-gnueabi-g++  -march=armv7ve -marm -mfpu=neon  -mfloat
 export CPP="arm-fslc-linux-gnueabi-gcc -E  -march=armv7ve -marm -mfpu=neon  -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=$SDKTARGETSYSROOT"
 export AS="arm-fslc-linux-gnueabi-as "
 export LD="arm-fslc-linux-gnueabi-ld  --sysroot=$SDKTARGETSYSROOT"
-export GDB=arm-fslc-linux-gnueabi-gdb
+export GDB="arm-linux-gnueabihf-gdb"
 export STRIP=arm-fslc-linux-gnueabi-strip
 export RANLIB=arm-fslc-linux-gnueabi-ranlib
 export OBJCOPY=arm-fslc-linux-gnueabi-objcopy

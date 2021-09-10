@@ -41,7 +41,16 @@ uint8_t * Vms::GetStatus(uint8_t *p)
     return sign->GetStatus(p);
 }
 
-uint8_t * Vms::GetExtStatus(uint8_t *p)
+uint8_t * Vms::GetExtStatus(uint8_t *pbuf)
 {
-    return sign->GetExtStatus(p);
+    UciProd & prod = DbHelper::Instance().uciProd;
+    uint8_t *p=sign->GetExtStatus(pbuf);
+    int tiles = prod.TileRowsPerSlave()*prod.TileColumnsPerSlave()*prod.SlaveRowsPerSign()*prod.SlaveColumnsPerSign();
+    int bytes = (tiles+7)/8;
+    pbuf[7]+=bytes;
+    for(int i=0;i<bytes;i++)
+    {
+        *p++=0;
+    }
+    return p;
 }

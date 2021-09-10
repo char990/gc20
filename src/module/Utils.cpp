@@ -132,16 +132,17 @@ int64_t Cnvt::ParseToU32(char *src)
     return k;
 }
 
-void Cnvt::ParseToAsc(uint8_t h, char *p)
+char * Cnvt::ParseToAsc(uint8_t h, char *p)
 {
     static char ASC[16] = {
         '0', '1', '2', '3', '4', '5', '6', '7',
         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     *p++ = ASC[(h >> 4)];
-    *p = ASC[h & 0x0F];
+    *p++ = ASC[h & 0x0F];
+    return p;
 }
 
-void Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
+char * Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
 {
     for (int i = 0; i < srclen; i++)
     {
@@ -149,6 +150,14 @@ void Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
         src++;
         dst += 2;
     }
+    return dst;
+}
+
+char * Cnvt::ParseU16ToAsc(uint16_t h, char *p)
+{
+    p = ParseToAsc(h/0x100, p);
+    p = ParseToAsc(h&0xFF, p);
+    return p;
 }
 
 int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)

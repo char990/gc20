@@ -37,10 +37,10 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *pbuf)
         *p++=dimMode;
         *p++=dimLevel;
         *p++=12;
-        *p++=prod.PixelRows()/0x100;
-        *p++=prod.PixelRows()&0xff;
         *p++=prod.PixelColumns()/0x100;
         *p++=prod.PixelColumns()&0xff;
+        *p++=prod.PixelRows()/0x100;
+        *p++=prod.PixelRows()&0xff;
         {
             Font * font = prod.Fonts(0);
             *p++=font->ColumnsPerCell();
