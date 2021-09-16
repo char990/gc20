@@ -2,6 +2,7 @@
 #define __LAYERPACKET_H__
 #include <string>
 #include <cstdint>
+#include <vector>
 #include <layer/ILayer.h>
 #include <tsisp003/TsiSp003Const.h>
 

@@ -3,8 +3,6 @@
 #include <uci/DbHelper.h>
 #include <sign/Scheduler.h>
 
-extern void PrintTime();
-
 TsiSp003AppVer50::TsiSp003AppVer50()
 {
 }
@@ -17,9 +15,6 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
     micode = *data;
     switch (micode)
     {
-    case MI::CODE::SignRequestStoredFMP:
-        SignRequestStoredFMP(data, len);
-        break;
     case MI::CODE::SignSetHighResolutionGraphicsFrame:
         SignSetHighResolutionGraphicsFrame(data, len);
         break;
@@ -41,20 +36,9 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
     return 0;
 }
 
-void TsiSp003AppVer50::SignRequestStoredFMP(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
 void TsiSp003AppVer50::SignSetHighResolutionGraphicsFrame(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    SignSetFrame(data, len);
 }
 
 void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)

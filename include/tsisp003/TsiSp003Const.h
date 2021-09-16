@@ -187,6 +187,7 @@ namespace FRM
         White,
         Orange,
         Amber,
+        MonoFinished,
         MultipleColours = 0x0D,
         RGB24 = 0x0E,
     };
@@ -251,36 +252,33 @@ namespace LOG
 /// max size of a 24-bit RGB frame is 288*64*3 = 55296 bytes
 /// total bytes : 13 + 55296 + 2 = 55311
 #define HRGFRM_HEADER_SIZE 13
-#define MAX_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 288*64*3 + 2)
-#define MIN_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 1 + 2)
+//#define MAX_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 288*64*3 + 2)
+//#define MIN_HRGFRM_SIZE (HRGFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief Gfx frame size
 // max size of a 4-bit frame is 255*64/2 = 8160 bytes
 // total bytes : 9 + 8192 +2 = 8171
 #define GFXFRM_HEADER_SIZE 9
-#define MAX_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 255*64/2 + 2)
-#define MIN_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 1 + 2)
+//#define MAX_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 255*64/2 + 2)
+//#define MIN_GFXFRM_SIZE (GFXFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief Text frame size
 // max size of a text frame is 255 bytes
 // total bytes : 7 + 255 + 2 = 264
 #define TXTFRM_HEADER_SIZE 7
-#define MAX_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 255 + 2)
-#define MIN_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 1 + 2)
+//#define MAX_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 255 + 2)
+//#define MIN_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief App packet size
-/// max size of app packet is HRG frame
-#define MAX_APP_PACKET_SIZE MAX_HRGFRM_SIZE
-
+/// max size of app packet is Send File Packet ( >1000 entries of event log)
+#define MAX_APP_PACKET_SIZE (64*1024+4)
 
 /// \brief Data packet Header and End of Block size
 #define DATA_PACKET_HEADER_SIZE    8
 #define DATA_PACKET_EOB_SIZE    5
 
 /// \brief Data packet size
-/// max size of data packet is HRG frame at original format
-/// note: There are 1000 event logs, assume the logs size is less than MAX_HRGFRM_SIZE
-#define MAX_DATA_PACKET_SIZE (DATA_PACKET_HEADER_SIZE + MAX_HRGFRM_SIZE*2 + DATA_PACKET_EOB_SIZE)
+#define MAX_DATA_PACKET_SIZE (DATA_PACKET_HEADER_SIZE + MAX_APP_PACKET_SIZE*2 + DATA_PACKET_EOB_SIZE)
 
 /// \brief Data packet size
 #define NON_DATA_PACKET_SIZE 10
@@ -290,6 +288,17 @@ namespace LOG
 
 #define MAX_FONT 5
 #define MAX_MONOCOLOUR 9
+
+#define OFFSET_MI_CDOE 0
+
+#define OFFSET_FRM_ID (OFFSET_MI_CDOE + 1)
+#define OFFSET_FRM_REV (OFFSET_FRM_ID + 1)
+
+#define OFFSET_MSG_ID (OFFSET_MI_CDOE + 1)
+#define OFFSET_MSG_REV (OFFSET_MSG_ID + 1)
+
+#define OFFSET_PLN_ID (OFFSET_MI_CDOE + 1)
+#define OFFSET_PLN_REV (OFFSET_PLN_ID + 1)
 
 namespace DATALINK
 {

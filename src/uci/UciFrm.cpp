@@ -2,143 +2,120 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <cstring>
-#include <stdexcept>
+#include <vector>
+#include <exception>
+#include <string>
 #include <uci.h>
-#include <uci/UciFrm.h>
+
+#include <uci/DbHelper.h>
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 
 using namespace Utils;
 
-UciFrm::UciFrm()
+UciFrm::UciFrm(UciProd &prod)
+	: prod(prod), frmSize(0)
 {
-    PATH = "./config";
-    PACKAGE = "UciFrm";
-    SECTION = "frm";
-	for (int i = 0; i <= 255; i++)
-	{
-		frms[i] = nullptr;
-	}
 }
 
 UciFrm::~UciFrm()
 {
-	for (int i = 0; i <= 255; i++)
+	if (frmSize != 0)
 	{
-		if (frms[i] != nullptr)
+		for (int i = 0; i < 255; i++)
 		{
-			delete frms[i];
+			delete[] frms[i].rawData;
 		}
 	}
 }
 
 void UciFrm::LoadConfig()
 {
-	chksum = 0;
-	Open();
-	struct uci_section *uciSec = GetSection(SECTION);
-	struct uci_element *e;
-	struct uci_option *option;
-	char *fbuf = new char [MAX_HRGFRM_SIZE*2];
-	uci_foreach_element(&uciSec->options, e)
+	// using HRGFRM to allocate the memory
+	frmSize = prod.MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
+	for (int i = 0; i < 255; i++)
 	{
-		if (memcmp(e->name, "frm_", 4) != 0)
-			continue;
-		option = uci_to_option(e);
-		int i = atoi(e->name + 4);
-		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
-			continue;
-		char *buf = option->v.string;
-		int r = strlen(buf);
-		int mi = Cnvt::ParseToU8(buf);
-		Frame *frm;
-		if (mi == MI::CODE::SignSetTextFrame)
+		frms[i].dataLen = 0;
+		frms[i].rawData = new uint8_t[frmSize];
+	}
+	chksum = 0;
+	char filename[256];
+	uint8_t *b = new uint8_t[frmSize];
+	char *v = new char[frmSize * 2 + 1]; // with '\n' at the end
+	try
+	{
+		for (int i = 1; i <= 255; i++)
 		{
-			if (r < MIN_TXTFRM_SIZE*2 || r > MAX_TXTFRM_SIZE*2)
-				continue;
-			frm = new FrmTxt(buf, r);
-		}
-		else if (mi == MI::CODE::SignSetGraphicsFrame)
-		{
-			if (r != (GFXFRM_HEADER_SIZE+2)*2)
-				continue;
-			int frmlen = Cnvt::ParseToU16(&buf[7*2]);
-			if (frmlen<1 || frmlen>(MAX_GFXFRM_SIZE-GFXFRM_HEADER_SIZE-2))
-				continue;
-			memcpy(fbuf, buf, GFXFRM_HEADER_SIZE*2);					// copy frame header
-			memcpy(fbuf+(GFXFRM_HEADER_SIZE+frmlen)*2, buf+r-2*2, 2*2);// copy frame crc
-			char filename[256];
-			snprintf(filename, 255, "%s/frm_%d", PATH, i);
+			snprintf(filename, 255, "%s/frm_%03d", PATH, i);
 			int frm_fd = open(filename, O_RDONLY);
-			if(frm_fd>0)
+			if (frm_fd > 0)
 			{
-				int rdlen = read(frm_fd, fbuf+GFXFRM_HEADER_SIZE*2, frmlen * 2);
-				close(frm_fd);
-				if(rdlen!=frmlen*2)
+				int len = read(frm_fd, v, frmSize * 2 + 1) - 1;
+				if (Cnvt::ParseToU8(v, b, len) == 0)
 				{
-					continue;
+					SetFrm(b, len / 2);
 				}
-			}
-			r+=frmlen*2;
-			frm = new FrmGfx(buf, r);
-		}
-		else if (mi == MI::CODE::SignSetHighResolutionGraphicsFrame)
-		{
-			if (r != (HRGFRM_HEADER_SIZE+2)*2)
-				continue;
-			int64_t x = Cnvt::ParseToU32(&buf[9*2]);
-			if(x<0)
-				continue;
-			int frmlen = x;
-			if (frmlen<1 || frmlen>(MAX_HRGFRM_SIZE-HRGFRM_HEADER_SIZE-2))
-				continue;
-			memcpy(fbuf, buf, HRGFRM_HEADER_SIZE*2);					// copy frame header
-			memcpy(fbuf+(HRGFRM_HEADER_SIZE+frmlen)*2, buf+r-2*2, 2*2);// copy frame crc
-			char filename[256];
-			snprintf(filename, 255, "%s/frm_%d", PATH, i);
-			int frm_fd = open(filename, O_RDONLY);
-			if(frm_fd>0)
-			{
-				int rdlen = read(frm_fd, fbuf+HRGFRM_HEADER_SIZE*2, frmlen * 2);
 				close(frm_fd);
-				if(rdlen!=frmlen*2)
-				{
-					continue;
-				}
 			}
-			r+=frmlen*2;
-			frm = new FrmHrg(buf, r);
-		}
-		else
-		{
-			continue;
-		}
-		if (frm->appErr == APP::ERROR::AppNoError && frm->frmId == i)
-		{
-			chksum += frm->crc;
-			if (frms[i] != nullptr)
-			{
-				delete frms[i];
-			}
-			frms[i] = frm;
-		}
-		else
-		{
-			delete frm;
 		}
 	}
-	Close();
+	catch (const std::exception &e)
+	{
+		PrintDbg(e.what());
+	}
+	delete[] v;
+	delete[] b;
 	Dump();
-	//TestSaveTxtFrm();
 }
 
 void UciFrm::Dump()
 {
-	for (int i = 1; i <= 255; i++)
+	for (int i = 0; i < 255; i++)
 	{
-		if (frms[i] != nullptr)
+		if (frms[i].dataLen != 0)
 		{
-			PrintDbg("%s\n", frms[i]->ToString().c_str());
+			switch (frms[i].rawData[0])
+			{
+			case MI::CODE::SignSetTextFrame:
+				{
+					FrmTxt frm(frms[i].rawData, frms[i].dataLen);
+					if(frm.appErr==APP::ERROR::AppNoError)
+					{
+						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+					}
+					else
+					{
+						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+					}
+				}
+				break;
+			case MI::CODE::SignSetGraphicsFrame:
+				{
+					FrmGfx frm(frms[i].rawData, frms[i].dataLen);
+					if(frm.appErr==APP::ERROR::AppNoError)
+					{
+						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+					}
+					else
+					{
+						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+					}
+				}
+				break;
+			case MI::CODE::SignSetHighResolutionGraphicsFrame:
+				{
+					FrmHrg frm(frms[i].rawData, frms[i].dataLen);
+					if(frm.appErr==APP::ERROR::AppNoError)
+					{
+						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+					}
+					else
+					{
+						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+					}
+				}
+				break;
+			}
 		}
 	}
 }
@@ -148,142 +125,95 @@ uint16_t UciFrm::ChkSum()
 	return chksum;
 }
 
-Frame *UciFrm::GetFrm(int i)
+StFrm *UciFrm::GetFrm(uint8_t i)
 {
-	return frms[i];
+	return (i == 0 || frms[i - 1].dataLen == 0) ? nullptr : &frms[i - 1];
 }
 
-uint8_t UciFrm::GetFrmRev(int i)
+uint8_t UciFrm::GetFrmRev(uint8_t i)
 {
-	return (i==0) ? 0 : frms[i]->frmRev;
+	return (i == 0 || frms[i - 1].dataLen == 0) ? 0 : *(frms[i - 1].rawData + OFFSET_FRM_REV);
 }
 
-uint8_t UciFrm::SetFrm(uint8_t *buf, int len)
+APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 {
-	Frame *frm;
+	if (len > frmSize)
+		return APP::ERROR::LengthError;
+	uint16_t crc;
 	if (buf[0] == MI::CODE::SignSetTextFrame)
 	{
-		frm = new FrmTxt(buf, len);
+		FrmTxt frm(buf, len);
+		if (frm.appErr != APP::ERROR::AppNoError)
+		{
+			return frm.appErr;
+		}
+		crc = frm.crc;
 	}
 	else if (buf[0] == MI::CODE::SignSetGraphicsFrame)
 	{
-		frm = new FrmGfx(buf, len);
+		FrmGfx frm(buf, len);
+		if (frm.appErr != APP::ERROR::AppNoError)
+		{
+			return frm.appErr;
+		}
+		crc = frm.crc;
 	}
 	else if (buf[0] == MI::CODE::SignSetHighResolutionGraphicsFrame)
 	{
-		frm = new FrmHrg(buf, len);
+		FrmHrg frm(buf, len);
+		if (frm.appErr != APP::ERROR::AppNoError)
+		{
+			return frm.appErr;
+		}
+		crc = frm.crc;
+	}
+	else if (buf[1] == 0)
+	{
+		return APP::ERROR::FrmMsgPlnUndefined;
 	}
 	else
 	{
 		return APP::ERROR::UnknownMi;
 	}
-	uint8_t r = frm->appErr;
-	if (r == APP::ERROR::AppNoError)
+	StFrm *frm = &frms[buf[1] - 1];
+	if (frm->dataLen != 0)
 	{
-		int i = frm->frmId;
-		if (frms[i] != nullptr)
-		{
-			chksum -= frms[i]->crc;
-			delete frms[i];
-		}
-		frms[i] = frm;
-		chksum += frms[i]->crc;
+		chksum -= Cnvt::GetU16(frm->rawData + frm->dataLen - 2);
 	}
-	else
-	{
-		delete frm;
-	}
-	return r;
+	chksum += crc;
+	frm->dataLen = len;
+	memcpy(frm->rawData, buf, len);
+	return APP::ERROR::AppNoError;
 }
 
-void UciFrm::SaveFrm(int i)
+void UciFrm::SaveFrm(uint8_t i)
 {
-	if (i < 1 || i > 255 || frms[i]==nullptr)
+	if (i == 0)
 		return;
-
-	int len;
-	char *v;
-	if(frms[i]->micode==MI::CODE::SignSetTextFrame)
+	StFrm *frm = GetFrm(i);
+	char filename[256];
+	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
+	int len = frm->dataLen * 2;
+	char *v = new char[len + 1]; // 1 bytes space for '\n'
+	Cnvt::ParseToStr(frm->rawData, v, frm->dataLen);
+	v[len++] = '\n';
+	char buf[64];
+	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0770);
+	if (frm_fd < 0)
 	{
-		// make option.value
-		len = (frms[i]->frmlen + frms[i]->frmOffset + 2);
-		v = new char[len * 2 + 1];
-		Cnvt::ParseToAsc(frms[i]->frmData, v, len);
-		v[len * 2] = '\0';
+		snprintf(buf, 63, "Open frm_%03d failed", i);
+		DbHelper::Instance().uciAlm.Push(0, buf);
+		PrintDbg("%s\n", buf);
 	}
 	else
 	{
-		// save bitmap
-		char * bitmap = new char[frms[i]->frmlen*2];
-		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmOffset, bitmap, frms[i]->frmlen);
-		char filename[256];
-		snprintf(filename, 255, "%s/frm_%d", PATH, i);
-		int frm_fd = open(filename, O_CREAT|O_WRONLY|O_TRUNC, 0770);
-		if(frm_fd>0)
+		if (write(frm_fd, v, len) != len)
 		{
-			write(frm_fd, bitmap, frms[i]->frmlen * 2);
-			close(frm_fd);
+			snprintf(buf, 63, "Write frm_%03d failed", i);
+			DbHelper::Instance().uciAlm.Push(0, buf);
+			PrintDbg("%s\n", buf);
 		}
-		delete [] bitmap;
-		// make option.value
-		len = (frms[i]->frmOffset + 2);
-		v = new char[len * 2 + 1];
-		Cnvt::ParseToAsc(frms[i]->frmData, v, frms[i]->frmOffset);
-		Cnvt::ParseToAsc(frms[i]->frmData+frms[i]->frmOffset, v+frms[i]->frmOffset*2, 2);
-		v[len * 2] = '\0';
+		close(frm_fd);
 	}
-
-	char option[8];
-	sprintf(option, "frm_%d", i);
-    Save(SECTION, option, v);	
 	delete v;
-}
-
-void UciFrm::TestSaveTxtFrm()
-{
-	PrintDbg("TestSaveTxtFrm\n");
-#define TestSaveTxtFrm_len 10
-	uint8_t buf[TestSaveTxtFrm_len + 9];
-	buf[0] = MI::CODE::SignSetTextFrame;
-	buf[3] = 0;
-	buf[4] = 0;
-	buf[5] = 0;
-	buf[6] = TestSaveTxtFrm_len;
-	for (int i = 0; i < TestSaveTxtFrm_len; i++)
-	{
-		buf[7 + i] = i + 'A';
-	}
-	for (int i = 1; i <= 255; i++)
-	{
-		buf[1] = i;
-		buf[2] = 256 - i;
-		uint16_t crc = Crc::Crc16_1021(buf, TestSaveTxtFrm_len + 7);
-		buf[TestSaveTxtFrm_len + 7] = crc / 0x100;
-		buf[TestSaveTxtFrm_len + 8] = crc & 0xFF;
-		SetFrm(buf, TestSaveTxtFrm_len + 9);
-	}
-	PrintDbg("SetFrm complete\n");
-	Dump();
-#if 0
-	for(int i=1;i<=255;i++)
-	{
-		SaveFrm(i);
-	}
-#else
-	char option[8];
-	int len = TestSaveTxtFrm_len + 9;
-	char v[len * 2 + 1];
-	OpenSectionForSave(SECTION);
-	ptrSecSave.option = option;
-	ptrSecSave.value = v;
-	for (int i = 1; i <= 255; i++)
-	{
-		sprintf(option, "frm_%d", i);
-		Cnvt::ParseToAsc(frms[i]->frmData, v, len);
-		v[len * 2] = '\0';
-		SetByPtr();
-	}
-	CloseSectionForSave();
-
-#endif
 }

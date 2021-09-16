@@ -46,6 +46,7 @@ UciProd::UciProd()
 {
     PATH = "./config";
     PACKAGE = "UciProd";
+    SECTION = "ctrller_cfg";
     signCn = nullptr;
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
@@ -79,7 +80,7 @@ UciProd::~UciProd()
 void UciProd::LoadConfig()
 {
     Open();
-    struct uci_section *uciSec = GetSection(SECTION_NAME);
+    struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
     int ibuf[16];
     const char *str;
@@ -225,11 +226,24 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: Font : Default(0) is not enabled");
     }
+    if((bFont.Get()&0xFFFFFFC0)!=0)
+    {
+        MyThrow("UciProd Error: Font : Only 0-5 allowed");
+    }
     ReadBitOption(uciSec, _Conspicuity, bConspicuity);
+    if((bConspicuity.Get()&0xFFFFFFC0)!=0)
+    {
+        MyThrow("UciProd Error: Conspicuity : Only 0-5 allowed");
+    }
     ReadBitOption(uciSec, _Annulus, bAnnulus);
+    if((bAnnulus.Get()&0xFFFFFFF8)!=0)
+    {
+        MyThrow("UciProd Error: Annulus : Only 0-2 allowed");
+    }
     ReadBitOption(uciSec, _TxtFrmColour, bTxtFrmColour);
     ReadBitOption(uciSec, _GfxFrmColour, bGfxFrmColour);
     ReadBitOption(uciSec, _HrgFrmColour, bHrgFrmColour);
+    // check colourLeds & b___FrmColour
 
     // Font0 'P5X7'
     // Font1 'F5X7'
@@ -288,10 +302,14 @@ void UciProd::LoadConfig()
     pixelColumns = (uint16_t)pixelColumnsPerTile * tileColumnsPerSlave * slaveColumnsPerSign;
     pixels = (uint32_t)pixelRows * pixelColumns;
 
+    gfx1FrmLen=0;
+    gfx4FrmLen=0;
+    gfx24FrmLen=0;
     extStsRplSignType = mfcCode[5] - '0';
     if (extStsRplSignType == 0)
     {
         configRplSignType = 0;
+        maxFrmLen=255;
     }
     else if (extStsRplSignType == 1 || extStsRplSignType == 2)
     {
@@ -299,12 +317,21 @@ void UciProd::LoadConfig()
         {
         case 1:
             configRplSignType = 1;
+            maxFrmLen = (pixels + 7) / 8;
+            gfx1FrmLen=maxFrmLen;
             break;
         case 4:
             configRplSignType = 2;
+            maxFrmLen = (pixels + 1) / 2;
+            gfx1FrmLen=(pixels + 7) / 8;
+            gfx4FrmLen=maxFrmLen;
             break;
         case 24:
             configRplSignType = 3;
+            maxFrmLen = pixels * 3;
+            gfx1FrmLen=(pixels + 7) / 8;
+            gfx4FrmLen=(pixels + 1) / 2;
+            gfx24FrmLen=maxFrmLen;
             break;
         default:
             MyThrow("Unknown ColourBits in UciProd");
@@ -315,26 +342,12 @@ void UciProd::LoadConfig()
     {
         MyThrow("Unknown extStSignType:%d(MfcCode error?)", extStsRplSignType);
     }
-
-    minGfxFrmLen = (pixels + 7) / 8;
-    switch (colourBits)
-    {
-    case 1:
-        maxGfxFrmLen = (pixels + 7) / 8;
-        break;
-    case 4:
-        maxGfxFrmLen = (pixels + 1) / 2;
-        break;
-    default:
-        maxGfxFrmLen = pixels * 3;
-        break;
-    }
 }
 
 void UciProd::Dump()
 {
     printf("\n---------------\n");
-    printf("%s/%s.%s\n", PATH, PACKAGE, SECTION_NAME);
+    printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
     printf("---------------\n");
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
@@ -413,3 +426,4 @@ uint8_t UciProd::CharColumns(int i)
     return (bFont.GetBit(i)) ? (pixelColumns + fonts[i]->CharSpacing()) / (fonts[i]->ColumnsPerCell() + fonts[i]->CharSpacing())
                              : 0;
 }
+

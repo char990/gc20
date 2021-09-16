@@ -133,8 +133,6 @@ private:
 
     ExtSw extSw[3];
 
-    const char * SECTION_NAME="user_cfg";
-
     const char * _DeviceId="DeviceId";
     const char * _BroadcastId="BroadcastId";
     const char * _SeedOffset="SeedOffset";

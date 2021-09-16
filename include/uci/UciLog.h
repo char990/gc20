@@ -6,17 +6,27 @@
 class UciLog : public UciCfg
 {
 public:
-    UciLog();
-    virtaul ~UciLog();
+    UciLog():lastLog(-1){};
+    virtual ~UciLog(){};
 
-	const char * SECTION;
+    const char * _LastLog = "LastLog";
+    virtual void LoadConfig() override = 0;
 
-    void LoadConfig() override;
+	virtual void Dump() override {} ;
 
-	void Dump() override;
+    virtual void SaveLastLog(char * chars)
+    {
+        OpenSectionForSave(SECTION);
+        char option[16];
+        sprintf(option, "%s_%d", SECTION, lastLog);
+        OptionSave(option, chars);
+        sprintf(option, "%d", lastLog);
+        OptionSave(_LastLog, option);
+        CloseSectionForSave();
+    };
 
-private:
-
-}
+protected:
+    int lastLog;
+};
 
 #endif

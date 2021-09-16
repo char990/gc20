@@ -83,11 +83,15 @@ public:
     uint32_t Pixels() {return pixels;};
     uint8_t ExtStsRplSignType() { return extStsRplSignType; };
     uint8_t ConfigRplSignType() { return configRplSignType; };
-    int MinGfxFrmLen() { return minGfxFrmLen; };
-    int MaxGfxFrmLen() { return maxGfxFrmLen; };
+    int MaxFrmLen() {return maxFrmLen;};
+
+    int MinTxtFrmLen() { return 1; };
+    int MaxTxtFrmLen() { return 255; };
+    int Gfx1FrmLen() { return gfx1FrmLen; };
+    int Gfx4FrmLen() { return gfx4FrmLen; };
+    int Gfx24FrmLen() { return gfx24FrmLen; };
 
 private:
-    const char * SECTION_NAME="ctrller_cfg";
     ///  ---------- option -----------
     // string
     const char * _MfcCode="MfcCode";
@@ -200,9 +204,10 @@ private:
     uint32_t pixels;
     uint8_t extStsRplSignType;
     uint8_t configRplSignType;
-    
-    int minGfxFrmLen;
-    int maxGfxFrmLen;
+    int maxFrmLen;
+    int gfx1FrmLen;
+    int gfx4FrmLen;
+    int gfx24FrmLen;
 };
 
 #endif

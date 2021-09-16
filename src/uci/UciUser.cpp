@@ -9,23 +9,27 @@
 using namespace Utils;
 
 UciUser::UciUser(UciProd &uciProd)
-:uciProd(uciProd)
+:uciProd(uciProd),groupCfg(nullptr)
 {
     PATH = "./config";
     PACKAGE = "UciUser";
     DEFAULT_FILE = "./config/UciUser.def";
-    groupCfg = new uint8_t[uciProd.NumberOfSigns()];
+    SECTION = "user_cfg";
 }
 
 UciUser::~UciUser()
 {
-    delete[] groupCfg;
+    if(groupCfg!=nullptr)
+    {
+        delete[] groupCfg;
+    }
 }
 
 void UciUser::LoadConfig()
 {
+    groupCfg = new uint8_t[uciProd.NumberOfSigns()];
     Open();
-    struct uci_section *uciSec = GetSection(SECTION_NAME);
+    struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
     int ibuf[16];
     const char *str;
@@ -213,14 +217,14 @@ void UciUser::LoadFactoryDefault()
     snprintf(ucifile,255,"%s/%s", PATH,PACKAGE);
     Exec::CopyFile(DEFAULT_FILE,ucifile);
 	UserOpen();
-    OptionSaveInt(_DeviceId, DeviceId());
-    OptionSaveInt(_BroadcastId, BroadcastId());
+    OptionSave(_DeviceId, DeviceId());
+    OptionSave(_BroadcastId, BroadcastId());
 	UserClose();
 }
 
 void UciUser::UserOpen()
 {
-    OpenSectionForSave(SECTION_NAME);
+    OpenSectionForSave(SECTION);
 }
 
 void UciUser::UserClose()
@@ -231,7 +235,7 @@ void UciUser::UserClose()
 void UciUser::Dump()
 {
 	printf ( "\n---------------\n" );
-	printf ( "%s/%s.%s\n", PATH, PACKAGE, SECTION_NAME);
+	printf ( "%s/%s.%s\n", PATH, PACKAGE, SECTION);
 	printf ( "---------------\n" );
     PrintOption_d(_DeviceId, DeviceId());
     PrintOption_d(_BroadcastId, BroadcastId());
@@ -367,7 +371,7 @@ void UciUser::BroadcastId(uint8_t v)
     if(broadcastId!=v)
     {
         broadcastId=v;
-        OptionSaveInt(_BroadcastId, v);
+        OptionSave(_BroadcastId, v);
     }
 }
 
@@ -376,7 +380,7 @@ void UciUser::DeviceId(uint8_t v)
     if(deviceId!=v)
     {
         deviceId=v;
-        OptionSaveInt(_DeviceId, v);
+        OptionSave(_DeviceId, v);
     }
 }
 
@@ -385,7 +389,7 @@ void UciUser::SeedOffset(uint8_t v)
     if(seedOffset!=v)
     {
         seedOffset=v;
-        OptionSaveInt(_SeedOffset, v);
+        OptionSave(_SeedOffset, v);
     }
 }
 
@@ -394,7 +398,7 @@ void UciUser::Fan1OnTemp(uint8_t v)
     if(fan1OnTemp!=v)
     {
         fan1OnTemp=v;
-        OptionSaveInt(_Fan1OnTemp, v);
+        OptionSave(_Fan1OnTemp, v);
     }
 }
 
@@ -403,7 +407,7 @@ void UciUser::Fan2OnTemp(uint8_t v)
     if(fan2OnTemp!=v)
     {
         fan2OnTemp=v;
-        OptionSaveInt(_Fan2OnTemp, v);
+        OptionSave(_Fan2OnTemp, v);
     }
 }
 
@@ -412,7 +416,7 @@ void UciUser::OverTemp(uint8_t v)
     if(overTemp!=v)
     {
         overTemp=v;
-        OptionSaveInt(_OverTemp, v);
+        OptionSave(_OverTemp, v);
     }
 }
 
@@ -421,7 +425,7 @@ void UciUser::Humidity(uint8_t v)
     if(humidity!=v)
     {
         humidity=v;
-        OptionSaveInt(_Humidity, v);
+        OptionSave(_Humidity, v);
     }
 }
 
@@ -430,7 +434,7 @@ void UciUser::DefaultFont(uint8_t v)
     if(defaultFont!=v)
     {
         defaultFont=v;
-        OptionSaveInt(_DefaultFont, v);
+        OptionSave(_DefaultFont, v);
     }
 }
 
@@ -439,7 +443,7 @@ void UciUser::DefaultColour(uint8_t v)
     if(defaultColour!=v)
     {
         defaultColour=v;
-        OptionSaveInt(_DefaultColour, v);
+        OptionSave(_DefaultColour, v);
     }
 }
 
@@ -448,7 +452,7 @@ void UciUser::LockedFrm(uint8_t v)
     if(lockedFrm!=v)
     {
         lockedFrm=v;
-        OptionSaveInt(_LockedFrm, v);
+        OptionSave(_LockedFrm, v);
     }
 }
 
@@ -457,7 +461,7 @@ void UciUser::LockedMsg(uint8_t v)
     if(lockedMsg!=v)
     {
         lockedMsg=v;
-        OptionSaveInt(_LockedMsg, v);
+        OptionSave(_LockedMsg, v);
     }
 }
 
@@ -466,7 +470,7 @@ void UciUser::LastFrmOn(uint8_t v)
     if(lastFrmOn!=v)
     {
         lastFrmOn=v;
-        OptionSaveInt(_LastFrmOn, v);
+        OptionSave(_LastFrmOn, v);
     }
 }
 
@@ -475,7 +479,7 @@ void UciUser::ComPort(uint8_t v)
     if(comPort!=v)
     {
         comPort=v;
-        OptionSaveChars(_ComPort, COM_NAME[comPort]);
+        OptionSave(_ComPort, COM_NAME[comPort]);
     }
 }
 
@@ -484,7 +488,7 @@ void UciUser::MultiLedFaultThreshold(uint16_t v)
     if(multiLedFaultThreshold!=v)
     {
         multiLedFaultThreshold=v;
-        OptionSaveInt(_MultiLedFaultThreshold, v);
+        OptionSave(_MultiLedFaultThreshold, v);
     }
 }
 
@@ -494,7 +498,7 @@ void UciUser::PasswordOffset(uint16_t v)
     if(passwordOffset!=v)
     {
         passwordOffset=v;
-        OptionSaveInt(_PasswordOffset, v);
+        OptionSave(_PasswordOffset, v);
     }
 }
 
@@ -503,7 +507,7 @@ void UciUser::SessionTimeout(uint16_t v)
     if(sessionTimeout!=v)
     {
         sessionTimeout=v;
-        OptionSaveInt(_SessionTimeout, v);
+        OptionSave(_SessionTimeout, v);
     }
 }
 
@@ -512,7 +516,7 @@ void UciUser::DisplayTimeout(uint16_t v)
     if(displayTimeout!=v)
     {
         displayTimeout=v;
-        OptionSaveInt(_DisplayTimeout, v);
+        OptionSave(_DisplayTimeout, v);
     }
 }
 
@@ -521,7 +525,7 @@ void UciUser::SvcPort(uint16_t v)
     if(svcPort!=v)
     {
         svcPort=v;
-        OptionSaveInt(_SvcPort, v);
+        OptionSave(_SvcPort, v);
     }
 }
 
@@ -530,7 +534,7 @@ void UciUser::WebPort(uint16_t v)
     if(webPort!=v)
     {
         webPort=v;
-        OptionSaveInt(_WebPort, v);
+        OptionSave(_WebPort, v);
     }
 }
 
@@ -539,7 +543,7 @@ void UciUser::Baudrate(int v)
     if(baudrate!=v)
     {
         baudrate=v;
-        OptionSaveInt(_Baudrate, v);
+        OptionSave(_Baudrate, v);
     }
 }
 
@@ -548,7 +552,7 @@ void UciUser::Tz(uint8_t v)
     if(tz!=v)
     {
         tz=v;
-        OptionSaveChars(_TZ, Tz_AU::tz_au[tz].city);
+        OptionSave(_TZ, Tz_AU::tz_au[tz].city);
     }
 }
 

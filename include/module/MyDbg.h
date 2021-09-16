@@ -4,11 +4,12 @@
 #include <cstdio>
 
 #ifdef DEBUG
-#define PrintDbg(...) printf(__VA_ARGS__)
+#define PrintDbg(...) MyPrintf(__VA_ARGS__)
 #else
 #define PrintDbg(...)
 #endif
 
 extern void MyThrow(const char * fmt, ...);
+extern int MyPrintf(const char * fmt, ...);
 
 #endif

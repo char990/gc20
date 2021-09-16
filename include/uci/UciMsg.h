@@ -26,10 +26,8 @@ config UciMsg msg
 class UciMsg : public UciCfg
 {
 public:
-    UciMsg(UciFrm &uciFrm);
+    UciMsg();
     ~UciMsg();
-
-	const char * SECTION;
 
     /// \brief  load msgs[] from "UciMsg"
     void LoadConfig() override;
@@ -39,11 +37,11 @@ public:
     /// \brief  Sum all frames's crc
     uint16_t ChkSum();
 
-    /// \brief  Get msgs[i]
-    Message * GetMsg(int i);
+    /// \brief  Get msgs[i-1]
+    Message * GetMsg(uint8_t i);
 
-    /// \brief  Get msgs[i]->msgRev, msgs[0] is 0
-    uint8_t GetMsgRev(int i);
+    /// \brief  Get msgs[i-1]->msgRev, msgs[0] is 0
+    uint8_t GetMsgRev(uint8_t i);
 
     /// \brief  Set a msg from hex array, e.g. app layer data of SighSetMessage
     ///         frame will be stored in msgs[] (but not saved in "UciMsg")
@@ -52,20 +50,14 @@ public:
     /// \return APP::ERROR
     APP::ERROR SetMsg(uint8_t * buf, int len);
 
-    /// \brief  Save msgs[i] to "UciMsg", with CRC attached
+    /// \brief  Save msgs[i-1] to "UciMsg", with CRC attached
     ///         When TsiSp003 set a msg, call SetMsg then SaveMsg
     /// \param  i: msgs index
-    void SaveMsg(int i);
-
-
-    /// \brief  Check if there is undefined frm in msg
-    /// \return -1:msg has no frm; 0:OK; 1: msg has undefined frm 
-    int CheckMsgEntries(Message  * msg);
+    void SaveMsg(uint8_t i);
 
 private:
-    Message msgs[256];  // [0] is undefined
+    Message *msgs;  // 255 msgs
     uint16_t chksum;
-    UciFrm &uciFrm;
 };
 
 #endif

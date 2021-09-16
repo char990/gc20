@@ -5,13 +5,19 @@
 #include <string>
 #include <tsisp003/TsiSp003Const.h>
 
+class StFrm
+{
+public:
+    int dataLen;
+    uint8_t *rawData;
+};
 
 class Frame
 {
 public:
     Frame();
-    virtual ~Frame(){};
-    uint8_t appErr;
+    virtual ~Frame();
+    APP::ERROR appErr;
     uint8_t micode;
     uint8_t frmId;
     uint8_t frmRev;
@@ -19,71 +25,46 @@ public:
     uint8_t conspicuity;
     int frmlen;
     int frmOffset;
-    uint8_t * frmData;
     uint16_t crc;
+    StFrm stFrm;
+
+    void FrameCheck();
 
     virtual std::string ToString()=0;
 
 protected:
-    /// \brief      Convert asc frame to uint8_t
-    /// \param      frm: asc frm
-    /// \param      len: asc frm len
-    /// \param      min: min frm len(in hex)
-    /// \param      max: max frm len(in hex)
-    ///             appErr: ref appErr, for convertion result
-    void CnvtFrm(char * frm, int len, int min, int max);
-
-    /// \brief Check Conspicuity
+    /// \brief Check item
     /// \return 0:success
-    int CheckConspicuity();
-
+    //int CheckConspicuity();
     virtual int CheckColour()=0;
-    virtual void CheckLength(int len)=0;
+    virtual int CheckLength(int len)=0;
+    /// \brief Check subclass items
+    virtual int CheckSub()=0;
 };
 
 class FrmTxt : public Frame
 {
 public:
-    /// \breif  ini frame with string
-    FrmTxt(char * frm, int len);
-    
     /// \breif  ini frame with hex array
     FrmTxt(uint8_t * frm, int len);
+    virtual ~FrmTxt(){};
     
-    /// \brief delete [] frmData
-    ~FrmTxt();
-
     uint8_t font;
 
     std::string ToString() override;
 
 private:
-    /// \brief Check font
-    /// \return 0:success
-    int CheckFont();
-
-    /// \brief Check Colour
-    /// \return 0:success
-    int CheckColour() override;
-
-    /// \brief Check Length, result is in appError
-    void CheckLength(int len) override;
-
-    /// \breif make frame
-    void MakeFrame(int len);
+    virtual int CheckColour() override;
+    virtual int CheckLength(int len)override;
+    virtual int CheckSub() override;
 };
 
 class FrmGfx : public Frame
 {
 public:
-    /// \breif  ini frame with string
-    FrmGfx(char * frm, int len);
-
     /// \breif  ini frame with hex array
     FrmGfx(uint8_t * frm, int len);
-    
-    /// \brief delete [] frmData
-    ~FrmGfx();
+    virtual ~FrmGfx(){};
 
     uint8_t pixelRows;
     uint8_t pixelColumns;
@@ -92,43 +73,27 @@ public:
     std::string ToString() override;
 
 private:
-    /// \brief Check Colour
-    /// \return 0:success
-    int CheckColour() override;
-
-    /// \brief Check Length, result is in appError
-    void CheckLength(int len) override;
-
-    /// \breif make frame
-    void MakeFrame(int len);
+    virtual int CheckColour() override;
+    virtual int CheckLength(int len)override;
+    virtual int CheckSub() override;
 };
 
 class FrmHrg : public Frame
 {
 public:
-    /// \breif  ini frame with string
-    FrmHrg(char * frm, int len);
-
     /// \breif  ini frame with hex array
     FrmHrg(uint8_t * frm, int len);
-    
-    /// \brief delete [] frmData
-    ~FrmHrg();
+    virtual ~FrmHrg(){};
+
 
     uint16_t pixelRows;
     uint16_t pixelColumns;
     std::string ToString() override;
     
 private:
-    /// \brief Check Colour
-    /// \return 0:success
-    int CheckColour() override;
-
-    /// \brief Check Length, result is in appError
-    void CheckLength(int len) override;
-
-    /// \breif make frame
-    void MakeFrame(int len);
+    virtual int CheckColour() override;
+    virtual int CheckLength(int len)override;
+    virtual int CheckSub() override;
 };
 
 #endif

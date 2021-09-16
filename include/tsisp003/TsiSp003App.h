@@ -31,8 +31,11 @@ public:
     /*<------------------------------------------------------------------*/
     /// TsiSp003App is base of App layer, only implement basic commands
 
+    /// \brief  Ack or Reject by r
+    void AckRjct(APP::ERROR r) { (r==APP::ERROR::AppNoError)?Ack():Reject(r); };
+
     /// \brief  Reject
-    void Reject(uint8_t error);
+    void Reject(APP::ERROR error);
 
     /// \brief  Acknowledge
     void Ack();
@@ -55,7 +58,7 @@ protected:
     ISession *session;
 
     uint8_t micode;
-    uint8_t appError;
+    APP::ERROR appErr;
     
 
     uint8_t txbuf[MAX_APP_PACKET_SIZE];
@@ -65,8 +68,6 @@ protected:
     void EndSession(uint8_t * data, int len);
     void UpdateTime(uint8_t * data, int len);
     void SignSetDimmingLevel(uint8_t * data, int len);
-    void PowerONOFF(uint8_t * data, int len);
-    void DisableEnableDevice(uint8_t * data, int len);
     void RetrieveFaultLog(uint8_t * data, int len);
     void ResetFaultLog(uint8_t * data, int len);
 

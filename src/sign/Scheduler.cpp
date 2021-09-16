@@ -96,11 +96,8 @@ void Scheduler::PeriodicRun()
     if(displayTimeout.IsExpired())
     {
         displayTimeout.Clear();
-
-
-
-
-
+        // if there is a plan, load plan
+        // or blank
     }
 }
 
@@ -119,3 +116,19 @@ uint8_t Scheduler::CtrllerErr()
     return ctrllerErr;
 }
 
+bool Scheduler::IsFrmActive(uint8_t i)
+{
+    return false;
+}
+
+bool Scheduler::IsMsgActive(uint8_t i)
+{
+    return false;
+    
+}
+
+bool Scheduler::IsPlnActive(uint8_t i)
+{
+    return false;
+    
+}

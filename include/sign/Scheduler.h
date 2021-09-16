@@ -36,6 +36,11 @@ public:
     IUnitedSign * GetUnitedSign(uint8_t signId) { return unitedSigns[signId-1]; };
 
     Group * GetGroup(uint8_t grpId) { return groups[grpId-1]; };
+
+    bool IsFrmActive(uint8_t i);
+    bool IsMsgActive(uint8_t i);
+    bool IsPlnActive(uint8_t i);
+
 private:
     Scheduler();
     ~Scheduler();

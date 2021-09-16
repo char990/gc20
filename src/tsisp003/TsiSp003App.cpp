@@ -32,12 +32,6 @@ int TsiSp003App::Rx(uint8_t *data, int len)
     case MI::CODE::SignSetDimmingLevel:
         SignSetDimmingLevel(data, len);
         break;
-    case MI::CODE::PowerONOFF:
-        PowerONOFF(data, len);
-        break;
-    case MI::CODE::DisableEnableDevice:
-        DisableEnableDevice(data, len);
-        break;
     case MI::CODE::RetrieveFaultLog:
         RetrieveFaultLog(data, len);
         break;
@@ -52,10 +46,10 @@ int TsiSp003App::Rx(uint8_t *data, int len)
 
 void TsiSp003App::Clean()
 {
-    appError = APP::ERROR::AppNoError;
+    appErr = APP::ERROR::AppNoError;
 }
 
-void TsiSp003App::Reject(uint8_t error)
+void TsiSp003App::Reject(APP::ERROR error)
 {
     uint8_t buf[3];
     buf[0] = MI::CODE::Reject;
@@ -161,22 +155,6 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
 }
 
 void TsiSp003App::SignSetDimmingLevel(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
-void TsiSp003App::PowerONOFF(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
-void TsiSp003App::DisableEnableDevice(uint8_t *data, int len)
 {
     if (ChkLen(len, 3) == false)
         return;

@@ -6,10 +6,10 @@
 #include <uci.h>
 #include <module/Utils.h>
 
-struct OptVal
+struct OptChars
 {
 	const char * option;
-	const char * value;
+	const char * chars;
 };
 class UciCfg
 {
@@ -35,12 +35,16 @@ protected:
 	struct uci_context *ctx;
 	struct uci_package *pkg;
 	struct uci_ptr ptrSecSave;
-	char * bufSecSave;
+	char bufSecSave[256];
 
 	/// config dir, nullptr for default(/etc/config)
 	const char * PATH;
+
 	/// package(file) name
 	const char * PACKAGE;
+
+	/// section name name
+    const char * SECTION;
 
 	/// \brief	Open a package, context=>ctx, package=>pkg
 	/// \throw	If can't load path/package
@@ -55,14 +59,11 @@ protected:
 	/// \brief	get ptr for uci_set
 	/// \param	section : section
 	/// \param	option : option
-	/// \param	buf : char buf[256] to store element
 	/// \return	is section or option found
 	/// \throw	If can't load path/package
 	///	 * Note: uci_lookup_ptr will automatically load a config package if necessary
-	///	 * @buf must not be constant, as it will be modified and used for the strings inside @ptr,
-	///	 * thus it must also be available as long as @ptr is in use.
-	bool LoadPtr(const char * section, char *buf);
-	bool LoadPtr(const char * section, const char * option, char *buf);
+	bool LoadPtr(const char * section);
+	bool LoadPtr(const char * section, const char * option);
 
 	/// \brief	Set section.option.value by ptrSecSave
 	/// \throw	uci_set failed
@@ -74,8 +75,8 @@ protected:
 	/// \param	value : value
 	/// \throw	If can't load path/package
 	void Save(const char * section, const char * option, const char * value);
-	void Save(const char * section, struct OptVal * optval);
-	void Save(const char * section, struct OptVal ** optval, int len);
+	void Save(const char * section, struct OptChars * optval);
+	void Save(const char * section, struct OptChars ** optval, int len);
 
 	/// \brief	save multi option.value
 	///			steps: OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()
@@ -83,12 +84,15 @@ protected:
 	/// \param	value : value
 	/// \throw	If can't load path/package
 	void OpenSectionForSave(const char * section);
-	void OptionSave(const char * option, const char * value);
-	void OptionSave(struct OptVal * optval);
-	void OptionSave(struct OptVal ** optval, int len);
-	void OptionSaveInt(const char * option, int value);
-	/// chars will be changed to 'chars' then OptionSave()
-	void OptionSaveChars(const char * option, const char * chars);
+	/// Lower of OptionSave. Do not call this funtion
+	void Option_Save(const char * option, const char * str);
+	/// int will be changed to '123435' then Option_Save()
+	void OptionSave(const char * option, int value);
+	/// chars will be changed to 'chars' then Option_Save()
+	/// Note: Single(') and double(") quotes are not allowed in chars
+	void OptionSave(const char * option, const char * chars);
+	//void OptionSave(struct OptChars * optval);
+	//void OptionSave(struct OptChars ** optval, int len);
 	void CloseSectionForSave();
 
 	void PrintOption_2x(const char * option, int x);

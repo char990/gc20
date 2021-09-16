@@ -153,8 +153,24 @@ char * Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
     return dst;
 }
 
+char * Cnvt::ParseToStr(uint8_t *src, char *dst, int srclen)
+{
+    char *p=ParseToAsc(src, dst, srclen);
+    *p = '\0';
+    return p;
+}
+
 char * Cnvt::ParseU16ToAsc(uint16_t h, char *p)
 {
+    p = ParseToAsc(h/0x100, p);
+    p = ParseToAsc(h&0xFF, p);
+    return p;
+}
+
+char * Cnvt::ParseU32ToAsc(uint32_t h, char *p)
+{
+    p = ParseToAsc(h/0x1000000, p);
+    p = ParseToAsc(h/0x10000, p);
     p = ParseToAsc(h/0x100, p);
     p = ParseToAsc(h&0xFF, p);
     return p;
@@ -187,10 +203,93 @@ int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
 }
 
 
-
 uint16_t Cnvt::GetU16(uint8_t *p)
 {
     return (*p)*0x100+(*(p+1));
+}
+
+uint8_t * Cnvt::PutU16(uint16_t v, uint8_t *p)
+{
+    *p++ = v/0x100;
+    *p++ = v&0xFF;
+    return p;
+}
+
+uint32_t Cnvt::GetU32(uint8_t *p)
+{
+    uint32_t x=0;
+    for(int i=0;i<4;i++)
+    {
+        x*=0x100;
+        x+=*p++;
+    }
+    return x;
+}
+
+uint8_t * Cnvt::PutU32(uint32_t v, uint8_t *p)
+{
+    p+=3;
+    for(int i=0;i<4;i++)
+    {
+        *p--=v&0xFF;
+        v>>=8;
+    }
+    return p+5;
+}
+
+uint8_t * Cnvt::PutLocalTm(time_t t, uint8_t *p)
+{
+    struct tm tp;
+    if(localtime_r(&t, &tp)!=&tp)
+    {
+        memset(p,0,7);
+        return p+7;
+    }
+    *p++=tp.tm_mday;
+    *p++=tp.tm_mon+1;
+    int year = tp.tm_year+1900;
+    *p++=year/0x100;
+    *p++=year&0xFF;
+    *p++=tp.tm_hour;
+    *p++=tp.tm_min;
+    *p++=tp.tm_sec;
+    return p;
+}
+
+void Cnvt::ClearTm(struct tm *tp)
+{
+    tp->tm_mday=1;
+    tp->tm_mon=0;
+    tp->tm_year = 1970-1900;
+    tp->tm_hour=0;
+    tp->tm_min=0;
+    tp->tm_sec=0;
+}
+
+char * Cnvt::ParseTmToLocalStr(time_t t, char *p)
+{
+    struct tm tp;
+    if(localtime_r(&t, &tp)!=&tp)
+    {
+        ClearTm(&tp);
+    }
+    int len = sprintf(p,"%d/%d/%d %d:%02d:%02d",
+        tp.tm_mday, tp.tm_mon, tp.tm_year+1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
+    return p+len;
+}
+
+time_t Cnvt::ParseLocalStrToTm(char *pbuf)
+{
+    struct tm tp;
+    int len = sscanf(pbuf,"%d/%d/%d %d:%d:%d",
+        &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
+    if(len != 6)
+    {
+        return -1;
+    }
+    tp.tm_mon--;
+    tp.tm_year-=1900;
+    return mktime(&tp);
 }
 
 const uint8_t Crc::crc8_table[256] =

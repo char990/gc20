@@ -6,6 +6,9 @@
 #include <uci/UciFrm.h>
 #include <uci/UciMsg.h>
 #include <uci/UciPln.h>
+#include <uci/UciFault.h>
+#include <uci/UciAlarm.h>
+#include <uci/UciEvent.h>
 
 class DbHelper
 {
@@ -24,9 +27,13 @@ public:
     UciProd uciProd;
     UciUser uciUser{uciProd};
 
-    UciFrm uciFrm;
-    UciMsg uciMsg{uciFrm};
-    UciPln uciPln{uciFrm, uciMsg};
+    UciFrm uciFrm{uciProd};
+    UciMsg uciMsg;
+    UciPln uciPln;
+
+    UciFault uciFlt;
+    UciAlarm uciAlm;
+    UciEvent uciEvt;
 
 protected:
 private:

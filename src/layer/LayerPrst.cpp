@@ -51,4 +51,3 @@ int LayerPrst::Tx(uint8_t * data, int len)
     Utils::Cnvt::ParseToAsc(data, (char *)buf, len);
     return lowerLayer->Tx(buf, len*2);
 }
-

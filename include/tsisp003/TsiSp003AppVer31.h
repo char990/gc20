@@ -13,9 +13,6 @@ public:
     virtual int Rx(uint8_t * data, int len) override;
 
 private:
-    void SignExtendedStatusRequest(uint8_t * data, int len);
-    void SignSetGraphicsFrame(uint8_t * data, int len);
-    void SignRequestStoredFMP(uint8_t * data, int len);
 };
 
 #endif

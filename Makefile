@@ -25,13 +25,8 @@ OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 TARGET   := main
 INCLUDE  := -Iinclude/
-SRC      :=                      \
-	$(wildcard src/layer/*.cpp) \
-	$(wildcard src/module/*.cpp) \
-	$(wildcard src/sign/*.cpp) \
-	$(wildcard src/tsisp003/*.cpp) \
-	$(wildcard src/uci/*.cpp) \
-	$(wildcard src/*.cpp)         \
+SRC_DIRS := $(shell find ./src -maxdepth 3 -type d)
+SRC      := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
 
 OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 DEPENDENCIES \

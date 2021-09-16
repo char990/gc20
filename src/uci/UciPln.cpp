@@ -7,26 +7,28 @@
 
 using namespace Utils;
 
-UciPln::UciPln(UciFrm &uciFrm, UciMsg &uciMsg) 
-:uciFrm(uciFrm), uciMsg(uciMsg)
+UciPln::UciPln()
 {
     PATH = "./config";
     PACKAGE = "UciPln";
     SECTION = "pln";
+    plns = new Plan[255];
 }
 
-UciPln::~UciPln() 
+UciPln::~UciPln()
 {
+    delete[] plns;
 }
 
 void UciPln::LoadConfig()
 {
-	chksum = 0;
-	Open();
-	struct uci_section *uciSec = GetSection(SECTION);
-	struct uci_element *e;
-	struct uci_option *option;
+    chksum = 0;
+    Open();
+    struct uci_section *uciSec = GetSection(SECTION);
+    struct uci_element *e;
+    struct uci_option *option;
     Plan pln;
+	uint8_t b[PLN_LEN_MAX + PLN_TAIL];
 	uci_foreach_element(&uciSec->options, e)
 	{
 		if (memcmp(e->name, "pln_", 4) != 0)
@@ -35,28 +37,29 @@ void UciPln::LoadConfig()
 		int i = atoi(e->name + 4);
 		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
 			continue;
-		char *buf = option->v.string;
-        APP::ERROR r = pln.Init(buf, strlen(buf));
-		if ( r == APP::ERROR::AppNoError && pln.plnId == i && CheckPlnEntries(&pln) == 0 )
+		int len = strlen(option->v.string);
+		if (Cnvt::ParseToU8(option->v.string, b, len) == 0)
 		{
-            chksum-=plns[i].crc;
-            plns[i] = pln;
-            chksum+=pln.crc;
+			len/=2;
+			if (Crc::Crc16_1021(b, len - PLN_TAIL) == Cnvt::GetU16(b + len - PLN_TAIL))
+			{
+				SetPln(b, len);
+			}
 		}
 	}
-	Close();
-	Dump();
+    Close();
+    Dump();
 }
 
 void UciPln::Dump()
 {
-	for (int i = 1; i <= 255; i++)
-	{
-		if (plns[i].micode != 0)
-		{
-			printf("%s\n", plns[i].ToString().c_str());
-		}
-	}
+    for (int i = 1; i <= 255; i++)
+    {
+        if (plns[i - 1].micode != 0)
+        {
+            PrintDbg("%s", plns[i - 1].ToString().c_str());
+        }
+    }
 }
 
 uint16_t UciPln::ChkSum()
@@ -64,76 +67,44 @@ uint16_t UciPln::ChkSum()
     return chksum;
 }
 
-Plan * UciPln::GetPln(int i) 
+Plan *UciPln::GetPln(uint8_t i)
 {
-    return &plns[i];
+	return (i == 0 || plns[i - 1].micode == 0) ? nullptr : &plns[i - 1];
 }
 
-uint8_t UciPln::GetPlnRev(int i)
+uint8_t UciPln::GetPlnRev(uint8_t i)
 {
-	return (i==0) ? 0 : plns[i].plnRev;
+	return (i == 0 || plns[i - 1].micode == 0) ? 0 : plns[i - 1].plnRev;
 }
 
-APP::ERROR UciPln::SetPln(uint8_t * buf, int len)
+APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
 {
-	Plan pln;
-    pln.enabled = PLN_DISABLED;
-    APP::ERROR r = pln.Init(buf,len);
-	if (r == APP::ERROR::AppNoError)
-	{
-		int i = pln.plnId;
-      	chksum-=plns[i].crc;
-		plns[i] = pln;
-    	chksum+=pln.crc;
-	}
-	return r;
+    Plan pln;
+    APP::ERROR r = pln.Init(buf, len);
+    if (r == APP::ERROR::AppNoError)
+    {
+        // check plan overlap
+        int i = pln.plnId - 1;
+        if(plns[i].micode!=0)
+        {
+            chksum -= plns[i].crc;
+        }
+        plns[i] = pln;
+        chksum += pln.crc;
+    }
+    return r;
 }
 
-void UciPln::SavePln(int i) 
+void UciPln::SavePln(uint8_t i)
 {
-	if(i<1 || i>255 || plns[i].micode==0)return;
+    if (i < 1 || plns[i-1].micode == 0)
+        return;
     char option[8];
-	sprintf(option,"pln_%d",i);
-	uint8_t a[PLN_LEN_MAX];
-	char v[(PLN_LEN_MAX+2+1)*2+1];
-	int len = plns[i].ToArray(a);
-	char * p = Cnvt::ParseToAsc(a, v, len);
-    p = Cnvt::ParseU16ToAsc(plns[i].crc, p);
-	p = Cnvt::ParseToAsc(plns[i].enabled, p);
-    *p='\0';
+    sprintf(option, "pln_%d", i);
+    uint8_t a[PLN_LEN_MAX + PLN_TAIL];
+    char v[(PLN_LEN_MAX + PLN_TAIL) * 2 + 1];
+    i--;
+    int len = plns[i].ToArray(a);
+    Cnvt::ParseToStr(a, v, len);
     Save(SECTION, option, v);
 }
-
-int UciPln::CheckPlnEntries(Plan  * pln) 
-{
-    int i=0;
-    while(i<6)
-    {
-        if(pln->plnEntries[i].type==0)
-        {
-            break;
-        }
-        else if(pln->plnEntries[i].type==1)
-        {
-            if(uciFrm.GetFrm(pln->plnEntries[i].fmId)==nullptr)
-            {
-                return 1;
-            }
-        }
-        else if(pln->plnEntries[i].type==2)
-        {
-            if(uciMsg.GetMsg(pln->plnEntries[i].fmId)->micode==0)
-            {
-                return 1;
-            }
-        }
-        else
-        {
-            return -1;
-        }
-        i++;
-    }
-    return (i==0)?-1:0;
-}
-
-

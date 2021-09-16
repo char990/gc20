@@ -22,39 +22,38 @@ struct PlnEntry
 
 #define PLN_LEN_MAX (4+6*6)
 #define PLN_LEN_MIN (4+1*6+1)
-#define PLN_ENABLED 0x55
-#define PLN_DISABLED 0xAA
+#define PLN_TAIL 3
 
 class Plan
 {
 public:
     /// \breif  Blank plan
-    Plan():micode(0),crc(0){};
+    Plan():micode(0),crc(0),enabled(0){};
     ~Plan(){};
 
-    /// \breif  ini plan with string, with crc & enable
-    ///         check crc & set enabled
-    APP::ERROR Init(char * cpln, int clen);
-    
-    /// \breif  ini plan with hex array, no CRC & enable
-    ///         crc wille be regenerated, but do nothing with enabled
+    /// \breif  ini plan with hex array, with 2-byte crc + 1-byte enable
     APP::ERROR Init(uint8_t * xpln, int xlen);
     
     uint8_t micode;
     uint8_t plnId;
     uint8_t plnRev;
     uint8_t weekdays;
+    uint8_t entries;
     PlnEntry plnEntries[6];
     uint16_t crc;
     uint8_t enabled;
 
-    ///\brief convert this plan to uint8_t array in format "Sign Set Plan"
+    ///\brief convert this plan to uint8_t array in format "Sign Set Plan" + with 2-byte crc + 1-byte enable
     /// \param  pbuf : output buf
     /// \return int : length of data
     int ToArray(uint8_t * pbuf);
 
     // for Dump()
     std::string ToString();
+
+private:
+    int CheckEntries();
+
 };
 
 #endif

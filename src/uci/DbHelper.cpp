@@ -12,6 +12,9 @@ void DbHelper::Init()
     uciFrm.LoadConfig();
     uciMsg.LoadConfig();
     uciPln.LoadConfig();
+    uciFlt.LoadConfig();
+    uciAlm.LoadConfig();
+    uciEvt.LoadConfig();
 }
 
 uint16_t DbHelper::HdrChksum()

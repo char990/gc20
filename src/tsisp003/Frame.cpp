@@ -6,277 +6,185 @@
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
 
-
 using namespace Utils;
 
 Frame::Frame()
-:frmData(nullptr),micode(0)
+    : micode(0),appErr(APP::ERROR::AppNoError)
 {
 }
 
-void Frame::CnvtFrm(char * frm, int len, int min, int max)
+Frame::~Frame()
 {
-    if((len&1)==1)
-    {
-        appErr = APP::ERROR::LengthError;
-    }
-    else if(len<min*2)
-    {
-        appErr = APP::ERROR::FrameTooSmall;
-    }
-    else if(len>max*2)
-    {
-        appErr = APP::ERROR::FrameTooLarge;
-    }
-    else
-    {
-        len=len/2;
-        frmData = new uint8_t [len];
-        if(Cnvt::ParseToU8(frm, frmData, len*2)!=0)
-        {
-            appErr = APP::ERROR::SyntaxError;
-        }
-        else
-        {
-            appErr = APP::ERROR::AppNoError;
-        }
-    }
 }
 
-int Frame::CheckConspicuity()
+void Frame::FrameCheck()
 {
-    return 0;
-}
-
-
-/************************************************************/
-
-FrmTxt::FrmTxt(char * frm, int len)
-{
-    frmOffset=TXTFRM_HEADER_SIZE;
-    CnvtFrm(frm, len, (frmOffset+2+1), (frmOffset+2+255));
-    if(appErr==APP::ERROR::AppNoError)
+    uint8_t *frm = stFrm.rawData;
+    int len = stFrm.dataLen;
+    crc = Crc::Crc16_1021(frm, len - 2);
+    if (crc != Cnvt::GetU16(frm + len - 2))
     {
-        MakeFrame(len/2);
+        appErr = APP::ERROR::DataChksumError;
+        return;
     }
-}
-
-FrmTxt::FrmTxt(uint8_t * frm, int len)
-{
-    frmOffset=TXTFRM_HEADER_SIZE;
-    if(len<(frmOffset+2+1))
-    {
-        appErr = APP::ERROR::FrameTooSmall;
-    }
-    else if(len>255 || 0/* if text could fit in the sign: X chars * Y chars*/)
-    {
-        appErr = APP::ERROR::FrameTooLarge;
-    }
-    else
-    {
-        frmData = new uint8_t [len];
-        memcpy(frmData, frm, len);
-        MakeFrame(len);
-    }
-}
-
-void FrmTxt::MakeFrame(int len)
-{
-    micode=frmData[0];
-    frmId=frmData[1];
-    frmRev=frmData[2];
-    font=frmData[3];
-    colour=frmData[4];
-    conspicuity=frmData[5];
-    frmlen=frmData[6];
-    crc = Crc::Crc16_1021(frmData, len-2);
-    if(micode!=MI::CODE::SignSetTextFrame)
-    {
-        appErr = APP::ERROR::UnknownMi;
-    }
-    else if(frmId==0)
+    if (frmId == 0)
     {
         appErr = APP::ERROR::SyntaxError;
+        return;
     }
-    else if(CheckColour()!=0) // colour
+    if (len != (frmOffset + 2 + frmlen))
+    {
+        appErr = APP::ERROR::LengthError;
+        return;
+    }
+    if (CheckLength(len) != 0)
+    {
+        return;
+    }
+    if (CheckSub() != 0)
+    {
+        return;
+    }
+    if (CheckColour() != 0)
     {
         appErr = APP::ERROR::ColourNotSupported;
+        return;
     }
-    else if(CheckConspicuity()!=0) // Conspicuity
+    // int CheckConspicuity();
+    if ( (conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03)>2 ||
+        !DbHelper::Instance().uciProd.IsConspicuity(conspicuity & 0x07) ||
+        !DbHelper::Instance().uciProd.IsAnnulus((conspicuity >> 3) & 0x03))
     {
         appErr = APP::ERROR::ConspicuityNotSupported;
     }
-    else if (Check::Text(frmData+frmOffset, len-(frmOffset+2))!=0)
-    {
-        appErr = APP::ERROR::TextNonASC;
-    }
-    else if(CheckFont()!=0) // font
-    {
-        appErr = APP::ERROR::FontNotSupported;
-    }
-    else
-    {
-        CheckLength(len);
-        if(appErr == APP::ERROR::AppNoError)
-        {
-            if(crc != (frmData[len-2]*0x100+frmData[len-1]) )
-            {
-                appErr = APP::ERROR::DataChksumError;
-            }
-        }
-    }
 }
 
-FrmTxt::~FrmTxt()
+/*****************************FrmTxt*******************************/
+FrmTxt::FrmTxt(uint8_t *frm, int len)
 {
-    if(frmData !=nullptr)
-    {
-        delete [] frmData;
-    }
+    frmOffset = TXTFRM_HEADER_SIZE;
+    stFrm.rawData = frm;
+    stFrm.dataLen = len;
+    micode = frm[0];
+    frmId = frm[1];
+    frmRev = frm[2];
+    font = frm[3];
+    colour = frm[4];
+    conspicuity = frm[5];
+    frmlen = frm[6];
+    Frame::FrameCheck();
 }
 
-void FrmTxt::CheckLength(int len)
+int FrmTxt::CheckLength(int len)
 {
-    if(len!=(frmOffset+2+frmlen))
-    {
-        appErr = APP::ERROR::LengthError;
-    }
-    else if(len>(255+frmOffset+2))
+    if (len > (255 + frmOffset + 2) || 0 /* if text could fit in the sign: X chars * Y chars*/)
     {
         appErr = APP::ERROR::FrameTooLarge;
+        return 1;
     }
-    else if(len<(frmOffset+2+1))
+    else if (len < (frmOffset + 2 + 1))
     {
         appErr = APP::ERROR::FrameTooSmall;
+        return 1;
     }
+    return 0;
 }
 
-int FrmTxt::CheckFont()
+int FrmTxt::CheckSub()
 {
+    if (micode != MI::CODE::SignSetTextFrame)
+    {
+        appErr = APP::ERROR::UnknownMi;
+        return 1;
+    }
+    else if (Check::Text(stFrm.rawData + frmOffset, frmlen) != 0)
+    {
+        appErr = APP::ERROR::TextNonASC;
+        return 1;
+    }
+    else if (!DbHelper::Instance().uciProd.IsFont(font))
+    {
+        appErr = APP::ERROR::FontNotSupported;
+        return 1;
+    }
     return 0;
 }
 
 int FrmTxt::CheckColour()
 {
-    return 0;
+    return DbHelper::Instance().uciProd.IsTxtFrmColour(colour) ? 0 : -1 ;
 }
 
 std::string FrmTxt::ToString()
 {
     char buf[1024];
-    snprintf(buf,1023,"TextFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-        appErr, micode, frmId, frmRev, font, colour, conspicuity, frmlen, crc);
+    snprintf(buf, 1023, "TextFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+             appErr, micode, frmId, frmRev, font, colour, conspicuity, frmlen, crc);
     std::string s(buf);
     return s;
 }
 
-FrmGfx::FrmGfx(char * frm, int len)
+/****************************** FrmGfx *******************************/
+FrmGfx::FrmGfx(uint8_t *frm, int len)
 {
-    frmOffset=GFXFRM_HEADER_SIZE;
-    CnvtFrm(frm, len,
-        frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen(),
-        frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen());
-    if(appErr==APP::ERROR::AppNoError)
-    {
-        MakeFrame(len/2);
-    }
+    frmOffset = GFXFRM_HEADER_SIZE;
+    stFrm.rawData = frm;
+    stFrm.dataLen = len;
+    micode = frm[0];
+    frmId = frm[1];
+    frmRev = frm[2];
+    pixelRows = frm[3];
+    pixelColumns = frm[4];
+    colour = frm[5];
+    conspicuity = frm[6];
+    frmlen = Cnvt::GetU16(frm + 7);
+    Frame::FrameCheck();
 }
 
-FrmGfx::FrmGfx(uint8_t * frm, int len)
+int FrmGfx::CheckSub()
 {
-    frmOffset=GFXFRM_HEADER_SIZE;
-    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen() ||
-        len > frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen())
+    if (micode != MI::CODE::SignSetGraphicsFrame)
+    {
+        appErr = APP::ERROR::UnknownMi;
+        return 1;
+    }
+    return 0;
+}
+
+int FrmGfx::CheckLength(int len)
+{
+    UciProd &prod = DbHelper::Instance().uciProd;
+    if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
+        len > frmOffset + 2 + prod.MaxFrmLen() )
     {
         appErr = APP::ERROR::LengthError;
     }
-    else
-    {
-        appErr = APP::ERROR::AppNoError;
-        frmData = new uint8_t [len];
-        memcpy(frmData, frm, len);
-        MakeFrame(len);
-    }
-}
-
-FrmGfx::~FrmGfx()
-{
-    if(frmData !=nullptr)
-    {
-        delete [] frmData;
-    }
-}
-
-void FrmGfx::MakeFrame(int len)
-{
-    UciProd & prod = DbHelper::Instance().uciProd;
-    micode=frmData[0];
-    frmId=frmData[1];
-    frmRev=frmData[2];
-    pixelRows=frmData[3];
-    pixelColumns=frmData[4];
-    colour=frmData[5];
-    conspicuity=frmData[6];
-    frmlen=frmData[7]*0x100+frmData[8];
-    crc = Crc::Crc16_1021(frmData, len-2);
-    if(micode!=MI::CODE::SignSetGraphicsFrame)
-    {
-        appErr = APP::ERROR::UnknownMi;
-    }
-    else if(frmId==0)
-    {
-        appErr = APP::ERROR::SyntaxError;
-    }
-    else if(pixelRows!=prod.PixelRows() || pixelColumns!=prod.PixelColumns()) // rows & columns
+    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
         appErr = APP::ERROR::SizeMismatch;
     }
-    else if(CheckColour()!=0) // colour
-    {
-        appErr = APP::ERROR::ColourNotSupported;
-    }
-    else if(CheckConspicuity()!=0) // Conspicuity
-    {
-        appErr = APP::ERROR::ConspicuityNotSupported;
-    }
     else
     {
-        CheckLength(len);
-        if(appErr == APP::ERROR::AppNoError)
+        int x = 0;
+        if (colour < FRM::COLOUR::MonoFinished)
         {
-            if(crc != (frmData[len-2]*0x100+frmData[len-1]) )
-            {
-                appErr = APP::ERROR::DataChksumError;
-            }
+            x = prod.Gfx1FrmLen();
         }
-    }
-}
-
-void FrmGfx::CheckLength(int len)
-{
-    int pixels = DbHelper::Instance().uciProd.Pixels();
-    if(len!=(frmOffset+2+frmlen))
-    {
-        appErr = APP::ERROR::LengthError;
-    }
-    else
-    {
-        int x=0;
-        if(colour<FRM::COLOUR::MultipleColours)
+        else if (colour == FRM::COLOUR::MultipleColours)
         {
-            x = (pixels+7)/8;
+            x = prod.Gfx4FrmLen();
         }
-        else if(colour == FRM::COLOUR::MultipleColours)
+        else if (colour == FRM::COLOUR::RGB24)
         {
-            x = (pixels+1)/2;
+            x = prod.Gfx24FrmLen();
         }
-        if(x!=0)
+        if (x != 0)
         {
-            if(frmlen>x)
+            if (frmlen > x)
             {
                 appErr = APP::ERROR::FrameTooLarge;
             }
-            else if(frmlen<x)
+            else if (frmlen < x)
             {
                 appErr = APP::ERROR::FrameTooSmall;
             }
@@ -286,141 +194,84 @@ void FrmGfx::CheckLength(int len)
             appErr = APP::ERROR::ColourNotSupported;
         }
     }
+    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmGfx::CheckColour()
 {
-    return 0;
+    return DbHelper::Instance().uciProd.IsGfxFrmColour(colour) ? 0 : -1 ;
 }
-
 
 std::string FrmGfx::ToString()
 {
     char buf[1024];
-    snprintf(buf,1023,"GfxFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-        appErr, micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
+    snprintf(buf, 1023, "GfxFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+             appErr, micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
     std::string s(buf);
     return s;
 }
 
 /****************************** FrmHrg *******************************/
-FrmHrg::FrmHrg(char * frm, int len)
+FrmHrg::FrmHrg(uint8_t *frm, int len)
 {
-    frmOffset=HRGFRM_HEADER_SIZE;
-    CnvtFrm(frm, len,
-        frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen(),
-        frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen());
-    if(appErr==APP::ERROR::AppNoError)
-    {
-        MakeFrame(len/2);
-    }
+    frmOffset = HRGFRM_HEADER_SIZE;
+    stFrm.rawData = frm;
+    stFrm.dataLen = len;
+    micode = frm[0];
+    frmId = frm[1];
+    frmRev = frm[2];
+    pixelRows = Cnvt::GetU16(frm + 3);
+    pixelColumns = Cnvt::GetU16(frm + 5);
+    colour = frm[7];
+    conspicuity = frm[8];
+    frmlen = Cnvt::GetU32(frm + 9);
+    Frame::FrameCheck();
 }
 
-FrmHrg::FrmHrg(uint8_t * frm, int len)
+int FrmHrg::CheckSub()
 {
-    frmOffset=HRGFRM_HEADER_SIZE;
-    if( len < frmOffset+2+DbHelper::Instance().uciProd.MinGfxFrmLen() ||
-        len > frmOffset+2+DbHelper::Instance().uciProd.MaxGfxFrmLen())
+    if (micode != MI::CODE::SignSetHighResolutionGraphicsFrame)
+    {
+        appErr = APP::ERROR::UnknownMi;
+        return 1;
+    }
+    return 0;
+}
+
+int FrmHrg::CheckLength(int len)
+{
+    UciProd &prod = DbHelper::Instance().uciProd;
+    if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
+        len > frmOffset + 2 + prod.MaxFrmLen() )
     {
         appErr = APP::ERROR::LengthError;
     }
-    else
-    {
-        appErr=APP::ERROR::AppNoError;
-        frmData = new uint8_t [len];
-        memcpy(frmData, frm, len);
-        MakeFrame(len);
-    }
-}
-
-FrmHrg::~FrmHrg()
-{
-    if(frmData !=nullptr)
-    {
-        delete [] frmData;
-    }
-}
-
-
-void FrmHrg::MakeFrame(int len)
-{
-    UciProd & prod = DbHelper::Instance().uciProd;
-    micode=frmData[0];
-    frmId=frmData[1];
-    frmRev=frmData[2];
-    pixelRows=frmData[3]*0x100+frmData[4];
-    pixelColumns=frmData[5]*0x100+frmData[6];
-    colour=frmData[7];
-    conspicuity=frmData[8];
-    frmlen=0;
-    for(int i=0;i<4;i++)
-    {
-        frmlen*=0x100;
-        frmlen+=frmData[9+i];
-    }
-    crc = Crc::Crc16_1021(frmData, len-2);
-    if(micode!=MI::CODE::SignSetHighResolutionGraphicsFrame)
-    {
-        appErr = APP::ERROR::UnknownMi;
-    }
-    else if(frmId==0)
-    {
-        appErr = APP::ERROR::SyntaxError;
-    }
-    else if(pixelRows!=prod.PixelRows() || pixelColumns!=prod.PixelColumns()) // rows & columns
+    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
         appErr = APP::ERROR::SizeMismatch;
     }
-    else if(CheckColour()!=0) // colour
-    {
-        appErr = APP::ERROR::ColourNotSupported;
-    }
-    else if(CheckConspicuity()!=0) // Conspicuity
-    {
-        appErr = APP::ERROR::ConspicuityNotSupported;
-    }
     else
     {
-        CheckLength(len);
-        if(appErr == APP::ERROR::AppNoError)
+        int x = 0;
+        if (colour < FRM::COLOUR::MonoFinished)
         {
-            if(crc != (frmData[len-2]*0x100+frmData[len-1]) )
-            {
-                appErr = APP::ERROR::DataChksumError;
-            }
+            x = prod.Gfx1FrmLen();
         }
-    }
-}
-
-void FrmHrg::CheckLength(int len)
-{
-    if(len!=(frmOffset+2+frmlen))
-    {
-        appErr = APP::ERROR::LengthError;
-    }
-    else
-    {
-        int pixels = DbHelper::Instance().uciProd.Pixels();
-        int x=0;
-        if(colour<FRM::COLOUR::MultipleColours)
+        else if (colour == FRM::COLOUR::MultipleColours)
         {
-            x = (pixels+7)/8;
+            x = prod.Gfx4FrmLen();
         }
-        else if(colour == FRM::COLOUR::MultipleColours)
+        else if (colour == FRM::COLOUR::RGB24)
         {
-            x = (pixels+1)/2;
+            x = prod.Gfx24FrmLen();
         }
-        else if(colour == FRM::COLOUR::RGB24)
+        if (x != 0)
         {
-            x = pixels*3;
-        }
-        if(x!=0)
-        {
-            if(frmlen>x)
+            if (frmlen > x)
             {
                 appErr = APP::ERROR::FrameTooLarge;
             }
-            else if(frmlen<x)
+            else if (frmlen < x)
             {
                 appErr = APP::ERROR::FrameTooSmall;
             }
@@ -430,18 +281,19 @@ void FrmHrg::CheckLength(int len)
             appErr = APP::ERROR::ColourNotSupported;
         }
     }
+    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmHrg::CheckColour()
 {
-    return 0;
+    return DbHelper::Instance().uciProd.IsHrgFrmColour(colour) ? 0 : -1 ;
 }
 
 std::string FrmHrg::ToString()
 {
     char buf[1024];
-    snprintf(buf,1023,"HrgFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-        appErr, micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
+    snprintf(buf, 1023, "HrgFrame:(appErr=%d) MI=0x%02X, Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+             appErr, micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
     std::string s(buf);
     return s;
 }

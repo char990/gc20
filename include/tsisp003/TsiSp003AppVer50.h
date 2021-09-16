@@ -13,7 +13,6 @@ public:
     virtual int Rx(uint8_t *data, int len) override;
 
 private:
-    void SignRequestStoredFMP(uint8_t *data, int len);
     void SignSetHighResolutionGraphicsFrame(uint8_t *data, int len);
     void SignConfigurationRequest(uint8_t *data, int len);
     void SignDisplayAtomicFrames(uint8_t *data, int len);

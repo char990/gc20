@@ -16,9 +16,11 @@ public:
 
 protected:
     void Time2Buf(uint8_t *p);
+    void SignSetFrame(uint8_t * data, int len);
 
 private:
     void HeartbeatPoll(uint8_t * data, int len);
+    void SignStatusReply();
     void SignSetTextFrame(uint8_t * data, int len);
     void SignSetGraphicsFrame(uint8_t * data, int len);
     void SignDisplayFrame(uint8_t * data, int len);
@@ -28,6 +30,8 @@ private:
     void EnablePlan(uint8_t * data, int len);
     void DisablePlan(uint8_t * data, int len);
     void RequestEnabledPlans(uint8_t * data, int len);
+    void PowerONOFF(uint8_t * data, int len);
+    void DisableEnableDevice(uint8_t * data, int len);
     void SignRequestStoredFMP(uint8_t * data, int len);
     void SignExtendedStatusRequest(uint8_t * data, int len);
 };
