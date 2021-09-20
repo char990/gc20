@@ -66,8 +66,8 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
     case MI::CODE::RequestEnabledPlans:
         RequestEnabledPlans(data, len);
         break;
-    case MI::CODE::PowerONOFF:
-        PowerONOFF(data, len);
+    case MI::CODE::PowerOnOff:
+        PowerOnOff(data, len);
         break;
     case MI::CODE::DisableEnableDevice:
         DisableEnableDevice(data, len);
@@ -80,7 +80,6 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
         break;
     default:
         return TsiSp003App::Rx(data, len);
-        ;
     }
     return 0;
 }
@@ -159,10 +158,18 @@ void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (ChkLen(len, 3))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdDispFrm(data);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
@@ -207,10 +214,18 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (ChkLen(len, 3))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdDispMsg(data);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
@@ -232,9 +247,8 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     else
     {
         Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
-        data[len + 2] = 0;                                    // new plan is disabled
         UciPln &uci = DbHelper::Instance().uciPln;
-        r = uci.SetPln(data, len + 3);
+        r = uci.SetPln(data, len + PLN_TAIL);
         if (r == APP::ERROR::AppNoError)
         {
             uci.SavePln(id);
@@ -252,42 +266,99 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
 
 void TsiSp003AppVer21::EnablePlan(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (ChkLen(len, 3))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdEnablePlan(data);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (ChkLen(len, 3))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdDisablePlan(data);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
+    if (ChkLen(len, 1) == false)
         return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    txbuf[0] = MI::CODE::ReportEnabledPlans;
+    uint8_t *p = &txbuf[2];
+    Scheduler &scheduler = Scheduler::Instance();
+    uint8_t gcnt = scheduler.GroupCnt();
+    for (int i = 1; i < gcnt + 1; i++)
+    {
+        Group *grp = scheduler.GetGroup(i);
+        for (int j = 1; j <= 255; j++)
+        {
+            if (grp->IsPlanEnabled(j))
+            {
+                *p++ = i;
+                *p++ = j;
+            }
+        }
+    }
+    int bytes = p - txbuf;
+    txbuf[1] = (bytes - 2) / 2;
+    Tx(txbuf, bytes);
 }
 
-void TsiSp003AppVer21::PowerONOFF(uint8_t *data, int len)
+void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (data[1] == 0)
+    {
+        Reject(APP::ERROR::SyntaxError);
+    }
+    else if (ChkLen(len, 2 + data[1] * 2))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdPowerOnOff(data, len);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    if (data[1] == 0)
+    {
+        Reject(APP::ERROR::SyntaxError);
+    }
+    else if (ChkLen(len, 2 + data[1] * 2))
+    {
+        APP::ERROR r = Scheduler::Instance().CmdDisableEnableDevice(data, len);
+        if (r == APP::ERROR::AppNoError)
+        {
+            Ack();
+        }
+        else
+        {
+            Reject(r);
+        }
+    }
 }
 
 void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)

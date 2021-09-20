@@ -7,7 +7,7 @@
 #include <string>
 #include <uci/Font.h>
 
-struct SignConnection
+struct StSignPort
 {
     uint32_t com_ip;
     int bps_port;
@@ -27,7 +27,7 @@ public:
     // getter
     char * MfcCode() { return &mfcCode[0]; };
     Font * Fonts(int i) { return fonts[i]; };
-    struct SignConnection * SignCn(int i) { return &signCn[i]; };
+    struct StSignPort * SignPort(int i) { return &signPort[i]; };
     uint8_t * MappedColoursTable() {return &mappedColoursTable[0]; };
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
@@ -62,6 +62,8 @@ public:
     uint8_t TileColumnsPerSlave() { return tileColumnsPerSlave; };
     uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
     uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
+    uint8_t PowerOnDelay() { return powerOnDelay; };
+
 
     char * ColourLeds() { return colourLeds; };
 
@@ -137,6 +139,8 @@ private:
     const char * _TileColumnsPerSlave="TileColumnsPerSlave";
     const char * _SlaveRowsPerSign="SlaveRowsPerSign";
     const char * _SlaveColumnsPerSign="SlaveColumnsPerSign";
+    const char * _PowerOnDelay="PowerOnDelay";
+    
 
     // float
     const char * _LightSensorScale="LightSensorScale";
@@ -149,7 +153,7 @@ private:
 
     Font *fonts[MAX_FONT+1];
 
-    struct SignConnection * signCn;
+    struct StSignPort * signPort;
 
     uint16_t
         slaveRqstInterval,
@@ -185,7 +189,8 @@ private:
         tileRowsPerSlave,
         tileColumnsPerSlave,
         slaveRowsPerSign,
-        slaveColumnsPerSign;
+        slaveColumnsPerSign,
+        powerOnDelay;
 
     char colourLeds[5];
 

@@ -20,7 +20,7 @@ const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE]={
     MI::CODE::EnablePlan,
     MI::CODE::DisablePlan,
     MI::CODE::SignSetDimmingLevel,
-    MI::CODE::PowerONOFF,
+    MI::CODE::PowerOnOff,
     MI::CODE::ResetFaultLog,
     MI::CODE::SignSetHighResolutionGraphicsFrame,
     MI::CODE::SignDisplayAtomicFrames

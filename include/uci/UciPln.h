@@ -44,6 +44,8 @@ public:
     /// \brief  Get plns[i-1]
     Plan * GetPln(uint8_t i);
 
+    bool IsPlnDefined(uint8_t i);
+
     /// \brief  Get plns[i-1]->plnRev, plns[0] is 0
     uint8_t GetPlnRev(uint8_t i);
 

@@ -14,6 +14,13 @@ Islus::~Islus()
     delete sign;
 }
 
+void Islus::Reset()
+{
+    dsBak.dispType = DISP_STATUS::TYPE::N_A;
+    dsCurrent.dispType = DISP_STATUS::TYPE::N_A;
+    dsNext.dispType = DISP_STATUS::TYPE::N_A;
+}
+
 uint8_t * Islus::GetStatus(uint8_t *p)
 {
     return sign->GetStatus(p);

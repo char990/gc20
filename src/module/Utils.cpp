@@ -178,9 +178,9 @@ char * Cnvt::ParseU32ToAsc(uint32_t h, char *p)
 
 int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
 {
-    char buf[256];
-    memcpy(buf,src,255);
-    buf[255]='\0'; // copy max 255 chars
+    char buf[4096];
+    memcpy(buf,src,4095);
+    buf[4096]='\0'; // copy max 4095 chars
     char delim[] = ",:;. ";
 	char *ptr = strtok (buf, delim);
 	int cnt=0;

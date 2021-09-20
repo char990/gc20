@@ -9,6 +9,7 @@
 #include <uci/UciFault.h>
 #include <uci/UciAlarm.h>
 #include <uci/UciEvent.h>
+#include <uci/UciGroupPlan.h>
 
 class DbHelper
 {
@@ -25,15 +26,17 @@ public:
     uint16_t HdrChksum();
 
     UciProd uciProd;
-    UciUser uciUser{uciProd};
+    UciUser uciUser;
 
-    UciFrm uciFrm{uciProd};
+    UciFrm uciFrm;
     UciMsg uciMsg;
     UciPln uciPln;
 
     UciFault uciFlt;
     UciAlarm uciAlm;
     UciEvent uciEvt;
+
+    UciGroupPlan uciGrpPln;
 
 protected:
 private:

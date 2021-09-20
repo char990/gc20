@@ -29,7 +29,7 @@ public:
 
 private:
     std::string name;
-    int ticks, sec, cnt;
+    //int ticks, sec, cnt;
     std::vector<IPeriodicRun *> pEvts;
 };
 

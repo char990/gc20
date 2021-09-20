@@ -13,8 +13,8 @@
 
 using namespace Utils;
 
-UciFrm::UciFrm(UciProd &prod)
-	: prod(prod), frmSize(0)
+UciFrm::UciFrm()
+	: frmSize(0)
 {
 }
 
@@ -32,7 +32,7 @@ UciFrm::~UciFrm()
 void UciFrm::LoadConfig()
 {
 	// using HRGFRM to allocate the memory
-	frmSize = prod.MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
+	frmSize = DbHelper::Instance().uciProd.MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	for (int i = 0; i < 255; i++)
 	{
 		frms[i].dataLen = 0;
@@ -81,7 +81,7 @@ void UciFrm::Dump()
 					FrmTxt frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
@@ -94,7 +94,7 @@ void UciFrm::Dump()
 					FrmGfx frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
@@ -107,7 +107,7 @@ void UciFrm::Dump()
 					FrmHrg frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d=%s", i+1,  frm.ToString().c_str());
+						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
@@ -125,14 +125,19 @@ uint16_t UciFrm::ChkSum()
 	return chksum;
 }
 
+bool UciFrm::IsFrmDefined(uint8_t i)
+{
+	return (i != 0 && frms[i - 1].dataLen != 0);
+}
+
 StFrm *UciFrm::GetFrm(uint8_t i)
 {
-	return (i == 0 || frms[i - 1].dataLen == 0) ? nullptr : &frms[i - 1];
+	return IsFrmDefined(i) ? nullptr : &frms[i - 1];
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)
 {
-	return (i == 0 || frms[i - 1].dataLen == 0) ? 0 : *(frms[i - 1].rawData + OFFSET_FRM_REV);
+	return IsFrmDefined(i) ? 0 : *(frms[i - 1].rawData + OFFSET_FRM_REV);
 }
 
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
@@ -188,7 +193,7 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 
 void UciFrm::SaveFrm(uint8_t i)
 {
-	if (i == 0)
+	if (IsFrmDefined(i))
 		return;
 	StFrm *frm = GetFrm(i);
 	char filename[256];

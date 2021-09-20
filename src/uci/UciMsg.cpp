@@ -56,7 +56,7 @@ void UciMsg::Dump()
 {
 	for (int i = 1; i <= 255; i++)
 	{
-		if (msgs[i - 1].micode != 0)
+		if (IsMsgDefined(i))
 		{
 			PrintDbg("%s", msgs[i - 1].ToString().c_str());
 		}
@@ -68,14 +68,19 @@ uint16_t UciMsg::ChkSum()
 	return chksum;
 }
 
+bool IsMsgDefined(uint8_t i)
+{
+	return (i != 0 && msgs[i - 1].micode != 0);
+}
+
 Message *UciMsg::GetMsg(uint8_t i)
 {
-	return (i == 0 || msgs[i - 1].micode == 0) ? nullptr : &msgs[i - 1];
+	return  IsMsgDefined(i) ? nullptr : &msgs[i - 1];
 }
 
 uint8_t UciMsg::GetMsgRev(uint8_t i)
 {
-	return (i == 0 || msgs[i - 1].micode == 0) ? 0 : msgs[i - 1].msgRev;
+	return IsMsgDefined(i) ? 0 : msgs[i - 1].msgRev;
 }
 
 APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
@@ -97,7 +102,7 @@ APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
 
 void UciMsg::SaveMsg(uint8_t i)
 {
-	if (i == 0 || msgs[i-1].micode == 0)
+	if (!IsMsgDefined(i))
 		return;
 	char option[8];
 	sprintf(option, "msg_%d", i);

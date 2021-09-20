@@ -27,9 +27,9 @@ TimerEvent::TimerEvent(int ms, std::string name):name(name)
     {
 		MyThrow ("timerfd_settime() failed");
     }
-    ticks = 1000 / ms;
-    sec=0;
-    cnt=0;
+    //ticks = 1000 / ms;
+    //sec=0;
+    //cnt=0;
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
 }
@@ -50,12 +50,13 @@ void TimerEvent::EventsHandle(uint32_t events)
         {
             MyThrow("%s:EventsHandle(): read failed", name.c_str());
         }
+        /*
         if(++cnt==ticks)
         {
             cnt=0;
             sec++;
             printf("(%s)sec=%d\n", name.c_str(), sec);
-        }
+        }*/
         for(int i=0;i<pEvts.size();i++)
         {
             if(pEvts[i]!=nullptr)

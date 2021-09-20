@@ -13,7 +13,7 @@ extern const char *FirmwareMinorVer;
 
 using namespace Utils;
 
-std::string SignConnection::ToString()
+std::string StSignPort::ToString()
 {
     char buf[32];
     if (com_ip < COMPORT_SIZE)
@@ -47,7 +47,7 @@ UciProd::UciProd()
     PATH = "./config";
     PACKAGE = "UciProd";
     SECTION = "ctrller_cfg";
-    signCn = nullptr;
+    signPort = nullptr;
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         fonts[i] = nullptr;
@@ -56,9 +56,9 @@ UciProd::UciProd()
 
 UciProd::~UciProd()
 {
-    if (signCn != nullptr)
+    if (signPort != nullptr)
     {
-        delete[] signCn;
+        delete[] signPort;
     }
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
@@ -171,9 +171,11 @@ void UciProd::LoadConfig()
 
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
+    powerOnDelay = GetInt(uciSec, _PowerOnDelay, 1, 255);
+    
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
 
-    signCn = new struct SignConnection[numberOfSigns];
+    signPort = new struct StSignPort[numberOfSigns];
     for (int i = 1; i <= numberOfSigns; i++)
     {
         sprintf(cbuf, "%s%d", _Sign, i);
@@ -183,8 +185,8 @@ void UciProd::LoadConfig()
         {
             if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
             {
-                signCn[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
-                signCn[i - 1].bps_port = x5;
+                signPort[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
+                signPort[i - 1].bps_port = x5;
                 continue;
             }
         }
@@ -197,7 +199,7 @@ void UciProd::LoadConfig()
             }
             if (cnt < COMPORT_SIZE)
             {
-                signCn[i - 1].com_ip = cnt;
+                signPort[i - 1].com_ip = cnt;
                 const char *bps = strchr(str, ':');
                 if (bps != NULL)
                 {
@@ -211,7 +213,7 @@ void UciProd::LoadConfig()
                         }
                         if (cnt < EXTENDEDBPS_SIZE)
                         {
-                            signCn[i - 1].bps_port = x5;
+                            signPort[i - 1].bps_port = x5;
                             continue;
                         }
                     }
@@ -357,7 +359,7 @@ void UciProd::Dump()
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
     for (int i = 0; i < NumberOfSigns(); i++)
     {
-        printf("\t%s%d \t'%s'\n", _Sign, i, SignCn(i)->ToString().c_str());
+        printf("\t%s%d \t'%s'\n", _Sign, i, SignPort(i)->ToString().c_str());
     }
     PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
     PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
@@ -389,6 +391,7 @@ void UciProd::Dump()
     PrintOption_d(_ColourBits, ColourBits());
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
+    PrintOption_d(_PowerOnDelay, PowerOnDelay());
 
     PrintOption_str(_ColourLeds, ColourLeds());
 

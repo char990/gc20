@@ -26,7 +26,7 @@ namespace MI
         RequestEnabledPlans,
         ReportEnabledPlans,
         SignSetDimmingLevel,
-        PowerONOFF,
+        PowerOnOff,
         DisableEnableDevice,
         SignRequestStoredFMP,
         RetrieveFaultLog,
@@ -247,6 +247,21 @@ namespace LOG
         EventLog = 0x0D
     };
 }
+
+namespace DISP_STATUS
+{
+    enum TYPE
+    {
+        N_A,    // not available
+        BLK,    // Blank
+        FRM,    // frame (0 should to be convert to plan)
+        MSG,    // message (0 should to be convert to plan), not including ExtSw
+        PLN,    // paln (get from frm0/msg0)
+        ATF,    // atomic frame
+        EXT,    // external input
+        FSW,    // facility switch
+    };
+} // namespace DISP_STATUS
 
 /// \brief High-res gfx frame size
 /// max size of a 24-bit RGB frame is 288*64*3 = 55296 bytes

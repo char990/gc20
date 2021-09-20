@@ -5,11 +5,12 @@
 #include <module/Utils.h>
 #include <module/Tz_AU.h>
 #include <module/SerialPort.h>
+#include <uci/DbHelper.h>
 
 using namespace Utils;
 
-UciUser::UciUser(UciProd &uciProd)
-:uciProd(uciProd),groupCfg(nullptr)
+UciUser::UciUser()
+:groupCfg(nullptr),groupSigns(nullptr)
 {
     PATH = "./config";
     PACKAGE = "UciUser";
@@ -23,10 +24,15 @@ UciUser::~UciUser()
     {
         delete[] groupCfg;
     }
+    if(groupSigns!=nullptr)
+    {
+        delete[] groupSigns;
+    }
 }
 
 void UciUser::LoadConfig()
 {
+    UciProd & uciProd = DbHelper::Instance().uciProd;
     groupCfg = new uint8_t[uciProd.NumberOfSigns()];
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
@@ -187,12 +193,15 @@ void UciUser::LoadConfig()
     comPort = GetIntFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
     for(int i=0;i<numberOfSigns;i++)
     {
-        if(comPort==uciProd.SignCn(i)->com_ip)
+        if(comPort==uciProd.SignPort(i)->com_ip)
         {
             MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i], i+1);
         }
     }
 
+
+
+    numberOfGroups=0;
     str = GetStr(uciSec, _GroupCfg);
     cnt=Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
     if(cnt==numberOfSigns)
@@ -200,6 +209,10 @@ void UciUser::LoadConfig()
         for(cnt=0;cnt<numberOfSigns;cnt++)
         {
             groupCfg[cnt]=ibuf[cnt];
+            if(ibuf[cnt]>numberOfGroups)
+            {
+                numberOfGroups=ibuf[cnt];
+            }
         }
     }
     else
@@ -322,7 +335,7 @@ void UciUser::PrintDawnDusk(char *buf)
 
 void UciUser::PrintGroupCfg(char *buf)
 {
-    int signs=uciProd.NumberOfSigns();
+    int signs=DbHelper::Instance().uciProd.NumberOfSigns();
     uint8_t * gcfg=GroupCfg();
     int len=0;
     for(int i=0;i<signs;i++)
@@ -585,6 +598,7 @@ void UciUser::Luminance(uint16_t *p)
 
 void UciUser::GroupCfg(uint8_t *p)
 {
+    UciProd & uciProd = DbHelper::Instance().uciProd;
     if(memcmp(groupCfg, p, uciProd.NumberOfSigns())!=0)
     {
         memcpy(groupCfg, p, uciProd.NumberOfSigns());

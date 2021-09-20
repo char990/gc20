@@ -22,7 +22,7 @@ typedef struct ExtSw {
 class UciUser : public UciCfg
 {
 public:
-    UciUser(UciProd &uciProd);
+    UciUser();
     ~UciUser();
 
     const char *DEFAULT_FILE; 
@@ -63,7 +63,9 @@ public:
     int Baudrate() { return baudrate;};
     uint16_t *Luminance(){ return luminance; };
     uint8_t *DawnDusk(){ return dawnDusk; };
-    uint8_t * GroupCfg() { return groupCfg;};
+    uint8_t * GroupCfg() { return groupCfg; };
+    uint8_t NumberOfGroups() { return numberOfGroups; };
+    uint8_t NumberOfSigns() { return numberOfSigns; };
     uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId-1]; };
     ExtSw *ExtSwCfgX(int i){return &extSw[i];};
 
@@ -97,8 +99,6 @@ public:
 
 private:
 
-    UciProd &uciProd;
-    
     uint8_t
         broadcastId,
         deviceId,
@@ -113,7 +113,8 @@ private:
         lockedMsg,
         comPort,
         tz,
-        lastFrmOn;
+        lastFrmOn,
+        numberOfGroups;
 
     uint16_t
         passwordOffset,
@@ -130,6 +131,8 @@ private:
     uint8_t dawnDusk[16];
 
     uint8_t * groupCfg;
+
+    GroupSigns * groupSigns;
 
     ExtSw extSw[3];
 

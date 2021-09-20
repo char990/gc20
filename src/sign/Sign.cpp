@@ -7,20 +7,6 @@ Sign::Sign(uint8_t sid)
 {
 }
 
-uint8_t *Sign::GetStatus(uint8_t *p)
-{
-    DbHelper &db = DbHelper::Instance();
-    *p++ = signId;
-    *p++ = signErr;
-    *p++ = en_dis;
-    *p++ = reportFrmId;
-    *p++ = db.uciFrm.GetFrmRev(reportFrmId);
-    *p++ = reportMsgId;
-    *p++ = db.uciMsg.GetMsgRev(reportMsgId);
-    *p++ = reportPlnId;
-    *p++ = db.uciPln.GetPlnRev(reportPlnId);
-    return p;
-}
 
 void Sign::SetDimming(uint8_t dimming_)
 {

@@ -83,8 +83,8 @@ std::string Message::ToString()
     }
     char buf[1024];
     int len = 0;
-    len = snprintf(buf, 1023, "Message: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
-                   micode, msgId, msgRev, transTime, entries);
+    len = snprintf(buf, 1023, "msg_%03d: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
+                msgId, micode, msgId, msgRev, transTime, entries);
     for (int i = 0; i < entries; i++)
     {
         len += snprintf(buf + len, 1023 - len, "(%d,%d)", msgEntries[i].frmId, msgEntries[i].onTime);
@@ -98,7 +98,7 @@ int Message::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if (DbHelper::Instance().uciFrm.GetFrm(msgEntries[i].frmId) == nullptr)
+        if (!DbHelper::Instance().uciFrm.IsFrmDefined(msgEntries[i].frmId))
         {
             return -1;
         }

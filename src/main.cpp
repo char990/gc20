@@ -54,12 +54,15 @@ int main()
         #define LINKS_NTS   3   // from tcp-tsi-sp-003-nts
         #define LINKS_WEB   2   // from web
 
-        // 2(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 29
+        // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
         Epoll::Instance().Init(32);
         TimerEvent timerEvt10ms(10,"[tmrEvt10ms:10ms]");
+        TimerEvent timerEvt100ms(100,"[tmrEvt100ms:100ms]");
         TimerEvent timerEvt1s(1000,"[tmrEvt1sec:1sec]");
         DbHelper::Instance().Init();
         
+        //AllGroupPowerOn();
+
         ObjectPool<OprTcp> webPool(LINKS_WEB);
         auto webpool = webPool.Pool();
         for(int i=0;i<webPool.Size();i++)
@@ -103,7 +106,7 @@ int main()
 
             for(int i=0;i<DbHelper::Instance().uciProd.NumberOfSigns();i++)
             {
-                struct SignConnection * cn = DbHelper::Instance().uciProd.SignCn(i);
+                struct StSignPort * cn = DbHelper::Instance().uciProd.SignPort(i);
                 if(cn->com_ip==cp)
                 {
                     MyThrow("Sign%d COM setting conflicts with UciUser.Comport", i+1);

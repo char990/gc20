@@ -84,7 +84,6 @@ int Plan::ToArray(uint8_t *pbuf)
         *p++ = plnEntries[i].stop.min;
     }
     p=Cnvt::PutU16(crc,p);
-    *p++ = enabled;
     return p - pbuf;
 }
 
@@ -96,8 +95,8 @@ std::string Plan::ToString()
     }
     char buf[1024];
     int len = 0;
-    len = snprintf(buf, 1023, "Plan: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
-                   micode, plnId, plnRev);
+    len = snprintf(buf, 1023, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
+                plnId, micode, plnId, plnRev);
     const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
     for (int i = 0, k = 1; i < 7; i++)
@@ -127,7 +126,7 @@ std::string Plan::ToString()
                         plnEntries[i].start.hour, plnEntries[i].start.min,
                         plnEntries[i].stop.hour, plnEntries[i].stop.min);
     }
-    snprintf(buf + len, 1023 - len, ", Crc=0x%04X, en/dis=%d", crc, enabled);
+    snprintf(buf + len, 1023 - len, ", Crc=0x%04X", crc);
     std::string s(buf);
     return s;
 }
@@ -136,8 +135,8 @@ int Plan::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if( (plnEntries[i].type == 1 && DbHelper::Instance().uciFrm.GetFrm(plnEntries[i].fmId) == nullptr) ||
-            (plnEntries[i].type == 2 && DbHelper::Instance().uciMsg.GetMsg(plnEntries[i].fmId) == nullptr) )
+        if( (plnEntries[i].type == 1 && !DbHelper::Instance().uciFrm.IsFrmDefined(plnEntries[i].fmId)) ||
+            (plnEntries[i].type == 2 && !DbHelper::Instance().uciMsg.IsMsgDefined(plnEntries[i].fmId)) )
         {
             return -1;
         }

@@ -55,7 +55,7 @@ void UciPln::Dump()
 {
     for (int i = 1; i <= 255; i++)
     {
-        if (plns[i - 1].micode != 0)
+        if (IsPlnDefined(i))
         {
             PrintDbg("%s", plns[i - 1].ToString().c_str());
         }
@@ -67,14 +67,19 @@ uint16_t UciPln::ChkSum()
     return chksum;
 }
 
+bool IsPlnDefined(uint8_t i)
+{
+    return (i == 0 || plns[i - 1].micode == 0) ? false : true;
+}
+
 Plan *UciPln::GetPln(uint8_t i)
 {
-	return (i == 0 || plns[i - 1].micode == 0) ? nullptr : &plns[i - 1];
+	return IsPlnDefined(i) ? nullptr : &plns[i - 1];
 }
 
 uint8_t UciPln::GetPlnRev(uint8_t i)
 {
-	return (i == 0 || plns[i - 1].micode == 0) ? 0 : plns[i - 1].plnRev;
+	return IsPlnDefined(i) ? 0 : plns[i - 1].plnRev;
 }
 
 APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
@@ -97,7 +102,7 @@ APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
 
 void UciPln::SavePln(uint8_t i)
 {
-    if (i < 1 || plns[i-1].micode == 0)
+    if (IsPlnDefined(i))
         return;
     char option[8];
     sprintf(option, "pln_%d", i);

@@ -40,6 +40,8 @@ public:
     /// \brief  Get msgs[i-1]
     Message * GetMsg(uint8_t i);
 
+    bool IsMsgDefined(uint8_t i);
+    
     /// \brief  Get msgs[i-1]->msgRev, msgs[0] is 0
     uint8_t GetMsgRev(uint8_t i);
 

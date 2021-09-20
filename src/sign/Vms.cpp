@@ -5,7 +5,21 @@
 #include <sign/SignGfx.h>
 #include <sign/SignHrg.h>
 
+/*
+    uint8_t signId, power;
+    uint8_t dimmingSet, dimmingV;
+    uint8_t deviceSet, deviceV;
+
+    DispStatus dsBak;
+    DispStatus dsCurrent;
+    DispStatus dsNext;
+    DispStatus dsExt;
+        uint8_t currentPln, currentMsg, currentFrm;
+*/
+
+
 Vms::Vms(uint8_t sid)
+:UnitedSign(id)
 {
     UciProd & prod = DbHelper::Instance().uciProd;
     Slave::numberOfTiles = prod.TileRowsPerSlave() * prod.TileColumnsPerSlave();
@@ -36,8 +50,17 @@ Vms::~Vms()
     delete sign;
 }
 
+void Vms::Reset()
+{
+    dsBak.dispType = DISP_STATUS::TYPE::N_A;
+    dsCurrent.dispType = DISP_STATUS::TYPE::N_A;
+    dsNext.dispType = DISP_STATUS::TYPE::N_A;
+}
+
 uint8_t * Vms::GetStatus(uint8_t *p)
 {
+
+
     return sign->GetStatus(p);
 }
 

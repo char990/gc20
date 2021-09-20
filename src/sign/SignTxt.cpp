@@ -28,4 +28,3 @@ uint8_t *SignTxt::GetExtStatus(uint8_t *pbuf)
     *p++=0;
     return p;
 }
-

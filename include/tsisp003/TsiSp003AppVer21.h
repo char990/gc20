@@ -30,7 +30,7 @@ private:
     void EnablePlan(uint8_t * data, int len);
     void DisablePlan(uint8_t * data, int len);
     void RequestEnabledPlans(uint8_t * data, int len);
-    void PowerONOFF(uint8_t * data, int len);
+    void PowerOnOff(uint8_t * data, int len);
     void DisableEnableDevice(uint8_t * data, int len);
     void SignRequestStoredFMP(uint8_t * data, int len);
     void SignExtendedStatusRequest(uint8_t * data, int len);

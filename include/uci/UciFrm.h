@@ -22,7 +22,7 @@ If frame CRC is not matched, discard frame
 class UciFrm
 {
 public:
-    UciFrm(UciProd &prod);
+    UciFrm();
     ~UciFrm();
 
     /// \brief  load frms[] from "UciFrm"
@@ -33,6 +33,8 @@ public:
 
     /// \brief  Get frms[i-1], check frm->micode to get type, frms[0] is nullptr
     StFrm * GetFrm(uint8_t i);
+
+    bool IsFrmDefined(uint8_t i);
 
     /// \brief  Get frms[i-1]->frmRev, frms[0] is 0
     uint8_t GetFrmRev(uint8_t i);
@@ -52,7 +54,6 @@ public:
 private:
     const char * PATH = "./config";
     StFrm frms[255];
-    UciProd &prod;
     int frmSize;
     uint16_t chksum;
 

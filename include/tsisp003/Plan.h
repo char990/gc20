@@ -22,16 +22,16 @@ struct PlnEntry
 
 #define PLN_LEN_MAX (4+6*6)
 #define PLN_LEN_MIN (4+1*6+1)
-#define PLN_TAIL 3
+#define PLN_TAIL 2
 
 class Plan
 {
 public:
     /// \breif  Blank plan
-    Plan():micode(0),crc(0),enabled(0){};
+    Plan():micode(0),crc(0){};
     ~Plan(){};
 
-    /// \breif  ini plan with hex array, with 2-byte crc + 1-byte enable
+    /// \breif  ini plan with hex array, with 2-byte crc
     APP::ERROR Init(uint8_t * xpln, int xlen);
     
     uint8_t micode;
@@ -41,9 +41,8 @@ public:
     uint8_t entries;
     PlnEntry plnEntries[6];
     uint16_t crc;
-    uint8_t enabled;
 
-    ///\brief convert this plan to uint8_t array in format "Sign Set Plan" + with 2-byte crc + 1-byte enable
+    ///\brief convert this plan to uint8_t array in format "Sign Set Plan" + with 2-byte crc
     /// \param  pbuf : output buf
     /// \return int : length of data
     int ToArray(uint8_t * pbuf);
