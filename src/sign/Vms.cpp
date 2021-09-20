@@ -3,7 +3,7 @@
 #include <uci/DbHelper.h>
 #include <sign/SignTxt.h>
 #include <sign/SignGfx.h>
-#include <sign/SignHrg.h>
+#include <sign/SignAdg.h>
 
 /*
     uint8_t signId, power;
@@ -40,7 +40,7 @@ Vms::Vms(uint8_t sid)
     }
     else if (2)
     {
-        sign = new SignHrg(sid);
+        sign = new SignAdg(sid);
     }
 }
 
