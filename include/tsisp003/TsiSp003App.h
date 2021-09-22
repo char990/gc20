@@ -45,6 +45,10 @@ public:
 
     /// \brief      Check online status
     bool IsOnline();
+
+    /// \brief      Reject if offline
+    bool CheckOlineReject()
+
     /*------------------------------------------------------------------>*/
 
     /// \brief call lowerlayer->Tx
@@ -54,7 +58,7 @@ public:
 
 protected:
     DbHelper & db;
-    //Scheduler & scheduler;
+    Scheduler & sch;
     ISession *session;
 
     uint8_t micode;
@@ -67,9 +71,6 @@ protected:
     void Password(uint8_t * data, int len);
     void EndSession(uint8_t * data, int len);
     void UpdateTime(uint8_t * data, int len);
-    void SignSetDimmingLevel(uint8_t * data, int len);
-    void RetrieveFaultLog(uint8_t * data, int len);
-    void ResetFaultLog(uint8_t * data, int len);
 
     /// \brief  Make password from seed
     uint16_t MakePassword ();

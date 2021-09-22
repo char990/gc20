@@ -1,23 +1,25 @@
-#include <uci/GrpPln.h>
+#include <uci/GrpProc.h>
 #include <module/Utils.h>
 
 using namespace Utils;
 
-GrpPln::GrpPln()
+GrpProc::GrpProc()
 {
     for (int i = 0; i < 255; i++)
     {
         enabledPln[i] = 0;
     }
+    dispType = DISP_STATUS::TYPE::FRM;
+    fmpid[0]=0;  
 }
 
-bool GrpPln::IsPlanEnabled(uint8_t id)
+bool GrpProc::IsPlanEnabled(uint8_t id)
 {
     if(id==0) return false;
     return (enabledPln[id-1] != 0 );
 }
 
-void GrpPln::EnablePlan(uint8_t id)
+void GrpProc::EnablePlan(uint8_t id)
 {
     if(id==0)
     {
@@ -26,7 +28,7 @@ void GrpPln::EnablePlan(uint8_t id)
     enabledPln[id-1] = 1;
 }
 
-void GrpPln::DisablePlan(uint8_t id)
+void GrpProc::DisablePlan(uint8_t id)
 {
     if(id==0)
     {

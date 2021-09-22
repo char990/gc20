@@ -1,55 +1,62 @@
-#ifndef __SIGN_H__
+#define __SIGN_H__
 #define __SIGN_H__
 
-#include <cstdint>
-#include <module/IPeriodicRun.h>
-#include <tsisp003/TsiSp003Const.h>
+#include <sign/Slave.h>
+#include <module/Debounce.h>
 
-struct Display
-{
-    Display():dispState(CTRLLER_STATE::DISPSTATE::DISP_NONE){};
-    enum CTRLLER_STATE::DISPSTATE dispState;
-    uint8_t plnId;
-    uint8_t msgId;
-    uint8_t frmId;
-};
+/*
+    Sign is fit to TSI-SP-003
+    For VMS, it is a combination of slaves.
+    For ISLUS, it is only one slave.
+    It is used for SignStatusReply/SignExtStatusReply/SignConfigurationReply
+    Sign is not for controlling slaves which are controlled in Group
+    Sign is mostly for status 
+*/
 
-class Sign// : public IPeriodicRun
+class Sign
 {
 public:
-    Sign(uint8_t sid);
-    virtual ~Sign(){};
+    Sign(uint8_t id);
+    virtual ~Sign();
 
-    //void PeriodicRun() override = 0;
-    
-    uint8_t * GetStatus(uint8_t *p);
-    virtual uint8_t * GetExtStatus(uint8_t *p)=0;
+    void Reset();
 
-    void SetDimming(uint8_t dimming);
+    uint8_t* GetStatus(uint8_t *p);
+    virtual uint8_t *GetExtStatus(uint8_t *p)=0;
+
+    // set
+    void SignErr(uint8_t err);
+    void Dimming(uint8_t v) { dimmingSet=v; } ;
+    void Device(uint8_t v) { deviceSet=v; } ;
+
+    // get
+    uint8_t Dimming() { return dimmingV; };
+    uint8_t Device() { return deviceV; };
+
+    // set current display
+    void CurrentDisp(uint8_t f, uint8_t m, uint8_t p)
+    {
+        currentPln=p;
+        currentMsg=m;
+        currentFrm=f;
+    };
 
 protected:
-    uint8_t
-        signId,
-        signErr;
+    uint8_t signId;
+    uint8_t signErr;
+
+    uint8_t dimmingSet, dimmingV;
+    uint8_t deviceSet, deviceV;
     
-    uint8_t       // for sign status reply
-        en_dis,
-        reportFrmId,
-        reportMsgId,
-        reportPlnId;
+    uint8_t currentPln, currentMsg, currentFrm;
 
-    uint8_t       // for sign ext-status reply
-        dimMode,
-        dimLevel;
+    Slave *slaves;
+    uint8_t numberOfSlaves;
 
-    // settings
-    uint8_t
-        dimming;
+    uint8_t setFrm;
+    uint8_t dispFrm;
 
-
-    Display currentDisp;
-    Display currentDispBak;
-    Display nextDisp;
+    Debounce lightsensor;
 };
 
 

@@ -3,7 +3,7 @@
 
 TsiSp003App::TsiSp003App()
 :db(DbHelper::Instance()),
- //scheduler(Scheduler::Instance()),
+ sch(Scheduler::Instance())
  session(nullptr)
 {
 }
@@ -28,15 +28,6 @@ int TsiSp003App::Rx(uint8_t *data, int len)
         break;
     case MI::CODE::UpdateTime:
         UpdateTime(data, len);
-        break;
-    case MI::CODE::SignSetDimmingLevel:
-        SignSetDimmingLevel(data, len);
-        break;
-    case MI::CODE::RetrieveFaultLog:
-        RetrieveFaultLog(data, len);
-        break;
-    case MI::CODE::ResetFaultLog:
-        ResetFaultLog(data, len);
         break;
     default:
         return -1;
@@ -129,11 +120,22 @@ void TsiSp003App::Password(uint8_t *data, int len)
 
 void TsiSp003App::EndSession(uint8_t *data, int len)
 {
-    if (ChkLen(len, 1) == false || session==nullptr)
+    if (!CheckOlineReject() || !ChkLen(len, 1) || session==nullptr)
         return;
     Ack();
     // !!! first Ack, then set offline
     session->Session(ISession::SESSION::OFF_LINE);
+}
+
+bool TsiSp003App::CheckOlineReject()
+{
+    if(!IsOnline())
+    {
+        Reject(APP::ERROR::DeviceControllerOffline);
+        return false;
+    }
+    Scheduler::Instance().RefreshDispTime();
+    return true;
 }
 
 bool TsiSp003App::IsOnline()
@@ -145,36 +147,11 @@ bool TsiSp003App::IsOnline()
     return true;
 }
 
-///  ???
 void TsiSp003App::UpdateTime(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
+    if (!CheckOlineReject() || !ChkLen(len, 8))
         return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
-void TsiSp003App::SignSetDimmingLevel(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
-void TsiSp003App::RetrieveFaultLog(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
-}
-
-void TsiSp003App::ResetFaultLog(uint8_t *data, int len)
-{
-    if (ChkLen(len, 3) == false)
-        return;
-    Reject(APP::ERROR::SyntaxError);
+    // set time
     Ack();
 }
 

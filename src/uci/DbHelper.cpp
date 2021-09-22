@@ -12,7 +12,7 @@ void DbHelper::Init()
     uciFrm.LoadConfig();
     uciMsg.LoadConfig();
     uciPln.LoadConfig();
-    uciGrpPln.LoadConfig();
+    uciProcess.LoadConfig();
     uciFlt.LoadConfig();
     uciAlm.LoadConfig();
     uciEvt.LoadConfig();

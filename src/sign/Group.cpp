@@ -8,22 +8,57 @@ Group::Group(uint8_t groupId)
 :groupId(groupId)
 {
     pwrUpTmr.Setms(0);
+    dsBak = nullptr;
+    dsCurrent = nullptr;
+    dsNext = nullptr;
+    dsExt = nullptr;
+    signCnt = 0;
 }
 
 Group::~Group()
 {
-
+    if(dsBak != nullptr)
+    {
+        delete dsBak;
+    }
+    if(dsCurrent != nullptr)
+    {
+        delete dsCurrent;
+    }
+    if(dsNext != nullptr)
+    {
+        delete dsNext;
+    }
+    if(dsExt != nullptr)
+    {
+        delete dsExt;
+    }
 }
 
-void Group::Add(UnitedSign *sign)
+void Group::Add(Sign *sign)
 {
-    gUntSigns.push_back(sign);
+    vSigns.push_back(sign);
     sign->Reset();
+    signCnt++;
+}
+
+void Group::Init()
+{
+    dsBak = new DispStatus(signCnt);
+    dsCurrent = new DispStatus(signCnt);
+    dsNext = new DispStatus(signCnt);
+    dsExt = new DispStatus(signCnt);
+    DispFrm(0);
+    memset(plnMin, 0, sizeof(plnMin));
+    // load pln
 }
 
 void Group::PeriodicRun()
 {
+    // components PeriodicRun
     fcltSw.PeriodicRun();
+    extInput.PeriodicRun();
+
     if(fcltSw.IsChanged())
     {
         FcltSwitch();
@@ -50,10 +85,7 @@ void Group::PeriodicRun()
         }
     }
 
-    for(auto s: gUntSigns)
-    {
-        s->PeriodicRun();
-    }
+    PeriodicHook();
 }
 
 void Group::FcltSwitch()
@@ -62,7 +94,6 @@ void Group::FcltSwitch()
     if(fs ==FacilitySwitch::FS_STATE::OFF)
     {
         // PowerOutput(0);
-        power = PWR_STATE::OFF;
         SetPower(0);
         // reset signs
     }
@@ -70,10 +101,10 @@ void Group::FcltSwitch()
     {
         if(power == PWR_STATE::OFF)
         {
-            // PowerOutput(1);
-            pwrUpTmr.Setms(DbHelper::Instance.uciProd.PowerOnDelay());
+            //PowerOutput(1);
+            SetPower(1);
         }
-        elseif(fs == FacilitySwitch::FS_STATE::AUTO)
+        if(fs == FacilitySwitch::FS_STATE::AUTO)
         {
             DispNext(DISP_STATUS::TYPE::FRM, 0);
         }
@@ -87,12 +118,21 @@ void Group::FcltSwitch()
 
 void Group::ExtInput()
 {
-
+    if(extInput.IsChanged())
+    {
+        uint8_t msg=0;
+        if( (dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
+            (dsExt->dispType != DISP_STATUS::TYPE::Ext) )
+        {
+            DispNext(DISP_STATUS::TYPE::EXT, msg);
+        }
+        extInput.ClearChangeFlag();
+    }
 }
 
 bool Group::IsSignInGroup(uint8_t id)
 {
-    for(auto s: gUntSigns)
+    for(auto s: vSigns)
     {
         if(s->SignId()==id)
         {
@@ -116,7 +156,7 @@ bool Group::IsPlanActive(uint8_t id)
 
 bool Group::IsPlanEnabled(uint8_t id)
 {
-    return DbHelper::Instance().uciGrpPln.IsPlanEnabled(groupId, id);
+    return DbHelper::Instance().uciProcess.IsPlanEnabled(groupId, id);
 }
 
 void Group::EnablePlan(uint8_t id)
@@ -126,12 +166,12 @@ void Group::EnablePlan(uint8_t id)
         DisablePlan(0);
         return;
     }
-    DbHelper::Instance().uciGrpPln.EnablePlan(groupId, id);
+    DbHelper::Instance().uciProcess.EnablePlan(groupId, id);
 }
 
 void Group::DisablePlan(uint8_t id)
 {
-    DbHelper::Instance().uciGrpPln.DisablePlan(groupId, id);
+    DbHelper::Instance().uciProcess.DisablePlan(groupId, id);
 }
 
 bool Group::IsMsgActive(uint8_t p)
@@ -148,23 +188,29 @@ bool Group::IsFrmActive(uint8_t p)
 
 void Group::DispBackup()
 {
-    for(auto sign : gUntSigns)
+    for(auto sign : vSigns)
     {
         sign->DispBackup();
     }
 }
 
-void Group::DispNext(DISP_STATUS::TYPE type,uint8_t id)
+void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
 {
-    for(auto sign : gUntSigns)
+    if(type==DISP_STATUS::TYPE::EXT)
     {
-        sign->DispNext(DISP_STATUS::TYPE type,uint8_t id);
+        dsExt->dispType = type;
+        dsExt->fmpid[0] = id;
+    }
+    else
+    {
+        dsNext->dispType = type;
+        dsNext->fmpid[0] = id;
     }
 }
 
 void DispBackup()
 {
-    for(auto sign : gUntSigns)
+    for(auto sign : vSigns)
     {
         sign->DispBackup();
     }
@@ -180,20 +226,23 @@ void Group::DispMsg(uint8_t id)
     DispNext(DISP_STATUS::TYPE::MSG, id);
 }
 
-void Group::DispAtomicFrm(uint8_t *cmd, int len)
+void Group::DispAtomicFrm(uint8_t *id)
 {
-    for(auto sign : gUntSigns)
+    dsNext->dispType = DISP_STATUS::TYPE::ATF;
+    for(int i=0;i<signCnt;i++)
     {
-        uint8_t* id = cmd[3];
-        for(int i=0;i<cmd[2];i++)
+        dsNext->fmpid[i]=0;
+        uint8_t* p = id;
+        for(int j=0;i<signCnt;j++)
         {
-            if(sign->SignId()==*id)
+            if(*p==vSigns[i]->SignId())
             {
-                sign->DispNext(DISP_STATUS::TYPE::ATF, *(id+1));
+                dsNext->fmpid[i] = *(p+1);
                 break;
             }
-            id+=2;
+            p+=2;
         }
+        id+=2;
     }
 }
 
@@ -204,7 +253,7 @@ void Group::DispExtSw(uint8_t id)
 
 void Group::SetDimming(uint8_t dimming)
 {
-    for(auto sign : gUntSigns)
+    for(auto sign : vSigns)
     {
         sign->SetDimming(dimming);
     }
@@ -213,19 +262,32 @@ void Group::SetDimming(uint8_t dimming)
 void Group::SetPower(uint8_t v)
 {
     if(v==0)
-    {// set power off
-
+    {
+        // set power off
+        power = PWR_STATE::OFF;
+        dsBak.Frm0();
+        dsCurrent.Frm0();
+        dsNext.Frm0();
+        dsExt.N_A();
+        for(auto sign : vSigns)
+        {
+            sign->Reset();
+        }
     }
     else
-    {// set power on
-
+    {
+        // set power on
+        if(power == PWR_STATE::OFF)
+        {
+            pwrUpTmr.Setms(DbHelper::Instance.uciProd.PowerOnDelay()*1000);
+            power = PWR_STATE::RISING;
+        }
     }
-    power=v;
 }
 
 void Group::SignSetPower(uint8_t v)
 {
-    for(auto sign : gUntSigns)
+    for(auto sign : vSigns)
     {
         sign->SetPower(power);
     }
@@ -233,8 +295,9 @@ void Group::SignSetPower(uint8_t v)
 
 void Group::SetDevice(uint8_t endis)
 {
-    for(auto sign : gUntSigns)
+    for(auto sign : vSigns)
     {
         sign->SetDevice(endis);
     }
 }
+

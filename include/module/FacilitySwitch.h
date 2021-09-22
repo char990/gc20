@@ -5,6 +5,8 @@ class FacilitySwitch
 {
 public:
     enum FS_STATE {OFF, AUTO,MSG1, MSG2};
+    FacilitySwitch();
+    ~FacilitySwitch();
     void PeriodicRun();
 
     bool IsChanged() { return isChanged; };
@@ -16,6 +18,7 @@ private:
     bool isChanged;
     FS_STATE fsState;
 };
+
 
 #endif
 

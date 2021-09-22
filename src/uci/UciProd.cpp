@@ -87,15 +87,6 @@ void UciProd::LoadConfig()
     int cnt;
 
     tsiSp003Ver = GetIntFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
-    prodType = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
-
-    pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
-    pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
-    tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
-    tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
-    slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
-    slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
-
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
@@ -104,6 +95,101 @@ void UciProd::LoadConfig()
     else
     {
         MyThrow("UciProd Error: MfcCode length should be 6");
+    }
+
+    prodType = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
+    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
+    numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 16);
+    groupCfg = new uint8_t[numberOfSigns];
+
+    if (prodType == 0)
+    { // VMS
+        // VMS can only has 1 sign in 1 group
+        // _GroupCfg ignored
+        groupCfg = new uint8_t[numberOfSigns];
+        for (int i = 0; i < numberOfSigns; i++)
+        {
+            groupCfg[i] = i + 1;
+        }
+        slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
+        slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
+    }
+    else if (prodType == 1)
+    { // ISLUS
+        // ISLUS can only has 1 slave per Sign
+        // _SlaveRowsPerSign/_SlaveColumnsPerSign ignored
+        slaveRowsPerSign = 1;
+        slaveColumnsPerSign = 1;
+
+        str = GetStr(uciSec, _GroupCfg);
+        cnt = Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
+        if (cnt == numberOfSigns)
+        {
+            for (cnt = 0; cnt < numberOfSigns; cnt++)
+            {
+                if (ibuf[cnt] == 0 || ibuf[cnt] > numberOfGroups)
+                {
+                    MyThrow("UciProd::GroupCfg Error: illegal group id : %d", ibuf[cnt]);
+                }
+                groupCfg[cnt] = ibuf[cnt];
+            }
+        }
+        else
+        {
+            MyThrow("UciProd::GroupCfg Error: cnt!=%d", numberOfSigns);
+        }
+    }
+    pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
+    pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
+    tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
+    tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
+
+    signPort = new struct StSignPort[numberOfSigns];
+    for (int i = 1; i <= numberOfSigns; i++)
+    {
+        sprintf(cbuf, "%s%d", _Sign, i);
+        str = GetStr(uciSec, cbuf);
+        uint32_t x1, x2, x3, x4, x5;
+        if (sscanf(str, "%u.%u.%u.%u:%u", &x1, &x2, &x3, &x4, &x5) == 5)
+        {
+            if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
+            {
+                signPort[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
+                signPort[i - 1].bps_port = x5;
+                continue;
+            }
+        }
+        else
+        {
+            for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
+            {
+                if (memcmp(str, COM_NAME[cnt], 4) == 0)
+                    break;
+            }
+            if (cnt < COMPORT_SIZE)
+            {
+                signPort[i - 1].com_ip = cnt;
+                const char *bps = strchr(str, ':');
+                if (bps != NULL)
+                {
+                    bps++;
+                    if (sscanf(bps, "%u", &x5) == 1)
+                    {
+                        for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
+                        {
+                            if (ALLOWEDBPS[cnt] == x5)
+                                break;
+                        }
+                        if (cnt < EXTENDEDBPS_SIZE)
+                        {
+                            signPort[i - 1].bps_port = x5;
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        MyThrow("UciProd Error: %s '%s'", cbuf, str);
     }
 
     slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 1000);
@@ -172,73 +258,23 @@ void UciProd::LoadConfig()
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
     powerOnDelay = GetInt(uciSec, _PowerOnDelay, 1, 255);
-    
-    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
-
-    signPort = new struct StSignPort[numberOfSigns];
-    for (int i = 1; i <= numberOfSigns; i++)
-    {
-        sprintf(cbuf, "%s%d", _Sign, i);
-        str = GetStr(uciSec, cbuf);
-        uint32_t x1, x2, x3, x4, x5;
-        if (sscanf(str, "%u.%u.%u.%u:%u", &x1, &x2, &x3, &x4, &x5) == 5)
-        {
-            if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
-            {
-                signPort[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
-                signPort[i - 1].bps_port = x5;
-                continue;
-            }
-        }
-        else
-        {
-            for (cnt = 0; cnt < COMPORT_SIZE; cnt++)
-            {
-                if (memcmp(str, COM_NAME[cnt], 4) == 0)
-                    break;
-            }
-            if (cnt < COMPORT_SIZE)
-            {
-                signPort[i - 1].com_ip = cnt;
-                const char *bps = strchr(str, ':');
-                if (bps != NULL)
-                {
-                    bps++;
-                    if (sscanf(bps, "%u", &x5) == 1)
-                    {
-                        for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
-                        {
-                            if (ALLOWEDBPS[cnt] == x5)
-                                break;
-                        }
-                        if (cnt < EXTENDEDBPS_SIZE)
-                        {
-                            signPort[i - 1].bps_port = x5;
-                            continue;
-                        }
-                    }
-                }
-            }
-        }
-        MyThrow("UciProd Error: %s '%s'", cbuf, str);
-    }
 
     ReadBitOption(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
     {
         MyThrow("UciProd Error: Font : Default(0) is not enabled");
     }
-    if((bFont.Get()&0xFFFFFFC0)!=0)
+    if ((bFont.Get() & 0xFFFFFFC0) != 0)
     {
         MyThrow("UciProd Error: Font : Only 0-5 allowed");
     }
     ReadBitOption(uciSec, _Conspicuity, bConspicuity);
-    if((bConspicuity.Get()&0xFFFFFFC0)!=0)
+    if ((bConspicuity.Get() & 0xFFFFFFC0) != 0)
     {
         MyThrow("UciProd Error: Conspicuity : Only 0-5 allowed");
     }
     ReadBitOption(uciSec, _Annulus, bAnnulus);
-    if((bAnnulus.Get()&0xFFFFFFF8)!=0)
+    if ((bAnnulus.Get() & 0xFFFFFFF8) != 0)
     {
         MyThrow("UciProd Error: Annulus : Only 0-2 allowed");
     }
@@ -300,40 +336,45 @@ void UciProd::LoadConfig()
     Close();
     Dump();
 
+    Slave::numberOfTiles = tileRowsPerSlave * tileColumnsPerSlave;
+    Slave::numberOfColours = strlen(colourLeds);
+
     pixelRows = (uint16_t)pixelRowsPerTile * tileRowsPerSlave * slaveRowsPerSign;
     pixelColumns = (uint16_t)pixelColumnsPerTile * tileColumnsPerSlave * slaveColumnsPerSign;
     pixels = (uint32_t)pixelRows * pixelColumns;
 
-    gfx1FrmLen=0;
-    gfx4FrmLen=0;
-    gfx24FrmLen=0;
-    extStsRplSignType = mfcCode[5] - '0';
-    if (extStsRplSignType == 0)
+    gfx1FrmLen = 0;
+    gfx4FrmLen = 0;
+    gfx24FrmLen = 0;
+    int sesrtype = mfcCode[5] - '0';
+    if (sesrtype == 0)
     {
-        configRplSignType = 0;
-        maxFrmLen=255;
+        extStsRplSignType = SESR::SIGN_TYPE::TEXT;
+        configRplSignType = SCR::SIGN_TYPE::TEXT;
+        maxFrmLen = 255;
     }
-    else if (extStsRplSignType == 1 || extStsRplSignType == 2)
+    else if (sesrtype == 1 || sesrtype == 2)
     {
+        extStsRplSignType = (sesrtype == 1) ? SESR::SIGN_TYPE::GFX : SESR::SIGN_TYPE::ADVGFX;
         switch (colourBits)
         {
         case 1:
-            configRplSignType = 1;
+            configRplSignType = SCR::SIGN_TYPE::GFXMONO;
             maxFrmLen = (pixels + 7) / 8;
-            gfx1FrmLen=maxFrmLen;
+            gfx1FrmLen = maxFrmLen;
             break;
         case 4:
-            configRplSignType = 2;
+            configRplSignType = SCR::SIGN_TYPE::GFXMULTI;
             maxFrmLen = (pixels + 1) / 2;
-            gfx1FrmLen=(pixels + 7) / 8;
-            gfx4FrmLen=maxFrmLen;
+            gfx1FrmLen = (pixels + 7) / 8;
+            gfx4FrmLen = maxFrmLen;
             break;
         case 24:
-            configRplSignType = 3;
+            configRplSignType = SCR::SIGN_TYPE::GFXRGB24;
             maxFrmLen = pixels * 3;
-            gfx1FrmLen=(pixels + 7) / 8;
-            gfx4FrmLen=(pixels + 1) / 2;
-            gfx24FrmLen=maxFrmLen;
+            gfx1FrmLen = (pixels + 7) / 8;
+            gfx4FrmLen = (pixels + 1) / 2;
+            gfx24FrmLen = maxFrmLen;
             break;
         default:
             MyThrow("Unknown ColourBits in UciProd");
@@ -342,7 +383,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("Unknown extStSignType:%d(MfcCode error?)", extStsRplSignType);
+        MyThrow("Unknown extStSignType:%d(MfcCode error?)", sesrtype);
     }
 }
 
@@ -361,6 +402,15 @@ void UciProd::Dump()
     {
         printf("\t%s%d \t'%s'\n", _Sign, i, SignPort(i)->ToString().c_str());
     }
+
+    PrintOption_d(_NumberOfGroups, NumberOfGroups());
+    printf("\t%s \t'%u", _GroupCfg, groupCfg[0]);
+    for (int i = 1; i < numberOfSigns; i++)
+    {
+        printf(buf + len, ",%u", groupCfg[i]);
+    }
+    printf("'\n");
+
     PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
     PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
     PrintOption_d(_TileRowsPerSlave, TileRowsPerSlave());
@@ -429,4 +479,3 @@ uint8_t UciProd::CharColumns(int i)
     return (bFont.GetBit(i)) ? (pixelColumns + fonts[i]->CharSpacing()) / (fonts[i]->ColumnsPerCell() + fonts[i]->CharSpacing())
                              : 0;
 }
-

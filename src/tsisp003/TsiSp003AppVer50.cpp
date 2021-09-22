@@ -38,21 +38,34 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
 
 void TsiSp003AppVer50::SignSetHighResolutionGraphicsFrame(uint8_t *data, int len)
 {
-    SignSetFrame(data, len);
+    if (CheckOlineReject())
+    {
+        SignSetFrame(data, len);
+    }
 }
 
 void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
+    if (!CheckOlineReject() || !ChkLen(len, 1))
+    {
         return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    }
+    //reply
 }
 
+// todo: not tested
 void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
+    Reject(APP::ERROR::MiNotSupported);
+    return;
+    if (!CheckOlineReject() || !ChkLen(len, data[2] * 2 + 3))
+    {
         return;
-    Reject(APP::ERROR::SyntaxError);
-    Ack();
+    }
+    if (data[2] != 0)
+    {
+        Reject(APP::ERROR::SyntaxError);
+    }
+    auto r = Scheduler::Instance().CmdDispAtomicFrm(data, len);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }

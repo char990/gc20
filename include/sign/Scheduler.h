@@ -6,7 +6,7 @@
 #include <module/BootTimer.h>
 #include <module/IPeriodicRun.h>
 #include <module/TimerEvent.h>
-#include <sign/UnitedSign.h>
+#include <sign/Sign.h>
 #include <sign/Group.h>
 #include <tsisp003/TsiSp003Const.h>
 
@@ -28,18 +28,16 @@ public:
 
     void Init(TimerEvent *tmrEvt);
 
-    void AssignGroup();
-
     void RefreshDispTime();
 
     void SessionLed(uint8_t v);
 
     uint8_t CtrllerErr();
 
-    UnitedSign *GetUnitedSign(uint8_t id) { return id == 0 ? nullptr : unitedSigns[id - 1]; };
+    Sign *GetSign(uint8_t id) { return (id==0 || id>signCnt) ? nullptr : signs[id - 1]; };
 
     uint8_t GroupCnt() { return groupCnt; };
-    Group *GetGroup(uint8_t id) { return id == 0 ? nullptr : groups[id - 1]; };
+    Group *GetGroup(uint8_t id) { return (id==0 || id>groupCnt) ? nullptr : groups[id - 1]; };
 
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
@@ -50,6 +48,7 @@ public:
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
 
+    int CmdRequestEnabledPlans(uint8_t * buf);
     APP::ERROR CmdEnablePlan(uint8_t *cmd);
     APP::ERROR CmdDisablePlan(uint8_t *cmd);
 
@@ -61,7 +60,7 @@ private:
     Scheduler();
     ~Scheduler();
 
-    UnitedSign **unitedSigns;
+    Sign **signs;
 
     Group **groups;
 

@@ -56,6 +56,8 @@ public:
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
+    uint8_t NumberOfGroups() { return numberOfGroups; };
+    uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId-1]; };
     uint8_t PixelRowsPerTile() { return pixelRowsPerTile; };
     uint8_t PixelColumnsPerTile() { return pixelColumnsPerTile; };
     uint8_t TileRowsPerSlave() { return tileRowsPerSlave; };
@@ -83,8 +85,8 @@ public:
     uint16_t PixelRows() {return pixelRows;};
     uint16_t PixelColumns() {return pixelColumns;};
     uint32_t Pixels() {return pixels;};
-    uint8_t ExtStsRplSignType() { return extStsRplSignType; };
-    uint8_t ConfigRplSignType() { return configRplSignType; };
+    SESR::SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
+    SCR::SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
     int MaxFrmLen() {return maxFrmLen;};
 
     int MinTxtFrmLen() { return 1; };
@@ -93,11 +95,14 @@ public:
     int Gfx4FrmLen() { return gfx4FrmLen; };
     int Gfx24FrmLen() { return gfx24FrmLen; };
 
+    uint8_t * GroupCfg() { return groupCfg; };
+
 private:
     ///  ---------- option -----------
     // string
     const char * _MfcCode="MfcCode";
     const char * _ProdType="ProdType";
+
     // int array
     const char * _Font="Font";
     const char * _Conspicuity="Conspicuity";
@@ -105,6 +110,8 @@ private:
     const char * _TxtFrmColour="TxtFrmColour";
     const char * _GfxFrmColour="GfxFrmColour";
     const char * _HrgFrmColour="HrgFrmColour";
+    const char * _GroupCfg="GroupCfg";
+
     /// int
     const char * _SlaveRqstInterval="SlaveRqstInterval";
     const char * _SlaveRqstStTo="SlaveRqstStTo";
@@ -112,6 +119,7 @@ private:
     const char * _SlaveSetStFrmDly="SlaveSetStFrmDly";
     const char * _SlaveDispDly="SlaveDispDly";
     const char * _SlaveCmdDly="SlaveCmdDly";
+
     /// uint16_t
     const char * _LightSensorMidday="LightSensorMidday";
     const char * _LightSensorMidnight="LightSensorMidnight";
@@ -125,6 +133,7 @@ private:
     const char * _LanternFaultDebounce="LanternFaultDebounce";
     const char * _SlaveVoltageLow="SlaveVoltageLow";
     const char * _SlaveVoltageHigh="SlaveVoltageHigh";
+
     /// uint8_t
     const char * _TsiSp003Ver="TsiSp003Ver";
     const char * _NumberOfSigns="NumberOfSigns";
@@ -140,7 +149,6 @@ private:
     const char * _SlaveRowsPerSign="SlaveRowsPerSign";
     const char * _SlaveColumnsPerSign="SlaveColumnsPerSign";
     const char * _PowerOnDelay="PowerOnDelay";
-    
 
     // float
     const char * _LightSensorScale="LightSensorScale";
@@ -183,6 +191,7 @@ private:
         isResetLogAllowed,
         isUpgradeAllowed,
         numberOfSigns,
+        numberOfGroups,
         prodType,
         pixelRowsPerTile,
         pixelColumnsPerTile,
@@ -191,6 +200,8 @@ private:
         slaveRowsPerSign,
         slaveColumnsPerSign,
         powerOnDelay;
+    
+    uint8_t * groupCfg;
 
     char colourLeds[5];
 
@@ -207,8 +218,8 @@ private:
     uint16_t pixelRows;
     uint16_t pixelColumns;
     uint32_t pixels;
-    uint8_t extStsRplSignType;
-    uint8_t configRplSignType;
+    SESR::SIGN_TYPE extStsRplSignType;
+    SCR::SIGN_TYPE configRplSignType;
     int maxFrmLen;
     int gfx1FrmLen;
     int gfx4FrmLen;

@@ -6,8 +6,8 @@
 class SignGfx : public SignTxt
 {
 public:
-    SignGfx(uint8_t signId);
-    ~SignGfx();
+    SignGfx(uint8_t signId):Sign(signId);
+    ~SignGfx(){};
     virtual uint8_t * GetExtStatus(uint8_t *p) override;
 };
 

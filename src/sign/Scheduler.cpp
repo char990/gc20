@@ -1,11 +1,11 @@
 #include <sign/Scheduler.h>
-#include <sign/Vms.h>
-#include <sign/Islus.h>
+#include <sign/GroupVms.h>
+#include <sign/GroupIslus.h>
 #include <uci/DbHelper.h>
 //#include <module/ptcpp.h>
 
 Scheduler::Scheduler()
-    : unitedSigns(nullptr), groups(nullptr), tmrEvt(nullptr)
+    : signs(nullptr), groups(nullptr), tmrEvt(nullptr)
 {
 }
 
@@ -23,9 +23,9 @@ Scheduler::~Scheduler()
     {
         for (int i = 0; i < signCnt; i++)
         {
-            delete unitedSigns[i];
+            delete signs[i];
         }
-        delete[] unitedSigns;
+        delete[] signs;
     }
     if (tmrEvt != nullptr)
     {
@@ -45,52 +45,57 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
 
     // sign init
     signCnt = DbHelper::Instance().uciProd.NumberOfSigns();
-    unitedSigns = new UnitedSign *[signCnt];
-    switch (DbHelper::Instance().uciProd.ProdType())
+    signs = new Sign *[signCnt];
+    switch (DbHelper::Instance().uciProd.ExtStsRplSignType())
     {
-    case 0:
+    case SESR::SIGN_TYPE::TEXT:
         for (int i = 0; i < signCnt; i++)
         {
-            unitedSigns[i] = new Vms(i + 1);
+            signs[i] = new SignTxt(i + 1);
         }
         break;
-    case 1:
+    case SESR::SIGN_TYPE::GFX:
         for (int i = 0; i < signCnt; i++)
         {
-            unitedSigns[i] = new Islus(i + 1);
+            signs[i] = new SignGfx(i + 1);
+        }
+        break;
+    case SESR::SIGN_TYPE::ADVGFX:
+        for (int i = 0; i < signCnt; i++)
+        {
+            signs[i] = new SignAdg(i + 1);
         }
         break;
     }
-    AssignGroup();
-}
-
-void Scheduler::AssignGroup()
-{
-    if (groups != nullptr)
-    {
-        for (int i = 0; i < groupCnt; i++)
-        {
-            delete groups[i];
-        }
-        delete[] groups;
-    }
-    // group init
     groupCnt = DbHelper::Instance().uciUser.GroupCnt();
     groups = new Group *[groupCnt];
-    for (int i = 0; i < groupCnt; i++)
+
+    switch (DbHelper::Instance().uciProd.ProdType())
     {
-        groups[i] = new Group(i + 1);
+    case 0: // vms
+        for (int i = 0; i < groupCnt; i++)
+        {
+            groups[i] = new GroupVms(i + 1);
+        }
+        break;
+    case 1: // islus
+        for (int i = 0; i < groupCnt; i++)
+        {
+            groups[i] = new GroupIslus(i + 1);
+        }
+        break;
     }
     for (int i = 1; i <= signCnt; i++)
     {
-        GetGroup(DbHelper::Instance().uciUser.GetGroupIdOfSign(i))->Add(GetUnitedSign(i));
+        GetGroup(DbHelper::Instance().uciUser.GetGroupIdOfSign(i))->Add(GetSign(i));
     }
     for (int i = 0; i < groupCnt; i++)
     {
-        if (groups[i]->gUntSigns.size() == 0)
+        if (groups[i]->vSigns.size() == 0)
         {
             MyThrow("Error:There is no sign in Group[%d]", i + 1);
         }
+        groups[i].Init();
     }
 }
 
@@ -98,18 +103,13 @@ void Scheduler::PeriodicRun()
 { // run every 10ms
     if (displayTimeout.IsExpired())
     {
+        // log
         displayTimeout.Clear();
-        // if there is a plan, load plan
-        // or blank
+        for (int i = 0; i < groupCnt; i++)
+        {
+            groups[i]->DispFrm(0);
+        }
     }
-
-
-
-
-
-
-
-
 
     for (int i = 0; i < groupCnt; i++)
     {
@@ -119,7 +119,9 @@ void Scheduler::PeriodicRun()
 
 void Scheduler::RefreshDispTime()
 {
-    displayTimeout.Setms(100000);
+    long ms = DbHelper::Instance().uciUser.DisplayTimeout();
+    ms = (ms == 0) ? LONG_MAX : (ms * 1000);
+    displayTimeout.Setms(ms);
 }
 
 void Scheduler::SessionLed(uint8_t v)
@@ -191,7 +193,7 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    for(int i=1;i<=groupCnt;i++)
+    for (int i = 1; i <= groupCnt; i++)
     {
         Group *grp = GetGroup(i);
         if (cmd[1] == 0 || cmd[1] == grp->GroupId())
@@ -216,7 +218,7 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    for(int i=1;i<=groupCnt;i++)
+    for (int i = 1; i <= groupCnt; i++)
     {
         Group *grp = GetGroup(i);
         if (cmd[1] == 0 || cmd[1] == grp->GroupId())
@@ -229,52 +231,39 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
 
 APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
-    return APP::ERROR::MiNotSupported;
-
-    if (cmd[1]==0 || cmd[1] > groupCnt)
+    if (cmd[1] == 0 || cmd[1] > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    Group *grp = GetGroup(i)
-    if(cmd[2]!=grp->gUntSigns.Size())
+    Group *grp = GetGroup(i);
+    if(grp->SignCnt()!=cmd[2])
     {
-        return APP::ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::SyntaxError;
     }
-    #if 0
+    uint8_t * p = cmd+3;
     for(int i=0;i<cmd[2];i++)
     {
-        if()
-    }
-
-    if (cmd[2] != 0)
-    {
-        if (!DbHelper::Instance().uciFrm.IsFrmDefined(cmd[2]))
+        uint8_t * p2=p+2;
+        for(int j=i+1;j<cmd[2];j++)
+        {
+            if(*p==*p2)
+            {
+                return APP::ERROR::SyntaxError;
+            }
+            p2+=2;
+        }
+        if ( ! grp->IsSignInGroup(*p) )
+        {
+            return APP::ERROR::UndefinedDeviceNumber;
+        }
+        p++;
+        if( (*p != 0) && DbHelper::Instance().uciFrm.GetFrm(*p)==nullptr)
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
+        p++;
     }
-    if (cmd[1] == 0)
-    {
-        for(int i=1;i<=groupCnt;i++)
-        {
-            GetGroup(i)->dsNext.dispType = DISP_STATUS::TYPE::FRM;
-            for(int j=0;j<MAX_SIGN_IN_GROUP;j++)
-            {
-                GetGroup(i)->dsNext.sid = 0;
-                GetGroup(i)->dsNext.fmpid = cmd[2];
-            }
-        }
-    }
-    else
-    {
-        GetGroup(cmd[1])->dsNext.dispType = DISP_STATUS::TYPE::FRM;
-        for(int j=0;j<MAX_SIGN_IN_GROUP;j++)
-        {
-            GetGroup(i)->dsNext.sid = 0;
-            GetGroup(i)->dsNext.fmpid = cmd[2];
-        }
-    }
-    #endif
+    grp->DispAtomicFrm(cmd+3);
     return APP::ERROR::AppNoError;
 }
 
@@ -363,8 +352,41 @@ APP::ERROR Scheduler::CmdDisablePlan(uint8_t *cmd)
     return r;
 }
 
-APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
+APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *data)
 {
+    uint8_t entry = data[1];
+    uint8_t *p;
+    p = data + 2;
+    for (int i = 0; i < entry; i++)
+    {
+        if (p[0] > groupCnt)
+        {
+            return APP::ERROR::UndefinedDeviceNumber;
+        }
+        if (p[1] != 0 && (p[2] == 0 || p[2] > 16))
+        {
+            return APP::ERROR::DimmingLevelNotSupported;
+        }
+        p += 3;
+    }
+    p = data + 2;
+    for (int i = 0; i < entry; i++)
+    {
+        uint8_t dimming = (p[1] == 0) ? 0 : p[2];
+        if (p[0] == 0)
+        {
+            for (int i = 0; i < gcnt; i++)
+            {
+                groups[i]->SetDimming(dimming);
+            }
+        }
+        else
+        {
+            groups[p[0] - 1]->SetDimming(dimming);
+        }
+        p += 3;
+    }
+    return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
@@ -373,4 +395,25 @@ APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
 
 APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
+}
+
+int Scheduler::CmdRequestEnabledPlans(uint8_t *txbuf)
+{
+    txbuf[0] = MI::CODE::ReportEnabledPlans;
+    uint8_t *p = &txbuf[2];
+    for (int i = 1; i <= groupCnt; i++)
+    {
+        Group *grp = GetGroup(i);
+        for (int j = 1; j <= 255; j++)
+        {
+            if (grp->IsPlanEnabled(j))
+            {
+                *p++ = i;
+                *p++ = j;
+            }
+        }
+    }
+    int bytes = p - txbuf;
+    txbuf[1] = (bytes - 2) / 2;
+    return bytes;
 }

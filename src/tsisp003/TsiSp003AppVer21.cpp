@@ -113,7 +113,7 @@ void TsiSp003AppVer21::SignStatusReply()
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
 {
-    APP::ERROR r = APP::ERROR::AppNoError;
+    auto r = APP::ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
     {
@@ -136,45 +136,44 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
             uci.SaveFrm(id);
         }
     }
-    if (r == APP::ERROR::AppNoError)
-    {
-        SignStatusReply();
-    }
-    else
-    {
-        Reject(r);
-    }
+    (r == APP::ERROR::AppNoError) ? SignStatusReply():Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
 {
+    if(!CheckOlineReject())
+    {
+        return;
+    }
     SignSetFrame(data, len);
 }
 
 void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
 {
+    if(!CheckOlineReject())
+    {
+        return;
+    }
     SignSetFrame(data, len);
 }
 
 void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3))
+    if(!CheckOlineReject() || !ChkLen(len, 3))
     {
-        APP::ERROR r = Scheduler::Instance().CmdDispFrm(data);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdDispFrm(data);
+    (r == APP::ERROR::AppNoError)?Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 {
-    APP::ERROR r = APP::ERROR::AppNoError;
+    if(!CheckOlineReject())
+    {
+        return;
+    }
+    auto r = APP::ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_MSG_ID);
     if (id == 0)
     {
@@ -202,35 +201,26 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
             uci.SaveMsg(id);
         }
     }
-    if (r == APP::ERROR::AppNoError)
-    {
-        SignStatusReply();
-    }
-    else
-    {
-        Reject(r);
-    }
+    (r == APP::ERROR::AppNoError)?SignStatusReply():Reject(r);
 }
 
 void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3))
+    if(!CheckOlineReject() || !ChkLen(len, 3))
     {
-        APP::ERROR r = Scheduler::Instance().CmdDispMsg(data);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdDispMsg(data);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
 {
-    APP::ERROR r = APP::ERROR::AppNoError;
+    if(!CheckOlineReject())
+    {
+        return;
+    }
+    auto r = APP::ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_PLN_ID);
     if (id == 0)
     {
@@ -254,71 +244,51 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
             uci.SavePln(id);
         }
     }
-    if (r == APP::ERROR::AppNoError)
-    {
-        SignStatusReply();
-    }
-    else
-    {
-        Reject(r);
-    }
+    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::EnablePlan(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3))
+    if(!CheckOlineReject() || !ChkLen(len, 3))
     {
-        APP::ERROR r = Scheduler::Instance().CmdEnablePlan(data);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdEnablePlan(data);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3))
+    if(!CheckOlineReject() || !ChkLen(len, 3))
     {
-        APP::ERROR r = Scheduler::Instance().CmdDisablePlan(data);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdDisablePlan(data);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
 {
-    if (ChkLen(len, 1) == false)
-        return;
-    txbuf[0] = MI::CODE::ReportEnabledPlans;
-    uint8_t *p = &txbuf[2];
-    Scheduler &scheduler = Scheduler::Instance();
-    uint8_t gcnt = scheduler.GroupCnt();
-    for (int i = 1; i < gcnt + 1; i++)
+    if(!CheckOlineReject() || !ChkLen(len, 3))
     {
-        Group *grp = scheduler.GetGroup(i);
-        for (int j = 1; j <= 255; j++)
-        {
-            if (grp->IsPlanEnabled(j))
-            {
-                *p++ = i;
-                *p++ = j;
-            }
-        }
+        return;
     }
-    int bytes = p - txbuf;
-    txbuf[1] = (bytes - 2) / 2;
+    int bytes = Scheduler::Instance().CmdRequestEnabledPlans(txbuf);
     Tx(txbuf, bytes);
+}
+
+void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
+{
+    if (data[1] == 0)
+    {
+        Reject(APP::ERROR::SyntaxError);
+    }
+    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 3))
+    {
+        return;
+    }
+    auto r = Scheduler::Instance().CmdSetDimmingLevel(data);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
@@ -327,18 +297,12 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    else if (ChkLen(len, 2 + data[1] * 2))
+    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
-        APP::ERROR r = Scheduler::Instance().CmdPowerOnOff(data, len);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdPowerOnOff(data, len);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
@@ -347,24 +311,20 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    else if (ChkLen(len, 2 + data[1] * 2))
+    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
-        APP::ERROR r = Scheduler::Instance().CmdDisableEnableDevice(data, len);
-        if (r == APP::ERROR::AppNoError)
-        {
-            Ack();
-        }
-        else
-        {
-            Reject(r);
-        }
+        return;
     }
+    auto r = Scheduler::Instance().CmdDisableEnableDevice(data, len);
+    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
 }
 
 void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false)
+    if(!CheckOlineReject() || !ChkLen(len, 3))
+    {
         return;
+    }
     if (data[1] > 3 || data[2] == 0)
     {
         Reject(APP::ERROR::SyntaxError);
@@ -419,8 +379,10 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
 {
-    if (ChkLen(len, 1) == false)
+    if(!CheckOlineReject() || !ChkLen(len, 1))
+    {
         return;
+    }
     txbuf[0] = MI::CODE::SignExtendedStatusReply;
     txbuf[1] = IsOnline() ? 1 : 0;
     txbuf[2] = appErr;
@@ -439,4 +401,23 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     txbuf[applen++] = crc >> 8;
     txbuf[applen++] = crc;
     Tx(txbuf, applen);
+}
+
+void TsiSp003AppVer21::RetrieveFaultLog(uint8_t *data, int len)
+{
+    if(!CheckOlineReject() || !ChkLen(len, 1))
+    {
+        return;
+    }
+    //Tx(txbuf, applen);
+}
+
+void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
+{
+    if(!CheckOlineReject() || !ChkLen(len, 1))
+    {
+        return;
+    }
+    // reset fault log
+    Ack();
 }

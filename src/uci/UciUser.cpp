@@ -10,7 +10,6 @@
 using namespace Utils;
 
 UciUser::UciUser()
-:groupCfg(nullptr),groupSigns(nullptr)
 {
     PATH = "./config";
     PACKAGE = "UciUser";
@@ -20,20 +19,12 @@ UciUser::UciUser()
 
 UciUser::~UciUser()
 {
-    if(groupCfg!=nullptr)
-    {
-        delete[] groupCfg;
-    }
-    if(groupSigns!=nullptr)
-    {
-        delete[] groupSigns;
-    }
+
 }
 
 void UciUser::LoadConfig()
 {
     UciProd & uciProd = DbHelper::Instance().uciProd;
-    groupCfg = new uint8_t[uciProd.NumberOfSigns()];
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
@@ -199,27 +190,6 @@ void UciUser::LoadConfig()
         }
     }
 
-
-
-    numberOfGroups=0;
-    str = GetStr(uciSec, _GroupCfg);
-    cnt=Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
-    if(cnt==numberOfSigns)
-    {
-        for(cnt=0;cnt<numberOfSigns;cnt++)
-        {
-            groupCfg[cnt]=ibuf[cnt];
-            if(ibuf[cnt]>numberOfGroups)
-            {
-                numberOfGroups=ibuf[cnt];
-            }
-        }
-    }
-    else
-    {
-        MyThrow("UciUser::GroupCfg Error: cnt!=%d",numberOfSigns);
-    }
-
     Close();
     Dump();
 }
@@ -288,9 +258,6 @@ void UciUser::Dump()
 	PrintDawnDusk(buf);
 	printf ( "\t%s \t%s\n", _DawnDusk, buf);
 
-	PrintGroupCfg(buf);
-	printf ( "\t%s \t%s\n", _GroupCfg, buf);
-
 	printf ( "\n---------------\n" );
 }
 
@@ -304,76 +271,24 @@ void UciUser::PrintExtSw(int i, char *buf)
 void UciUser::PrintDawnDusk(char *buf)
 {
     uint8_t *p = DawnDusk();
-    int len=0;
-    for(int i=0;i<16;i++)
+    int len=sprintf (buf, "'%u:%02u", *p,*(p+1));
+    for(int i=1;i<8;i++)
     {
-        if((i&1)==0)
-        {
-            if(i==0)
-            {
-                len+=sprintf (buf+len, "'%u:", *p);
-            }
-            else
-            {
-                len+=sprintf (buf+len, "%u:", *p,*(p+1));
-            }
-        }
-        else
-        {
-            if(i==15)
-            {
-                len+=sprintf (buf+len, "%02u'", *p);
-            }
-            else
-            {
-                len+=sprintf (buf+len, "%02u,", *p);
-            }
-        }
-        p++;
+        p+=2;
+        len+=sprintf (buf+len, ",%u:%02u", *p,*(p+1));
     }
-}
-
-void UciUser::PrintGroupCfg(char *buf)
-{
-    int signs=DbHelper::Instance().uciProd.NumberOfSigns();
-    uint8_t * gcfg=GroupCfg();
-    int len=0;
-    for(int i=0;i<signs;i++)
-	{
-		if(i==0)
-        {
-            len+=sprintf (buf+len, "'%u", *(gcfg+i));
-        }
-        else
-        {
-            len+=sprintf (buf+len, ",%u", *(gcfg+i));
-        }
-        if(i==signs-1)
-        {
-            len+=sprintf (buf+len, "'");
-        }
-    }
+    sprintf (buf+len, "'");
 }
 
 void UciUser::PrintLuminance(char *buf)
 {
     uint16_t * lum=Luminance();
-	int len=0;
-    for(int i=0;i<16;i++)
+	int len=sprintf (buf, "'%u", *lum);
+    for(int i=1;i<16;i++)
 	{
-		if(i==0)
-        {
-            len+=sprintf (buf+len, "'%u", *(lum+i));
-        }
-        else
-        {
-            len+=sprintf (buf+len, ",%u", *(lum+i));
-        }
-		if(i==15)
-        {
-            len+=sprintf (buf+len, "'");
-        }
+        len+=sprintf (buf+len, ",%u", *(lum+i));
     }
+    sprintf (buf+len, "'");
 }
 
 
@@ -593,18 +508,6 @@ void UciUser::Luminance(uint16_t *p)
         char buf[1024];
         PrintLuminance(buf);
         OptionSave(_Luminance, buf);
-    }
-}
-
-void UciUser::GroupCfg(uint8_t *p)
-{
-    UciProd & uciProd = DbHelper::Instance().uciProd;
-    if(memcmp(groupCfg, p, uciProd.NumberOfSigns())!=0)
-    {
-        memcpy(groupCfg, p, uciProd.NumberOfSigns());
-        char buf[1024];
-        PrintGroupCfg(buf);
-        OptionSave(_GroupCfg, buf);
     }
 }
 

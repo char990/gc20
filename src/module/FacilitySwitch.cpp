@@ -1,5 +1,16 @@
 #include <module/FacilitySwitch.h>
 
-void FacilitySwitch::PeriodicRun()
+FacilitySwitch::FacilitySwitch() 
 {
+    fsState = FS_STATE::AUTO;
+}
+
+FacilitySwitch::~FacilitySwitch() 
+{
+    
+}
+
+void FacilitySwitch::PeriodicRun() 
+{
+    
 }

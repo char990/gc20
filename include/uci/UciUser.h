@@ -63,10 +63,7 @@ public:
     int Baudrate() { return baudrate;};
     uint16_t *Luminance(){ return luminance; };
     uint8_t *DawnDusk(){ return dawnDusk; };
-    uint8_t * GroupCfg() { return groupCfg; };
-    uint8_t NumberOfGroups() { return numberOfGroups; };
-    uint8_t NumberOfSigns() { return numberOfSigns; };
-    uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId-1]; };
+
     ExtSw *ExtSwCfgX(int i){return &extSw[i];};
 
 
@@ -113,8 +110,7 @@ private:
         lockedMsg,
         comPort,
         tz,
-        lastFrmOn,
-        numberOfGroups;
+        lastFrmOn;
 
     uint16_t
         passwordOffset,
@@ -129,10 +125,6 @@ private:
     char shakehandsPassword[11];
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
-
-    uint8_t * groupCfg;
-
-    GroupSigns * groupSigns;
 
     ExtSw extSw[3];
 
@@ -166,12 +158,10 @@ private:
     const char * _Luminance="Luminance";
     const char * _DawnDusk="DawnDusk";
     const char * _ComPort="ComPort";
-    const char * _GroupCfg="GroupCfg";
     const char * _ExtSw="ExtSw";
 
     void PrintExtSw(int i, char *buf);
     void PrintDawnDusk(char *buf);
-    void PrintGroupCfg(char *buf);
     void PrintLuminance(char *buf);
     
 };

@@ -9,7 +9,7 @@
 #include <uci/UciFault.h>
 #include <uci/UciAlarm.h>
 #include <uci/UciEvent.h>
-#include <uci/UciGroupPlan.h>
+#include <uci/UciProcess.h>
 
 class DbHelper
 {
@@ -36,7 +36,7 @@ public:
     UciAlarm uciAlm;
     UciEvent uciEvt;
 
-    UciGroupPlan uciGrpPln;
+    UciProcess uciProcess;
 
 protected:
 private:

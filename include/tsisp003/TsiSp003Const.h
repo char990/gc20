@@ -256,7 +256,7 @@ namespace DISP_STATUS
         BLK,    // Blank
         FRM,    // frame (0 should to be convert to plan)
         MSG,    // message (0 should to be convert to plan), not including ExtSw
-        PLN,    // paln (get from frm0/msg0)
+        PLN,    // plan (get from frm0/msg0)
         ATF,    // atomic frame
         EXT,    // external input
         FSW,    // facility switch

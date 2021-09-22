@@ -2,17 +2,6 @@
 #include <uci/DbHelper.h>
 #include <sign/SignTxt.h>
 
-SignTxt::SignTxt(uint8_t signId)
-:Sign(signId)
-{
-
-}
-
-SignTxt::~SignTxt()
-{
-
-}
-
 uint8_t *SignTxt::GetExtStatus(uint8_t *pbuf)
 {
     UciProd & prod = DbHelper::Instance().uciProd;

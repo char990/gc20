@@ -4,7 +4,7 @@
 
 void BootTimer::Setms(long ms)
 {
-    if(ms<0)
+    if(ms<0||ms==LONG_MAX)
     {
         ns=0;
         sec=LONG_MAX;   // time_t is long
@@ -23,7 +23,7 @@ void BootTimer::Setms(long ms)
 
 void BootTimer::Setus(long us)
 {
-    if(us<0)
+    if(us<0||us==LONG_MAX)
     {
         ns=0;
         sec=LONG_MAX;   // time_t is long
@@ -51,5 +51,5 @@ bool BootTimer::IsExpired()
 
 void BootTimer::Clear()
 {
-    Setms(-1);
+    Setms(LONG_MAX);
 }
