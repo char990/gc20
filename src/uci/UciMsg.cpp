@@ -54,7 +54,8 @@ void UciMsg::LoadConfig()
 
 void UciMsg::Dump()
 {
-    printf("\n------------------------------------------\n%s/%s\n", PATH, PACKAGE);
+    PrintDash();
+	printf("%s/%s\n", PATH, PACKAGE);
 	for (int i = 1; i <= 255; i++)
 	{
 		if (IsMsgDefined(i))
@@ -76,12 +77,12 @@ bool UciMsg::IsMsgDefined(uint8_t i)
 
 Message *UciMsg::GetMsg(uint8_t i)
 {
-	return  IsMsgDefined(i) ? nullptr : &msgs[i - 1];
+	return  IsMsgDefined(i) ? &msgs[i - 1] : nullptr;
 }
 
 uint8_t UciMsg::GetMsgRev(uint8_t i)
 {
-	return IsMsgDefined(i) ? 0 : msgs[i - 1].msgRev;
+	return IsMsgDefined(i) ? msgs[i - 1].msgRev : 0;
 }
 
 APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)

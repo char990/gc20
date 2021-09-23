@@ -42,6 +42,34 @@ void PrintVersion()
     PrintBorder();
 }
 
+class TickTock : public IPeriodicRun
+{
+public:
+    TickTock():sec(0),min(0),hour(0),day(0){};
+    virtual void PeriodicRun() override
+    {
+        if(++sec==60)
+        {
+            sec=0;
+            if(++min==60)
+            {
+                min=0;
+                if(++hour==24)
+                {
+                    hour=0;
+                    day++;
+                }
+            }
+        }
+        printf("Day(%d) %d:%02d:%02d\n",day,hour,min,sec);
+    };
+private:
+    int sec;
+    int min;
+    int hour;
+    int day;
+};
+
 int main()
 {
     // setenv("MALLOC_TRACE","./test.log",1);
@@ -58,8 +86,10 @@ int main()
         TimerEvent timerEvt10ms{10, "[tmrEvt10ms:10ms]"};
         TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
+        TickTock ticktock;
+        timerEvt1s.Add(&ticktock);
         StatusLed::Instance().Init(&timerEvt10ms);
-        DbHelper::Instance().Init();
+        DbHelper::Instance().Init(&timerEvt1s);
         UciUser &user = DbHelper::Instance().uciUser;
 
         //AllGroupPowerOn();
@@ -107,7 +137,6 @@ int main()
         }
 
         Scheduler::Instance().Init(&timerEvt10ms);
-
         // TSI-SP-003 Web
         ObjectPool<OprTcp> webPool{LINKS_WEB};
         auto webpool = webPool.Pool();
@@ -128,7 +157,6 @@ int main()
 
         // TSI-SP-003 SerialPort
         OprSp oprSp{*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS"};
-
         /*************** Start ****************/
         while (1)
         {

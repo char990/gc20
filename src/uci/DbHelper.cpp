@@ -1,7 +1,9 @@
 #include <unistd.h>
+#include <cstdio>
 #include <uci/DbHelper.h>
+#include <module/MyDbg.h>
 
-void DbHelper::Init()
+void DbHelper::Init(TimerEvent *tmrEvt1)
 {
     uciProd.LoadConfig();
     uciUser.LoadConfig();
@@ -13,6 +15,9 @@ void DbHelper::Init()
     uciAlm.LoadConfig();
     uciEvt.LoadConfig();
     syncTmr.Clear();
+    PrintDash();
+    tmrEvt=tmrEvt1;
+    tmrEvt->Add(this);
 }
 
 uint16_t DbHelper::HdrChksum()
@@ -22,10 +27,10 @@ uint16_t DbHelper::HdrChksum()
 
 void DbHelper::RefreshSync()
 {
-    syncTmr.Setms(1000);
+    syncTmr.Setms(3000);
 }
 
-void DbHelper::Sync()
+void DbHelper::PeriodicRun()
 {
     if (syncTmr.IsExpired())
     {

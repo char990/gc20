@@ -70,7 +70,8 @@ void UciFrm::LoadConfig()
 
 void UciFrm::Dump()
 {
-    printf("\n------------------------------------------\n%s/frm_xxx\n", PATH);
+    PrintDash();
+	printf("%s/frm_xxx\n", PATH);
 	for (int i = 0; i < 255; i++)
 	{
 		if (frms[i].dataLen != 0)
@@ -133,12 +134,12 @@ bool UciFrm::IsFrmDefined(uint8_t i)
 
 StFrm *UciFrm::GetFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? nullptr : &frms[i - 1];
+	return IsFrmDefined(i) ? &frms[i - 1] : nullptr;
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)
 {
-	return IsFrmDefined(i) ? 0 : *(frms[i - 1].rawData + OFFSET_FRM_REV);
+	return IsFrmDefined(i) ? *(frms[i - 1].rawData + OFFSET_FRM_REV) : 0;
 }
 
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
@@ -194,7 +195,7 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 
 void UciFrm::SaveFrm(uint8_t i)
 {
-	if (IsFrmDefined(i))
+	if (!IsFrmDefined(i))
 		return;
 	StFrm *frm = GetFrm(i);
 	char filename[256];

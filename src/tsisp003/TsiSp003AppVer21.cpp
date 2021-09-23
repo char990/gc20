@@ -269,7 +269,7 @@ void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
 
 void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if(!CheckOlineReject() || !ChkLen(len, 1))
     {
         return;
     }

@@ -388,7 +388,8 @@ void UciProd::LoadConfig()
 
 void UciProd::Dump()
 {
-    printf("\n------------------------------------------\n%s/%s.%s\n", PATH, PACKAGE, SECTION);
+    PrintDash();
+	printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[ProdType()]);

@@ -31,3 +31,20 @@ int MyPrintf(const char *fmt, ...)
 	puts(MyDbgBuf);
 	return len;
 }
+
+void PrintDash()
+{
+    #define DASH_LEN 40
+	static char buf[DASH_LEN+2]={0};
+    if(buf[0]==0)
+    {
+        char *p=buf;
+		for(int i=0;i<DASH_LEN;i++)
+		{
+			*p++='-';
+		}
+        *p++='\n';
+        *p++='\0';
+    }
+    puts(buf);
+}

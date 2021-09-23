@@ -7,48 +7,12 @@
 #include <module/FacilitySwitch.h>
 #include <module/ExtInput.h>
 #include <module/BootTimer.h>
-
-class DispStatus
-{
-public:
-    DispStatus(uint8_t signCnt)
-    :signCnt(signCnt)
-    {
-        dispType = DISP_STATUS::TYPE::N_A;
-        fmpid = new uint8_t[signCnt];
-    };
-    ~DispStatus()
-    {
-        delete [] fmpid;
-    };
-    void Clone(DispStatus * ds)
-    {
-        dispType = ds->dispType;
-        for(int i=0;i<signCnt;i++)
-        {
-            fmpid[i] = ds->fmpid[i];
-        }
-    };
-    void Frm0()
-    {
-        dispType = DISP_STATUS::TYPE::FRM;
-        fmpid[0] = 0;
-    };
-    void N_A()
-    {
-        dispType = DISP_STATUS::TYPE::N_A;
-        fmpid[0] = 0;
-    };
-    DISP_STATUS::TYPE dispType;
-    uint8_t *fmpid;
-    uint8_t signCnt;
-};
-
+#include <sign/DispStatus.h>
 
 class PlnMinute
 {
 public:
-    uint8_t type;
+    uint8_t type;   // 0:Empty, 1:Frm, 2:Msg
     uint8_t id;
 };
 

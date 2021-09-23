@@ -85,9 +85,7 @@ protected:
 	/// \param	value : value
 	/// \throw	If can't load path/package
 	void OpenSectionForSave(const char * section);
-	/// int will be changed to '123435' then Option_Save()
 	void OptionSave(const char * option, int value);
-	/// chars will be changed to 'chars' then Option_Save()
 	/// Note: Single(') and double(") quotes are not allowed in chars
 	void OptionSave(const char * option, const char * chars);
 	//void OptionSave(struct OptChars * optval);
@@ -100,9 +98,6 @@ protected:
 	void PrintOption_f(const char * option, float x);
 	void PrintOption_str(const char * option, const char * str);
 
-private:
-	/// Lower of OptionSave. Do not call this funtion
-	void Option_Save(const char * option, const char * str);
 };
 
 

@@ -206,7 +206,7 @@ void UciCfg::CloseSectionForSave()
 	DbHelper::Instance().RefreshSync();
 }
 
-void UciCfg::Option_Save(const char *option, const char *str)
+void UciCfg::OptionSave(const char *option, const char *str)
 {
 	ptrSecSave.option = option;
 	ptrSecSave.value = str;
@@ -216,16 +216,10 @@ void UciCfg::Option_Save(const char *option, const char *str)
 void UciCfg::OptionSave(const char * option, int value) 
 {
 	char buf[32];
-	sprintf(buf,"'%d'",value);
-	Option_Save(option, buf);
+	sprintf(buf,"%d",value);
+	OptionSave(option, buf);
 }
 
-void UciCfg::OptionSave(const char * option, const char * chars) 
-{
-	char buf[1024];
-	snprintf(buf, 1023, "'%s'", chars);
-	Option_Save(option, buf);
-}
 /*
 void UciCfg::OptionSave(struct OptChars *optchars)
 {

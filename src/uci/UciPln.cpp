@@ -28,32 +28,33 @@ void UciPln::LoadConfig()
     struct uci_element *e;
     struct uci_option *option;
     Plan pln;
-	uint8_t b[PLN_LEN_MAX + PLN_TAIL];
-	uci_foreach_element(&uciSec->options, e)
-	{
-		if (memcmp(e->name, "pln_", 4) != 0)
-			continue;
-		struct uci_option *option = uci_to_option(e);
-		int i = atoi(e->name + 4);
-		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
-			continue;
-		int len = strlen(option->v.string);
-		if (Cnvt::ParseToU8(option->v.string, b, len) == 0)
-		{
-			len/=2;
-			if (Crc::Crc16_1021(b, len - PLN_TAIL) == Cnvt::GetU16(b + len - PLN_TAIL))
-			{
-				SetPln(b, len);
-			}
-		}
-	}
+    uint8_t b[PLN_LEN_MAX + PLN_TAIL];
+    uci_foreach_element(&uciSec->options, e)
+    {
+        if (memcmp(e->name, "pln_", 4) != 0)
+            continue;
+        struct uci_option *option = uci_to_option(e);
+        int i = atoi(e->name + 4);
+        if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
+            continue;
+        int len = strlen(option->v.string);
+        if (Cnvt::ParseToU8(option->v.string, b, len) == 0)
+        {
+            len /= 2;
+            if (Crc::Crc16_1021(b, len - PLN_TAIL) == Cnvt::GetU16(b + len - PLN_TAIL))
+            {
+                SetPln(b, len);
+            }
+        }
+    }
     Close();
     Dump();
 }
 
 void UciPln::Dump()
 {
-    printf("\n------------------------------------------\n%s/%s\n", PATH, PACKAGE);
+    PrintDash();
+    printf("%s/%s\n", PATH, PACKAGE);
     for (int i = 1; i <= 255; i++)
     {
         if (IsPlnDefined(i))
@@ -75,12 +76,12 @@ bool UciPln::IsPlnDefined(uint8_t i)
 
 Plan *UciPln::GetPln(uint8_t i)
 {
-	return IsPlnDefined(i) ? nullptr : &plns[i - 1];
+    return IsPlnDefined(i) ? &plns[i - 1] : nullptr;
 }
 
 uint8_t UciPln::GetPlnRev(uint8_t i)
 {
-	return IsPlnDefined(i) ? 0 : plns[i - 1].plnRev;
+    return IsPlnDefined(i) ? plns[i - 1].plnRev : 0;
 }
 
 APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
@@ -91,7 +92,7 @@ APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
     {
         // check plan overlap
         int i = pln.plnId - 1;
-        if(plns[i].micode!=0)
+        if (plns[i].micode != 0)
         {
             chksum -= plns[i].crc;
         }
@@ -103,7 +104,7 @@ APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
 
 void UciPln::SavePln(uint8_t i)
 {
-    if (IsPlnDefined(i))
+    if (!IsPlnDefined(i))
         return;
     char option[8];
     sprintf(option, "pln_%d", i);

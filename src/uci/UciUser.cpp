@@ -217,7 +217,8 @@ void UciUser::UserClose()
 
 void UciUser::Dump()
 {
-    printf("\n------------------------------------------\n%s/%s.%s\n", PATH, PACKAGE, SECTION);
+    PrintDash();
+	printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
     PrintOption_d(_DeviceId, DeviceId());
     PrintOption_d(_BroadcastId, BroadcastId());
     PrintOption_2x(_SeedOffset, SeedOffset());
@@ -508,6 +509,11 @@ void UciUser::Luminance(uint16_t *p)
 
 void UciUser::ExtSwCfgX(int i, ExtSw *cfg)
 {
+    if(i>5) return;
+    if(i>=3&&i<=5)
+    {
+        i-=3;
+    }
     if(!extSw[i].Equal(cfg))
     {
         memcpy(&extSw[i], cfg, sizeof(ExtSw));

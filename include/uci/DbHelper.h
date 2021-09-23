@@ -11,8 +11,9 @@
 #include <uci/UciEvent.h>
 #include <uci/UciProcess.h>
 #include <module/BootTimer.h>
+#include <module/TimerEvent.h>
 
-class DbHelper
+class DbHelper : public IPeriodicRun
 {
 public:
     DbHelper(DbHelper const &) = delete;
@@ -23,7 +24,10 @@ public:
         return instance;
     }
 
-    void Init();
+    void Init(TimerEvent *tmrEvt);
+
+    virtual void PeriodicRun() override;
+    
     uint16_t HdrChksum();
 
     UciProd uciProd;
@@ -40,13 +44,19 @@ public:
     UciProcess uciProcess;
 
     void RefreshSync();
-    void Sync();
 
 protected:
 private:
-    DbHelper(){};
-    ~DbHelper(){};
+    DbHelper():tmrEvt(nullptr){};
+    ~DbHelper()
+    {
+        if(tmrEvt!=nullptr)
+        {
+            tmrEvt->Remove(this);
+        }
+    };
     BootTimer syncTmr;
+    TimerEvent *tmrEvt;
 };
 
 

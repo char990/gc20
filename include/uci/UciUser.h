@@ -64,8 +64,15 @@ public:
     uint16_t *Luminance(){ return luminance; };
     uint8_t *DawnDusk(){ return dawnDusk; };
 
-    ExtSw *ExtSwCfgX(int i){return &extSw[i];};
-
+    ExtSw *ExtSwCfgX(int i)
+    {
+        if(i>5) return nullptr;
+        if(i>=3&&i<=5)
+        {
+            i-=3;
+        }
+        return &extSw[i];
+    };
 
     /// --------setter--------
     void BroadcastId(uint8_t);

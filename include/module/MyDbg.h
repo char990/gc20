@@ -11,5 +11,6 @@
 
 extern void MyThrow(const char * fmt, ...);
 extern int MyPrintf(const char * fmt, ...);
+extern void PrintDash(void);
 
 #endif

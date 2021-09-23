@@ -117,7 +117,8 @@ void UciProcess::LoadConfig()
 
 void UciProcess::Dump()
 {
-    printf("\n------------------------------------------\n%s/%s\n", PATH, PACKAGE);
+    PrintDash();
+	printf("%s/%s\n", PATH, PACKAGE);
 	char buf[1024];
 	for (int i = 1; i <= grpCnt; i++)
 	{
@@ -125,7 +126,7 @@ void UciProcess::Dump()
 		PrintGrpPln(i, buf);
 		printf("\tGroup%d.%s \t'%s'\n", i, _EnabledPlan, buf);
 		printf("\tGroup%d.%s \t'%d'\n", i, _Display, p->ProcDisp()->dispType);
-		PrintGrpFmpId(i + 1, buf);
+		PrintGrpFmpId(i, buf);
 		printf("\tGroup%d.%s \t'%s'\n", i, _FmpId, buf);
 		printf("\tGroup%d.%s \t'%d'\n", i, _Dimming, p->Dimming());
 	}
@@ -186,6 +187,12 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 			}
 			len += sprintf(buf + len, "%d", i);
 		}
+	}
+	if(len==0)
+	{
+		len=1;
+		buf[0]=' ';
+		buf[1]='\0';
 	}
 	return len;
 }
