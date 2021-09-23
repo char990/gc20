@@ -180,8 +180,8 @@ void UciFault::Push(uint8_t id, uint8_t errorCode, uint8_t onset)
     Cnvt::ParseToStr(buf, v, FAULT_LOG_SIZE);
     char option[16];
     sprintf(option, "flt_%d", lastLog);
-    Save(SECTION, option, v);
+    OpenSaveClose(SECTION, option, v);
 
     sprintf(v, "%d", lastLog);
-    Save(SECTION, _LastLog, v);
+    OpenSaveClose(SECTION, _LastLog, v);
 }

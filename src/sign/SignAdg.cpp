@@ -5,14 +5,13 @@
 uint8_t *SignAdg::GetExtStatus(uint8_t *p)
 {
     UciProd & prod = DbHelper::Instance().uciProd;
-    uint8_t *p=pbuf;
     *p++=signId;
     *p++=prod.ExtStsRplSignType();
     *p++=prod.CharRows(0);
     *p++=prod.CharColumns(0);
     *p++=signErr;
-    *p++=dimMode;
-    *p++=dimLevel;
+    *p++=DimmingMode();
+    *p++=DimmingValue();
     *p++=12;
     *p++=prod.PixelColumns()/0x100;
     *p++=prod.PixelColumns()&0xff;

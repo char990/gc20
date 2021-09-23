@@ -2,11 +2,11 @@
 #include <uci/DbHelper.h>
 
 Sign::Sign(uint8_t id) 
-:signId(id),signErr(0)
+:signId(id),signErr(0),
 dimmingSet(0),dimmingV(1),
 deviceSet(1),deviceV(1),
 currentFrm(0),currentMsg(0),currentPln(0),
-lightsensor(DbHelper::Instance().uciProd.LightSensorFaultDebounce(),DbHelper::Instance().uciProd.LightSensorFaultDebounce()),
+lightsensor(DbHelper::Instance().uciProd.LightSensorFaultDebounce(),DbHelper::Instance().uciProd.LightSensorFaultDebounce())
 {
     UciProd &prod = DbHelper::Instance().uciProd;
     numberOfSlaves = prod.SlaveRowsPerSign() * prod.SlaveColumnsPerSign();

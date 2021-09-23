@@ -1,12 +1,12 @@
 #ifndef __SIGNHRG_H__
 #define __SIGNHRG_H__
 
-#include <sign/SignGfx.h>
+#include <sign/Sign.h>
 
-class SignAdg : public SignGfx
+class SignAdg : public Sign
 {
 public:
-    SignAdg(uint8_t signId):Sign(signId);
+    SignAdg(uint8_t signId):Sign(signId){};
     ~SignAdg(){};
     virtual uint8_t * GetExtStatus(uint8_t *p) override;
 };

@@ -106,7 +106,7 @@ void TsiSp003AppVer21::SignStatusReply()
     uint8_t *p = &txbuf[14];
     for (int i = 1; i <= scnt; i++)
     {
-        p = Scheduler::Instance().GetUnitedSign(i)->GetStatus(p);
+        p = Scheduler::Instance().GetSign(i)->GetStatus(p);
     }
     Tx(txbuf, p - txbuf);
 }
@@ -394,7 +394,7 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     uint8_t *p = &txbuf[22];
     for (int i = 1; i <= scnt; i++)
     {
-        p = Scheduler::Instance().GetUnitedSign(i)->GetExtStatus(p);
+        p = Scheduler::Instance().GetSign(i)->GetExtStatus(p);
     }
     int applen = p - txbuf;
     uint16_t crc = Crc::Crc16_1021(txbuf, applen);

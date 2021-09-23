@@ -54,11 +54,12 @@ void UciMsg::LoadConfig()
 
 void UciMsg::Dump()
 {
+    printf("\n------------------------------------------\n%s/%s\n", PATH, PACKAGE);
 	for (int i = 1; i <= 255; i++)
 	{
 		if (IsMsgDefined(i))
 		{
-			PrintDbg("%s", msgs[i - 1].ToString().c_str());
+			printf("\t%s\n", msgs[i - 1].ToString().c_str());
 		}
 	}
 }
@@ -68,7 +69,7 @@ uint16_t UciMsg::ChkSum()
 	return chksum;
 }
 
-bool IsMsgDefined(uint8_t i)
+bool UciMsg::IsMsgDefined(uint8_t i)
 {
 	return (i != 0 && msgs[i - 1].micode != 0);
 }
@@ -111,5 +112,5 @@ void UciMsg::SaveMsg(uint8_t i)
 	int len = msgs[i].ToArray(a);
 	char v[(MSG_LEN_MAX + MSG_TAIL) * 2 + 1];
 	Cnvt::ParseToStr(a, v, len);
-	Save(SECTION, option, v);
+	OpenSaveClose(SECTION, option, v);
 }

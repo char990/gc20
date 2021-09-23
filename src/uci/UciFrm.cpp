@@ -70,6 +70,7 @@ void UciFrm::LoadConfig()
 
 void UciFrm::Dump()
 {
+    printf("\n------------------------------------------\n%s/frm_xxx\n", PATH);
 	for (int i = 0; i < 255; i++)
 	{
 		if (frms[i].dataLen != 0)
@@ -81,11 +82,11 @@ void UciFrm::Dump()
 					FrmTxt frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
+						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
-						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
 					}
 				}
 				break;
@@ -94,11 +95,11 @@ void UciFrm::Dump()
 					FrmGfx frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
+						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
-						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
 					}
 				}
 				break;
@@ -107,11 +108,11 @@ void UciFrm::Dump()
 					FrmHrg frm(frms[i].rawData, frms[i].dataLen);
 					if(frm.appErr==APP::ERROR::AppNoError)
 					{
-						PrintDbg("frm_%03d: %s", i+1,  frm.ToString().c_str());
+						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
 					}
 					else
 					{
-						PrintDbg("frm_%03d Error = 0x%02X", i+1, frm.appErr);
+						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
 					}
 				}
 				break;
@@ -219,6 +220,7 @@ void UciFrm::SaveFrm(uint8_t i)
 			PrintDbg("%s\n", buf);
 		}
 		close(frm_fd);
+		DbHelper::Instance().RefreshSync();
 	}
 	delete v;
 }

@@ -64,8 +64,6 @@ public:
     uint8_t TileColumnsPerSlave() { return tileColumnsPerSlave; };
     uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
     uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
-    uint8_t PowerOnDelay() { return powerOnDelay; };
-
 
     char * ColourLeds() { return colourLeds; };
 
@@ -137,6 +135,7 @@ private:
     /// uint8_t
     const char * _TsiSp003Ver="TsiSp003Ver";
     const char * _NumberOfSigns="NumberOfSigns";
+    const char * _NumberOfGroups="NumberOfGroups";
     const char * _SlavePowerUpDelay="SlavePowerUpDelay";
     const char * _ColourBits="ColourBits";
     const char * _ColourLeds="ColourLeds";
@@ -148,7 +147,6 @@ private:
     const char * _TileColumnsPerSlave="TileColumnsPerSlave";
     const char * _SlaveRowsPerSign="SlaveRowsPerSign";
     const char * _SlaveColumnsPerSign="SlaveColumnsPerSign";
-    const char * _PowerOnDelay="PowerOnDelay";
 
     // float
     const char * _LightSensorScale="LightSensorScale";

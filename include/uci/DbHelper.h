@@ -10,6 +10,7 @@
 #include <uci/UciAlarm.h>
 #include <uci/UciEvent.h>
 #include <uci/UciProcess.h>
+#include <module/BootTimer.h>
 
 class DbHelper
 {
@@ -38,10 +39,15 @@ public:
 
     UciProcess uciProcess;
 
+    void RefreshSync();
+    void Sync();
+
 protected:
 private:
     DbHelper(){};
-    ~DbHelper();
+    ~DbHelper(){};
+    BootTimer syncTmr;
 };
+
 
 #endif

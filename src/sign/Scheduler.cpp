@@ -2,7 +2,9 @@
 #include <sign/GroupVms.h>
 #include <sign/GroupIslus.h>
 #include <uci/DbHelper.h>
-//#include <module/ptcpp.h>
+#include <sign/SignTxt.h>
+#include <sign/SignGfx.h>
+#include <sign/SignAdg.h>
 
 Scheduler::Scheduler()
     : signs(nullptr), groups(nullptr), tmrEvt(nullptr)
@@ -19,7 +21,7 @@ Scheduler::~Scheduler()
         }
         delete[] groups;
     }
-    if (unitedSigns != nullptr)
+    if (signs != nullptr)
     {
         for (int i = 0; i < signCnt; i++)
         {
@@ -67,7 +69,7 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
         }
         break;
     }
-    groupCnt = DbHelper::Instance().uciUser.GroupCnt();
+    groupCnt = DbHelper::Instance().uciProd.NumberOfGroups();
     groups = new Group *[groupCnt];
 
     switch (DbHelper::Instance().uciProd.ProdType())
@@ -87,15 +89,15 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
     }
     for (int i = 1; i <= signCnt; i++)
     {
-        GetGroup(DbHelper::Instance().uciUser.GetGroupIdOfSign(i))->Add(GetSign(i));
+        GetGroup(DbHelper::Instance().uciProd.GetGroupIdOfSign(i))->Add(GetSign(i));
     }
     for (int i = 0; i < groupCnt; i++)
     {
-        if (groups[i]->vSigns.size() == 0)
+        if (groups[i]->SignCnt() == 0)
         {
             MyThrow("Error:There is no sign in Group[%d]", i + 1);
         }
-        groups[i].Init();
+        groups[i]->Init();
     }
 }
 
@@ -120,7 +122,7 @@ void Scheduler::PeriodicRun()
 void Scheduler::RefreshDispTime()
 {
     long ms = DbHelper::Instance().uciUser.DisplayTimeout();
-    ms = (ms == 0) ? LONG_MAX : (ms * 1000);
+    ms = (ms == 0) ? -1 : (ms * 1000);
     displayTimeout.Setms(ms);
 }
 
@@ -181,14 +183,16 @@ bool Scheduler::IsPlnActive(uint8_t id)
 
 APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
 {
-    if (cmd[1] > groupCnt)
+    uint8_t grpId = cmd[1];
+    uint8_t frmId = cmd[2];
+    if (grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
     StFrm *frm;
-    if (cmd[2] != 0)
+    if (frmId != 0)
     {
-        if (!DbHelper::Instance().uciFrm.IsFrmDefined(cmd[2]))
+        if (!DbHelper::Instance().uciFrm.IsFrmDefined(frmId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -196,9 +200,9 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
     for (int i = 1; i <= groupCnt; i++)
     {
         Group *grp = GetGroup(i);
-        if (cmd[1] == 0 || cmd[1] == grp->GroupId())
+        if (grpId == 0 || grpId == grp->GroupId())
         {
-            grp->DispFrm(cmd[2]);
+            grp->DispFrm(frmId);
         }
     }
     return APP::ERROR::AppNoError;
@@ -206,14 +210,16 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
 
 APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
 {
-    if (cmd[1] > Scheduler::Instance().GroupCnt())
+    uint8_t grpId = cmd[1];
+    uint8_t msgId = cmd[2];
+    if (grpId > Scheduler::Instance().GroupCnt())
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
     Message *msg;
-    if (cmd[2] != 0)
+    if (msgId != 0)
     {
-        if (!DbHelper::Instance().uciMsg.IsMsgDefined(cmd[2]))
+        if (!DbHelper::Instance().uciMsg.IsMsgDefined(msgId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -221,9 +227,9 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
     for (int i = 1; i <= groupCnt; i++)
     {
         Group *grp = GetGroup(i);
-        if (cmd[1] == 0 || cmd[1] == grp->GroupId())
+        if (grpId == 0 || grpId == grp->GroupId())
         {
-            grp->DispMsg(cmd[2]);
+            grp->DispMsg(msgId);
         }
     }
     return APP::ERROR::AppNoError;
@@ -231,20 +237,22 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
 
 APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
-    if (cmd[1] == 0 || cmd[1] > groupCnt)
+    uint8_t grpId = cmd[1];
+    uint8_t signCnt = cmd[2];
+    if (grpId == 0 || grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    Group *grp = GetGroup(i);
-    if(grp->SignCnt()!=cmd[2])
+    Group *grp = GetGroup(grpId);
+    if(grp->SignCnt()!=signCnt)
     {
         return APP::ERROR::SyntaxError;
     }
     uint8_t * p = cmd+3;
-    for(int i=0;i<cmd[2];i++)
+    for(int i=0;i<signCnt;i++)
     {
         uint8_t * p2=p+2;
-        for(int j=i+1;j<cmd[2];j++)
+        for(int j=i+1;j<signCnt;j++)
         {
             if(*p==*p2)
             {
@@ -269,12 +277,14 @@ APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
 
 APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
 {
+    uint8_t grpId = cmd[1];
+    uint8_t plnId = cmd[2];
     APP::ERROR r = APP::ERROR::AppNoError;
-    if (cmd[1] > groupCnt || cmd[1] == 0)
+    if (grpId > groupCnt || grpId == 0)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (!DbHelper::Instance().uciPln.IsPlnDefined(cmd[2]))
+    else if (!DbHelper::Instance().uciPln.IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
@@ -284,24 +294,23 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
     }
     else
     {
-        Group *grp = GetGroup(cmd[1]);
-        uint8_t id = cmd[2];
-        if (id == 0)
+        Group *grp = GetGroup(grpId);
+        if (plnId == 0)
         {
-            if (grp->IsPlanActive(id))
+            if (grp->IsPlanActive(plnId))
             {
                 r = APP::ERROR::FrmMsgPlnActive;
             }
         }
         else
         {
-            if (grp->IsPlanEnabled(id))
+            if (grp->IsPlanEnabled(plnId))
             {
                 r = APP::ERROR::PlanEnabled;
             }
             else
             {
-                if (grp->IsEnPlanOverlap(id))
+                if (grp->IsEnPlanOverlap(plnId))
                 {
                     r = APP::ERROR::OverlaysNotSupported;
                 }
@@ -309,7 +318,7 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
         }
         if (r == APP::ERROR::AppNoError)
         {
-            grp->EnablePlan(id);
+            grp->EnablePlan(plnId);
         }
     }
     return r;
@@ -317,46 +326,47 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
 
 APP::ERROR Scheduler::CmdDisablePlan(uint8_t *cmd)
 {
+    uint8_t grpId = cmd[1];
+    uint8_t plnId = cmd[2];
     APP::ERROR r = APP::ERROR::AppNoError;
-    if (cmd[1] > groupCnt || cmd[1] == 0)
+    if (grpId > groupCnt || grpId == 0)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (!DbHelper::Instance().uciPln.IsPlnDefined(cmd[2]))
+    else if (!DbHelper::Instance().uciPln.IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else
     {
-        Group *grp = GetGroup(cmd[1]);
-        uint8_t id = cmd[2];
-        if (id == 0)
+        Group *grp = GetGroup(grpId);
+        if (plnId == 0)
         {
-            if (grp->IsPlanActive(id))
+            if (grp->IsPlanActive(plnId))
             {
                 r = APP::ERROR::FrmMsgPlnActive;
             }
         }
         else
         {
-            if (!grp->IsPlanEnabled(id))
+            if (!grp->IsPlanEnabled(plnId))
             {
                 r = APP::ERROR::PlanNotEnabled;
             }
         }
         if (r == APP::ERROR::AppNoError)
         {
-            grp->DisablePlan(id);
+            grp->DisablePlan(plnId);
         }
     }
     return r;
 }
 
-APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *data)
+APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
 {
-    uint8_t entry = data[1];
+    uint8_t entry = cmd[1];
     uint8_t *p;
-    p = data + 2;
+    p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
         if (p[0] > groupCnt)
@@ -369,13 +379,13 @@ APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *data)
         }
         p += 3;
     }
-    p = data + 2;
+    p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
         uint8_t dimming = (p[1] == 0) ? 0 : p[2];
         if (p[0] == 0)
         {
-            for (int i = 0; i < gcnt; i++)
+            for (int i = 0; i < groupCnt; i++)
             {
                 groups[i]->SetDimming(dimming);
             }
@@ -391,10 +401,12 @@ APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *data)
 
 APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
 {
+    return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
+    return APP::ERROR::AppNoError;
 }
 
 int Scheduler::CmdRequestEnabledPlans(uint8_t *txbuf)

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <sign/Group.h>
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
@@ -61,7 +62,7 @@ void Group::PeriodicRun()
 
     if(fcltSw.IsChanged())
     {
-        FcltSwitch();
+        FcltSwitchFunc();
         fcltSw.ClearChangeFlag();
     }
     else
@@ -80,7 +81,7 @@ void Group::PeriodicRun()
             if( power == PWR_STATE::ON &&
                 FacilitySwitch::FS_STATE::AUTO == fcltSw.Get() )
             {
-                ExtInput();
+                ExtInputFunc();
             }
         }
     }
@@ -88,7 +89,7 @@ void Group::PeriodicRun()
     PeriodicHook();
 }
 
-void Group::FcltSwitch()
+void Group::FcltSwitchFunc()
 {
     FacilitySwitch::FS_STATE fs = fcltSw.Get();
     if(fs ==FacilitySwitch::FS_STATE::OFF)
@@ -116,13 +117,13 @@ void Group::FcltSwitch()
     }
 }
 
-void Group::ExtInput()
+void Group::ExtInputFunc()
 {
     if(extInput.IsChanged())
     {
         uint8_t msg=0;
         if( (dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
-            (dsExt->dispType != DISP_STATUS::TYPE::Ext) )
+            (dsExt->dispType != DISP_STATUS::TYPE::EXT) )
         {
             DispNext(DISP_STATUS::TYPE::EXT, msg);
         }
@@ -186,14 +187,6 @@ bool Group::IsFrmActive(uint8_t p)
     return false;
 }
 
-void Group::DispBackup()
-{
-    for(auto sign : vSigns)
-    {
-        sign->DispBackup();
-    }
-}
-
 void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
 {
     if(type==DISP_STATUS::TYPE::EXT)
@@ -208,11 +201,11 @@ void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
     }
 }
 
-void DispBackup()
+void Group::DispBackup()
 {
     for(auto sign : vSigns)
     {
-        sign->DispBackup();
+        //sign->DispBackup();
     }
 }
 
@@ -248,14 +241,14 @@ void Group::DispAtomicFrm(uint8_t *id)
 
 void Group::DispExtSw(uint8_t id)
 {
-    DispNext(DISP_STATUS::TYPE::Ext, id);
+    DispNext(DISP_STATUS::TYPE::EXT, id);
 }
 
 void Group::SetDimming(uint8_t dimming)
 {
     for(auto sign : vSigns)
     {
-        sign->SetDimming(dimming);
+        sign->DimmingSet(dimming);
     }
 }
 
@@ -265,10 +258,10 @@ void Group::SetPower(uint8_t v)
     {
         // set power off
         power = PWR_STATE::OFF;
-        dsBak.Frm0();
-        dsCurrent.Frm0();
-        dsNext.Frm0();
-        dsExt.N_A();
+        dsBak->Frm0();
+        dsCurrent->Frm0();
+        dsNext->Frm0();
+        dsExt->N_A();
         for(auto sign : vSigns)
         {
             sign->Reset();
@@ -279,7 +272,7 @@ void Group::SetPower(uint8_t v)
         // set power on
         if(power == PWR_STATE::OFF)
         {
-            pwrUpTmr.Setms(DbHelper::Instance.uciProd.PowerOnDelay()*1000);
+            pwrUpTmr.Setms(DbHelper::Instance().uciProd.SlavePowerUpDelay()*1000);
             power = PWR_STATE::RISING;
         }
     }
@@ -289,7 +282,7 @@ void Group::SignSetPower(uint8_t v)
 {
     for(auto sign : vSigns)
     {
-        sign->SetPower(power);
+        //sign->SetPower(power);
     }
 }
 
@@ -297,7 +290,7 @@ void Group::SetDevice(uint8_t endis)
 {
     for(auto sign : vSigns)
     {
-        sign->SetDevice(endis);
+        //sign->SetDevice(endis);
     }
 }
 

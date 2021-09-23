@@ -1,4 +1,4 @@
-#define __SIGN_H__
+#ifndef __SIGN_H__
 #define __SIGN_H__
 
 #include <sign/Slave.h>
@@ -19,6 +19,7 @@ public:
     Sign(uint8_t id);
     virtual ~Sign();
 
+    uint8_t SignId() { return signId; };
     void Reset();
 
     uint8_t* GetStatus(uint8_t *p);
@@ -26,11 +27,13 @@ public:
 
     // set
     void SignErr(uint8_t err);
-    void Dimming(uint8_t v) { dimmingSet=v; } ;
+    void DimmingSet(uint8_t v) { dimmingSet=v; } ;
+    void DimmingV(uint8_t v) { dimmingV=v; } ;
     void Device(uint8_t v) { deviceSet=v; } ;
 
     // get
-    uint8_t Dimming() { return dimmingV; };
+    uint8_t DimmingSet() { return dimmingV; };
+    uint8_t DimmingV() { return dimmingV; } ;
     uint8_t Device() { return deviceV; };
 
     // set current display
@@ -46,6 +49,9 @@ protected:
     uint8_t signErr;
 
     uint8_t dimmingSet, dimmingV;
+    uint8_t DimmingMode() { return (dimmingSet==0)?0:1; };
+    uint8_t DimmingValue() { return (dimmingSet==0)?dimmingV:dimmingSet; };
+
     uint8_t deviceSet, deviceV;
     
     uint8_t currentPln, currentMsg, currentFrm;

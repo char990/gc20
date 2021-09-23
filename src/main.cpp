@@ -55,12 +55,12 @@ int main()
 
         // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
         Epoll::Instance().Init(32);
-        TimerEvent timerEvt10ms(10, "[tmrEvt10ms:10ms]");
-        TimerEvent timerEvt100ms(100, "[tmrEvt100ms:100ms]");
-        TimerEvent timerEvt1s(1000, "[tmrEvt1sec:1sec]");
+        TimerEvent timerEvt10ms{10, "[tmrEvt10ms:10ms]"};
+        TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
+        TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
         StatusLed::Instance().Init(&timerEvt10ms);
         DbHelper::Instance().Init();
-        Uciuser &user = DbHelper::Instance().uciUser;
+        UciUser &user = DbHelper::Instance().uciUser;
 
         //AllGroupPowerOn();
 
@@ -109,7 +109,7 @@ int main()
         Scheduler::Instance().Init(&timerEvt10ms);
 
         // TSI-SP-003 Web
-        ObjectPool<OprTcp> webPool(LINKS_WEB);
+        ObjectPool<OprTcp> webPool{LINKS_WEB};
         auto webpool = webPool.Pool();
         for (int i = 0; i < webPool.Size(); i++)
         {
@@ -118,7 +118,7 @@ int main()
         TcpServer tcpServerWeb{user.WebPort(), webPool, &timerEvt1s};
 
         // TSI-SP-003 Tcp
-        ObjectPool<OprTcp> ntsPool(LINKS_NTS);
+        ObjectPool<OprTcp> ntsPool{LINKS_NTS};
         auto tcppool = ntsPool.Pool();
         for (int i = 0; i < ntsPool.Size(); i++)
         {
@@ -127,7 +127,7 @@ int main()
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
 
         // TSI-SP-003 SerialPort
-        OprSp oprSp(*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS");
+        OprSp oprSp{*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS"};
 
         /*************** Start ****************/
         while (1)

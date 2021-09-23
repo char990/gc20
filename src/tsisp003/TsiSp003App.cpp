@@ -2,9 +2,9 @@
 #include <sign/Scheduler.h>
 
 TsiSp003App::TsiSp003App()
-:db(DbHelper::Instance()),
- sch(Scheduler::Instance())
- session(nullptr)
+    : db(DbHelper::Instance()),
+      sch(Scheduler::Instance()),
+      session(nullptr)
 {
 }
 
@@ -75,7 +75,7 @@ void TsiSp003App::Ack()
 
 void TsiSp003App::StartSession(uint8_t *data, int len)
 {
-    if (ChkLen(len, 1) == false || session==nullptr)
+    if (ChkLen(len, 1) == false || session == nullptr)
         return;
     uint8_t seed = rand();
     session->Session(ISession::SESSION::START);
@@ -88,7 +88,7 @@ void TsiSp003App::StartSession(uint8_t *data, int len)
 
 void TsiSp003App::Password(uint8_t *data, int len)
 {
-    if (ChkLen(len, 3) == false || session==nullptr)
+    if (ChkLen(len, 3) == false || session == nullptr)
         return;
     if (session->Session() != ISession::SESSION::START)
     {
@@ -120,7 +120,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
 
 void TsiSp003App::EndSession(uint8_t *data, int len)
 {
-    if (!CheckOlineReject() || !ChkLen(len, 1) || session==nullptr)
+    if (!CheckOlineReject() || !ChkLen(len, 1) || session == nullptr)
         return;
     Ack();
     // !!! first Ack, then set offline
@@ -129,7 +129,7 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
 
 bool TsiSp003App::CheckOlineReject()
 {
-    if(!IsOnline())
+    if (!IsOnline())
     {
         Reject(APP::ERROR::DeviceControllerOffline);
         return false;
@@ -140,9 +140,9 @@ bool TsiSp003App::CheckOlineReject()
 
 bool TsiSp003App::IsOnline()
 {
-    if(session!=nullptr)
+    if (session != nullptr)
     {
-        return session->Session()==ISession::SESSION::ON_LINE;
+        return session->Session() == ISession::SESSION::ON_LINE;
     }
     return true;
 }

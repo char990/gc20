@@ -69,14 +69,15 @@ protected:
 	/// \throw	uci_set failed
 	void SetByPtr();
 
-	/// \brief	Save a section.option.value, open/close inside the function
+	/// \brief	OpenSaveClose a section.option.value, open/close inside the function
 	/// \param	section : section
 	/// \param	option : option
 	/// \param	value : value
 	/// \throw	If can't load path/package
-	void Save(const char * section, const char * option, const char * value);
-	void Save(const char * section, struct OptChars * optval);
-	void Save(const char * section, struct OptChars ** optval, int len);
+	void OpenSaveClose(const char * section, const char * option, const char * value);
+	void OpenSaveClose(const char * section, const char * option, int value);
+	void OpenSaveClose(const char * section, struct OptChars * optval);
+	//void OpenSaveClose(const char * section, struct OptChars ** optval, int len);
 
 	/// \brief	save multi option.value
 	///			steps: OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()

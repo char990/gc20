@@ -2,17 +2,16 @@
 #include <uci/DbHelper.h>
 #include <sign/SignGfx.h>
 
-uint8_t *SignGfx::GetExtStatus(uint8_t *pbuf)
+uint8_t *SignGfx::GetExtStatus(uint8_t *p)
 {
     UciProd & prod = DbHelper::Instance().uciProd;
-    uint8_t *p=pbuf;
     *p++=signId;
     *p++=prod.ExtStsRplSignType();
     *p++=prod.PixelRows();
     *p++=prod.PixelColumns();
     *p++=signErr;
-    *p++=dimMode;
-    *p++=dimLevel;
+    *p++=DimmingMode();
+    *p++=DimmingValue();
     *p++=0;
     return p;
 }

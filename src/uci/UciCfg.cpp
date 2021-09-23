@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include <uci/UciCfg.h>
-
+#include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
 UciCfg::UciCfg()
@@ -147,21 +147,27 @@ bool UciCfg::LoadPtr(const char *section, const char *option)
 	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
 
-void UciCfg::Save(const char *section, const char *option, const char *value)
+void UciCfg::OpenSaveClose(const char *section, const char *option, int value)
 {
 	OpenSectionForSave(section);
-	ptrSecSave.option = option;
-	ptrSecSave.value = value;
-	SetByPtr();
+	OptionSave(option, value);
 	CloseSectionForSave();
 }
 
-void UciCfg::Save(const char *section, struct OptChars *optval)
+void UciCfg::OpenSaveClose(const char *section, const char *option, const char *value)
 {
-	Save(section, optval->option, optval->chars);
+	OpenSectionForSave(section);
+	OptionSave(option, value);
+	CloseSectionForSave();
 }
 
-void UciCfg::Save(const char *section, struct OptChars **optval, int len)
+void UciCfg::OpenSaveClose(const char *section, struct OptChars *optval)
+{
+	OpenSaveClose(section, optval->option, optval->chars);
+}
+
+/*
+void UciCfg::OpenSaveClose(const char *section, struct OptChars **optval, int len)
 {
 	OpenSectionForSave(section);
 	for (int i = 0; i < len; i++)
@@ -169,10 +175,11 @@ void UciCfg::Save(const char *section, struct OptChars **optval, int len)
 		ptrSecSave.option = optval[i]->option;
 		ptrSecSave.value = optval[i]->chars;
 		SetByPtr();
+		OptionSave(optval[i]->option, optval[i]->chars);
 	}
 	CloseSectionForSave();
 }
-
+*/
 void UciCfg::SetByPtr()
 {
 	int r = uci_set(ctx, &ptrSecSave);
@@ -196,6 +203,7 @@ void UciCfg::CloseSectionForSave()
 {
 	Commit();
 	Close();
+	DbHelper::Instance().RefreshSync();
 }
 
 void UciCfg::Option_Save(const char *option, const char *str)

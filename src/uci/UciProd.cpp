@@ -257,7 +257,6 @@ void UciProd::LoadConfig()
 
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
-    powerOnDelay = GetInt(uciSec, _PowerOnDelay, 1, 255);
 
     ReadBitOption(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
@@ -389,9 +388,7 @@ void UciProd::LoadConfig()
 
 void UciProd::Dump()
 {
-    printf("\n---------------\n");
-    printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
-    printf("---------------\n");
+    printf("\n------------------------------------------\n%s/%s.%s\n", PATH, PACKAGE, SECTION);
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[ProdType()]);
@@ -400,14 +397,14 @@ void UciProd::Dump()
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
     for (int i = 0; i < NumberOfSigns(); i++)
     {
-        printf("\t%s%d \t'%s'\n", _Sign, i, SignPort(i)->ToString().c_str());
+        printf("\t%s%d \t'%s'\n", _Sign, i + 1, SignPort(i)->ToString().c_str());
     }
 
     PrintOption_d(_NumberOfGroups, NumberOfGroups());
     printf("\t%s \t'%u", _GroupCfg, groupCfg[0]);
     for (int i = 1; i < numberOfSigns; i++)
     {
-        printf(buf + len, ",%u", groupCfg[i]);
+        printf(",%u", groupCfg[i]);
     }
     printf("'\n");
 
@@ -438,12 +435,19 @@ void UciProd::Dump()
     PrintOption_d(_SlaveVoltageHigh, SlaveVoltageHigh());
     PrintOption_d(_LightSensorScale, LightSensorScale());
     PrintOption_d(_SlavePowerUpDelay, SlavePowerUpDelay());
-    PrintOption_d(_ColourBits, ColourBits());
-    PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
-    PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
-    PrintOption_d(_PowerOnDelay, PowerOnDelay());
 
+    PrintOption_d(_ColourBits, ColourBits());
     PrintOption_str(_ColourLeds, ColourLeds());
+
+    PrintOption_str(_TxtFrmColour, bTxtFrmColour.ToString().c_str());
+    PrintOption_str(_GfxFrmColour, bGfxFrmColour.ToString().c_str());
+    PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
+
+    printf("\tColour map:\n");
+    for (int i = 1; i < 10; i++)
+    {
+        PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
+    }
 
     PrintOption_str(_Font, bFont.ToString().c_str());
     for (int i = 0; i < MAX_FONT + 1; i++)
@@ -455,17 +459,9 @@ void UciProd::Dump()
     }
     PrintOption_str(_Conspicuity, bConspicuity.ToString().c_str());
     PrintOption_str(_Annulus, bAnnulus.ToString().c_str());
-    PrintOption_str(_TxtFrmColour, bTxtFrmColour.ToString().c_str());
-    PrintOption_str(_GfxFrmColour, bGfxFrmColour.ToString().c_str());
-    PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
 
-    printf("\tColour map:\n");
-    for (int i = 1; i < 10; i++)
-    {
-        PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
-    }
-
-    printf("\n---------------\n");
+    PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
+    PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
 }
 
 uint8_t UciProd::CharRows(int i)

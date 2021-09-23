@@ -22,9 +22,12 @@ public:
 
     GrpProcDisp * ProcDisp() { return &procDisp; };
 
+    void Dimming(uint8_t v) { dimming = v; };
+    uint8_t Dimming() { return dimming; };
 private:
     GrpProcDisp procDisp;
     uint8_t enabledPln[255];
+    uint8_t dimming;
 };
 
 #endif

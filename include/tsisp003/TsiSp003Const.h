@@ -253,13 +253,13 @@ namespace DISP_STATUS
     enum TYPE
     {
         N_A,    // not available
-        BLK,    // Blank
         FRM,    // frame (0 should to be convert to plan)
         MSG,    // message (0 should to be convert to plan), not including ExtSw
         PLN,    // plan (get from frm0/msg0)
         ATF,    // atomic frame
         EXT,    // external input
         FSW,    // facility switch
+        BLK,    // Blank
     };
 } // namespace DISP_STATUS
 

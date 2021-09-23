@@ -47,7 +47,7 @@ public:
     bool IsOnline();
 
     /// \brief      Reject if offline
-    bool CheckOlineReject()
+    bool CheckOlineReject();
 
     /*------------------------------------------------------------------>*/
 

@@ -5,6 +5,7 @@
 #include <sign/Sign.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <module/FacilitySwitch.h>
+#include <module/ExtInput.h>
 #include <module/BootTimer.h>
 
 class DispStatus
@@ -99,6 +100,8 @@ public:
     void SetPower(uint8_t v);
     void SetDevice(uint8_t v);
 
+    void DispExtSw(uint8_t id);
+
 protected:
     uint8_t groupId;
     std::vector<Sign *> vSigns;
@@ -112,7 +115,7 @@ protected:
 
     // group status
     enum PWR_STATE {OFF, ON, RISING};
-    POWERSTATE power;
+    PWR_STATE power;
 
     // for Display command except for ATF
     void DispNext(DISP_STATUS::TYPE type,uint8_t id);
@@ -127,8 +130,8 @@ private:
     FacilitySwitch fcltSw;
     ExtInput    extInput;
 
-    void FcltSwitch();
-    void ExtInput();
+    void FcltSwitchFunc();
+    void ExtInputFunc();
 
     PlnMinute plnMin[7*24*60];
 };

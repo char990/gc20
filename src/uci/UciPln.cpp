@@ -53,11 +53,12 @@ void UciPln::LoadConfig()
 
 void UciPln::Dump()
 {
+    printf("\n------------------------------------------\n%s/%s\n", PATH, PACKAGE);
     for (int i = 1; i <= 255; i++)
     {
         if (IsPlnDefined(i))
         {
-            PrintDbg("%s", plns[i - 1].ToString().c_str());
+            printf("\t%s\n", plns[i - 1].ToString().c_str());
         }
     }
 }
@@ -67,7 +68,7 @@ uint16_t UciPln::ChkSum()
     return chksum;
 }
 
-bool IsPlnDefined(uint8_t i)
+bool UciPln::IsPlnDefined(uint8_t i)
 {
     return (i == 0 || plns[i - 1].micode == 0) ? false : true;
 }
@@ -111,5 +112,5 @@ void UciPln::SavePln(uint8_t i)
     i--;
     int len = plns[i].ToArray(a);
     Cnvt::ParseToStr(a, v, len);
-    Save(SECTION, option, v);
+    OpenSaveClose(SECTION, option, v);
 }

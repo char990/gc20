@@ -217,9 +217,7 @@ void UciUser::UserClose()
 
 void UciUser::Dump()
 {
-	printf ( "\n---------------\n" );
-	printf ( "%s/%s.%s\n", PATH, PACKAGE, SECTION);
-	printf ( "---------------\n" );
+    printf("\n------------------------------------------\n%s/%s.%s\n", PATH, PACKAGE, SECTION);
     PrintOption_d(_DeviceId, DeviceId());
     PrintOption_d(_BroadcastId, BroadcastId());
     PrintOption_2x(_SeedOffset, SeedOffset());
@@ -247,9 +245,8 @@ void UciUser::Dump()
 
     for(int i=0;i<3;i++)
 	{
-		sprintf(buf, "%s%d", _ExtSw, i+1);
-        PrintExtSw(i, buf+128);
-        PrintOption_str(buf,buf+128);
+        PrintExtSw(i, buf);
+        printf ( "\t%s%d \t%s\n", _ExtSw, i+1, buf);
 	}
 
 	PrintLuminance(buf);
@@ -257,8 +254,6 @@ void UciUser::Dump()
 
 	PrintDawnDusk(buf);
 	printf ( "\t%s \t%s\n", _DawnDusk, buf);
-
-	printf ( "\n---------------\n" );
 }
 
 void UciUser::PrintExtSw(int i, char *buf)
