@@ -40,6 +40,7 @@ int LayerDL::Rx(uint8_t *data, int len)
                     {
                         upperLayer->Rx(buf, length);
                         length = 0;
+                        return 0;   // only deal with one pkt. Discard other data. 
                     }
                 }
                 else

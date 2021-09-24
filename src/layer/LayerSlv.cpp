@@ -1,5 +1,6 @@
-#include <cstdio>
 #include <unistd.h>
+#include <cstdio>
+#include <cstring>
 
 #include <layer/LayerSlv.h>
 #include <module/MyDbg.h>
@@ -8,98 +9,58 @@
 
 using namespace Utils;
 
-LayerSlv::LayerSlv(std::string name_)
+LayerSlv::LayerSlv(std::string name_, int maxPktSize)
+:length(0), maxPktSize(maxPktSize)
 {
     name = name_ + ":" + "SLV";
+    buf = new uint8_t[maxPktSize];
 }
 
 LayerSlv::~LayerSlv()
 {
+    delete[] buf;
 }
 
 int LayerSlv::Rx(uint8_t * data, int len)
 {
-    #if 0
-    if(len<15 || (len&1)==0 || data[7]!=DATALINK::CTRL_CHAR::STX)
+    uint8_t *p = data;
+    for (int i = 0; i < len; i++)
     {
-        return 0;
-    }
-    uint16_t crc1 = Crc::Crc16_8005(data,len-5);
-    uint16_t crc2 = Cnvt::ParseToU16((char *)data+len-5);
-    if(crc1!=crc2)
-    {
-        return 0;
-    }
-    int addr = Cnvt::ParseToU8((char *)data+5);
-    UciUser & cfg = DbHelper::Instance().uciUser;
-    if(addr!=cfg.DeviceId() || addr==cfg.BroadcastId())
-    {
-        return 0;
-    }
-    _addr=addr;
-    int mi = Cnvt::ParseToU8((char *)data+8);
-    if((mi == MI::CODE::StartSession && len==15 && addr==cfg.DeviceId()) ||
-        sessionTimeout.IsExpired())
-    {
-        session=ISession::SESSION::OFF_LINE;
-        sessionTimeout.Clear();
-        _ns=0;_nr=0;
-    }
-    if(session==ISession::SESSION::ON_LINE)
-    {
-        if(addr==cfg.DeviceId())
-        {// only matched slave addr inc _nr, for broadcast id ignore ns nr
-            int ns = Cnvt::ParseToU8((char *)data+1);
-            int nr = Cnvt::ParseToU8((char *)data+3);
-            if(ns==_nr)
-            {
-                _nr = IncN(ns);
-            }
-            else
-            {
-                if(IncN(ns)==_nr && IncN(nr)==_ns)
-                {// master did not get last reply, so _nr & _ns step back
-                    _ns=nr;
-                }
-                else
-                {// ns nr not matched
-                    MakeNondata(DATALINK::CTRL_CHAR::NAK);
-                    lowerLayer->Tx(txbuf, 10);
-                    return 0;
-                }
-            }
+        uint8_t c = *p++;
+        if (c == DATALINK::CTRL_CHAR::STX)
+        {// packet start, clear buffer
+            buf[0] = c;
+            length = 1;
         }
         else
         {
-            for(int i=0;i<BROADCAST_MI_SIZE;i++)
-            {// check allowed broadcast mi
-                if(broadcastMi[i]==mi)
+            if (length > 0)
+            {
+                if (length < maxPktSize - 1)
                 {
-                    break;
+                    buf[length++] = c;
+                    if (c == DATALINK::CTRL_CHAR::ETX)
+                    {
+                        if(len>=34 && (len&1)==0)
+                        {
+                            uint16_t crc1 = Crc::Crc16_8005(buf,len-5);
+                            uint16_t crc2 = Cnvt::ParseToU16((char *)buf+len-5);
+                            if(crc1==crc2)
+                            {
+                                upperLayer->Rx(buf+1, length-6);
+                            }
+                        }
+                        length = 0;
+                        return 0;   // only deal with one pkt. Discard other data. 
+                    }
                 }
                 else
                 {
-                    if(i==BROADCAST_MI_SIZE-1)
-                    {
-                        return 0;
-                    }
+                    length = 0;
                 }
             }
         }
     }
-    else
-    {
-        if(addr==cfg.BroadcastId())
-        {// ignore broadcast when off-line
-            return 0;
-        }
-    }
-    upperLayer->Rx(data+8, len-13);
-    if(session==ISession::SESSION::ON_LINE)
-    {
-        sessionTimeout.Setms(cfg.SessionTimeout()*1000);
-    }
-    #endif
     return 0;
 }
 
@@ -110,37 +71,15 @@ bool LayerSlv::IsTxReady()
 
 int LayerSlv::Tx(uint8_t * data, int len)
 {
-    #if 0
-    StatusLed::Instance().ReloadDataSt();
-    UciUser & cfg = DbHelper::Instance().uciUser;
-    if(_addr==cfg.BroadcastId())
-    {// no reply for broadcast
-        return 0;
-    }
-    MakeNondata(DATALINK::CTRL_CHAR::ACK);
-    char *p=(char *)txbuf+NON_DATA_PACKET_SIZE;
-    *p=DATALINK::CTRL_CHAR::SOH; p++;
-    Cnvt::ParseToAsc(_ns,p); p+=2;
-    Cnvt::ParseToAsc(_nr,p); p+=2;
-    Cnvt::ParseToAsc(cfg.DeviceId(),p); p+=2;
-    *p=DATALINK::CTRL_CHAR::STX; p++;
-    memcpy(p,data,len);
-    uint16_t crc = Crc::Crc16_1021(p,len);
-    p+=len;
-    Cnvt::ParseToAsc(crc>>8,(char *)p);
-    p+=2;
-    Cnvt::ParseToAsc(crc,(char *)p);
-    p+=2;
-    *p=DATALINK::CTRL_CHAR::ETX;
-
-
-    EndOfBlock(txbuf+NON_DATA_PACKET_SIZE, len+DATA_PACKET_HEADER_SIZE);
-    lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE+DATA_PACKET_HEADER_SIZE+len+DATA_PACKET_EOB_SIZE);
-    if(session==ISession::SESSION::ON_LINE)
-    {
-        _ns=IncN(_ns);
-    }
-    #endif
+    buf[0]=DATALINK::CTRL_CHAR::STX;
+    memcpy(buf+1, data, len);
+    len++;
+    uint16_t crc = Crc::Crc16_8005(buf,len);
+    Cnvt::ParseU16ToAsc(crc, (char *)buf+len);
+    len+=4;
+    *(buf+len)=DATALINK::CTRL_CHAR::ETX;
+    len++;
+    lowerLayer->Tx(buf, len);
     return 0;
 }
 

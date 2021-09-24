@@ -184,18 +184,14 @@ uint8_t LayerNTS::IncN(uint8_t n)
 void LayerNTS::MakeNondata(uint8_t a)
 {
     txbuf[0]=a;
-    Cnvt::ParseToAsc(_nr,(char *)txbuf+1);
-    Cnvt::ParseToAsc(DbHelper::Instance().uciUser.DeviceId(),(char *)txbuf+3);
+    Cnvt::ParseToAsc(_nr, (char*)txbuf+1);
+    Cnvt::ParseToAsc(DbHelper::Instance().uciUser.DeviceId(), (char*)txbuf+3);
     EndOfBlock(txbuf, 5);
 }
 
 void LayerNTS::EndOfBlock(uint8_t *p, int len)
 {
-    uint16_t crc = Crc::Crc16_1021(p,len);
-    p+=len;
-    Cnvt::ParseToAsc(crc>>8,(char *)p);
-    p+=2;
-    Cnvt::ParseToAsc(crc,(char *)p);
-    p+=2;
-    *p=DATALINK::CTRL_CHAR::ETX;
+    uint16_t crc = Crc::Crc16_1021(p, len);
+    Cnvt::ParseU16ToAsc(crc, (char*)p+len);
+    *(p+len+4) = DATALINK::CTRL_CHAR::ETX;
 }

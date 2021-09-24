@@ -1,5 +1,5 @@
-#ifndef __SIGN_H__
-#define __SIGN_H__
+#pragma once
+
 
 #include <sign/Slave.h>
 #include <module/Debounce.h>
@@ -65,5 +65,3 @@ protected:
     Debounce lightsensor;
 };
 
-
-#endif

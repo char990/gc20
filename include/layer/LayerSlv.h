@@ -1,5 +1,5 @@
-#ifndef __LAYERSLV_H__
-#define __LAYERSLV_H__
+#pragma once
+
 #include <string>
 #include <cstdint>
 #include <layer/ILayer.h>
@@ -8,7 +8,7 @@
 class LayerSlv : public ILayer
 {
 public:
-    LayerSlv(std::string name_);
+    LayerSlv(std::string name_, int maxPktSzie);
     ~LayerSlv();
 
     int Rx(uint8_t * data, int len) override;
@@ -21,6 +21,7 @@ public:
 
 private:
     std::string name;
+    int length;
+    uint8_t *buf;
+    int maxPktSize;
 };
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef __TSISP003APPVER31_H__
-#define __TSISP003APPVER31_H__
+#pragma once
+
 
 #include <tsisp003/TsiSp003AppVer21.h>
 
@@ -15,4 +15,3 @@ public:
 private:
 };
 
-#endif

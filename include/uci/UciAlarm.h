@@ -1,5 +1,5 @@
-#ifndef __UCIALARM_H__
-#define __UCIALARM_H__
+#pragma once
+
 
 #include <uci/UciStrLog.h>
 
@@ -26,4 +26,3 @@ public:
 private:
 };
 
-#endif

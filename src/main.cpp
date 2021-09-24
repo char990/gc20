@@ -70,6 +70,17 @@ private:
     int day;
 };
 
+void crc8005()
+{
+    uint8_t buf1[]={0x02,0x30,0x31,0x30,0x35};
+    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1,sizeof(buf1)));
+    uint8_t buf2[]={
+        0x02,0x30,0x32,0x30,0x36,
+        0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,
+        0x31,0x30,0x31,0x34,0x44,0x46,0x34,0x30,0x31,0x34,0x44,0x46,0x34};
+    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2,sizeof(buf2)));
+}
+
 int main()
 {
     // setenv("MALLOC_TRACE","./test.log",1);
@@ -86,8 +97,7 @@ int main()
         TimerEvent timerEvt10ms{10, "[tmrEvt10ms:10ms]"};
         TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
-        TickTock ticktock;
-        timerEvt1s.Add(&ticktock);
+        timerEvt1s.Add(new TickTock{});
         StatusLed::Instance().Init(&timerEvt10ms);
         DbHelper::Instance().Init(&timerEvt1s);
         UciUser &user = DbHelper::Instance().uciUser;
@@ -156,7 +166,19 @@ int main()
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
 
         // TSI-SP-003 SerialPort
-        OprSp oprSp{*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS"};
+        OprSp  *oprSp[COMPORT_SIZE];
+        
+        oprSp[user.ComPort()] = new OprSp{*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS"};
+
+        // slave com port
+        for (int i = 0; i < COMPORT_SIZE; i++)
+        {
+            if(sp[i] != nullptr & i!=user.ComPort())
+            {
+                oprSp[i] = new OprSp{*sp[i], COM_NAME[i], "SLV"};
+            }
+        }
+        
         /*************** Start ****************/
         while (1)
         {

@@ -1,5 +1,5 @@
-#ifndef __GROUPAPP_H__
-#define __GROUPAPP_H__
+#pragma once
+
 
 #include <string>
 #include <layer/ILayer.h>
@@ -27,6 +27,7 @@ public:
 
 protected:
 
+    void SlaveStatusRpl(uint8_t * data, int len);
+    void SlaveExtStatusRpl(uint8_t * data, int len);
 };
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef __DBHELPER_H__
-#define __DBHELPER_H__
+#pragma once
+
 
 #include <uci/UciProd.h>
 #include <uci/UciUser.h>
@@ -59,5 +59,3 @@ private:
     TimerEvent *tmrEvt;
 };
 
-
-#endif

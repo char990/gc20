@@ -1,5 +1,5 @@
-#ifndef __GROUP_H__
-#define __GROUP_H__
+#pragma once
+
 
 #include <vector>
 #include <sign/Sign.h>
@@ -23,7 +23,7 @@ public:
     virtual ~Group();
 
     // Add a sign into this group
-    void Add(Sign * sign);
+    virtual void Add(Sign * sign)=0;
 
     // After all signs added, init group
     void Init();
@@ -52,17 +52,17 @@ public:
 
     /********* command from Tsi-sp-003 ********/
     // if planid==0, disable all plans
-    void EnablePlan(uint8_t id);
+    APP::ERROR EnablePlan(uint8_t id);
     // if planid==0, disable all plans
-    void DisablePlan(uint8_t id);
+    APP::ERROR DisablePlan(uint8_t id);
 
-    void DispFrm(uint8_t id);
-    void DispMsg(uint8_t id);
-    void DispAtomicFrm(uint8_t *id);
+    APP::ERROR DispFrm(uint8_t id);
+    APP::ERROR DispMsg(uint8_t id);
+    APP::ERROR DispAtomicFrm(uint8_t *id);
 
-    void SetDimming(uint8_t v);
-    void SetPower(uint8_t v);
-    void SetDevice(uint8_t v);
+    APP::ERROR SetDimming(uint8_t v);
+    APP::ERROR SetPower(uint8_t v);
+    APP::ERROR SetDevice(uint8_t v);
 
     void DispExtSw(uint8_t id);
 
@@ -76,6 +76,8 @@ protected:
     DispStatus *dsCurrent;
     DispStatus *dsNext;
     DispStatus *dsExt;
+    uint8_t msgEnd;
+
 
     // group status
     enum PWR_STATE {OFF, ON, RISING};
@@ -98,6 +100,19 @@ private:
     void ExtInputFunc();
 
     PlnMinute plnMin[7*24*60];
+
+    
+    bool LoadDsNext();
+
+    bool IsDsNextEmergency();
+
+    int taskPlnLine;
+    BootTimer task1Tmr;
+    bool TaskPln(int * _ptLine);
+
+    int taskMsgLine;
+    BootTimer task2Tmr;
+    bool TaskMsg(int * _ptLine);
+
 };
 
-#endif

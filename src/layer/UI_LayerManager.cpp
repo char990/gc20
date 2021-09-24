@@ -1,9 +1,9 @@
-#include <layer/LayerManager.h>
+#include <layer/UI_LayerManager.h>
 #include <layer/LayerNTS.h>
 #include <layer/LayerWeb.h>
 #include <layer/LayerDL.h>
 #include <module/MyDbg.h>
-LayerManager::LayerManager(std::string name_, std::string aType)
+UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
 {
     if(aType.compare("NTS")==0)
     {
@@ -19,14 +19,6 @@ LayerManager::LayerManager(std::string name_, std::string aType)
     else if(aType.compare("WEB")==0)
     {
         appFactory = new AppFactory();
-        appLayer = appFactory->GetApp();
-        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
-        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
-        midLayer = new LayerWeb(name_);
-    }
-    else if(aType.compare("SLV")==0)
-    {
-        appFactory = nullptr;
         appLayer = appFactory->GetApp();
         prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
         dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
@@ -50,7 +42,7 @@ LayerManager::LayerManager(std::string name_, std::string aType)
     appLayer->LowerLayer(prstLayer);
 }
 
-LayerManager::~LayerManager()
+UI_LayerManager::~UI_LayerManager()
 {
     if(appFactory)
     {
@@ -70,12 +62,12 @@ LayerManager::~LayerManager()
     }
 }
 
-int LayerManager::Rx(uint8_t * data, int len)
+int UI_LayerManager::Rx(uint8_t * data, int len)
 {
     return dlLayer->Rx(data,len);
 }
 
-void LayerManager::Clean()
+void UI_LayerManager::Clean()
 {
     return dlLayer->Clean();
 }

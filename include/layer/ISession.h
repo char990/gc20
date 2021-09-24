@@ -1,5 +1,4 @@
-#ifndef __ITSISP003SESSION_H__
-#define __ITSISP003SESSION_H__
+#pragma once
 
 #include <cstdint>
 
@@ -14,4 +13,3 @@ public:
     virtual void Seed(uint8_t v)=0;
 };
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef __NSW50_H__
-#define __NSW50_H__
+#pragma once
+
 
 #include <tsisp003/TsiSp003AppVer50.h>
 
@@ -10,4 +10,3 @@ public:
     virtual ~NSW50();
 };
 
-#endif

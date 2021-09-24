@@ -1,5 +1,5 @@
-#ifndef __LAYERWEB_H__
-#define __LAYERWEB_H__
+#pragma once
+
 #include <string>
 #include <cstdint>
 #include <layer/ILayer.h>
@@ -23,4 +23,4 @@ private:
     std::string name;
 };
 
-#endif
+

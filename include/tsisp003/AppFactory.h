@@ -1,5 +1,5 @@
-#ifndef __APPFACTORY_H__
-#define __APPFACTORY_H__
+#pragma once
+
 
 #include <string>
 #include <layer/ILayer.h>
@@ -19,4 +19,3 @@ private:
     TsiSp003App * app;
 };
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef __TCPOPERATOR_H__
-#define __TCPOPERATOR_H__
+#pragma once
+
 
 #include <module/BootTimer.h>
 #include <module/IOperator.h>
@@ -58,4 +58,4 @@ private:
     int RxHandle();
 };
 
-#endif
+

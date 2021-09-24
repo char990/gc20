@@ -1,5 +1,5 @@
-#ifndef __PRESENTAIONLAYER_H__
-#define __PRESENTAIONLAYER_H__
+#pragma once
+
 
 #include <layer/ILayer.h>
 
@@ -22,4 +22,3 @@ private:
     uint8_t *buf;
 };
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef __EXTINPUT_H__
-#define __EXTINPUT_H__
+#pragma once
+
 
 class ExtInput
 {
@@ -19,5 +19,4 @@ private:
     EXT_STATE state;
 };
 
-#endif
 

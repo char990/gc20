@@ -1,5 +1,5 @@
-#ifndef __PLAN_H__
-#define __PLAN_H__
+#pragma once
+
 
 #include <cstdint>
 #include <string>
@@ -55,4 +55,3 @@ private:
 
 };
 
-#endif

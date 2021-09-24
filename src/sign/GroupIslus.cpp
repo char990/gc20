@@ -16,3 +16,10 @@ void GroupIslus::PeriodicHook()
 {
 }
 
+void GroupIslus::Add(Sign *sign)
+{
+    vSigns.push_back(sign);
+    sign->Reset();
+    signCnt++;
+    // slaves
+}

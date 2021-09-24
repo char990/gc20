@@ -1,5 +1,5 @@
-#ifndef __FAULTLOG_H__
-#define __FAULTLOG_H__
+#pragma once
+
 
 #include <ctime>
 #include <cstdint>
@@ -16,6 +16,4 @@ public :
     uint8_t errorCode;
     uint8_t onset;
 };
-
-#endif
 

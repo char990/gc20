@@ -1,5 +1,5 @@
-#ifndef __STRLOG_H__
-#define __STRLOG_H__
+#pragma once
+
 
 #include <ctime>
 
@@ -17,5 +17,5 @@ public :
     char str[STR_SIZE];
 };
 
-#endif
+
 

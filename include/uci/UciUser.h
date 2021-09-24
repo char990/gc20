@@ -1,5 +1,5 @@
-#ifndef __USERCFG_H__
-#define __USERCFG_H__
+#pragma once
+
 
 
 #include <uci/UciCfg.h>
@@ -173,4 +173,3 @@ private:
     
 };
 
-#endif

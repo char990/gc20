@@ -1,5 +1,5 @@
-#ifndef __QLD21_H__
-#define __QLD21_H__
+#pragma once
+
 
 #include <tsisp003/TsiSp003AppVer21.h>
 
@@ -10,4 +10,3 @@ public:
     virtual ~QLD21();
 };
 
-#endif

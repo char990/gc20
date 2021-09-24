@@ -1,5 +1,5 @@
-#ifndef __LAYERMIDDLE_H__
-#define __LAYERMIDDLE_H__
+#pragma once
+
 
 #include <cstdint>
 #include <string>
@@ -9,11 +9,11 @@
 #include <tsisp003/AppFactory.h>
 
 
-class LayerManager : public IUpperLayer
+class UI_LayerManager : public IUpperLayer
 {
 public:
-    LayerManager(std::string name_, std::string aType);
-    ~LayerManager();
+    UI_LayerManager(std::string name_, std::string aType);
+    ~UI_LayerManager();
 
     int Rx(uint8_t * data, int len) override;
 
@@ -31,5 +31,3 @@ private:
     TsiSp003App * appLayer;  // app layer
     AppFactory * appFactory;
 };
-
-#endif

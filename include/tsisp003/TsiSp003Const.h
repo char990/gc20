@@ -1,5 +1,5 @@
-#ifndef __TSISP003CONST_H__
-#define __TSISP003CONST_H__
+#pragma once
+
 
 namespace MI
 {
@@ -340,4 +340,3 @@ namespace CTRLLER_STATE
     enum DISPSTATE {DISP_NONE, DISP_FRM, DISP_MSG, DISP_PLN, DISP_FCLTSW, DISP_EXTSW, DISP_PWR_OFF, DISP_DISABLED};
 }
 
-#endif

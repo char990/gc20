@@ -1,5 +1,5 @@
-#ifndef __EPOLL_H__
-#define __EPOLL_H__
+#pragma once
+
 
 #include <sys/epoll.h>
 #include <module/IGcEvent.h>
@@ -38,4 +38,3 @@ private:
     int MAX;
     epoll_event * events;
 };
-#endif

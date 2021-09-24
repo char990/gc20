@@ -1,5 +1,5 @@
-#ifndef __FACILITYSWITCH_H__
-#define __FACILITYSWITCH_H__
+#pragma once
+
 
 class FacilitySwitch
 {
@@ -18,7 +18,4 @@ private:
     bool isChanged;
     FS_STATE fsState;
 };
-
-
-#endif
 

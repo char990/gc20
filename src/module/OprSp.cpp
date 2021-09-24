@@ -1,14 +1,22 @@
 #include <unistd.h>
 #include <module/MyDbg.h>
 #include <module/OprSp.h>
-#include <layer/LayerManager.h>
+#include <layer/UI_LayerManager.h>
+#include <layer/SLV_LayerManager.h>
 #include <module/Epoll.h>
 
 OprSp::OprSp(SerialPort & sp, std::string name_, std::string aType)
 :sp(sp)
 {
     name = name_;
-    upperLayer = new LayerManager(name, aType);
+    if(aType.compare("SLV")==0)
+    {
+        upperLayer = new SLV_LayerManager(name, aType);
+    }
+    else
+    {
+        upperLayer = new UI_LayerManager(name, aType);
+    }
     upperLayer->LowerLayer(this);
     upperLayer->Clean();
     sp.Open();
@@ -75,8 +83,15 @@ int OprSp::RxHandle()
     }
     else
     {
-        //printf("%d bytes\n", n);
-        //upperLayer->Rx(data, len);
+        printf("ComRx %d bytes\n", n);
+        if(IsTxRdy()) // if tx is busy, discard this rx
+        {
+            upperLayer->Rx(buf, n);
+        }
+        else
+        {
+            printf("ComTx not ready\n");
+        }
     }
     return 0;
 }

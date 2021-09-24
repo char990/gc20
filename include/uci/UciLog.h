@@ -1,5 +1,5 @@
-#ifndef __UCILOG_H__
-#define __UCILOG_H__
+#pragma once
+
 
 #include <uci/UciCfg.h>
 
@@ -29,4 +29,3 @@ protected:
     int lastLog;
 };
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef __UCIFAULT_H__
-#define __UCIFAULT_H__
+#pragma once
+
 
 #include <uci/UciLog.h>
 #include <uci/FaultLog.h>
@@ -53,5 +53,3 @@ private:
     FaultLog *faultLog;
 };
 
-
-#endif

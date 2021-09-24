@@ -1,5 +1,5 @@
-#ifndef __NSW31_H__
-#define __NSW31_H__
+#pragma once
+
 
 #include <tsisp003/TsiSp003AppVer31.h>
 
@@ -11,4 +11,4 @@ public:
 
 };
 
-#endif
+

@@ -1,5 +1,5 @@
-#ifndef __UCIPLN_H__
-#define __UCIPLN_H__
+#pragma once
+
 
 #include <string>
 #include <tsisp003/Plan.h>
@@ -69,4 +69,3 @@ private:
 };
 
 
-#endif

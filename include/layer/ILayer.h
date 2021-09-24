@@ -1,5 +1,4 @@
-#ifndef __ILAYER_H__
-#define __ILAYER_H__
+#pragma once
 
 #include <cstdint>
 
@@ -60,4 +59,4 @@ public:
     ILayer(){};
     virtual ~ILayer(){};
 };
-#endif
+

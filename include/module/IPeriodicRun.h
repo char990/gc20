@@ -1,5 +1,5 @@
-#ifndef __IPEROIDICRUN_H__
-#define __IPEROIDICRUN_H__
+#pragma once
+
 
 class IPeriodicRun
 {
@@ -9,4 +9,4 @@ public:
     virtual void PeriodicRun()=0;
 };
 
-#endif
+

@@ -26,9 +26,12 @@ void GrpProc::EnablePlan(uint8_t id)
 {
     if (id == 0)
     {
-        return;
+        DisablePlan(0);
     }
-    enabledPln[id - 1] = 1;
+    else
+    {
+        enabledPln[id - 1] = 1;
+    }
 }
 
 void GrpProc::DisablePlan(uint8_t id)

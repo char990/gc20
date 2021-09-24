@@ -1,5 +1,5 @@
-#ifndef __SERIALPORT_H__
-#define __SERIALPORT_H__
+#pragma once
+
 
 #include <string>
 
@@ -95,4 +95,3 @@ private:
     /// \brief		The file descriptor for the open file. This gets written to when Open() is called.
     int spFileDesc;
 };
-#endif /* __SERIALPORT_H__ */

@@ -2,11 +2,12 @@
 #include <sign/Group.h>
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
+#include <module/ptcpp.h>
 
 using namespace Utils;
 
 Group::Group(uint8_t groupId)
-:groupId(groupId)
+:groupId(groupId), taskPlnLine(0), taskMsgLine(0), msgEnd(1)
 {
     pwrUpTmr.Setms(0);
     dsBak = nullptr;
@@ -34,13 +35,6 @@ Group::~Group()
     {
         delete dsExt;
     }
-}
-
-void Group::Add(Sign *sign)
-{
-    vSigns.push_back(sign);
-    sign->Reset();
-    signCnt++;
 }
 
 void Group::Init()
@@ -85,6 +79,21 @@ void Group::PeriodicRun()
             }
         }
     }
+
+    bool reload = false;
+    if(IsDsNextEmergency())
+    {
+        msgEnd=1;
+    }
+    if(msgEnd)
+    {
+        reload = LoadDsNext();
+    }
+
+    TaskPln(&taskPlnLine);
+    TaskMsg(&taskMsgLine);
+    //TaskFrm(&taskFrmLine);
+
 
     PeriodicHook();
 }
@@ -145,34 +154,63 @@ bool Group::IsSignInGroup(uint8_t id)
 
 bool Group::IsEnPlanOverlap(uint8_t id)
 {
-
+    if(id==0) return false;
     return false;
 }
 
 bool Group::IsPlanActive(uint8_t id)
 {
+    if(id==0)
+    {// check all plans
+
+    }
 
     return false;
 }
 
 bool Group::IsPlanEnabled(uint8_t id)
 {
+    if(id==0)
+    {// check all plans
+
+    }
     return DbHelper::Instance().uciProcess.IsPlanEnabled(groupId, id);
 }
 
-void Group::EnablePlan(uint8_t id)
+APP::ERROR Group::EnablePlan(uint8_t id)
 {
     if(id==0)
     {
-        DisablePlan(0);
-        return;
+        return DisablePlan(0);
+    }
+    if (IsPlanActive(id))
+    {
+        return APP::ERROR::FrmMsgPlnActive;
+    }
+    if (IsPlanEnabled(id))
+    {
+        return APP::ERROR::PlanEnabled;
+    }
+    if (IsEnPlanOverlap(id))
+    {
+        return APP::ERROR::OverlaysNotSupported;
     }
     DbHelper::Instance().uciProcess.EnablePlan(groupId, id);
+    return APP::ERROR::AppNoError;
 }
 
-void Group::DisablePlan(uint8_t id)
+APP::ERROR Group::DisablePlan(uint8_t id)
 {
+    if (IsPlanActive(id))
+    {
+        return APP::ERROR::FrmMsgPlnActive;
+    }
+    if (id!=0 && !IsPlanEnabled(id))
+    {
+        return APP::ERROR::PlanNotEnabled;
+    }
     DbHelper::Instance().uciProcess.DisablePlan(groupId, id);
+    return APP::ERROR::AppNoError;
 }
 
 bool Group::IsMsgActive(uint8_t p)
@@ -209,34 +247,78 @@ void Group::DispBackup()
     }
 }
 
-void Group::DispFrm(uint8_t id)
+APP::ERROR Group::DispFrm(uint8_t id)
 {
-    DispNext(DISP_STATUS::TYPE::FRM, id);
+    if(FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
+    {
+        DispNext(DISP_STATUS::TYPE::FRM, id);
+        return APP::ERROR::AppNoError;
+    }
+    return APP::ERROR::FacilitySwitchOverride;
 }
 
-void Group::DispMsg(uint8_t id)
+APP::ERROR Group::DispMsg(uint8_t id)
 {
-    DispNext(DISP_STATUS::TYPE::MSG, id);
+    if(FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
+    {
+        DispNext(DISP_STATUS::TYPE::MSG, id);
+        return APP::ERROR::AppNoError;
+    }
+    return APP::ERROR::FacilitySwitchOverride;
 }
 
-void Group::DispAtomicFrm(uint8_t *id)
+APP::ERROR Group::DispAtomicFrm(uint8_t *cmd)
 {
+    if(FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+    {
+        return APP::ERROR::FacilitySwitchOverride;
+    }
+    if(cmd[2]=signCnt)
+    {
+        return APP::ERROR::SyntaxError;
+    }
+    uint8_t * p = cmd+3;
+    for(int i=0;i<signCnt;i++)
+    {
+        // check if there is a duplicate sign id
+        uint8_t * p2=p+2;
+        for(int j=i+1;j<signCnt;j++)
+        {
+            if(*p==*p2)
+            {
+                return APP::ERROR::SyntaxError;
+            }
+            p2+=2;
+        }
+        // sign is in this group
+        if ( !IsSignInGroup(*p) )
+        {
+            return APP::ERROR::UndefinedDeviceNumber;
+        }
+        p++;
+        // frm is defined or frm0
+        if( (*p != 0) && DbHelper::Instance().uciFrm.GetFrm(*p)==nullptr)
+        {
+            return APP::ERROR::FrmMsgPlnUndefined;
+        }
+        p++;
+    }
     dsNext->dispType = DISP_STATUS::TYPE::ATF;
+    p=cmd+3;
     for(int i=0;i<signCnt;i++)
     {
         dsNext->fmpid[i]=0;
-        uint8_t* p = id;
         for(int j=0;i<signCnt;j++)
         {
             if(*p==vSigns[i]->SignId())
-            {
+            {// matched sign id
                 dsNext->fmpid[i] = *(p+1);
                 break;
             }
-            p+=2;
         }
-        id+=2;
+        p+=2;
     }
+    return APP::ERROR::AppNoError;
 }
 
 void Group::DispExtSw(uint8_t id)
@@ -244,15 +326,16 @@ void Group::DispExtSw(uint8_t id)
     DispNext(DISP_STATUS::TYPE::EXT, id);
 }
 
-void Group::SetDimming(uint8_t dimming)
+APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     for(auto sign : vSigns)
     {
         sign->DimmingSet(dimming);
     }
+    return APP::ERROR::AppNoError;
 }
 
-void Group::SetPower(uint8_t v)
+APP::ERROR Group::SetPower(uint8_t v)
 {
     if(v==0)
     {
@@ -276,6 +359,7 @@ void Group::SetPower(uint8_t v)
             power = PWR_STATE::RISING;
         }
     }
+    return APP::ERROR::AppNoError;
 }
 
 void Group::SignSetPower(uint8_t v)
@@ -286,11 +370,140 @@ void Group::SignSetPower(uint8_t v)
     }
 }
 
-void Group::SetDevice(uint8_t endis)
+APP::ERROR Group::SetDevice(uint8_t endis)
 {
     for(auto sign : vSigns)
     {
         //sign->SetDevice(endis);
     }
+    return APP::ERROR::AppNoError;
 }
 
+
+bool Group::TaskPln(int *_ptLine)
+{
+    PT_BEGIN();
+    while (true)
+    {
+        printf("TaskPln Step 0, delay 1 sec\n");
+        task1Tmr.Setms(1000);
+        PT_WAIT_UNTIL(task1Tmr.IsExpired());
+        printf("TaskPln Step 1, delay 3 sec\n");
+        task1Tmr.Setms(3000);
+        PT_WAIT_UNTIL(task1Tmr.IsExpired());
+        printf("TaskPln Step 2, delay 5 sec\n");
+        task1Tmr.Setms(5000);
+        PT_WAIT_UNTIL(task1Tmr.IsExpired());
+
+        if(dsCurrent->dispType == DISP_STATUS::TYPE::PLN)
+        {
+            
+        }
+    };
+    PT_END();
+}
+
+bool Group::TaskMsg(int *_ptLine)
+{
+    PT_BEGIN();
+    while (true)
+    {
+        if(1)//new msg
+        {
+            if(1)// msg is defined
+            {
+                // is this msg same Ext-input
+                // 
+                // else
+                // Load 1st frm
+                // load ok?
+                // display 1st frm
+                // display ok?
+                // if first frm is overlay, set/clear or-buf
+                // if 2nd frm, load 2nd frm with or-buf
+                // load ok?
+            }
+            else
+            {
+                // only update msg id
+            }
+        }
+        else
+        {
+            // msg end? set endMsg
+            // is this msg Ext-input
+        }
+        printf("TaskMsg, every 2 sec\n");
+        task2Tmr.Setms(2000);
+        PT_WAIT_UNTIL(task2Tmr.IsExpired());
+    };
+    PT_END();
+}
+
+bool Group::IsDsNextEmergency()
+{
+    bool r=false;
+    if (dsExt->dispType == DISP_STATUS::TYPE::EXT)
+    {// external input
+        uint8_t mid = dsExt->fmpid[0];
+        if(mid>=3 && mid<=5)
+        {
+            if(DbHelper::Instance().uciUser.ExtSwCfgX(mid)->emergency)
+            {
+                r=true;
+            }
+        }
+    }
+    return r;
+}
+
+bool Group::LoadDsNext()
+{
+    bool r=false;
+    if (dsNext->dispType == DISP_STATUS::TYPE::FSW)
+    {// facility switch
+        dsBak->Frm0();
+        dsCurrent->Clone(dsNext);
+        dsNext->N_A();
+        r=true;
+    }
+    else if (dsExt->dispType == DISP_STATUS::TYPE::EXT)
+    {// external input
+        dsBak->Clone(dsCurrent);
+        dsCurrent->Clone(dsExt);
+        dsExt->N_A();
+        r=true;
+    }
+    else if (dsNext->dispType != DISP_STATUS::TYPE::N_A)
+    {// display command
+        dsBak->Clone(dsCurrent);
+        dsCurrent->Clone(dsNext);
+        dsNext->N_A();
+        r=true;
+    }
+    if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A)
+    { // if current == N/A, load frm[0] to activate plan
+        dsBak->Frm0();
+        dsCurrent->Frm0();
+        r=true;
+    }
+    if (dsCurrent->fmpid[0] == 0 &&
+        (dsCurrent->dispType == DISP_STATUS::TYPE::FRM || dsCurrent->dispType == DISP_STATUS::TYPE::MSG))
+    {//frm[0] or msg[0], activate plan
+        dsCurrent->dispType = DISP_STATUS::TYPE::PLN;
+        r=true;
+    }
+    return r;
+}
+
+/*
+    uint8_t signId, power;
+    uint8_t dimmingSet, dimmingV;
+    uint8_t deviceSet, deviceV;
+
+    DispStatus dsBak;
+    DispStatus dsCurrent;
+    DispStatus dsNext;
+    DispStatus dsExt;
+        uint8_t currentPln, currentMsg, currentFrm;
+*/

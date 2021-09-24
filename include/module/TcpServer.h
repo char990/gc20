@@ -1,5 +1,5 @@
-#ifndef __TCPSERVER_H__
-#define __TCPSERVER_H__
+#pragma once
+
 
 #include <unistd.h>
 #include <string>
@@ -34,5 +34,3 @@ private:
     sockaddr_in myserver;
     void SetNonblocking(int sock);
 };
-
-#endif

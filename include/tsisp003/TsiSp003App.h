@@ -1,5 +1,4 @@
-#ifndef __TSISP003App_H__
-#define __TSISP003App_H__
+#pragma once
 
 #include <string>
 #include <layer/ILayer.h>
@@ -77,4 +76,3 @@ protected:
 
 };
 
-#endif

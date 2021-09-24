@@ -1,5 +1,5 @@
-#ifndef __PRODCFG_H__
-#define __PRODCFG_H__
+#pragma once
+
 
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/UciCfg.h>
@@ -224,4 +224,3 @@ private:
     int gfx24FrmLen;
 };
 
-#endif

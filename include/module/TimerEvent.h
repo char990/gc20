@@ -1,5 +1,5 @@
-#ifndef __TIMEREVENT_H__
-#define __TIMEREVENT_H__
+#pragma once
+
 
 #include <time.h>
 #include <sys/timerfd.h>
@@ -32,5 +32,3 @@ private:
     //int ticks, sec, cnt;
     std::vector<IPeriodicRun *> pEvts;
 };
-
-#endif

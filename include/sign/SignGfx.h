@@ -1,5 +1,5 @@
-#ifndef __SIGNGFX_H__
-#define __SIGNGFX_H__
+#pragma once
+
 
 #include <sign/Sign.h>
 
@@ -10,5 +10,3 @@ public:
     ~SignGfx(){};
     virtual uint8_t * GetExtStatus(uint8_t *p) override;
 };
-
-#endif

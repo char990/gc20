@@ -1,5 +1,5 @@
-#ifndef __UCIEVENT_H__
-#define __UCIEVENT_H__
+#pragma once
+
 
 #include <uci/UciStrLog.h>
 
@@ -27,4 +27,4 @@ private:
 
 };
 
-#endif
+

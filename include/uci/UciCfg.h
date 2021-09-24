@@ -1,5 +1,4 @@
-#ifndef __UCICFG_H__
-#define __UCICFG_H__
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -100,5 +99,3 @@ protected:
 
 };
 
-
-#endif

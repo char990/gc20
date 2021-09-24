@@ -2,11 +2,9 @@
 #include <module/OprTcp.h>
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
-#include <layer/LayerManager.h>
+#include <layer/UI_LayerManager.h>
 
 #define TCPSPEED 1000
-
-
 
 OprTcp::OprTcp()
 {
@@ -47,32 +45,32 @@ void OprTcp::EventsHandle(uint32_t events)
 void OprTcp::Init(std::string name_, std::string aType, int idle)
 {
     name = name_;
-    upperLayer = new LayerManager(name, aType);
+    upperLayer = new UI_LayerManager(name, aType);
     upperLayer->LowerLayer(this);
     idleTime = idle;
 }
 
 /// \brief  Called when a new connection accepted
-void OprTcp::Setup(int fd,TimerEvent * tmr)
+void OprTcp::Setup(int fd, TimerEvent *tmr)
 {
     upperLayer->Clean();
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
     Epoll::Instance().AddEvent(this, events);
-    tmrEvt=tmr;
+    tmrEvt = tmr;
     tmrEvt->Add(this);
     tcpIdleTmr.Setms(idleTime);
 }
 
 /// \brief  Called by upperLayer->Tx()
-int OprTcp::Tx(uint8_t * data, int len)
+int OprTcp::Tx(uint8_t *data, int len)
 {
     int x = TxBytes(data, len);
-    if(x>0)
+    if (x > 0)
     {
-        x = len/TCPSPEED;
+        x = len / TCPSPEED;
     }
-    return (x==0 ? 1 : x);
+    return (x == 0 ? 1 : x);
 }
 
 /// \brief  Called by TimerEvt
@@ -90,17 +88,24 @@ int OprTcp::RxHandle()
 {
     uint8_t buf[4096];
     tcpIdleTmr.Setms(idleTime);
-    while(1)
+    while (1)
     {
         int n = read(eventFd, buf, 4096);
-        if(n<=0)
+        if (n <= 0)
         {
             return n;
         }
         else
         {
-            printf("%d bytes\n", n);
-            upperLayer->Rx(buf, n);
+            printf("TcpRx %d bytes\n", n);
+            if (IsTxRdy()) // if tx is busy, discard this rx
+            {
+                upperLayer->Rx(buf, n);
+            }
+            else
+            {
+                printf("TcpTx not ready\n");
+            }
         }
     }
 }
@@ -111,7 +116,7 @@ void OprTcp::SetServer(TcpServer *svr)
     server = svr;
 }
 
-/// \brief  
+/// \brief
 void OprTcp::Release()
 {
     tcpIdleTmr.Clear();

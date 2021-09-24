@@ -1,5 +1,5 @@
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#pragma once
+
 
 #include <cstdint>
 #include <string>
@@ -75,5 +75,3 @@ private:
         groupCnt,
         signCnt;
 };
-
-#endif

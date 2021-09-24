@@ -1,5 +1,4 @@
-#ifndef __FONT_H__
-#define __FONT_H__
+#pragma once
 
 #include <cstdint>
 
@@ -161,4 +160,3 @@ private:
     uint8_t * cellPtr[0x80-0x20];  // 0x20 - 0x7F
 };
 
-#endif

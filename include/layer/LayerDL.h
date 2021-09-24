@@ -1,5 +1,5 @@
-#ifndef __LAYERPACKET_H__
-#define __LAYERPACKET_H__
+#pragma once
+
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -27,4 +27,3 @@ private:
     int size;
     int length;
 };
-#endif

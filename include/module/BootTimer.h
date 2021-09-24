@@ -1,5 +1,5 @@
-#ifndef __BOOTTIMER_H__
-#define __BOOTTIMER_H__
+#pragma once
+
 
 #include <time.h>
 
@@ -26,4 +26,3 @@ class BootTimer
         __syscall_slong_t ns;
 };
 
-#endif

@@ -1,3 +1,5 @@
+#pragma once
+
 // Protothread class and macros for lightweight, stackless threads in C++.
 //
 // This was "ported" to C++ from Adam Dunkels' protothreads C library at:
@@ -5,8 +7,6 @@
 //
 
 
-#ifndef __PROTOTHREAD_H__
-#define __PROTOTHREAD_H__
 /* E.g.
 
 class Pt_Task
@@ -61,6 +61,15 @@ bool Pt_Task::Task2(int *_ptLine)
 };
 */
 
+// bool Pt_Task::Task1(int *_ptLine);
+// params:  *_ptLine:   Task State
+//          0:      Task Start
+//          -1:     Task Exit, will not run unless reset *_ptLine as 0
+//          other:  In a Task State
+// return:  bool:   Task status
+//          false:  Task finished
+//          true:   Task is running
+
 // Declare start of protothread (use at start of TASK(int *_ptLine) implementation).
 #define PT_BEGIN() bool ptYielded = true; switch (*_ptLine) { case 0:
 
@@ -101,4 +110,3 @@ bool Pt_Task::Task2(int *_ptLine)
     do { ptYielded = false; *_ptLine = __LINE__; case __LINE__: \
     if (!ptYielded || !(condition)) return true; } while (0)
 
-#endif // __PROTOTHREAD_H__

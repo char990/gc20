@@ -1,5 +1,5 @@
-#ifndef __LAYERPHCS_H__
-#define __LAYERPHCS_H__
+#pragma once
+
 
 #include <unistd.h>
 #include <string>
@@ -52,4 +52,3 @@ private:
     static const uint8_t broadcastMi[BROADCAST_MI_SIZE];
 };
 
-#endif

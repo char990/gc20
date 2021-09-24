@@ -1,5 +1,4 @@
-#ifndef __TSISP003APPVER21_H__
-#define __TSISP003APPVER21_H__
+#pragma once
 
 #include <tsisp003/TsiSp003App.h>
 
@@ -39,4 +38,3 @@ private:
     void ResetFaultLog(uint8_t * data, int len);
 };
 
-#endif

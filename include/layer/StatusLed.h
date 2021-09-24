@@ -1,5 +1,4 @@
-#ifndef __STATUSLED_H__
-#define __STATUSLED_H__
+#pragma once
 
 #include <module/IPeriodicRun.h>
 #include <module/TimerEvent.h>
@@ -34,4 +33,3 @@ private:
     BootTimer sessionTmr;
 };
 
-#endif

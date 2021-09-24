@@ -1,5 +1,5 @@
-#ifndef __GROUPISLUS_H__
-#define __GROUPISLUS_H__
+#pragma once
+
 
 #include <sign/Group.h>
 
@@ -9,9 +9,11 @@ public:
     GroupIslus(uint8_t id);
     ~GroupIslus();
 
+    virtual void Add(Sign * sign) override;
+
+
     virtual void PeriodicHook() override;
 private:
     /* data */
 };
 
-#endif

@@ -1,5 +1,4 @@
-#ifndef __UCISTRLOG_H__
-#define __UCISTRLOG_H__
+#pragma once
 
 #include <uci/UciLog.h>
 #include <uci/StrLog.h>
@@ -44,5 +43,3 @@ protected:
     StrLog *pStrLog;
     int maxEntries;
 };
-
-#endif

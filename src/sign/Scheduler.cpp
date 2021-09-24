@@ -185,7 +185,7 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t frmId = cmd[2];
-    if (grpId > groupCnt)
+    if (grpId==0 || grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
@@ -197,22 +197,14 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    for (int i = 1; i <= groupCnt; i++)
-    {
-        Group *grp = GetGroup(i);
-        if (grpId == 0 || grpId == grp->GroupId())
-        {
-            grp->DispFrm(frmId);
-        }
-    }
-    return APP::ERROR::AppNoError;
+    return GetGroup(grpId)->DispFrm(frmId);
 }
 
 APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t msgId = cmd[2];
-    if (grpId > Scheduler::Instance().GroupCnt())
+    if (grpId==0 || grpId > Scheduler::Instance().GroupCnt())
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
@@ -224,55 +216,17 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    for (int i = 1; i <= groupCnt; i++)
-    {
-        Group *grp = GetGroup(i);
-        if (grpId == 0 || grpId == grp->GroupId())
-        {
-            grp->DispMsg(msgId);
-        }
-    }
-    return APP::ERROR::AppNoError;
+    return GetGroup(grpId)->DispMsg(msgId);
 }
 
 APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
     uint8_t grpId = cmd[1];
-    uint8_t signCnt = cmd[2];
     if (grpId == 0 || grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    Group *grp = GetGroup(grpId);
-    if(grp->SignCnt()!=signCnt)
-    {
-        return APP::ERROR::SyntaxError;
-    }
-    uint8_t * p = cmd+3;
-    for(int i=0;i<signCnt;i++)
-    {
-        uint8_t * p2=p+2;
-        for(int j=i+1;j<signCnt;j++)
-        {
-            if(*p==*p2)
-            {
-                return APP::ERROR::SyntaxError;
-            }
-            p2+=2;
-        }
-        if ( ! grp->IsSignInGroup(*p) )
-        {
-            return APP::ERROR::UndefinedDeviceNumber;
-        }
-        p++;
-        if( (*p != 0) && DbHelper::Instance().uciFrm.GetFrm(*p)==nullptr)
-        {
-            return APP::ERROR::FrmMsgPlnUndefined;
-        }
-        p++;
-    }
-    grp->DispAtomicFrm(cmd+3);
-    return APP::ERROR::AppNoError;
+    return GetGroup(grpId)->DispAtomicFrm(cmd);
 }
 
 APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
@@ -288,38 +242,9 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
-    else if (0) //Status::FS_AUTO != pstatus->rFSstate())
-    {
-        r = APP::ERROR::FacilitySwitchOverride; // 0x10  facility switch override
-    }
     else
     {
-        Group *grp = GetGroup(grpId);
-        if (plnId == 0)
-        {
-            if (grp->IsPlanActive(plnId))
-            {
-                r = APP::ERROR::FrmMsgPlnActive;
-            }
-        }
-        else
-        {
-            if (grp->IsPlanEnabled(plnId))
-            {
-                r = APP::ERROR::PlanEnabled;
-            }
-            else
-            {
-                if (grp->IsEnPlanOverlap(plnId))
-                {
-                    r = APP::ERROR::OverlaysNotSupported;
-                }
-            }
-        }
-        if (r == APP::ERROR::AppNoError)
-        {
-            grp->EnablePlan(plnId);
-        }
+        r = GetGroup(grpId)->EnablePlan(plnId);
     }
     return r;
 }
@@ -339,25 +264,7 @@ APP::ERROR Scheduler::CmdDisablePlan(uint8_t *cmd)
     }
     else
     {
-        Group *grp = GetGroup(grpId);
-        if (plnId == 0)
-        {
-            if (grp->IsPlanActive(plnId))
-            {
-                r = APP::ERROR::FrmMsgPlnActive;
-            }
-        }
-        else
-        {
-            if (!grp->IsPlanEnabled(plnId))
-            {
-                r = APP::ERROR::PlanNotEnabled;
-            }
-        }
-        if (r == APP::ERROR::AppNoError)
-        {
-            grp->DisablePlan(plnId);
-        }
+        r = GetGroup(grpId)->DisablePlan(plnId);
     }
     return r;
 }
@@ -385,14 +292,14 @@ APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
         uint8_t dimming = (p[1] == 0) ? 0 : p[2];
         if (p[0] == 0)
         {
-            for (int i = 0; i < groupCnt; i++)
+            for (int i = 1; i <= groupCnt; i++)
             {
-                groups[i]->SetDimming(dimming);
+                GetGroup(i)->SetDimming(dimming);
             }
         }
         else
         {
-            groups[p[0] - 1]->SetDimming(dimming);
+            GetGroup(p[0])->SetDimming(dimming);
         }
         p += 3;
     }
@@ -401,11 +308,69 @@ APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
 
 APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
 {
+    uint8_t entry = cmd[1];
+    uint8_t *p;
+    p = cmd + 2;
+    for (int i = 0; i < entry; i++)
+    {
+        if (p[0] > groupCnt)
+        {
+            return APP::ERROR::UndefinedDeviceNumber;
+        }
+        p += 2;
+    }
+    p = cmd + 2;
+    
+    for (int i = 0; i < entry; i++)
+    {
+        uint8_t d = (p[1] == 0);
+        if (p[0] == 0)
+        {
+            for (int i = 1; i <= groupCnt; i++)
+            {
+                GetGroup(i)->SetPower(d);
+            }
+        }
+        else
+        {
+            GetGroup(p[0])->SetPower(d);
+        }
+        p += 2;
+    }
     return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
+    uint8_t entry = cmd[1];
+    uint8_t *p;
+    p = cmd + 2;
+    for (int i = 0; i < entry; i++)
+    {
+        if (p[0] > groupCnt)
+        {
+            return APP::ERROR::UndefinedDeviceNumber;
+        }
+        p += 2;
+    }
+    p = cmd + 2;
+    
+    for (int i = 0; i < entry; i++)
+    {
+        uint8_t d = (p[1] == 0);
+        if (p[0] == 0)
+        {
+            for (int i = 1; i <= groupCnt; i++)
+            {
+                GetGroup(i)->SetDevice(d);
+            }
+        }
+        else
+        {
+            GetGroup(p[0])->SetDevice(d);
+        }
+        p += 2;
+    }
     return APP::ERROR::AppNoError;
 }
 

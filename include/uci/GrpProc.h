@@ -1,5 +1,5 @@
-#ifndef __GRPPLN_H__
-#define __GRPPLN_H__
+#pragma once
+
 
 #include <cstdint>
 #include <tsisp003/TsiSp003Const.h>
@@ -29,5 +29,3 @@ private:
     uint8_t enabledPln[255];
     uint8_t dimming;
 };
-
-#endif

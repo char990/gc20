@@ -1,5 +1,5 @@
-#ifndef __OBJECTPOOL_H__
-#define __OBJECTPOOL_H__
+#pragma once
+
 
 template <class Object>
 class ObjectPool
@@ -60,4 +60,3 @@ private:
     Object ** unused;
 };
 
-#endif

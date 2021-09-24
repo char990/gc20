@@ -1,5 +1,5 @@
-#ifndef __IGCEVENT_H__
-#define __IGCEVENT_H__
+#pragma once
+
 
 #include <cstdio>
 #include <string>
@@ -24,5 +24,3 @@ public:
     /// \brief  
     int eventFd;
 };
-
-#endif

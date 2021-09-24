@@ -1,5 +1,5 @@
-#ifndef __FRAME_H__
-#define __FRAME_H__
+#pragma once
+
 
 #include <cstdint>
 #include <string>
@@ -95,5 +95,3 @@ private:
     virtual int CheckLength(int len)override;
     virtual int CheckSub() override;
 };
-
-#endif

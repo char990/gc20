@@ -1,5 +1,5 @@
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#pragma once
+
 
 #include <cstdint>
 #include <ctime>
@@ -242,4 +242,3 @@ namespace Utils
         uint32_t bits;
     };
 } // namespace Utils
-#endif

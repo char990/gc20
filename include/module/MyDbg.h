@@ -1,5 +1,5 @@
-#ifndef __PRINTDBG_H__
-#define __PRINTDBG_H__
+#pragma once
+
 
 #include <cstdio>
 
@@ -13,4 +13,4 @@ extern void MyThrow(const char * fmt, ...);
 extern int MyPrintf(const char * fmt, ...);
 extern void PrintDash(void);
 
-#endif
+

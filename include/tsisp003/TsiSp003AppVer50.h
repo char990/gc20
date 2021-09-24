@@ -1,5 +1,4 @@
-#ifndef __TSISP003APPVER50_H__
-#define __TSISP003APPVER50_H__
+#pragma once
 
 #include <tsisp003/TsiSp003AppVer31.h>
 
@@ -17,5 +16,3 @@ private:
     void SignConfigurationRequest(uint8_t *data, int len);
     void SignDisplayAtomicFrames(uint8_t *data, int len);
 };
-
-#endif

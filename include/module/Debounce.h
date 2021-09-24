@@ -1,5 +1,5 @@
-#ifndef __DEBOUNCE_H__
-#define __DEBOUNCE_H__
+#pragma once
+
 
 #include <cstdint>
 #include <cstdio>
@@ -124,4 +124,3 @@ private:
     int cnt0;
 };
 
-#endif

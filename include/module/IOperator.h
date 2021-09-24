@@ -1,5 +1,5 @@
-#ifndef __IOPERATOR_H__
-#define __IOPERATOR_H__
+#pragma once
+
 
 #include <string>
 #include <module/IGcEvent.h>
@@ -21,4 +21,3 @@ protected:
     int txcnt;
 };
 
-#endif

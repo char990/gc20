@@ -1,5 +1,5 @@
-#ifndef __SLAVE_H__
-#define __SLAVE_H__
+#pragma once
+
 
 #include <cstdint>
 
@@ -48,5 +48,3 @@ public:
     int DecodeExtStRpl(uint8_t * buf, int len);
 
 };
-
-#endif

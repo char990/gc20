@@ -1,5 +1,5 @@
-#ifndef __UCIFRM_H__
-#define __UCIFRM_H__
+#pragma once
+
 
 #include <string>
 #include <uci/UciProd.h>
@@ -60,4 +60,4 @@ private:
     void Dump();
 };
 
-#endif
+

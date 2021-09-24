@@ -1,5 +1,4 @@
-#ifndef __DISPSTATUS_H__
-#define __DISPSTATUS_H__
+#pragma once
 
 class DispStatus
 {
@@ -68,4 +67,3 @@ public:
     uint8_t signCnt;
 };
 
-#endif

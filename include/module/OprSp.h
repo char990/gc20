@@ -1,5 +1,5 @@
-#ifndef __SPOPERATOR_H__
-#define __SPOPERATOR_H__
+#pragma once
+
 
 #include <module/SerialPort.h>
 #include <module/IOperator.h>
@@ -29,5 +29,3 @@ private:
     /// \brief  Called in EventsHandle
     int RxHandle();
 };
-
-#endif

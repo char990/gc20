@@ -1,5 +1,4 @@
-#ifndef __UCIMSG_H__
-#define __UCIMSG_H__
+#pragma once
 
 #include <string>
 #include <tsisp003/Message.h>
@@ -62,4 +61,3 @@ private:
     uint16_t chksum;
 };
 
-#endif

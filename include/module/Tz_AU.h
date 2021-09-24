@@ -1,11 +1,4 @@
-/*************************************************
- * Definations related to TZ 
- * 
- * 
- ************************************************/
-
-#ifndef __TZ_AU_H__
-#define __TZ_AU_H__
+#pragma once
 
 #include <ctime>
 
@@ -59,4 +52,3 @@ private:
     int _DecodeTwilightString(char *tt);
 };
 
-#endif

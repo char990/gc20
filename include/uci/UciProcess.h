@@ -1,5 +1,4 @@
-#ifndef __UCIPROCESS_H__
-#define __UCIPROCESS_H__
+#pragma once
 
 #include <string>
 #include <uci/UciCfg.h>
@@ -44,5 +43,3 @@ private:
     const char * _FmpId = "FmpId";
     const char * _Dimming = "Dimming";
 };
-
-#endif
