@@ -2,12 +2,15 @@
 
 
 #include <vector>
+#include <module/OprSp.h>
+#include <module/OprTcp.h>
 #include <sign/Sign.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <module/FacilitySwitch.h>
 #include <module/ExtInput.h>
 #include <module/BootTimer.h>
 #include <sign/DispStatus.h>
+#include <layer/ILayer.h>
 
 class PlnMinute
 {
@@ -16,17 +19,25 @@ public:
     uint8_t id;
 };
 
-class Group
+class Group : public IUpperLayer
 {
 public:
     Group(uint8_t groupId);
     virtual ~Group();
 
-    // Add a sign into this group
-    virtual void Add(Sign * sign)=0;
+    /*<------------------------------------------------------------------*/
+    /// \brief Receiving Handle, called by Lower-Layer
+    /// \param		data		data buffer
+    /// \param		len		    data length
+    /// \return     int         0: Command excuted; -1: failed
+    virtual int Rx(uint8_t * data, int len) override;
 
-    // After all signs added, init group
-    void Init();
+    /// \brief		Clean current layer. Called by lowerlayer->Clean() and call upperlayer->Clean()
+    virtual void Clean() override;
+    /*------------------------------------------------------------------>*/
+
+    /// \brief call lowerlayer->Tx
+    virtual int Tx(uint8_t * data, int len) { return lowerLayer->Tx(data, len); }
 
     // called by scheduler
     void PeriodicRun();
@@ -36,7 +47,8 @@ public:
 
     //Getter
     uint8_t GroupId() { return groupId; };
-    uint8_t SignCnt() { return signCnt; };
+    int SignCnt() { return vSigns.size(); };
+    Sign* GetSign(uint8_t id);
 
     // signs in group
     bool IsSignInGroup(uint8_t id);
@@ -58,7 +70,7 @@ public:
 
     APP::ERROR DispFrm(uint8_t id);
     APP::ERROR DispMsg(uint8_t id);
-    APP::ERROR DispAtomicFrm(uint8_t *id);
+    virtual APP::ERROR DispAtomicFrm(uint8_t *id) = 0;
 
     APP::ERROR SetDimming(uint8_t v);
     APP::ERROR SetPower(uint8_t v);
@@ -68,8 +80,8 @@ public:
 
 protected:
     uint8_t groupId;
-    std::vector<Sign *> vSigns;
-    uint8_t signCnt;
+    std::vector<Sign*> vSigns;
+    std::vector<Slave*> vSlaves;
 
     // display status
     DispStatus *dsBak;
@@ -77,7 +89,6 @@ protected:
     DispStatus *dsNext;
     DispStatus *dsExt;
     uint8_t msgEnd;
-
 
     // group status
     enum PWR_STATE {OFF, ON, RISING};
@@ -90,7 +101,6 @@ protected:
 
     void SignSetPower(uint8_t v);
 
-private:
     BootTimer pwrUpTmr;
 
     FacilitySwitch fcltSw;
@@ -100,7 +110,6 @@ private:
     void ExtInputFunc();
 
     PlnMinute plnMin[7*24*60];
-
     
     bool LoadDsNext();
 
@@ -113,6 +122,10 @@ private:
     int taskMsgLine;
     BootTimer task2Tmr;
     bool TaskMsg(int * _ptLine);
+
+private:
+    void SlaveStatusRpl(uint8_t * data, int len);
+    void SlaveExtStatusRpl(uint8_t * data, int len);
 
 };
 

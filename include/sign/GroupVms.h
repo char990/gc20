@@ -10,13 +10,12 @@ public:
     GroupVms(uint8_t id);
     ~GroupVms();
 
-    virtual void Add(Sign * sign) override;
-
     // -------------- hook for Group ---------------
     // called in PeriodicRun
     virtual void PeriodicHook() override;
     
-    
+    virtual APP::ERROR DispAtomicFrm(uint8_t *id) override;
+
 private:
 
 

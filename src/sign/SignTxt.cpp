@@ -4,7 +4,7 @@
 
 uint8_t *SignTxt::GetExtStatus(uint8_t *p)
 {
-    UciProd & prod = DbHelper::Instance().uciProd;
+    UciProd & prod = DbHelper::Instance().GetUciProd();
     *p++=signId;
     uint8_t signtype=prod.ExtStsRplSignType();
     *p++=signtype;

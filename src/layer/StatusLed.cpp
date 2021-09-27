@@ -50,7 +50,7 @@ void StatusLed::PeriodicRun()
 
 void StatusLed::ReloadSessionSt()
 {
-    sessionTmr.Setms(DbHelper::Instance().uciUser.SessionTimeout()*1000);
+    sessionTmr.Setms(DbHelper::Instance().GetUciUser().SessionTimeout()*1000);
     // set led
 }
 

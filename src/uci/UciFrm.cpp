@@ -32,7 +32,7 @@ UciFrm::~UciFrm()
 void UciFrm::LoadConfig()
 {
 	// using HRGFRM to allocate the memory
-	frmSize = DbHelper::Instance().uciProd.MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
+	frmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	for (int i = 0; i < 255; i++)
 	{
 		frms[i].dataLen = 0;
@@ -197,7 +197,7 @@ void UciFrm::SaveFrm(uint8_t i)
 {
 	if (!IsFrmDefined(i))
 		return;
-	StFrm *frm = GetFrm(i);
+	auto frm = GetFrm(i);
 	char filename[256];
 	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
 	int len = frm->dataLen * 2;
@@ -206,10 +206,11 @@ void UciFrm::SaveFrm(uint8_t i)
 	v[len++] = '\n';
 	char buf[64];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0770);
+	DbHelper & db = DbHelper::Instance();
 	if (frm_fd < 0)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
-		DbHelper::Instance().uciAlm.Push(0, buf);
+		db.GetUciAlarm().Push(0, buf);
 		PrintDbg("%s\n", buf);
 	}
 	else
@@ -217,11 +218,11 @@ void UciFrm::SaveFrm(uint8_t i)
 		if (write(frm_fd, v, len) != len)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
-			DbHelper::Instance().uciAlm.Push(0, buf);
+			db.GetUciAlarm().Push(0, buf);
 			PrintDbg("%s\n", buf);
 		}
 		close(frm_fd);
-		DbHelper::Instance().RefreshSync();
+		db.RefreshSync();
 	}
 	delete v;
 }

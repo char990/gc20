@@ -6,7 +6,7 @@
 class Slave
 {
 public:
-    Slave();
+    Slave(uint8_t id);
     ~Slave();
     
     // static for all slaves

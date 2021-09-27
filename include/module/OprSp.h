@@ -9,8 +9,12 @@
 class OprSp : public IOperator
 {
 public:
-    OprSp(SerialPort & sp, std::string name_, std::string aType);
+    OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer);
     ~OprSp();
+
+    const char* Name() { return sp->Config().name; };
+    int ComX() { return comX; };
+    int Bps() { return sp->Config().baudrate; };
 
     /*< ILayer --------------------------------------------------*/
     /// \brief  Called by upperLayer
@@ -23,8 +27,8 @@ public:
     /*--------------------------------------------------------->*/
 
 private:
-    std::string name;
-    SerialPort & sp;
+    uint8_t comX;
+    SerialPort *sp;
 
     /// \brief  Called in EventsHandle
     int RxHandle();

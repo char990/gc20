@@ -100,13 +100,21 @@ void TsiSp003AppVer21::SignStatusReply()
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16 >> 8;
     txbuf[11] = i16 & 0xff;
-    txbuf[12] = Scheduler::Instance().CtrllerErr();
-    int scnt = DbHelper::Instance().uciProd.NumberOfSigns();
+    txbuf[12] = sch.CtrllerErr();
+    int scnt = db.GetUciProd().NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
-    for (int i = 1; i <= scnt; i++)
+    for (int j = 1; j <= scnt; j++)
     {
-        p = Scheduler::Instance().GetSign(i)->GetStatus(p);
+        for (int i = 1; i <= sch.GroupCnt(); i++)
+        {
+            auto sign = sch.GetGroup(i)->GetSign(j);
+            if (sign != nullptr)
+            {
+                p = sign->GetStatus(p);
+                break;
+            }
+        }
     }
     Tx(txbuf, p - txbuf);
 }
@@ -119,29 +127,29 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
-    else if (Scheduler::Instance().IsFrmActive(id))
+    else if (sch.IsFrmActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
-    else if (id <= DbHelper::Instance().uciUser.LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
+    else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
     {
-        UciFrm &uci = DbHelper::Instance().uciFrm;
-        r = uci.SetFrm(data, len);
+        UciFrm &frm = db.GetUciFrm();
+        r = frm.SetFrm(data, len);
         if (r == APP::ERROR::AppNoError)
         {
-            uci.SaveFrm(id);
+            frm.SaveFrm(id);
         }
     }
-    (r == APP::ERROR::AppNoError) ? SignStatusReply():Reject(r);
+    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
 {
-    if(!CheckOlineReject())
+    if (!CheckOlineReject())
     {
         return;
     }
@@ -150,7 +158,7 @@ void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
 {
-    if(!CheckOlineReject())
+    if (!CheckOlineReject())
     {
         return;
     }
@@ -159,17 +167,17 @@ void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdDispFrm(data);
-    (r == APP::ERROR::AppNoError)?Ack():Reject(r);
+    auto r = sch.CmdDispFrm(data);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 {
-    if(!CheckOlineReject())
+    if (!CheckOlineReject())
     {
         return;
     }
@@ -183,40 +191,40 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     {
         r = APP::ERROR::LengthError;
     }
-    else if (Scheduler::Instance().IsMsgActive(id))
+    else if (sch.IsMsgActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
-    else if (id <= DbHelper::Instance().uciUser.LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
+    else if (id <= db.GetUciUser().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
     {
         Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
-        UciMsg &uci = DbHelper::Instance().uciMsg;
-        r = uci.SetMsg(data, len + 2);
+        UciMsg &msg = db.GetUciMsg();
+        r = msg.SetMsg(data, len + 2);
         if (r == APP::ERROR::AppNoError)
         {
-            uci.SaveMsg(id);
+            msg.SaveMsg(id);
         }
     }
-    (r == APP::ERROR::AppNoError)?SignStatusReply():Reject(r);
+    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdDispMsg(data);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdDispMsg(data);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
 {
-    if(!CheckOlineReject())
+    if (!CheckOlineReject())
     {
         return;
     }
@@ -230,18 +238,18 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     {
         r = APP::ERROR::LengthError;
     }
-    else if (Scheduler::Instance().IsPlnActive(id))
+    else if (sch.IsPlnActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else
     {
         Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
-        UciPln &uci = DbHelper::Instance().uciPln;
-        r = uci.SetPln(data, len + PLN_TAIL);
+        UciPln &pln = db.GetUciPln();
+        r = pln.SetPln(data, len + PLN_TAIL);
         if (r == APP::ERROR::AppNoError)
         {
-            uci.SavePln(id);
+            pln.SavePln(id);
         }
     }
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
@@ -249,31 +257,31 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
 
 void TsiSp003AppVer21::EnablePlan(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdEnablePlan(data);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdEnablePlan(data);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdDisablePlan(data);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdDisablePlan(data);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 1))
+    if (!CheckOlineReject() || !ChkLen(len, 1))
     {
         return;
     }
-    int bytes = Scheduler::Instance().CmdRequestEnabledPlans(txbuf);
+    int bytes = sch.CmdRequestEnabledPlans(txbuf);
     Tx(txbuf, bytes);
 }
 
@@ -283,12 +291,12 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 3))
+    else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 3))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdSetDimmingLevel(data);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdSetDimmingLevel(data);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
@@ -297,12 +305,12 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
+    else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdPowerOnOff(data, len);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdPowerOnOff(data, len);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
@@ -311,17 +319,17 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    else if(!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
+    else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
-    auto r = Scheduler::Instance().CmdDisableEnableDevice(data, len);
-    (r == APP::ERROR::AppNoError) ? Ack():Reject(r);
+    auto r = sch.CmdDisableEnableDevice(data, len);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 3))
+    if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
@@ -333,7 +341,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     {
     case 0: // frm
     {
-        StFrm *frm = DbHelper::Instance().uciFrm.GetFrm(data[2]);
+        auto frm = db.GetUciFrm().GetFrm(data[2]);
         if (frm == nullptr)
         {
             Reject(APP::ERROR::FrmMsgPlnUndefined);
@@ -346,7 +354,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     break;
     case 1: // msg
     {
-        Message *msg = DbHelper::Instance().uciMsg.GetMsg(data[2]);
+        auto msg = db.GetUciMsg().GetMsg(data[2]);
         if (msg == nullptr)
         {
             Reject(APP::ERROR::FrmMsgPlnUndefined);
@@ -361,7 +369,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     break;
     case 2: // pln
     {
-        Plan *pln = DbHelper::Instance().uciPln.GetPln(data[2]);
+        auto pln = db.GetUciPln().GetPln(data[2]);
         if (pln == nullptr)
         {
             Reject(APP::ERROR::FrmMsgPlnUndefined);
@@ -379,22 +387,31 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 1))
+    if (!CheckOlineReject() || !ChkLen(len, 1))
     {
         return;
     }
     txbuf[0] = MI::CODE::SignExtendedStatusReply;
     txbuf[1] = IsOnline() ? 1 : 0;
     txbuf[2] = appErr;
-    memcpy(txbuf + 3, db.uciProd.MfcCode(), 10);
+    UciProd &prod = db.GetUciProd();
+    memcpy(txbuf + 3, prod.MfcCode(), 10);
     Time2Buf(txbuf + 13);
-    txbuf[20] = Scheduler::Instance().CtrllerErr();
-    int scnt = db.uciProd.NumberOfSigns();
+    txbuf[20] = sch.CtrllerErr();
+    int scnt = prod.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];
-    for (int i = 1; i <= scnt; i++)
+    for (int j = 1; j <= scnt; j++)
     {
-        p = Scheduler::Instance().GetSign(i)->GetExtStatus(p);
+        for (int i = 1; i <= sch.GroupCnt(); i++)
+        {
+            auto sign = sch.GetGroup(i)->GetSign(j);
+            if (sign != nullptr)
+            {
+                p = sign->GetExtStatus(p);
+                break;
+            }
+        }
     }
     int applen = p - txbuf;
     uint16_t crc = Crc::Crc16_1021(txbuf, applen);
@@ -405,7 +422,7 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
 
 void TsiSp003AppVer21::RetrieveFaultLog(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 1))
+    if (!CheckOlineReject() || !ChkLen(len, 1))
     {
         return;
     }
@@ -414,7 +431,7 @@ void TsiSp003AppVer21::RetrieveFaultLog(uint8_t *data, int len)
 
 void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
 {
-    if(!CheckOlineReject() || !ChkLen(len, 1))
+    if (!CheckOlineReject() || !ChkLen(len, 1))
     {
         return;
     }

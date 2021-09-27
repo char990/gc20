@@ -98,7 +98,7 @@ int Message::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if (!DbHelper::Instance().uciFrm.IsFrmDefined(msgEntries[i].frmId))
+        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(msgEntries[i].frmId))
         {
             return -1;
         }

@@ -7,7 +7,7 @@
 
 AppFactory::AppFactory()
 {
-    auto ver = DbHelper::Instance().uciProd.TsiSp003Ver();
+    auto ver = DbHelper::Instance().GetUciProd().TsiSp003Ver();
     if(ver==0)
     {
         app = new QLD21();

@@ -15,6 +15,8 @@
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
 #include <module/ObjectPool.h>
+#include <layer/UI_LayerManager.h>
+#include <layer/SLV_LayerManager.h>
 
 #include <layer/StatusLed.h>
 #include <sign/Scheduler.h>
@@ -45,24 +47,25 @@ void PrintVersion()
 class TickTock : public IPeriodicRun
 {
 public:
-    TickTock():sec(0),min(0),hour(0),day(0){};
+    TickTock() : sec(0), min(0), hour(0), day(0){};
     virtual void PeriodicRun() override
     {
-        if(++sec==60)
+        if (++sec == 60)
         {
-            sec=0;
-            if(++min==60)
+            sec = 0;
+            if (++min == 60)
             {
-                min=0;
-                if(++hour==24)
+                min = 0;
+                if (++hour == 24)
                 {
-                    hour=0;
+                    hour = 0;
                     day++;
                 }
             }
         }
-        printf("Day(%d) %d:%02d:%02d\n",day,hour,min,sec);
+        printf("Day(%d) %d:%02d:%02d\n", day, hour, min, sec);
     };
+
 private:
     int sec;
     int min;
@@ -70,15 +73,15 @@ private:
     int day;
 };
 
-void crc8005()
+void TestCrc8005()
 {
-    uint8_t buf1[]={0x02,0x30,0x31,0x30,0x35};
-    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1,sizeof(buf1)));
-    uint8_t buf2[]={
-        0x02,0x30,0x32,0x30,0x36,
-        0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x30,
-        0x31,0x30,0x31,0x34,0x44,0x46,0x34,0x30,0x31,0x34,0x44,0x46,0x34};
-    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2,sizeof(buf2)));
+    uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
+    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
+    uint8_t buf2[] = {
+        0x02, 0x30, 0x32, 0x30, 0x36,
+        0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+        0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
+    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
 
 int main()
@@ -100,44 +103,43 @@ int main()
         timerEvt1s.Add(new TickTock{});
         StatusLed::Instance().Init(&timerEvt10ms);
         DbHelper::Instance().Init(&timerEvt1s);
-        UciUser &user = DbHelper::Instance().uciUser;
+        UciProd & prod = DbHelper::Instance().GetUciProd();
+        UciUser & user = DbHelper::Instance().GetUciUser();
+        Scheduler::Instance().Init(&timerEvt10ms);
 
         //AllGroupPowerOn();
 
         // init serial ports
-        SerialPort *sp[COMPORT_SIZE];
+        OprSp* oprSp[COMPORT_SIZE];
         for (int i = 0; i < COMPORT_SIZE; i++)
         {
-            sp[i] = nullptr;
+            oprSp[i] = nullptr;
         }
-
-        // serial port init
-        if (user.ComPort() == 0)
+        // TSI-SP-003 RS232/485
+        IUpperLayer *uiLayer = new UI_LayerManager(gSpConfig[user.ComPort()].name, "NTS");
+        oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
+        // Slaves of Groups on RS485
+        for (int i = 1; i <= prod.NumberOfSigns(); i++)
         {
-            SerialPortConfig spCfg(SerialPortConfig::SpMode::RS232, user.Baudrate());
-            sp[0] = new SerialPort(COM_DEV[0], spCfg);
-        }
-        else
-        {
-            SerialPortConfig spCfg(SerialPortConfig::SpMode::RS485_01, user.Baudrate());
-            sp[user.ComPort()] = new SerialPort(COM_DEV[user.ComPort()], spCfg);
-        }
-
-        for (int i = 0; i < DbHelper::Instance().uciProd.NumberOfSigns(); i++)
-        {
-            struct StSignPort *cn = DbHelper::Instance().uciProd.SignPort(i);
+            struct StSignPort *cn = prod.SignPort(i);
             if (cn->com_ip < COMPORT_SIZE)
             { // com port
-                if (sp[cn->com_ip] == nullptr)
+                if (oprSp[cn->com_ip] == nullptr)
                 {
-                    SerialPortConfig spCfg(SerialPortConfig::SpMode::RS485_01, cn->bps_port);
-                    sp[cn->com_ip] = new SerialPort(COM_DEV[cn->com_ip], spCfg);
+                    for (uint8_t g = 1; g <= Scheduler::Instance().GroupCnt(); g++)
+                    {
+                        if (Scheduler::Instance().GetGroup(g)->IsSignInGroup(i))
+                        {
+                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn->com_ip].name, Scheduler::Instance().GetGroup(g));
+                            oprSp[cn->com_ip] = new OprSp{(uint8_t)cn->com_ip, cn->bps_port, upperLayer};
+                        }
+                    }
                 }
                 else
                 {
-                    if (sp[cn->com_ip]->Config().baudrate != cn->bps_port)
+                    if (oprSp[cn->com_ip]->Bps() != cn->bps_port)
                     {
-                        MyThrow("Sign%d baudrate error. Baudrate on %s should be same", i + 1, COM_NAME[cn->com_ip]);
+                        MyThrow("Sign%d baudrate error. Baudrate on %s should be same", i + 1, oprSp[cn->com_ip]->Name());
                     }
                 }
             }
@@ -146,7 +148,6 @@ int main()
             }
         }
 
-        Scheduler::Instance().Init(&timerEvt10ms);
         // TSI-SP-003 Web
         ObjectPool<OprTcp> webPool{LINKS_WEB};
         auto webpool = webPool.Pool();
@@ -165,20 +166,6 @@ int main()
         }
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
 
-        // TSI-SP-003 SerialPort
-        OprSp  *oprSp[COMPORT_SIZE];
-        
-        oprSp[user.ComPort()] = new OprSp{*sp[user.ComPort()], COM_NAME[user.ComPort()], "NTS"};
-
-        // slave com port
-        for (int i = 0; i < COMPORT_SIZE; i++)
-        {
-            if(sp[i] != nullptr & i!=user.ComPort())
-            {
-                oprSp[i] = new OprSp{*sp[i], COM_NAME[i], "SLV"};
-            }
-        }
-        
         /*************** Start ****************/
         while (1)
         {

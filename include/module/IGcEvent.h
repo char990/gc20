@@ -13,6 +13,11 @@ public:
 
     int GetFd() { return eventFd; }
 
+    virtual void UnknownEvents(const char *name, uint32_t events)
+    {
+        MyThrow("[%s]Unkown events=0x%08X", name, events);
+    }
+
     virtual void UnknownEvents(std::string name, uint32_t events)
     {
         MyThrow("[%s]Unkown events=0x%08X", name.c_str(), events);

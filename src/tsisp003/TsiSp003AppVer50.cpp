@@ -66,6 +66,6 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    auto r = Scheduler::Instance().CmdDispAtomicFrm(data, len);
+    auto r = sch.CmdDispAtomicFrm(data, len);
     (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }

@@ -14,27 +14,19 @@ int ALLOWEDBPS[EXTENDEDBPS_SIZE]={
 	300,600,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600
 };
 
-const char * COM_NAME[COMPORT_SIZE] ={
-    "MODEM",
-	"COM1",
-	"COM2",
-	"COM3",
-	"COM4",
-	"COM5",
-	"COM6",
-};
-const char * COM_DEV[COMPORT_SIZE] ={
-    "/dev/ttymxc3",
-    "/dev/ttymxc2",
-    "/dev/ttymxc1",
-    "/dev/ttymxc5",
-    "/dev/ttymxc4",
-    "/dev/ttySC1",
-    "/dev/ttySC0",
+SpConfig gSpConfig [COMPORT_SIZE] =
+{
+	SpConfig{"MODEM", "/dev/ttymxc3", SpConfig::SpMode::RS232},
+	SpConfig{"COM1", "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM2", "/dev/ttymxc1", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM3", "/dev/ttymxc5", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM4", "/dev/ttymxc4", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM5", "/dev/ttySC1", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM6", "/dev/ttySC0", SpConfig::SpMode::RS485_01},
 };
 
-SerialPort::SerialPort(const char *device, SerialPortConfig &config)
-	: spConfig(config), spDevice(device), spFileDesc(-1)
+SerialPort::SerialPort(SpConfig & config)
+	: spConfig(config), spFileDesc(-1)
 {
 	spConfig.Bytebits();
 }
@@ -51,7 +43,7 @@ int SerialPort::Open()
 
 	// O_RDONLY for read-only, O_WRONLY for write only, O_RDWR for both read/write access
 	// 3rd, optional parameter is mode_t mode
-	spFileDesc = open(spDevice, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	spFileDesc = open(spConfig.dev, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	// Check status
 	if (spFileDesc == -1)
 	{
@@ -69,7 +61,7 @@ void SerialPort::ConfigureTermios()
 	// Get current settings (will be stored in termios structure)
 	if (tcgetattr(spFileDesc, &tty) != 0)
 	{
-		MyThrow("tcgetattr() failed: %s", spDevice);
+		MyThrow("tcgetattr() failed: %s(%s)", spConfig.name, spConfig.dev);
 	}
 	//================= (.c_cflag) ===============//
 
@@ -124,7 +116,7 @@ void SerialPort::ConfigureTermios()
 		tty.c_cflag |= B921600;
 		break;
 	default:
-		MyThrow("baudrate unrecognized: %d", spConfig.baudrate);
+		MyThrow("%s(%s) baudrate unrecognized: %d", spConfig.name, spConfig.dev, spConfig.baudrate);
 	}
 
 	//===================== (.c_oflag) =================//
@@ -167,7 +159,7 @@ void SerialPort::ConfigureTermios()
 	tcflush(spFileDesc, TCIFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		MyThrow("tcsetattr() failed: %s", spDevice);
+		MyThrow("tcsetattr() failed: %s(%s)", spConfig.name, spConfig.dev);
 	}
 }
 
@@ -178,7 +170,7 @@ int SerialPort::Close()
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
-			MyThrow("Close() failed: %s", spDevice);
+			MyThrow("Close() failed: %s(%s)", spConfig.name, spConfig.dev);
 		}
 		spFileDesc = -1;
 	}

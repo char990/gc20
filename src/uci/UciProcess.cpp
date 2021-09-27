@@ -28,8 +28,8 @@ UciProcess::~UciProcess()
 void UciProcess::LoadConfig()
 {
 	Open();
-	DbHelper &db = DbHelper::Instance();
-	grpCnt = db.uciProd.NumberOfGroups();
+	DbHelper & db = DbHelper::Instance();
+	grpCnt = db.GetUciProd().NumberOfGroups();
 	grpProc = new GrpProc[grpCnt];
 	char option[16];
 	int pln[255];
@@ -47,7 +47,7 @@ void UciProcess::LoadConfig()
 			int j = Cnvt::GetIntArray(str, 255, pln, 1, 255);
 			for (int k = 0; k < j; k++)
 			{
-				if (db.uciPln.IsPlnDefined(pln[k]))
+				if (db.GetUciPln().IsPlnDefined(pln[k]))
 				{
 					p->EnablePlan(pln[k]);
 				}
@@ -86,14 +86,14 @@ void UciProcess::LoadConfig()
 				}
 				if (d == DISP_STATUS::TYPE::FRM)
 				{
-					if (pln[0] != 0 && !DbHelper::Instance().uciFrm.IsFrmDefined(pln[0]))
+					if (pln[0] != 0 && !db.GetUciFrm().IsFrmDefined(pln[0]))
 					{
 						continue;
 					}
 				}
 				else if (d == DISP_STATUS::TYPE::MSG)
 				{
-					if (pln[0] != 0 && !DbHelper::Instance().uciMsg.IsMsgDefined(pln[0]))
+					if (pln[0] != 0 && !db.GetUciMsg().IsMsgDefined(pln[0]))
 					{
 						continue;
 					}

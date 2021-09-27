@@ -18,7 +18,7 @@ std::string StSignPort::ToString()
     char buf[32];
     if (com_ip < COMPORT_SIZE)
     {
-        sprintf(buf, "%s:%d", COM_NAME[com_ip], bps_port);
+        sprintf(buf, "%s:%d", gSpConfig[com_ip].name, bps_port);
     }
     else
     {
@@ -163,7 +163,7 @@ void UciProd::LoadConfig()
         {
             for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
             {
-                if (memcmp(str, COM_NAME[cnt], 4) == 0)
+                if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
                     break;
             }
             if (cnt < COMPORT_SIZE)
@@ -396,9 +396,9 @@ void UciProd::Dump()
     PrintOption_str(_MfcCode, MfcCode());
 
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
-    for (int i = 0; i < NumberOfSigns(); i++)
+    for (int i = 1; i <= NumberOfSigns(); i++)
     {
-        printf("\t%s%d \t'%s'\n", _Sign, i + 1, SignPort(i)->ToString().c_str());
+        printf("\t%s%d \t'%s'\n", _Sign, i, SignPort(i)->ToString().c_str());
     }
 
     PrintOption_d(_NumberOfGroups, NumberOfGroups());

@@ -8,38 +8,38 @@
 
 extern int ALLOWEDBPS[EXTENDEDBPS_SIZE];
 
-#define COMPORT_SIZE 7
-extern const char * COM_NAME[COMPORT_SIZE];
-extern const char * COM_DEV[COMPORT_SIZE];
-
-class SerialPortConfig
+class SpConfig
 {
 public:
-    enum class SpMode
+    enum SpMode
     {
         RS232,    // RS232 mode, no RTS/CTS
         RS485_01, // RS485 mode, RTC=0 when sending / RTS=1 after sent
         RS485_10, // RS485 mode, RTC=1 when sending / RTS=0 after sent
     };
-    enum class DataBits
+    enum DataBits
     {
         B_7 = 7,
         B_8 = 8
     };
-    enum class Parity
+    enum Parity
     {
         NONE,
         ODD,
         EVEN
     };
-    enum class StopBits
+    enum StopBits
     {
         B_1 = 1,
         B_2 = 2
     };
-    SerialPortConfig(SpMode mode, int baudrate) : mode(mode), baudrate(baudrate)
+
+    SpConfig(const char * name, const char *dev, SpMode mode)
+     : name(name), dev(dev), mode(mode),baudrate(0)
     {
     }
+    const char * name;
+    const char * dev;
     SpMode mode;
     int baudrate;
     DataBits databits = DataBits::B_8;
@@ -53,19 +53,22 @@ public:
     }
 };
 
+#define COMPORT_SIZE 7
+extern SpConfig gSpConfig[COMPORT_SIZE];
+
 /// \brief		SerialPort object is used to perform rx/tx serial communication.
 class SerialPort
 {
 public:
     /// \brief		Constructor that sets up serial port with parameters.
-    SerialPort(const char *device, SerialPortConfig &config);
+    SerialPort(SpConfig &config);
 
     /// \brief		Destructor. Closes serial port if still open.
     virtual ~SerialPort();
 
     /// \brief		Get current configuration
-    /// \return     struct SerialPortConfig *
-    SerialPortConfig & Config() { return spConfig; };
+    /// \return     struct SpConfig *
+    SpConfig & Config() { return spConfig; };
 
     /// \brief		Opens the COM port for use.
     /// \return     0:success; -1:failed
@@ -81,12 +84,8 @@ public:
     int GetFd() { return spFileDesc; };
 
 private:
-
-    /// \brief      The file path to the serial port device (e.g. "/dev/ttyUSB0").
-    const char * spDevice;
-
     /// \brief		Serial port configuration.
-    struct SerialPortConfig spConfig;
+    SpConfig & spConfig;
 
     /// \brief		Configures the tty device as a serial port.
     /// \warning    Device must be open (valid file descriptor) when this is called.

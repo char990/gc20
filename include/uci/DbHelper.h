@@ -30,6 +30,22 @@ public:
     
     uint16_t HdrChksum();
 
+    void RefreshSync();
+
+    UciProd & GetUciProd() { return uciProd; };
+    UciUser & GetUciUser() { return uciUser; };
+
+    UciFrm & GetUciFrm() { return  uciFrm; };
+    UciMsg & GetUciMsg() { return uciMsg; };
+    UciPln & GetUciPln() { return uciPln; };
+    
+    UciFault & GetUciFault() { return uciFlt; };
+    UciAlarm & GetUciAlarm() { return uciAlm; };
+    UciEvent & GetUciEvent() { return uciEvt; };
+    
+    UciProcess & GetUciProcess() { return uciProcess; };
+
+protected:
     UciProd uciProd;
     UciUser uciUser;
 
@@ -43,9 +59,6 @@ public:
 
     UciProcess uciProcess;
 
-    void RefreshSync();
-
-protected:
 private:
     DbHelper():tmrEvt(nullptr){};
     ~DbHelper()

@@ -51,9 +51,10 @@ void Frame::FrameCheck()
         return;
     }
     // int CheckConspicuity();
+    UciProd & prod = DbHelper::Instance().GetUciProd();
     if ( (conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03)>2 ||
-        !DbHelper::Instance().uciProd.IsConspicuity(conspicuity & 0x07) ||
-        !DbHelper::Instance().uciProd.IsAnnulus((conspicuity >> 3) & 0x03))
+        !prod.IsConspicuity(conspicuity & 0x07) ||
+        !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
         appErr = APP::ERROR::ConspicuityNotSupported;
     }
@@ -102,7 +103,7 @@ int FrmTxt::CheckSub()
         appErr = APP::ERROR::TextNonASC;
         return 1;
     }
-    else if (!DbHelper::Instance().uciProd.IsFont(font))
+    else if (!DbHelper::Instance().GetUciProd().IsFont(font))
     {
         appErr = APP::ERROR::FontNotSupported;
         return 1;
@@ -112,7 +113,7 @@ int FrmTxt::CheckSub()
 
 int FrmTxt::CheckColour()
 {
-    return DbHelper::Instance().uciProd.IsTxtFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsTxtFrmColour(colour) ? 0 : -1 ;
 }
 
 std::string FrmTxt::ToString()
@@ -153,7 +154,7 @@ int FrmGfx::CheckSub()
 
 int FrmGfx::CheckLength(int len)
 {
-    UciProd &prod = DbHelper::Instance().uciProd;
+    UciProd & prod = DbHelper::Instance().GetUciProd();
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen() )
     {
@@ -199,7 +200,7 @@ int FrmGfx::CheckLength(int len)
 
 int FrmGfx::CheckColour()
 {
-    return DbHelper::Instance().uciProd.IsGfxFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsGfxFrmColour(colour) ? 0 : -1 ;
 }
 
 std::string FrmGfx::ToString()
@@ -240,7 +241,7 @@ int FrmHrg::CheckSub()
 
 int FrmHrg::CheckLength(int len)
 {
-    UciProd &prod = DbHelper::Instance().uciProd;
+    UciProd & prod = DbHelper::Instance().GetUciProd();
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen() )
     {
@@ -286,7 +287,7 @@ int FrmHrg::CheckLength(int len)
 
 int FrmHrg::CheckColour()
 {
-    return DbHelper::Instance().uciProd.IsHrgFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsHrgFrmColour(colour) ? 0 : -1 ;
 }
 
 std::string FrmHrg::ToString()

@@ -4,20 +4,12 @@
 #include <uci/DbHelper.h>
 #include <sign/Slave.h>
 
-SLV_LayerManager::SLV_LayerManager(std::string name_, std::string aType)
+SLV_LayerManager::SLV_LayerManager(std::string name_,  IUpperLayer * upperLayer)
 {
-    if(aType.compare("SLV")==0)
-    {
-        UciProd &prod = DbHelper::Instance().uciProd;
-        appLayer = new GroupApp();
-        maxPktSize = 22 + Slave::numberOfTiles*Slave::numberOfColours;
-        prstLayer = new LayerPrst(maxPktSize);
-        dlLayer = new LayerSlv(name_, maxPktSize*2+2);
-    }
-    else
-    {
-        MyThrow ("Unkown adaptor type:%s", aType.c_str());
-    }
+    maxPktSize = 22 + Slave::numberOfTiles*Slave::numberOfColours;
+    prstLayer = new LayerPrst(maxPktSize);
+    dlLayer = new LayerSlv(name_, maxPktSize*2+2);
+    appLayer = upperLayer;
     // lowerLayer<->dlLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer
     // dlLayer->LowerLayer(lowerLayer); set in this->LowerLayer(lowerLayer)
@@ -34,10 +26,6 @@ SLV_LayerManager::~SLV_LayerManager()
     if(prstLayer)
     {
         delete prstLayer;
-    }
-    if(appLayer)
-    {
-        delete appLayer;
     }
     if(dlLayer)
     {

@@ -8,7 +8,8 @@ using namespace Utils;
 uint8_t Slave::numberOfTiles=0;
 uint8_t Slave::numberOfColours=0;
 
-Slave::Slave()
+Slave::Slave(uint8_t id)
+:slaveId(id)
 {
     if(numberOfTiles==0)
     {

@@ -1,25 +1,17 @@
 #include <sign/Sign.h>
 #include <uci/DbHelper.h>
 
-Sign::Sign(uint8_t id) 
-:signId(id),signErr(0),
-dimmingSet(0),dimmingV(1),
-deviceSet(1),deviceV(1),
-currentFrm(0),currentMsg(0),currentPln(0),
-lightsensor(DbHelper::Instance().uciProd.LightSensorFaultDebounce(),DbHelper::Instance().uciProd.LightSensorFaultDebounce())
+Sign::Sign(uint8_t id)
+    : signId(id), signErr(0),
+      dimmingSet(0), dimmingV(1),
+      deviceSet(1), deviceV(1),
+      reportFrm(0), reportMsg(0), reportPln(0),
+      lightsensor(DbHelper::Instance().GetUciProd().LightSensorFaultDebounce(), DbHelper::Instance().GetUciProd().LightSensorFaultDebounce())
 {
-    UciProd &prod = DbHelper::Instance().uciProd;
-    numberOfSlaves = prod.SlaveRowsPerSign() * prod.SlaveColumnsPerSign();
-    slaves = new Slave[numberOfSlaves];
-    for(int i=0;i<numberOfSlaves;i++)
-    {
-        slaves[i].slaveId=i+1;
-    }
 }
 
 Sign::~Sign()
 {
-    delete[] slaves;
 }
 
 void Sign::Reset()
@@ -30,15 +22,15 @@ void Sign::Reset()
 
 uint8_t *Sign::GetStatus(uint8_t *p)
 {
-    DbHelper &db = DbHelper::Instance();
+    DbHelper & db = DbHelper::Instance();
     *p++ = signId;
     *p++ = signErr;
     *p++ = deviceV;
-    *p++ = currentFrm;
-    *p++ = db.uciFrm.GetFrmRev(currentFrm);
-    *p++ = currentMsg;
-    *p++ = db.uciMsg.GetMsgRev(currentFrm);
-    *p++ = currentPln;
-    *p++ = db.uciPln.GetPlnRev(currentFrm);
+    *p++ = reportFrm;
+    *p++ = db.GetUciFrm().GetFrmRev(reportFrm);
+    *p++ = reportMsg;
+    *p++ = db.GetUciMsg().GetMsgRev(reportFrm);
+    *p++ = reportPln;
+    *p++ = db.GetUciPln().GetPlnRev(reportFrm);
     return p;
 }

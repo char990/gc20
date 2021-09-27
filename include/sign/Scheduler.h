@@ -34,8 +34,6 @@ public:
 
     uint8_t CtrllerErr();
 
-    Sign *GetSign(uint8_t id) { return (id==0 || id>signCnt) ? nullptr : signs[id - 1]; };
-
     uint8_t GroupCnt() { return groupCnt; };
     Group *GetGroup(uint8_t id) { return (id==0 || id>groupCnt) ? nullptr : groups[id - 1]; };
 
@@ -60,8 +58,6 @@ private:
     Scheduler();
     ~Scheduler();
 
-    Sign **signs;
-
     Group **groups;
 
     TimerEvent *tmrEvt;
@@ -72,6 +68,5 @@ private:
     uint8_t
         sessionLed,
         ctrllerErr,
-        groupCnt,
-        signCnt;
+        groupCnt;
 };

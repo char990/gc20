@@ -27,7 +27,7 @@ public:
     // getter
     char * MfcCode() { return &mfcCode[0]; };
     Font * Fonts(int i) { return fonts[i]; };
-    struct StSignPort * SignPort(int i) { return &signPort[i]; };
+    struct StSignPort * SignPort(uint8_t id) { return &signPort[id-1]; };
     uint8_t * MappedColoursTable() {return &mappedColoursTable[0]; };
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };

@@ -135,8 +135,8 @@ int Plan::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if( (plnEntries[i].type == 1 && !DbHelper::Instance().uciFrm.IsFrmDefined(plnEntries[i].fmId)) ||
-            (plnEntries[i].type == 2 && !DbHelper::Instance().uciMsg.IsMsgDefined(plnEntries[i].fmId)) )
+        if( (plnEntries[i].type == 1 && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId)) ||
+            (plnEntries[i].type == 2 && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId)) )
         {
             return -1;
         }

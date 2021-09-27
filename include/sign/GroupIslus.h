@@ -9,11 +9,9 @@ public:
     GroupIslus(uint8_t id);
     ~GroupIslus();
 
-    virtual void Add(Sign * sign) override;
-
-
     virtual void PeriodicHook() override;
+
+    virtual APP::ERROR DispAtomicFrm(uint8_t *id) override;
 private:
     /* data */
 };
-

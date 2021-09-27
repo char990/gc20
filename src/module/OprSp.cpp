@@ -5,31 +5,26 @@
 #include <layer/SLV_LayerManager.h>
 #include <module/Epoll.h>
 
-OprSp::OprSp(SerialPort & sp, std::string name_, std::string aType)
-:sp(sp)
+OprSp::OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer)
+:comX(comX)
 {
-    name = name_;
-    if(aType.compare("SLV")==0)
-    {
-        upperLayer = new SLV_LayerManager(name, aType);
-    }
-    else
-    {
-        upperLayer = new UI_LayerManager(name, aType);
-    }
+    SpConfig & spCfg = gSpConfig[comX];
+    spCfg.baudrate = bps;
+    sp = new SerialPort(spCfg);
+    this->upperLayer = upperLayer;
     upperLayer->LowerLayer(this);
     upperLayer->Clean();
-    sp.Open();
+    sp->Open();
     events = EPOLLIN | EPOLLRDHUP;
-    eventFd = sp.GetFd();
+    eventFd = sp->GetFd();
     Epoll::Instance().AddEvent(this, events);
 }
 
 OprSp::~OprSp()
 {
-    delete upperLayer;
     Epoll::Instance().DeleteEvent(this, events);
-    sp.Close();
+    sp->Close();
+    delete sp;
 }
 
 /*< IOperator --------------------------------------------------*/
@@ -46,7 +41,7 @@ int OprSp::Tx(uint8_t *data, int len)
     int x = TxBytes(data, len);
     if(x>0)
     {
-        x = x * sp.Config().bytebits / sp.Config().baudrate;
+        x = x * sp->Config().bytebits / sp->Config().baudrate;
     }
     return (x==0 ? 1 : x);
 }
@@ -56,7 +51,7 @@ void OprSp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        MyThrow ("%s closed: events=0x%08X\n", name, events);
+        MyThrow ("%s closed: events=0x%08X\n", sp->Config().name, events);
     }
     else if (events & EPOLLIN)
     {
@@ -68,7 +63,7 @@ void OprSp::EventsHandle(uint32_t events)
     }
     else
     {
-        UnknownEvents(name, events);
+        UnknownEvents(sp->Config().name, events);
     }
 }
 
@@ -79,11 +74,11 @@ int OprSp::RxHandle()
     int n = read(eventFd, buf, 4096);
     if (n <= 0)
     {
-        MyThrow ("%s: read error", name);
+        MyThrow ("%s: read error", sp->Config().name);
     }
     else
     {
-        printf("ComRx %d bytes\n", n);
+        //printf("ComRx %d bytes\n", n);
         if(IsTxRdy()) // if tx is busy, discard this rx
         {
             upperLayer->Rx(buf, n);

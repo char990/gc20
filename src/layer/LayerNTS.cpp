@@ -51,14 +51,14 @@ int LayerNTS::Rx(uint8_t *data, int len)
         return 0;
     }
     int addr = Cnvt::ParseToU8((char *)data+5);
-    UciUser & cfg = DbHelper::Instance().uciUser;
-    if(addr!=cfg.DeviceId() || addr==cfg.BroadcastId())
+    UciUser & user = DbHelper::Instance().GetUciUser();
+    if(addr!=user.DeviceId() || addr==user.BroadcastId())
     {
         return 0;
     }
     _addr=addr;
     int mi = Cnvt::ParseToU8((char *)data+8);
-    if((mi == MI::CODE::StartSession && len==15 && addr==cfg.DeviceId()) ||
+    if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) ||
         sessionTimeout.IsExpired())
     {
         session=ISession::SESSION::OFF_LINE;
@@ -67,7 +67,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     if(session==ISession::SESSION::ON_LINE)
     {
-        if(addr==cfg.DeviceId())
+        if(addr==user.DeviceId())
         {// only matched slave addr inc _nr, for broadcast id ignore ns nr
             int ns = Cnvt::ParseToU8((char *)data+1);
             int nr = Cnvt::ParseToU8((char *)data+3);
@@ -109,7 +109,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     else
     {
-        if(addr==cfg.BroadcastId())
+        if(addr==user.BroadcastId())
         {// ignore broadcast when off-line
             return 0;
         }
@@ -117,7 +117,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     upperLayer->Rx(data+8, len-13);
     if(session==ISession::SESSION::ON_LINE)
     {
-        sessionTimeout.Setms(cfg.SessionTimeout()*1000);
+        sessionTimeout.Setms(user.SessionTimeout()*1000);
     }
     return 0;
 }
@@ -131,8 +131,8 @@ bool LayerNTS::IsTxReady()
 int LayerNTS::Tx(uint8_t *data, int len)
 {
     StatusLed::Instance().ReloadDataSt();
-    UciUser & cfg = DbHelper::Instance().uciUser;
-    if(_addr==cfg.BroadcastId())
+    UciUser & user = DbHelper::Instance().GetUciUser();
+    if(_addr==user.BroadcastId())
     {// no reply for broadcast
         return 0;
     }
@@ -141,7 +141,7 @@ int LayerNTS::Tx(uint8_t *data, int len)
     *p=DATALINK::CTRL_CHAR::SOH; p++;
     Cnvt::ParseToAsc(_ns,p); p+=2;
     Cnvt::ParseToAsc(_nr,p); p+=2;
-    Cnvt::ParseToAsc(cfg.DeviceId(),p); p+=2;
+    Cnvt::ParseToAsc(user.DeviceId(),p); p+=2;
     *p=DATALINK::CTRL_CHAR::STX; p++;
     memcpy(p,data,len);
     EndOfBlock(txbuf+NON_DATA_PACKET_SIZE, len+DATA_PACKET_HEADER_SIZE);
@@ -185,7 +185,7 @@ void LayerNTS::MakeNondata(uint8_t a)
 {
     txbuf[0]=a;
     Cnvt::ParseToAsc(_nr, (char*)txbuf+1);
-    Cnvt::ParseToAsc(DbHelper::Instance().uciUser.DeviceId(), (char*)txbuf+3);
+    Cnvt::ParseToAsc(DbHelper::Instance().GetUciUser().DeviceId(), (char*)txbuf+3);
     EndOfBlock(txbuf, 5);
 }
 

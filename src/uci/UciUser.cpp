@@ -24,7 +24,7 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
-    UciProd & uciProd = DbHelper::Instance().uciProd;
+    UciProd & uciProd = DbHelper::Instance().GetUciProd();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
@@ -180,13 +180,18 @@ void UciUser::LoadConfig()
 
     int numberOfSigns=uciProd.NumberOfSigns();
 
+    const char * COM_NAME[COMPORT_SIZE];
+    for(int i=0;i<COMPORT_SIZE;i++)
+    {
+        COM_NAME[i] = gSpConfig[i].name;
+    }
     str = GetStr(uciSec, _ComPort);
     comPort = GetIntFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
-    for(int i=0;i<numberOfSigns;i++)
+    for(uint8_t i=1;i<=numberOfSigns;i++)
     {
         if(comPort==uciProd.SignPort(i)->com_ip)
         {
-            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i], i+1);
+            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i-1], i);
         }
     }
 
@@ -240,7 +245,7 @@ void UciUser::Dump()
     PrintOption_d(_LastFrmOn, LastFrmOn());
 
 	PrintOption_str(_TZ, TZ() );
-	PrintOption_str(_ComPort, COM_NAME[ComPort()] );
+	PrintOption_str(_ComPort, gSpConfig[ComPort()].name );
     
     char buf[256];
 
@@ -403,7 +408,7 @@ void UciUser::ComPort(uint8_t v)
     if(comPort!=v)
     {
         comPort=v;
-        OptionSave(_ComPort, COM_NAME[comPort]);
+        OptionSave(_ComPort, gSpConfig[comPort].name);
     }
 }
 

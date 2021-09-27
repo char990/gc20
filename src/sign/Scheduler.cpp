@@ -7,7 +7,7 @@
 #include <sign/SignAdg.h>
 
 Scheduler::Scheduler()
-    : signs(nullptr), groups(nullptr), tmrEvt(nullptr)
+    : groups(nullptr), tmrEvt(nullptr)
 {
 }
 
@@ -20,14 +20,6 @@ Scheduler::~Scheduler()
             delete groups[i];
         }
         delete[] groups;
-    }
-    if (signs != nullptr)
-    {
-        for (int i = 0; i < signCnt; i++)
-        {
-            delete signs[i];
-        }
-        delete[] signs;
     }
     if (tmrEvt != nullptr)
     {
@@ -44,35 +36,11 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
     displayTimeout.Clear();
-
-    // sign init
-    signCnt = DbHelper::Instance().uciProd.NumberOfSigns();
-    signs = new Sign *[signCnt];
-    switch (DbHelper::Instance().uciProd.ExtStsRplSignType())
-    {
-    case SESR::SIGN_TYPE::TEXT:
-        for (int i = 0; i < signCnt; i++)
-        {
-            signs[i] = new SignTxt(i + 1);
-        }
-        break;
-    case SESR::SIGN_TYPE::GFX:
-        for (int i = 0; i < signCnt; i++)
-        {
-            signs[i] = new SignGfx(i + 1);
-        }
-        break;
-    case SESR::SIGN_TYPE::ADVGFX:
-        for (int i = 0; i < signCnt; i++)
-        {
-            signs[i] = new SignAdg(i + 1);
-        }
-        break;
-    }
-    groupCnt = DbHelper::Instance().uciProd.NumberOfGroups();
+    UciProd & prod = DbHelper::Instance().GetUciProd(); 
+    groupCnt = prod.NumberOfGroups();
     groups = new Group *[groupCnt];
 
-    switch (DbHelper::Instance().uciProd.ProdType())
+    switch (prod.ProdType())
     {
     case 0: // vms
         for (int i = 0; i < groupCnt; i++)
@@ -86,18 +54,6 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
             groups[i] = new GroupIslus(i + 1);
         }
         break;
-    }
-    for (int i = 1; i <= signCnt; i++)
-    {
-        GetGroup(DbHelper::Instance().uciProd.GetGroupIdOfSign(i))->Add(GetSign(i));
-    }
-    for (int i = 0; i < groupCnt; i++)
-    {
-        if (groups[i]->SignCnt() == 0)
-        {
-            MyThrow("Error:There is no sign in Group[%d]", i + 1);
-        }
-        groups[i]->Init();
     }
 }
 
@@ -121,7 +77,7 @@ void Scheduler::PeriodicRun()
 
 void Scheduler::RefreshDispTime()
 {
-    long ms = DbHelper::Instance().uciUser.DisplayTimeout();
+    long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     ms = (ms == 0) ? -1 : (ms * 1000);
     displayTimeout.Setms(ms);
 }
@@ -192,7 +148,7 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
     StFrm *frm;
     if (frmId != 0)
     {
-        if (!DbHelper::Instance().uciFrm.IsFrmDefined(frmId))
+        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -211,7 +167,7 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
     Message *msg;
     if (msgId != 0)
     {
-        if (!DbHelper::Instance().uciMsg.IsMsgDefined(msgId))
+        if (!DbHelper::Instance().GetUciMsg().IsMsgDefined(msgId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -238,7 +194,7 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (!DbHelper::Instance().uciPln.IsPlnDefined(plnId))
+    else if (!DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
@@ -258,7 +214,7 @@ APP::ERROR Scheduler::CmdDisablePlan(uint8_t *cmd)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (!DbHelper::Instance().uciPln.IsPlnDefined(plnId))
+    else if (!DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }

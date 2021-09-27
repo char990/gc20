@@ -19,7 +19,7 @@ public:
 
     void Clean() override;
 
-    virtual void LowerLayer(ILowerLayer * lowerLayer)
+    virtual void LowerLayer(ILowerLayer * lowerLayer) override
     {
         dlLayer->LowerLayer(lowerLayer);
     }

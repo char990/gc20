@@ -10,7 +10,6 @@
     For ISLUS, it is only one slave.
     It is used for SignStatusReply/SignExtStatusReply/SignConfigurationReply
     Sign is not for controlling slaves which are controlled in Group
-    Sign is mostly for status 
 */
 
 class Sign
@@ -39,9 +38,9 @@ public:
     // set current display
     void CurrentDisp(uint8_t f, uint8_t m, uint8_t p)
     {
-        currentPln=p;
-        currentMsg=m;
-        currentFrm=f;
+        reportPln=p;
+        reportMsg=m;
+        reportFrm=f;
     };
 
 protected:
@@ -54,10 +53,7 @@ protected:
 
     uint8_t deviceSet, deviceV;
     
-    uint8_t currentPln, currentMsg, currentFrm;
-
-    Slave *slaves;
-    uint8_t numberOfSlaves;
+    uint8_t reportPln, reportMsg, reportFrm;
 
     uint8_t setFrm;
     uint8_t dispFrm;
