@@ -33,7 +33,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
     {
         return APP::ERROR::FacilitySwitchOverride;
     }
-    if (cmd[2] = signCnt)
+    if (cmd[2] != signCnt)
     {
         return APP::ERROR::SyntaxError;
     }
@@ -63,6 +63,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         }
         p++;
     }
+    db.GetUciProcess().SetDisp(groupId, cmd, 3+signCnt*2);
     dsNext->dispType = DISP_STATUS::TYPE::ATF;
     p = cmd + 3;
     for (int i = 0; i < signCnt; i++)

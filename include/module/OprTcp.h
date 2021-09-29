@@ -49,10 +49,10 @@ public:
 
 private:
     std::string name;
-    TcpServer * server;
-    TimerEvent * tmrEvt;
+    TcpServer * server{nullptr};
+    TimerEvent * tmrEvt{nullptr};
     BootTimer tcpIdleTmr;
-    int idleTime;
+    int idleTime{60};
 
     /// \brief  Called in EventsHandle
     int RxHandle();

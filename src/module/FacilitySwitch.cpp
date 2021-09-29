@@ -2,7 +2,6 @@
 
 FacilitySwitch::FacilitySwitch() 
 {
-    fsState = FS_STATE::AUTO;
 }
 
 FacilitySwitch::~FacilitySwitch() 

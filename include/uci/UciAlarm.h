@@ -23,6 +23,8 @@ public:
     UciAlarm();
     ~UciAlarm();
 
+    virtual void LoadConfig() override;
+
 private:
 };
 

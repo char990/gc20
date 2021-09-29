@@ -45,18 +45,18 @@ public:
 
 protected:
     uint8_t signId;
-    uint8_t signErr;
+    uint8_t signErr{0};
 
-    uint8_t dimmingSet, dimmingV;
+    uint8_t dimmingSet{0}, dimmingV{1};
     uint8_t DimmingMode() { return (dimmingSet==0)?0:1; };
     uint8_t DimmingValue() { return (dimmingSet==0)?dimmingV:dimmingSet; };
 
-    uint8_t deviceSet, deviceV;
+    uint8_t deviceSet{1}, deviceV{1};
     
-    uint8_t reportPln, reportMsg, reportFrm;
+    uint8_t reportPln{0}, reportMsg{0}, reportFrm{0};
 
-    uint8_t setFrm;
-    uint8_t dispFrm;
+    uint8_t setFrm{0};
+    uint8_t dispFrm{0};
 
     Debounce lightsensor;
 };

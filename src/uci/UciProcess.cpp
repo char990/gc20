@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstring>
 #include <uci.h>
-#include <uci/UciProcess.h>
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
 #include <module/MyDbg.h>
@@ -10,9 +9,6 @@ using namespace Utils;
 
 UciProcess::UciProcess()
 {
-	PATH = "./config";
-	PACKAGE = "UciProcess";
-	SECTION = &GroupX[0];
 	grpProc = nullptr;
 	grpCnt = 0;
 }
@@ -27,15 +23,18 @@ UciProcess::~UciProcess()
 
 void UciProcess::LoadConfig()
 {
+	PATH = DbHelper::Instance().Path();
+	PACKAGE = "UciProcess";
+	SECTION = &GroupX[0];
 	Open();
-	DbHelper & db = DbHelper::Instance();
+	DbHelper &db = DbHelper::Instance();
 	grpCnt = db.GetUciProd().NumberOfGroups();
 	grpProc = new GrpProc[grpCnt];
 	char option[16];
-	int pln[255];
+	int buf[255];
 	const char *str;
 	int d;
-		GrpProc *p;
+	GrpProc *p;
 	for (int i = 1; i <= grpCnt; i++)
 	{
 		sprintf(GroupX, "Group%d", i);
@@ -44,71 +43,33 @@ void UciProcess::LoadConfig()
 		str = GetStr(uciSec, _EnabledPlan);
 		if (str != NULL)
 		{
-			int j = Cnvt::GetIntArray(str, 255, pln, 1, 255);
+			int j = Cnvt::GetIntArray(str, 255, buf, 1, 255);
 			for (int k = 0; k < j; k++)
 			{
-				if (db.GetUciPln().IsPlnDefined(pln[k]))
+				if (db.GetUciPln().IsPlnDefined(buf[k]))
 				{
-					p->EnablePlan(pln[k]);
+					p->EnablePlan(buf[k]);
 				}
 			}
 		}
 
-		d = GetInt(uciSec, _Dimming, 0, 16);
-		p->Dimming(d);
-
-		d = GetInt(uciSec, _Display, 0, 16);
-		if (d != DISP_STATUS::TYPE::N_A &&
-			d != DISP_STATUS::TYPE::FRM &&
-			d != DISP_STATUS::TYPE::MSG &&
-			d != DISP_STATUS::TYPE::PLN &&
-			d != DISP_STATUS::TYPE::ATF)
-		{
-			continue;
-		}
-
-		str = GetStr(uciSec, _FmpId);
+		uint8_t *plen = p->ProcDisp();
+		*plen = 0;
+		str = GetStr(uciSec, _Display);
 		if (str != NULL)
 		{
-			int j = Cnvt::GetIntArray(str, 16, pln, 0, 255);
-			if (d == DISP_STATUS::TYPE::ATF)
+			int len = strlen(str);
+			if (len <= (255 * 2) && Cnvt::ParseToU8(str, p->ProcDisp() + 1, len) == 0)
 			{
-				if (j != 1) // signCnt check
-				{
-					continue;
-				}
-			}
-			else
-			{
-				if (j != 1)
-				{
-					continue;
-				}
-				if (d == DISP_STATUS::TYPE::FRM)
-				{
-					if (pln[0] != 0 && !db.GetUciFrm().IsFrmDefined(pln[0]))
-					{
-						continue;
-					}
-				}
-				else if (d == DISP_STATUS::TYPE::MSG)
-				{
-					if (pln[0] != 0 && !db.GetUciMsg().IsMsgDefined(pln[0]))
-					{
-						continue;
-					}
-				}
-				else if (d == DISP_STATUS::TYPE::PLN)
-				{
-					d = static_cast<int>(DISP_STATUS::TYPE::FRM);
-					pln[0] = 0;
-				}
-				auto procDisp = p->ProcDisp();
-				procDisp->dispType = static_cast<DISP_STATUS::TYPE>(d);
-				procDisp->fmpLen = 1;
-				procDisp->fmpid[0] = pln[0];
+				*plen = len / 2;
 			}
 		}
+		d = GetInt(uciSec, _Dimming, 0, 16);
+		p->Dimming(d);
+		d = GetInt(uciSec, _Power, 0, 1);
+		p->Power(d);
+		d = GetInt(uciSec, _Device, 0, 1);
+		p->Device(d);
 	}
 
 	Close();
@@ -117,7 +78,7 @@ void UciProcess::LoadConfig()
 
 void UciProcess::Dump()
 {
-    PrintDash();
+	PrintDash();
 	printf("%s/%s\n", PATH, PACKAGE);
 	char buf[1024];
 	for (int i = 1; i <= grpCnt; i++)
@@ -125,10 +86,19 @@ void UciProcess::Dump()
 		auto p = GetGrpProc(i);
 		PrintGrpPln(i, buf);
 		printf("\tGroup%d.%s \t'%s'\n", i, _EnabledPlan, buf);
-		printf("\tGroup%d.%s \t'%d'\n", i, _Display, p->ProcDisp()->dispType);
-		PrintGrpFmpId(i, buf);
-		printf("\tGroup%d.%s \t'%s'\n", i, _FmpId, buf);
+		uint8_t *disp = p->ProcDisp();
+		if (*disp == 0)
+		{
+			printf("\tGroup%d.%s \t''\n", i, _Display);
+		}
+		else
+		{
+			Cnvt::ParseToStr(disp + 1, buf, *disp);
+			printf("\tGroup%d.%s \t'%s'\n", i, _Display, buf);
+		}
 		printf("\tGroup%d.%s \t'%d'\n", i, _Dimming, p->Dimming());
+		printf("\tGroup%d.%s \t'%d'\n", i, _Power, p->Power());
+		printf("\tGroup%d.%s \t'%d'\n", i, _Device, p->Device());
 	}
 }
 
@@ -174,8 +144,8 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 {
 	if (gid == 0 || gid > grpCnt)
 		return 0;
-	buf[0]='\0';
-	auto p =GetGrpProc(gid);
+	buf[0] = '\0';
+	auto p = GetGrpProc(gid);
 	int len = 0;
 	for (int i = 1; i <= 255; i++)
 	{
@@ -188,40 +158,43 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 			len += sprintf(buf + len, "%d", i);
 		}
 	}
-	if(len==0)
+	if (len == 0)
 	{
-		len=1;
-		buf[0]=' ';
-		buf[1]='\0';
+		len = 1;
+		buf[0] = ' ';
+		buf[1] = '\0';
 	}
 	return len;
 }
 
-void UciProcess::SetDisp(uint8_t gid, GrpProcDisp * disp)
-{
-	if (gid == 0 || gid > grpCnt)
-		return;
-	sprintf(GroupX, "Group%d", gid);
-	OpenSectionForSave(SECTION);
-
-	memcpy(grpProc[gid - 1].ProcDisp(), disp, sizeof(GrpProcDisp));
-
-	int x = static_cast<int>(disp->dispType);
-	OptionSave(_Display, x);
-
-	char buf[1024];
-	PrintGrpFmpId(gid, buf);
-	OptionSave(_FmpId, buf);
-
-	CloseSectionForSave();
-}
-
-GrpProcDisp * UciProcess::GetDisp(uint8_t gid) 
+uint8_t *UciProcess::GetDisp(uint8_t gid)
 {
 	return (gid == 0 || gid > grpCnt) ? nullptr : grpProc[gid - 1].ProcDisp();
 }
 
-void UciProcess::SetDimming(uint8_t gid, uint8_t v) 
+void UciProcess::SetDisp(uint8_t gid, uint8_t *cmd, int len)
+{
+	if (gid == 0 || gid > grpCnt)
+		return;
+	sprintf(GroupX, "Group%d", gid);
+
+	grpProc[gid - 1].ProcDisp(cmd, len);
+
+	uint8_t *p = grpProc[gid - 1].ProcDisp();
+	len = *p;
+	char v[255 * 2 + 1];
+	if (len == 0)
+	{
+		sprintf(v, " ");
+	}
+	else
+	{
+		Cnvt::ParseToStr(p + 1, v, len);
+	}
+	OpenSaveClose(SECTION, _Display, v);
+}
+
+void UciProcess::SetDimming(uint8_t gid, uint8_t v)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
@@ -230,26 +203,35 @@ void UciProcess::SetDimming(uint8_t gid, uint8_t v)
 	OpenSaveClose(SECTION, _Dimming, v);
 }
 
-uint8_t UciProcess::GetDimming(uint8_t gid) 
+uint8_t UciProcess::GetDimming(uint8_t gid)
 {
 	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Dimming();
 }
 
-int UciProcess::PrintGrpFmpId(uint8_t gid, char *buf)
+void UciProcess::SetPower(uint8_t gid, uint8_t v)
 {
 	if (gid == 0 || gid > grpCnt)
-		return 0;
-	buf[0]='\0';
-	auto procDisp = grpProc[gid - 1].ProcDisp();
-	int len = 0;
-	uint8_t *p = procDisp->fmpid;
-	for (int i = 0; i < procDisp->fmpLen; i++)
-	{
-		if (len > 0)
-		{
-			buf[len++] = ',';
-		}
-		len += sprintf(buf + len, "%d", *p++);
-	}
-	return len;
+		return;
+	sprintf(GroupX, "Group%d", gid);
+	grpProc[gid - 1].Power(v);
+	OpenSaveClose(SECTION, _Power, v);
+}
+
+uint8_t UciProcess::GetPower(uint8_t gid)
+{
+	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Power();
+}
+
+void UciProcess::SetDevice(uint8_t gid, uint8_t v)
+{
+	if (gid == 0 || gid > grpCnt)
+		return;
+	sprintf(GroupX, "Group%d", gid);
+	grpProc[gid - 1].Device(v);
+	OpenSaveClose(SECTION, _Device, v);
+}
+
+uint8_t UciProcess::GetDevice(uint8_t gid)
+{
+	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Device();
 }

@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
 #include <linux/serial.h>
 #include <termios.h>
 
@@ -18,11 +20,11 @@ SpConfig gSpConfig [COMPORT_SIZE] =
 {
 	SpConfig{"MODEM", "/dev/ttymxc3", SpConfig::SpMode::RS232},
 	SpConfig{"COM1", "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM2", "/dev/ttymxc1", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM3", "/dev/ttymxc5", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM4", "/dev/ttymxc4", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM5", "/dev/ttySC1", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM6", "/dev/ttySC0", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM2", "/dev/ttymxc1", SpConfig::SpMode::RS232},
+	SpConfig{"COM3", "/dev/ttymxc5", SpConfig::SpMode::RS232},
+	SpConfig{"COM4", "/dev/ttymxc4", SpConfig::SpMode::RS232},
+	SpConfig{"COM5", "/dev/ttySC0", SpConfig::SpMode::RS485_01},
+	SpConfig{"COM6", "/dev/ttySC1", SpConfig::SpMode::RS485_01},
 };
 
 SerialPort::SerialPort(SpConfig & config)
@@ -156,10 +158,39 @@ void SerialPort::ConfigureTermios()
 	tty.c_lflag &= ~ISIG;	// Disables recognition of INTR (interrupt), QUIT and SUSP (suspend) characters
 
 	// Flush port, then apply attributes
-	tcflush(spFileDesc, TCIFLUSH);
+	tcflush(spFileDesc, TCIOFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		MyThrow("tcsetattr() failed: %s(%s)", spConfig.name, spConfig.dev);
+		MyThrow("tcsetattr() failed: %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+	}
+
+
+	struct serial_rs485 rs485conf;
+	if (ioctl (spFileDesc, TIOCGRS485, &rs485conf) < 0)
+	{
+		MyThrow("Error reading ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+	}
+	rs485conf.flags=0;
+	if(spConfig.mode==SpConfig::SpMode::RS232)
+	{
+        rs485conf.flags &= ~SER_RS485_ENABLED;
+	}
+	else
+	{
+        rs485conf.flags |= SER_RS485_ENABLED |
+			(spConfig.mode==SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);
+    }
+	if (ioctl (spFileDesc, TIOCSRS485, &rs485conf) < 0)
+	{
+		MyThrow("Error writing ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+	}
+	if (ioctl (spFileDesc, TIOCGRS485, &rs485conf) < 0)
+	{
+		MyThrow("Error reading ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+	}
+	if(spConfig.mode!=SpConfig::SpMode::RS232)
+	{
+		printf("Confirm RS485 mode is %s\n", (rs485conf.flags & SER_RS485_ENABLED) ? "set" : "NOT set");
 	}
 }
 

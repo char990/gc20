@@ -7,7 +7,6 @@
 #include <sign/SignAdg.h>
 
 Scheduler::Scheduler()
-    : groups(nullptr), tmrEvt(nullptr)
 {
 }
 

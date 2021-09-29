@@ -3,6 +3,10 @@
 class DispStatus
 {
 public:
+    DISP_STATUS::TYPE dispType;
+    uint8_t *fmpid;
+    uint8_t signCnt;
+
     DispStatus(uint8_t signCnt)
     :signCnt(signCnt)
     {
@@ -62,8 +66,5 @@ public:
         }
         return false;
     };
-    DISP_STATUS::TYPE dispType;
-    uint8_t *fmpid;
-    uint8_t signCnt;
 };
 

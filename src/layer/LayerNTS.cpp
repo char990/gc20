@@ -30,7 +30,6 @@ LayerNTS::LayerNTS(std::string name_)
 {
     name = name_ + ":" + "NTS";
     sessionTimeout.Clear();
-    session = ISession::SESSION::OFF_LINE;
 }
 
 LayerNTS::~LayerNTS()
@@ -153,12 +152,17 @@ int LayerNTS::Tx(uint8_t *data, int len)
     return 0;
 }
 
-void LayerNTS::Clean()
+void LayerNTS::ClrRx()
 {
     _nr = 0;
     _ns = 0;
-    upperLayer->Clean();
+    upperLayer->ClrRx();
     sessionTimeout.Setms(0);
+}
+
+void LayerNTS::ClrTx()
+{
+    lowerLayer->ClrTx();
 }
 
 /// -------------------------------------------------------

@@ -4,28 +4,32 @@
 #include <cstdint>
 #include <tsisp003/TsiSp003Const.h>
 
-class GrpProcDisp
-{
-public:
-    DISP_STATUS::TYPE dispType;
-    uint8_t fmpLen;
-    uint8_t fmpid[16];      // assume signs in group is less than 16
-};
-
 class GrpProc
 {
 public:
-    GrpProc();
+    GrpProc(){};
+    ~GrpProc(){};
+
     bool IsPlanEnabled(uint8_t id);
     void EnablePlan(uint8_t id);
     void DisablePlan(uint8_t id);
 
-    GrpProcDisp * ProcDisp() { return &procDisp; };
+    void ProcDisp(uint8_t *cmd, int len);
+    uint8_t * ProcDisp() { return disp; };
 
     void Dimming(uint8_t v) { dimming = v; };
     uint8_t Dimming() { return dimming; };
+
+    void Power(uint8_t v) { power = v; };
+    uint8_t Power() { return power; };
+
+    void Device(uint8_t v) { device = v; };
+    uint8_t Device() { return device; };
+
 private:
-    GrpProcDisp procDisp;
-    uint8_t enabledPln[255];
-    uint8_t dimming;
+    uint8_t enabledPln[255]{};
+    uint8_t dimming{0};
+    uint8_t power{1};
+    uint8_t device{1};
+    uint8_t disp[256]{};      // [0]:len, [1-255]:display cmd
 };

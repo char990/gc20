@@ -38,7 +38,7 @@ int SLV_LayerManager::Rx(uint8_t * data, int len)
     return dlLayer->Rx(data,len);
 }
 
-void SLV_LayerManager::Clean()
+void SLV_LayerManager::ClrRx()
 {
-    return dlLayer->Clean();
+    return dlLayer->ClrRx();
 }

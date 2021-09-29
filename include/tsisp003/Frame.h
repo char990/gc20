@@ -8,7 +8,7 @@
 class StFrm
 {
 public:
-    int dataLen;
+    int dataLen{0};
     uint8_t *rawData;
 };
 
@@ -17,15 +17,15 @@ class Frame
 public:
     Frame();
     virtual ~Frame();
-    APP::ERROR appErr;
-    uint8_t micode;
+    APP::ERROR appErr{APP::ERROR::AppNoError};
+    uint8_t micode{0};
     uint8_t frmId;
     uint8_t frmRev;
     uint8_t colour;
     uint8_t conspicuity;
     int frmlen;
     int frmOffset;
-    uint16_t crc;
+    uint16_t crc{0};
     StFrm stFrm;
 
     void FrameCheck();

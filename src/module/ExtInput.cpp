@@ -2,7 +2,7 @@
 
 ExtInput::ExtInput() 
 {
-    state = EXT_STATE::NONE;
+
 }
 
 ExtInput::~ExtInput() 

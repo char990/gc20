@@ -23,6 +23,7 @@ public:
     UciEvent();
     ~UciEvent();
 
+    virtual void LoadConfig() override;
 private:
 
 };

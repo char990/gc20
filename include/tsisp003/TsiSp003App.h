@@ -23,8 +23,8 @@ public:
     /// \return     int         0: Command excuted; -1: failed
     virtual int Rx(uint8_t * data, int len) override;
 
-    /// \brief		Clean current layer. Called by lowerlayer->Clean() and call upperlayer->Clean()
-    virtual void Clean() override;
+    /// \brief		ClrRx current layer. Called by lowerlayer->ClrRx() and call upperlayer->ClrRx()
+    virtual void ClrRx() override;
     /*------------------------------------------------------------------>*/
 
     /*<------------------------------------------------------------------*/
@@ -58,10 +58,10 @@ public:
 protected:
     DbHelper & db;
     Scheduler & sch;
-    ISession *session;
+    ISession *session{nullptr};
 
-    uint8_t micode;
-    APP::ERROR appErr;
+    uint8_t micode{0};
+    APP::ERROR appErr{APP::ERROR::AppNoError};
     
 
     uint8_t txbuf[MAX_APP_PACKET_SIZE];

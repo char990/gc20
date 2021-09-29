@@ -53,7 +53,7 @@ void OprTcp::Init(std::string name_, std::string aType, int idle)
 /// \brief  Called when a new connection accepted
 void OprTcp::Setup(int fd, TimerEvent *tmr)
 {
-    upperLayer->Clean();
+    upperLayer->ClrRx();
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
     Epoll::Instance().AddEvent(this, events);
@@ -120,12 +120,18 @@ void OprTcp::SetServer(TcpServer *svr)
 void OprTcp::Release()
 {
     tcpIdleTmr.Clear();
-    tmrEvt->Remove(this);
+    if(tmrEvt!=nullptr)
+    {
+        tmrEvt->Remove(this);
+    }
     if (events > 0)
     {
         Epoll::Instance().DeleteEvent(this, events);
         events = 0;
     }
-    server->Release(this);
+    if(server!=nullptr)
+    {
+        server->Release(this);
+    }
     eventFd = -1;
 }

@@ -3,9 +3,6 @@
 
 StatusLed::StatusLed()
 {
-    sessionSt=0;
-    dataSt=0;
-    dataCnt=0;
     sessionTmr.Clear();
 }
 

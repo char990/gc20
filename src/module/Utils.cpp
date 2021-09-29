@@ -59,7 +59,7 @@ uint8_t Cnvt::Reverse(uint8_t n)
     return (lookup[n & 0b1111] << 4) | lookup[n >> 4];
 }
 
-int Cnvt::ParseToU8(char *p)
+int Cnvt::ParseToU8(const char *p)
 {
     int k = 0;
     for (int i = 0; i < 2; i++)
@@ -87,7 +87,7 @@ int Cnvt::ParseToU8(char *p)
     return k;
 }
 
-int Cnvt::ParseToU8(char *src, uint8_t *dst, int srclen)
+int Cnvt::ParseToU8(const char *src, uint8_t *dst, int srclen)
 {
     if ((srclen & 1) == 1 || srclen <= 0)
         return -1;
@@ -104,7 +104,7 @@ int Cnvt::ParseToU8(char *src, uint8_t *dst, int srclen)
     return 0;
 }
 
-int Cnvt::ParseToU16(char *src)
+int Cnvt::ParseToU16(const char *src)
 {
     int k = 0;
     for (int i = 0; i < 2; i++)
@@ -118,7 +118,7 @@ int Cnvt::ParseToU16(char *src)
     return k;
 }
 
-int64_t Cnvt::ParseToU32(char *src)
+int64_t Cnvt::ParseToU32(const char *src)
 {
     int64_t k = 0;
     for (int i = 0; i < 4; i++)

@@ -1,12 +1,12 @@
 #include <string>
 #include <cstring>
 #include <sys/stat.h>
-#include <uci/UciProd.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <module/SerialPort.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
 #include <sign/Sign.h>
+#include <uci/DbHelper.h>
 
 extern const char *FirmwareMajorVer;
 extern const char *FirmwareMinorVer;
@@ -44,9 +44,6 @@ const char *COLOUR_NAME[10] = {
 
 UciProd::UciProd()
 {
-    PATH = "./config";
-    PACKAGE = "UciProd";
-    SECTION = "ctrller_cfg";
     signPort = nullptr;
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
@@ -79,6 +76,9 @@ UciProd::~UciProd()
 
 void UciProd::LoadConfig()
 {
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciProd";
+    SECTION = "ctrller_cfg";
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];

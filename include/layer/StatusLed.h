@@ -28,8 +28,8 @@ private:
     StatusLed();
     ~StatusLed();
     TimerEvent *tmrEvt;
-    uint8_t sessionSt;
-    uint8_t dataSt, dataCnt;
+    uint8_t sessionSt{0};
+    uint8_t dataSt{0}, dataCnt{0};
     BootTimer sessionTmr;
 };
 

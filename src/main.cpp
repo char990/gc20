@@ -6,6 +6,8 @@
 #include <cstring>
 #include <unistd.h>
 #include <mcheck.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <module/Epoll.h>
 #include <module/SerialPort.h>
@@ -84,11 +86,33 @@ void TestCrc8005()
     printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
     PrintVersion();
+    if(argc !=2)
+    {
+        printf("Usage: %s DIRECTORY\n", argv[0]);
+        return 1;
+    }
+    {
+        struct stat st;
+        if(stat(argv[1], &st) == 0)
+        {
+            if(!S_ISDIR(st.st_mode))
+            {
+                printf("'%s' is NOT a directory\n", argv[1]);
+                exit(3);
+            }
+        }
+        else
+        {
+            printf("'%s' does NOT exist\n", argv[1]);
+            exit(2);
+        }
+    }
+
     try
     {
         srand(time(NULL));
@@ -102,7 +126,7 @@ int main()
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
         timerEvt1s.Add(new TickTock{});
         StatusLed::Instance().Init(&timerEvt10ms);
-        DbHelper::Instance().Init(&timerEvt1s);
+        DbHelper::Instance().Init(&timerEvt1s, argv[1]);
         UciProd & prod = DbHelper::Instance().GetUciProd();
         UciUser & user = DbHelper::Instance().GetUciUser();
         Scheduler::Instance().Init(&timerEvt10ms);

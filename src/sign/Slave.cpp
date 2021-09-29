@@ -20,11 +20,24 @@ Slave::Slave(uint8_t id)
         MyThrow("Error: Slave::numberOfColours is 0");
     }
     numberOfFaultyLed = new uint8_t[numberOfTiles*numberOfColours];
+    Reset();
 }
 
 Slave::~Slave()
 {
     delete [] numberOfFaultyLed;
+}
+
+void Slave::Reset()
+{
+    rxStatus=0;
+    rxExtSt=0;
+    for(int i=0;i<7;i++)
+    {
+        frmCrc[i]=0;
+    }
+    expectCurrentFrmId=0;       // display frame command
+    expectNextFrmId=0;       // set frame command
 }
 
 int Slave::DecodeStRpl(uint8_t * buf, int len)
@@ -41,6 +54,7 @@ int Slave::DecodeStRpl(uint8_t * buf, int len)
     {
         return -3;
     }
+    rxStatus=1;
     panelFault = buf[2];
     overTemp = buf[3];
     selfTest = buf[4];
@@ -76,6 +90,7 @@ int Slave::DecodeExtStRpl(uint8_t * buf, int len)
     {
         return -5;
     }
+    rxExtSt=1;
     controlByte=buf[2];
     for(int i=0;i<4;i++)
     {

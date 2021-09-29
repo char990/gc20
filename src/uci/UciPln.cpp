@@ -2,16 +2,13 @@
 #include <cstring>
 #include <uci.h>
 #include <module/Utils.h>
-#include <uci/UciPln.h>
 #include <module/MyDbg.h>
+#include <uci/DbHelper.h>
 
 using namespace Utils;
 
 UciPln::UciPln()
 {
-    PATH = "./config";
-    PACKAGE = "UciPln";
-    SECTION = "pln";
     plns = new Plan[255];
 }
 
@@ -22,6 +19,9 @@ UciPln::~UciPln()
 
 void UciPln::LoadConfig()
 {
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciPln";
+    SECTION = "pln";
     chksum = 0;
     Open();
     struct uci_section *uciSec = GetSection(SECTION);

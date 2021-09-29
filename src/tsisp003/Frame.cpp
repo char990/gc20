@@ -9,7 +9,6 @@
 using namespace Utils;
 
 Frame::Frame()
-    : micode(0),appErr(APP::ERROR::AppNoError)
 {
 }
 

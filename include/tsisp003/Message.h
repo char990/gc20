@@ -6,8 +6,8 @@
 
 struct MsgEntry
 {
-    uint8_t frmId;
-    uint8_t onTime;
+    uint8_t frmId{0};
+    uint8_t onTime{0};
 };
 
 #define MSG_LEN_MAX (4+2*6)
@@ -17,19 +17,19 @@ class Message
 {
 public:
     /// \breif  Blank msg
-    Message():micode(0),crc(0){};
+    Message(){};
     ~Message(){};
 
     /// \breif  ini msg with hex array, last 2-byte is CRC (Don't need to check)
     APP::ERROR Init(uint8_t * msg, int len);
 
-    uint8_t micode;
+    uint8_t micode{0};
     uint8_t msgId;
     uint8_t msgRev;
     uint8_t transTime;
     uint8_t entries;
     MsgEntry msgEntries[6];
-    uint16_t crc;
+    uint16_t crc{0};
 
     /// \brief  convert this msg to uint8_t array in format "Sign Set Message" + 2-byte crc
     /// \param  pbuf : output buf

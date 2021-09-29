@@ -1,5 +1,3 @@
-#include <limits.h>
-
 #include <module/BootTimer.h>
 
 void BootTimer::Setms(long ms)

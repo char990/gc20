@@ -14,7 +14,6 @@
 using namespace Utils;
 
 UciFrm::UciFrm()
-	: frmSize(0)
 {
 }
 
@@ -31,6 +30,7 @@ UciFrm::~UciFrm()
 
 void UciFrm::LoadConfig()
 {
+	PATH = DbHelper::Instance().Path();
 	// using HRGFRM to allocate the memory
 	frmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	for (int i = 0; i < 255; i++)

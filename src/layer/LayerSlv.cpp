@@ -83,7 +83,11 @@ int LayerSlv::Tx(uint8_t * data, int len)
     return 0;
 }
 
-void LayerSlv::Clean()
+void LayerSlv::ClrRx()
 {
-    upperLayer->Clean();
+    upperLayer->ClrRx();
+}
+void LayerSlv::ClrTx()
+{
+    lowerLayer->ClrTx();
 }

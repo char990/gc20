@@ -1,11 +1,8 @@
 #include <cstdio>
-#include <uci/UciAlarm.h>
+#include <uci/DbHelper.h>
 
 UciAlarm::UciAlarm()
 {
-    PATH = "./config";
-    PACKAGE = "UciAlarm";
-	SECTION = "alm";
     pStrLog = new StrLog[ALARM_LOG_ENTRIES];
     maxEntries=ALARM_LOG_ENTRIES;
 }
@@ -13,4 +10,12 @@ UciAlarm::UciAlarm()
 UciAlarm::~UciAlarm()
 {
     delete [] pStrLog;
+}
+
+void UciAlarm::LoadConfig()
+{
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciAlarm";
+	SECTION = "alm";
+    UciStrLog::LoadConfig();
 }

@@ -30,24 +30,24 @@ namespace Utils
 
         /// \brief  parse 2 Asc to 1 uint8_t Hex. Example: "1F" => 0x1F
         /// \return     int: 0-255:success, -1:failed, there is invalid chars
-        static int ParseToU8(char *p);
+        static int ParseToU8(const char *p);
 
         /// \brief  parse 2 Asc to 1 Hex. Example: "1F....." => 0x1F......
         /// \param      src : ascii buffer
         /// \param      dst : hex buffer
         /// \param      srclen : ascii len ( = hex_len *2)
         /// \return     int: 0:success, -1:failed, there is invalid chars
-        static int ParseToU8(char *src, uint8_t *dst, int srclen);
+        static int ParseToU8(const char *src, uint8_t *dst, int srclen);
 
         /// \brief  parse Asc to uint16_t hex. Example: "1F0A" => 0x1F0A
         /// \param      src : ascii buffer
         /// \return     int: >0:success, -1:failed, there is invalid chars
-        static int ParseToU16(char *src);
+        static int ParseToU16(const char *src);
 
         /// \brief  parse Asc to uint32_t hex. Example: "1F0A3456" => 0x1F0A3456
         /// \param      src : ascii buffer
         /// \return     int64_t: >0:success, -1:failed, there is invalid chars
-        static int64_t ParseToU32(char *src);
+        static int64_t ParseToU32(const char *src);
 
         /// \brief  parse uint8_t to 2 Asc. Example: 0x1F => "1F"
         /// \return     next byte of dst

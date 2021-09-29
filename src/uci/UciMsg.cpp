@@ -2,16 +2,13 @@
 #include <cstring>
 #include <uci.h>
 #include <module/Utils.h>
-#include <uci/UciMsg.h>
+#include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
 using namespace Utils;
 
 UciMsg::UciMsg()
 {
-	PATH = "./config";
-	PACKAGE = "UciMsg";
-	SECTION = "msg";
 	msgs = new Message[255];
 }
 
@@ -22,6 +19,9 @@ UciMsg::~UciMsg()
 
 void UciMsg::LoadConfig()
 {
+	PATH = DbHelper::Instance().Path();
+	PACKAGE = "UciMsg";
+	SECTION = "msg";
 	chksum = 0;
 	Open();
 	struct uci_section *uciSec = GetSection(SECTION);

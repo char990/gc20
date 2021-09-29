@@ -15,7 +15,7 @@ public:
     FS_STATE Get() { return fsState; };
 
 private:
-    bool isChanged;
-    FS_STATE fsState;
+    bool isChanged{false};
+    FS_STATE fsState{FS_STATE::AUTO};
 };
 

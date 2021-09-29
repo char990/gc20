@@ -31,9 +31,9 @@ int LayerPrst::Rx(uint8_t * data, int len)
     return upperLayer->Rx(buf, len/2);
 }
 
-void LayerPrst::Clean()
+void LayerPrst::ClrRx()
 {
-    upperLayer->Clean();
+    upperLayer->ClrRx();
 }
 
 
@@ -50,4 +50,9 @@ int LayerPrst::Tx(uint8_t * data, int len)
     }
     Utils::Cnvt::ParseToAsc(data, (char *)buf, len);
     return lowerLayer->Tx(buf, len*2);
+}
+
+void LayerPrst::ClrTx()
+{
+    lowerLayer->ClrTx();
 }

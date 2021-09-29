@@ -3,8 +3,7 @@
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
-      sch(Scheduler::Instance()),
-      session(nullptr)
+      sch(Scheduler::Instance())
 {
 }
 
@@ -35,7 +34,7 @@ int TsiSp003App::Rx(uint8_t *data, int len)
     return 0;
 }
 
-void TsiSp003App::Clean()
+void TsiSp003App::ClrRx()
 {
     appErr = APP::ERROR::AppNoError;
 }

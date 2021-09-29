@@ -92,5 +92,5 @@ private:
     void ConfigureTermios();
 
     /// \brief		The file descriptor for the open file. This gets written to when Open() is called.
-    int spFileDesc;
+    int spFileDesc{-1};
 };

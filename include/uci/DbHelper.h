@@ -24,7 +24,7 @@ public:
         return instance;
     }
 
-    void Init(TimerEvent *tmrEvt);
+    void Init(TimerEvent *tmrEvt, const char * dbPath);
 
     virtual void PeriodicRun() override;
     
@@ -45,6 +45,8 @@ public:
     
     UciProcess & GetUciProcess() { return uciProcess; };
 
+    const char * Path(){ return dbPath; };
+
 protected:
     UciProd uciProd;
     UciUser uciUser;
@@ -60,7 +62,7 @@ protected:
     UciProcess uciProcess;
 
 private:
-    DbHelper():tmrEvt(nullptr){};
+    DbHelper(){};
     ~DbHelper()
     {
         if(tmrEvt!=nullptr)
@@ -69,6 +71,7 @@ private:
         }
     };
     BootTimer syncTmr;
-    TimerEvent *tmrEvt;
+    TimerEvent *tmrEvt{nullptr};
+    const char * dbPath;
 };
 

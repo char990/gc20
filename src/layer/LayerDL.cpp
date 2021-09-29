@@ -64,8 +64,13 @@ int LayerDL::Tx(uint8_t *data, int len)
     return lowerLayer->Tx(data, len);
 }
 
-void LayerDL::Clean()
+void LayerDL::ClrRx()
 {
     length = 0;
-    upperLayer->Clean();
+    upperLayer->ClrRx();
+}
+
+void LayerDL::ClrTx()
+{
+    lowerLayer->ClrTx();
 }

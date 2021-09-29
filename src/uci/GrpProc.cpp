@@ -1,19 +1,9 @@
+#include <cstring>
 #include <uci/GrpProc.h>
 #include <module/Utils.h>
 
-using namespace Utils;
 
-GrpProc::GrpProc()
-{
-    for (int i = 0; i < 255; i++)
-    {
-        enabledPln[i] = 0;
-    }
-    procDisp.dispType = DISP_STATUS::TYPE::FRM;
-    procDisp.fmpLen = 1;
-    procDisp.fmpid[0] = 0;
-    dimming = 0;
-}
+using namespace Utils;
 
 bool GrpProc::IsPlanEnabled(uint8_t id)
 {
@@ -47,4 +37,11 @@ void GrpProc::DisablePlan(uint8_t id)
     {
         enabledPln[id - 1] = 0;
     }
+}
+
+void GrpProc::ProcDisp(uint8_t *cmd, int len)
+{
+    if(len>255)len=0;
+    disp[0]=len;
+    memcpy(disp+1,cmd,len);
 }

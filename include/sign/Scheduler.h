@@ -58,15 +58,15 @@ private:
     Scheduler();
     ~Scheduler();
 
-    Group **groups;
+    Group **groups{nullptr};
 
-    TimerEvent *tmrEvt;
+    TimerEvent *tmrEvt{nullptr};
 
     /// \brief Display timeout timer
     BootTimer displayTimeout;
 
     uint8_t
-        sessionLed,
-        ctrllerErr,
-        groupCnt;
+        sessionLed{0},
+        ctrllerErr{0},
+        groupCnt{0};
 };

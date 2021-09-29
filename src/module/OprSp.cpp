@@ -13,7 +13,7 @@ OprSp::OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer)
     sp = new SerialPort(spCfg);
     this->upperLayer = upperLayer;
     upperLayer->LowerLayer(this);
-    upperLayer->Clean();
+    upperLayer->ClrRx();
     sp->Open();
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = sp->GetFd();

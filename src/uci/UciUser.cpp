@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstring>
-#include <uci/UciUser.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
 #include <module/Tz_AU.h>
@@ -11,10 +10,6 @@ using namespace Utils;
 
 UciUser::UciUser()
 {
-    PATH = "./config";
-    PACKAGE = "UciUser";
-    DEFAULT_FILE = "./config/UciUser.def";
-    SECTION = "user_cfg";
 }
 
 UciUser::~UciUser()
@@ -24,6 +19,10 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciUser";
+    DEFAULT_FILE = "UciUser.def";
+    SECTION = "user_cfg";
     UciProd & uciProd = DbHelper::Instance().GetUciProd();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
@@ -201,9 +200,11 @@ void UciUser::LoadConfig()
 
 void UciUser::LoadFactoryDefault()
 {
-    char ucifile[256];
-    snprintf(ucifile,255,"%s/%s", PATH,PACKAGE);
-    Exec::CopyFile(DEFAULT_FILE,ucifile);
+    char def[256];
+    char uci[256];
+    snprintf(uci,255,"%s/%s", PATH,PACKAGE);
+    snprintf(def,255,"%s/%s", PATH,DEFAULT_FILE);
+    Exec::CopyFile(def,uci);
 	UserOpen();
     OptionSave(_DeviceId, DeviceId());
     OptionSave(_BroadcastId, BroadcastId());

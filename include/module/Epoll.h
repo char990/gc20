@@ -31,10 +31,10 @@ public:
     void EventsHandle();
 
 private:
-    Epoll():MAX(0),events(nullptr){};
+    Epoll(){};
     ~Epoll();
-    int epollfd;
-    int cnt;
-    int MAX;
-    epoll_event * events;
+    int epollfd{0};
+    int evtSize{0};
+    int MAX{0};
+    epoll_event * events{nullptr};
 };

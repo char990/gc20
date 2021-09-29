@@ -52,10 +52,10 @@ public:
     void SaveFrm(uint8_t i);
 
 private:
-    const char * PATH = "./config";
+    const char * PATH;
     StFrm frms[255];
-    int frmSize;
-    uint16_t chksum;
+    int frmSize{0};
+    uint16_t chksum{0};
 
     void Dump();
 };

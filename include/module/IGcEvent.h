@@ -7,7 +7,7 @@
 class IGcEvent
 {
 public:
-    IGcEvent():events(0),eventFd(-1){};
+    IGcEvent(){};
     virtual ~IGcEvent(){};
     virtual void EventsHandle(uint32_t events)=0;
 
@@ -24,8 +24,8 @@ public:
     }
 
     /// \brief  This is the events set to Epoll, could be used for DeleteEvent()
-    uint32_t events;
+    uint32_t events{0};
 
     /// \brief  
-    int eventFd;
+    int eventFd{-1};
 };

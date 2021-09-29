@@ -4,16 +4,13 @@
 
 #include <uci.h>
 #include <module/Utils.h>
-#include <uci/UciFault.h>
+#include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
 using namespace Utils;
 
 UciFault::UciFault()
 {
-    PATH = "./config";
-    PACKAGE = "UciFault";
-    SECTION = "flt";
     faultLog = new FaultLog[FAULT_LOG_ENTRIES];
     for (int i = 0; i < FAULT_LOG_ENTRIES; i++)
     {
@@ -29,6 +26,9 @@ UciFault::~UciFault()
 
 void UciFault::LoadConfig()
 {
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciFault";
+    SECTION = "flt";
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     struct uci_element *e;

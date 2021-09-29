@@ -6,7 +6,7 @@
 #include <uci/UciProd.h>
 
 typedef struct ExtSw {
-	uint16_t dispTime;
+	uint16_t dispTime{0};   // 0:disabled
 	uint8_t reserved;
 	uint8_t emergency;
 	uint8_t flashingOv;

@@ -15,8 +15,8 @@ public:
     EXT_STATE Get() { return state; };
 
 private:
-    bool isChanged;
-    EXT_STATE state;
+    bool isChanged{false};
+    EXT_STATE state{EXT_STATE::NONE};
 };
 
 

@@ -44,7 +44,11 @@ int LayerWeb::Tx(uint8_t * data, int len)
     return lowerLayer->Tx(data, len);
 }
 
-void LayerWeb::Clean()
+void LayerWeb::ClrRx()
 {
-    upperLayer->Clean();
+    upperLayer->ClrRx();
+}
+void LayerWeb::ClrTx()
+{
+    lowerLayer->ClrTx();
 }

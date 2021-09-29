@@ -24,7 +24,8 @@ public:
 
     int Tx(uint8_t * data, int len) override;
 
-    void Clean() override;
+    void ClrRx() override;
+    void ClrTx() override;
 
     enum ISession::SESSION Session() override;
     void Session(enum ISession::SESSION v) override;
@@ -34,7 +35,7 @@ public:
 
 private:
     std::string name;
-    enum ISession::SESSION session;
+    enum ISession::SESSION session{ISession::SESSION::OFF_LINE};
     uint8_t seed;
 
     /// \brief Session timeout timer
@@ -42,11 +43,10 @@ private:
 
     /// \brief protocol fields 
     uint8_t _addr;
-    uint8_t _nr, _ns;
+    uint8_t _nr{0}, _ns{0};
     uint8_t IncN(uint8_t n);
     void MakeNondata(uint8_t a);
     void EndOfBlock(uint8_t *p, int len);
-    int rcvd;
     uint8_t txbuf[MAX_ACK_DATA_PACKET_SIZE];
     #define BROADCAST_MI_SIZE 16
     static const uint8_t broadcastMi[BROADCAST_MI_SIZE];

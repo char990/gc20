@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <limits.h>
 #include <time.h>
 
 class BootTimer
@@ -22,7 +22,7 @@ class BootTimer
         void Clear();
 
     private:
-        time_t sec;
-        __syscall_slong_t ns;
+        time_t sec{LONG_MAX};
+        __syscall_slong_t ns{0};
 };
 

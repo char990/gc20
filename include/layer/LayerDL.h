@@ -19,8 +19,10 @@ public:
 
     int Tx(uint8_t * data, int len) override;
 
-    void Clean() override;
+    void ClrRx() override;
 
+    void ClrTx() override;
+    
 private:
     std::string name;
     uint8_t *buf;

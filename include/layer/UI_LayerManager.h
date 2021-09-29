@@ -17,7 +17,7 @@ public:
 
     int Rx(uint8_t * data, int len) override;
 
-    void Clean() override;
+    void ClrRx() override;
 
     virtual void LowerLayer(ILowerLayer * lowerLayer) override
     {
@@ -25,9 +25,9 @@ public:
     }
 
 private:
-    LayerDL * dlLayer;
-    ILayer * midLayer;  // middle layer: NTS or Web
-    LayerPrst * prstLayer; // presentation layer
-    TsiSp003App * appLayer;  // app layer
-    AppFactory * appFactory;
+    LayerDL * dlLayer{nullptr};
+    ILayer * midLayer{nullptr};  // middle layer: NTS or Web
+    LayerPrst * prstLayer{nullptr}; // presentation layer
+    TsiSp003App * appLayer{nullptr};  // app layer
+    AppFactory * appFactory{nullptr};
 };

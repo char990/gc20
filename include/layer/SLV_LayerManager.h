@@ -15,7 +15,7 @@ public:
 
     int Rx(uint8_t * data, int len) override;
 
-    void Clean() override;
+    void ClrRx() override;
 
     virtual void LowerLayer(ILowerLayer * lowerLayer)
     {
@@ -23,9 +23,9 @@ public:
     }
 
 private:
-    LayerSlv * dlLayer;
-    LayerPrst * prstLayer; // presentation layer
-    IUpperLayer * appLayer; 
+    LayerSlv * dlLayer{nullptr};
+    LayerPrst * prstLayer{nullptr}; // presentation layer
+    IUpperLayer * appLayer{nullptr}; 
     int maxPktSize;
 };
 

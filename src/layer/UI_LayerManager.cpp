@@ -67,7 +67,7 @@ int UI_LayerManager::Rx(uint8_t * data, int len)
     return dlLayer->Rx(data,len);
 }
 
-void UI_LayerManager::Clean()
+void UI_LayerManager::ClrRx()
 {
-    return dlLayer->Clean();
+    return dlLayer->ClrRx();
 }

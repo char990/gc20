@@ -14,10 +14,10 @@ public:
 
     int TxBytes(uint8_t * data, int len);
     int TxHandle();
-    void ClrTx();
+    void ClrTx() override;
 protected:
     uint8_t txbuf[MAX_DATA_PACKET_SIZE];
-    int txsize;
-    int txcnt;
+    int txsize{0};
+    int txcnt{0};
 };
 

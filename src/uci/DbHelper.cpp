@@ -3,8 +3,9 @@
 #include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
-void DbHelper::Init(TimerEvent *tmrEvt1)
+void DbHelper::Init(TimerEvent *tmrEvt1, const char * dbPath1)
 {
+    dbPath = dbPath1;
     uciProd.LoadConfig();
     uciUser.LoadConfig();
     uciFrm.LoadConfig();

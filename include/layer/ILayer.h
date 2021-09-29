@@ -21,11 +21,11 @@ public:
     /// \return     int         0: Command excuted; -1: failed
     virtual int Rx(uint8_t *data, int len) = 0;
 
-    /// \brief		Clean current layer. Called by lowerlayer
-    virtual void Clean() = 0;
+    /// \brief		Clear current layer. Called by lowerlayer
+    virtual void ClrRx() = 0;
 
 protected:
-    ILowerLayer *lowerLayer;
+    ILowerLayer *lowerLayer{nullptr};
 };
 
 class ILowerLayer
@@ -49,8 +49,11 @@ public:
     /// \return     int         time in ms for sending all data
     virtual int Tx(uint8_t *data, int len) = 0;
 
+    /// \brief  Stop TX and Clear current layer. Called by lowerlayer
+    virtual void ClrTx() = 0;
+
 protected:
-    IUpperLayer *upperLayer;
+    IUpperLayer *upperLayer{nullptr};
 };
 
 class ILayer : public IUpperLayer, public ILowerLayer

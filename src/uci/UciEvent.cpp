@@ -1,11 +1,7 @@
-
-#include <uci/UciEvent.h>
+#include <uci/DbHelper.h>
 
 UciEvent::UciEvent()
 {
-    PATH = "./config";
-    PACKAGE = "UciEvent";
-	SECTION = "evt";
     pStrLog = new StrLog[EVENT_LOG_ENTRIES];
     maxEntries=EVENT_LOG_ENTRIES;
 }
@@ -13,4 +9,12 @@ UciEvent::UciEvent()
 UciEvent::~UciEvent()
 {
     delete [] pStrLog;
+}
+
+void UciEvent::LoadConfig()
+{
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciEvent";
+	SECTION = "evt";
+    UciStrLog::LoadConfig();
 }
