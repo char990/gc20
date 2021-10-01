@@ -4,18 +4,17 @@
 #include <sign/SignTxt.h>
 
 GroupIslus::GroupIslus(uint8_t id)
-:Group(id)
+    : Group(id)
 {
-    if(vSlaves.size()!=1)
+    if (vSlaves.size() != 1)
     {
-        MyThrow ("ISLUS: Sign can only have ONE slave");
+        MyThrow("ISLUS: Sign can only have ONE slave");
     }
 
     for (int i = 0; i < vSigns.size(); i++)
     { // slave id = Sign Id
         vSlaves.push_back(new Slave(vSigns[i]->SignId()));
     }
-
 }
 
 GroupIslus::~GroupIslus()
@@ -28,7 +27,7 @@ void GroupIslus::PeriodicHook()
 
 APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
-    #if 0
+#if 0
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
         return APP::ERROR::FacilitySwitchOverride;
@@ -79,6 +78,6 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         }
         p += 2;
     }
-    #endif
+#endif
     return APP::ERROR::AppNoError;
 }

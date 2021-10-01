@@ -41,9 +41,9 @@ int OprSp::Tx(uint8_t *data, int len)
     int x = TxBytes(data, len);
     if(x>0)
     {
-        x = x * sp->Config().bytebits / sp->Config().baudrate;
+        x = x * 1000 * sp->Config().bytebits / sp->Config().baudrate; // get ms
     }
-    return (x==0 ? 1 : x);
+    return (x<10 ? 10 : x);
 }
 
 /// \brief  Called by Eepoll, receiving & sending handle

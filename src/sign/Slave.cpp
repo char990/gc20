@@ -42,11 +42,12 @@ void Slave::Reset()
 
 int Slave::DecodeStRpl(uint8_t * buf, int len)
 {
-    if(buf[0]!=slaveId)
+    if(*buf!=slaveId)
     {
         return -1;
     }
-    if(buf[1]!=0x06)
+    buf++;
+    if(*buf!=0x06)
     {
         return -2;
     }
@@ -54,17 +55,18 @@ int Slave::DecodeStRpl(uint8_t * buf, int len)
     {
         return -3;
     }
+    buf++;
     rxStatus=1;
-    panelFault = buf[2];
-    overTemp = buf[3];
-    selfTest = buf[4];
-    singleLedFault = buf[5];
-    lanternFan = buf[6];
-    lightSensorFault = buf[7];
-    currentFrmId = buf[8];
-    currentFrmCrc = Cnvt::GetU16(buf+9);
-    nextFrmId = buf[11];
-    nextFrmCrc = Cnvt::GetU16(buf+12);
+    panelFault = *buf++;
+    overTemp = *buf++;
+    selfTest = *buf++;
+    singleLedFault = *buf++;
+    lanternFan = *buf++;
+    lightSensorFault = *buf++;
+    currentFrmId = *buf++;
+    currentFrmCrc = Cnvt::GetU16(buf); buf+=2;
+    nextFrmId = *buf++;
+    nextFrmCrc = Cnvt::GetU16(buf);
     return 0;
 }
 
@@ -90,17 +92,50 @@ int Slave::DecodeExtStRpl(uint8_t * buf, int len)
     {
         return -5;
     }
+    buf+=2;
     rxExtSt=1;
-    controlByte=buf[2];
+    controlByte=*buf++;
     for(int i=0;i<4;i++)
     {
-        dimming[i] = Cnvt::GetU16(buf+3+i*2);
+        dimming[i] = Cnvt::GetU16(buf);
+        buf+=2;
     }
-    voltage = Cnvt::GetU16(buf+11);
-    hours = Cnvt::GetU16(buf+13);
-    temperature = Cnvt::GetU16(buf+15);
-    humidity=buf[17];
-    lux=Cnvt::GetU16(buf+18);
-    memcpy(numberOfFaultyLed, buf+22, numberOfTiles*numberOfColours);
+    voltage = Cnvt::GetU16(buf); buf+=2;
+    hours = Cnvt::GetU16(buf); buf+=2;
+    temperature = Cnvt::GetU16(buf); buf+=2;
+    humidity=*buf++;
+    lux=Cnvt::GetU16(buf+18);  buf+=4;
+    memcpy(numberOfFaultyLed, buf, numberOfTiles*numberOfColours);
     return 0;
 }
+
+Utils::STATE3 Slave::IsCurrentMatched()
+{
+    if(rxStatus==0)
+    {
+        return Utils::STATE3::S_NA;
+    }
+    if(expectCurrentFrmId == currentFrmId && frmCrc[expectCurrentFrmId] == currentFrmCrc)
+    {
+        return Utils::STATE3::S_1;
+    }
+    PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)",
+        currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+    return Utils::STATE3::S_0;
+}
+
+Utils::STATE3 Slave::IsNextMatched()
+{
+    if(rxStatus==0)
+    {
+        return Utils::STATE3::S_NA;
+    }
+    if(expectNextFrmId == nextFrmId && frmCrc[expectNextFrmId] == nextFrmCrc)
+    {
+        return Utils::STATE3::S_1;
+    }
+    PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)",
+        nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+    return Utils::STATE3::S_0;
+}
+

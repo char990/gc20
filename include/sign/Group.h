@@ -11,12 +11,13 @@
 #include <sign/DispStatus.h>
 #include <layer/ILayer.h>
 #include <uci/DbHelper.h>
+#include <module/Utils.h>
 
 class PlnMinute
 {
 public:
-    uint8_t type = 0; // 0:Empty, 1:Frm, 2:Msg
-    uint8_t id = 0;
+    uint8_t type{0}; // 0:Empty, 1:Frm, 2:Msg
+    uint8_t id{0};
 };
 
 class Group : public IUpperLayer
@@ -103,12 +104,35 @@ protected:
     std::vector<Sign *> vSigns;
     std::vector<Slave *> vSlaves;
 
+    int maxTxSize;
+    uint8_t *txBuf;
+    int txLen;
+
+    void SlaveStatusRpl(uint8_t *data, int len);
+    void SlaveExtStatusRpl(uint8_t *data, int len);
+
+    bool CheckAllSlavesRxStatus();
+    void ClrAllSlavesRxStatus();
+    bool CheckAllSlavesRxExtSt();
+    void ClrAllSlavesRxExtSt();
+
+    Utils::STATE3 CheckAllSlavesNext();
+    Utils::STATE3 allSlavesNext;
+    Utils::STATE3 CheckAllSlavesCurrent();
+    Utils::STATE3 allSlavesCurrent;
+
+    void RefreshSignByStatus();
+    void RefreshSignByExtSt();
+
     // display status
     DispStatus *dsBak;
     DispStatus *dsCurrent;
     DispStatus *dsNext;
     DispStatus *dsExt;
-    uint8_t readyToLoad = 0, newCurrent = 0;
+
+private:
+
+    uint8_t readyToLoad{1}, newCurrent{0};
 
     enum
     {
@@ -128,7 +152,7 @@ protected:
         typeTRS = 255 // transition time in MSG
     };
 
-    uint8_t
+    uint8_t         // new plan entry
         newPlnFM,
         plnEntryType, // 0:EMPTY, 1:frm, 2:msg
         plnEntryId;
@@ -170,30 +194,46 @@ protected:
     int taskPlnLine{0};
     BootTimer taskPlnTmr;
     bool TaskPln(int *_ptLine);
+    void TaskPlnReset()
+    {
+        taskPlnLine=0;
+    }
 
     int taskMsgLine{0};
     BootTimer taskMsgTmr;
     bool TaskMsg(int *_ptLine);
+    void TaskMsgReset()
+    {
+        taskMsgLine=0;
+    }
 
-    int taskFrmLine{0};
     bool TaskFrm(int *_ptLine);
+    int taskFrmLine{0};
+    BootTimer taskFrmTmr;
+    uint8_t frmFor;
+    void TaskFrmReset()
+    {
+        taskFrmLine=0;
+    }
 
+    bool TaskRqstSlave(int *_ptLine);
     int taskRqstSlaveLine{0};
     BootTimer taskRqstSlaveTmr;
-    bool TaskRqstSlave(int *_ptLine);
     uint8_t rqstStCnt{0};
     uint8_t rqstExtStCnt{0};
     uint8_t rqstNoRplCnt{0};
+    void TaskRqstSlaveReset()
+    {
+        taskRqstSlaveLine=0;
+        rqstStCnt=0;
+        rqstExtStCnt=0;
+        rqstNoRplCnt=0;
+        taskRqstSlaveTmr.Setms(0);
+    }
 
-    int maxTxSize;
-    uint8_t *txBuf;
-    int txLen;
+    bool IsDimmingChanged();
 
-private:
-    void SlaveStatusRpl(uint8_t *data, int len);
-    void SlaveExtStatusRpl(uint8_t *data, int len);
-
-    uint8_t orType = 0; // 0:None, 1:mono, 4:4-bit, 24:24-bit
+    uint8_t orType{0}; // 0:None, 1:mono, 4:4-bit, 24:24-bit
     int orLen;
     uint8_t *orBuf;
 

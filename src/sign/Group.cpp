@@ -55,16 +55,15 @@ Group::Group(uint8_t groupId)
     dsNext = new DispStatus(vSigns.size());
     dsExt = new DispStatus(vSigns.size());
 
-    
-    maxTxSize = 1+9+prod.MaxFrmLen()+2;     // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
+    maxTxSize = 1 + 9 + prod.MaxFrmLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
     txBuf = new uint8_t[maxTxSize];
     txLen = 0;
 
     // TODO load process
     UciPln &pln = db.GetUciPln();
     UciProcess &proc = db.GetUciProcess();
-    devSet=1;
-    devCur=1;
+    devSet = 1;
+    devCur = 1;
     dsNext->dispType = DISP_STATUS::TYPE::FRM;
     dsNext->fmpid[0] = 1;
 }
@@ -88,7 +87,7 @@ Group::~Group()
 
 void Group::PeriodicRun()
 {
-    #if 0
+#if 0
     // components PeriodicRun
     fcltSw.PeriodicRun();
     extInput.PeriodicRun();
@@ -118,29 +117,27 @@ void Group::PeriodicRun()
             }
         }
     }
-    #endif
+#endif
+
+    if (!IsBusFree())
+    {
+        return;
+    }
+
     if (IsDsNextEmergency())
     {
         readyToLoad = 1;
-        lowerLayer->ClrTx();
-    }
-    else
-    {
-        if(!IsBusFree())
-        {
-            return;
-        }
     }
     if (readyToLoad)
     {
-        if(devSet==DEV_DIS && devCur==DEV_EN)
+        if (devSet == DEV_DIS && devCur == DEV_EN)
         {
-            devCur=DEV_DIS;
+            devCur = DEV_DIS;
             // TODO send blank
         }
-        else if(devSet==DEV_EN && devCur==DEV_DIS)
+        else if (devSet == DEV_EN && devCur == DEV_DIS)
         {
-            devCur=DEV_DIS;
+            devCur = DEV_DIS;
             // TODO reload
         }
         newCurrent = LoadDsNext(); // current->bak and next/fs/ext->current
@@ -148,7 +145,7 @@ void Group::PeriodicRun()
 
     //TaskPln(&taskPlnLine);
     //TaskMsg(&taskMsgLine);
-    //TaskFrm(&taskFrmLine);
+    TaskFrm(&taskFrmLine);
     TaskRqstSlave(&taskRqstSlaveLine);
 
     PeriodicHook();
@@ -199,7 +196,7 @@ void Group::ExtInputFunc()
 // TODO
 bool Group::TaskPln(int *_ptLine)
 {
-    if (dsCurrent->dispType != DISP_STATUS::TYPE::PLN)
+    if (!IsBusFree() || dsCurrent->dispType != DISP_STATUS::TYPE::PLN)
     {
         return true;
     }
@@ -235,9 +232,10 @@ bool Group::TaskPln(int *_ptLine)
 // TODO
 bool Group::TaskMsg(int *_ptLine)
 {
-    if (dsCurrent->dispType != DISP_STATUS::TYPE::MSG ||
-        dsCurrent->dispType != DISP_STATUS::TYPE::FSW ||
-        dsCurrent->dispType != DISP_STATUS::TYPE::EXT ||
+    if (!IsBusFree() ||
+        dsCurrent->dispType != DISP_STATUS::TYPE::MSG &&
+        dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
+        dsCurrent->dispType != DISP_STATUS::TYPE::EXT &&
         (dsCurrent->dispType == DISP_STATUS::TYPE::PLN &&
          plnEntryType != typeMSG))
     {
@@ -294,116 +292,183 @@ bool Group::TaskMsg(int *_ptLine)
 
 bool Group::TaskFrm(int *_ptLine)
 {
-    if(newCurrent)
+    if(!IsBusFree())return true;
+    if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM ||
+        dsCurrent->dispType == DISP_STATUS::TYPE::ATF ||
+        (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == typeFRM))
     {
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM)
+        if (newCurrent)
         {
-            newFrm = typeFRM;
-            newFrmId = dsCurrent->fmpid[0];
+            TaskFrmReset();
+            newCurrent = 0;
         }
-        else if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
-        {
-
-        }
-        else if (dsCurrent->dispType == DISP_STATUS::TYPE::BLK)
-        {
-            newFrm = typeEMPTY; // TODO not sure
-            newFrmId = 0;
-        }
-        *_ptLine = 0;
-        newCurrent = 0;
+        PT_BEGIN();
+            // step1: set frame
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
+            {
+                for (frmFor = 0; frmFor < vSigns.size(); frmFor++)
+                {
+                }
+            }
+            else
+            {
+                newFrmId = (dsCurrent->dispType == DISP_STATUS::TYPE::FRM) ? dsCurrent->fmpid[0] : plnEntryId;
+                do
+                {
+                    SetFrame(0xFF, (newFrmId == 0) ? 0 : 1, newFrmId);
+                    ClrAllSlavesRxStatus();
+                    PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
+                } while (allSlavesNext == STATE3::S_0);
+            }
+            // step2: display frame
+            do
+            {
+                SetStoredFrame(0xFF, (newFrmId == 0) ? 0 : 1);
+                ClrAllSlavesRxStatus();
+                do
+                {
+                    // step3: check current & next
+                    taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+                    PT_WAIT_UNTIL(CheckAllSlavesRxStatus()!=STATE3::S_NA && taskFrmTmr.IsExpired());
+                    CheckAllSlavesCurrent();
+                    CheckAllSlavesNext();
+                } while (allSlavesCurrent == STATE3::S_1 && allSlavesNext == STATE3::S_1);
+            } while (allSlavesNext == STATE3::S_1);
+            PT_RESTART();
+        PT_END();
     }
-    PT_BEGIN();
-    while (true)
-    {
-        if(newFrm == 0)
-        {
-
-        }
-        else
-        {
-            if(newFrm == typeFRM)
-            {
-                if(newFrmId == 0 )
-                {
-
-                }
-                else
-                {
-                    //broadcast
-                }
-            }
-            else if(newFrm == typeTRS)
-            {
-
-            }
-            newFrm = 0;
-        }
-        // TODO new frm
-        // step 1: load frm in uci
-        // if orbuf, remap
-        // step 2: wait readyToLoad
-        // step 3: check time
-        // if(new localtime::minute)
-        //      check msg/frm
-        //      if(new msg/frm)
-        //          continue; // got to step1:
-    };
-    PT_END();
+    return true;
 }
 
 bool Group::TaskRqstSlave(int *_ptLine)
 {
+    if(!IsBusFree())return true;
     PT_BEGIN();
     while (true)
     {
-        if(rqstStCnt<SlaveCnt())
+        rqstNoRplCnt = 0;
+        do
         {
             RqstStatus(rqstStCnt);
-            taskRqstSlaveTmr.Setms(100);
-            PT_WAIT_UNTIL(taskPlnTmr.IsExpired());
-            if(vSlaves[rqstStCnt]->rxStatus) // replied
+            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+            PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
+            //PT_YIELD();
+            //vSlaves[rqstStCnt]->rxStatus = 1;
+            if (vSlaves[rqstStCnt]->rxStatus == 0)
             {
-                rqstStCnt++;
-                rqstNoRplCnt=0;
-            }
-            else
-            {
-                if(++rqstNoRplCnt>=20)
+                if (++rqstNoRplCnt >= db.GetUciProd().OfflineDebounce())
                 { // offline
-                    rqstNoRplCnt=0;
-                    PrintDbg("vSlaves[%d] RqstStatus offline\n",rqstStCnt);
+                    rqstNoRplCnt = 0;
+                    PrintDbg("vSlaves[%d] RqstStatus offline\n", rqstStCnt);
                     //PT_EXIT();
                 }
             }
+            else
+            {
+                rqstNoRplCnt = 0;
+            }
+        } while (rqstNoRplCnt > 0);
+        if (++rqstStCnt == vSlaves.size())
+        {
+            rqstStCnt = 0;
         }
 
-        if(rqstStCnt==SlaveCnt())
+        rqstNoRplCnt = 0;
+        do
         {
             RqstExtStatus(rqstExtStCnt);
-            taskRqstSlaveTmr.Setms(100);
-            PT_WAIT_UNTIL(taskPlnTmr.IsExpired());
-            if(vSlaves[rqstExtStCnt]->rxExtSt) // replied
+            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+            PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
+            //PT_YIELD();
+            //vSlaves[rqstExtStCnt]->rxExtSt = 1;
+            if (vSlaves[rqstExtStCnt]->rxExtSt == 0)
             {
-                if(++rqstExtStCnt==SlaveCnt())
-                {
-                    rqstExtStCnt=0;
-                }
-                rqstStCnt=0;
-                rqstNoRplCnt=0;
-            }
-            else
-            {
-                if(++rqstNoRplCnt>=20)
+                if (++rqstNoRplCnt >= db.GetUciProd().OfflineDebounce())
                 { // offline
-                    rqstNoRplCnt=0;
-                    PrintDbg("vSlaves[%d] RqstExtStatus offline\n",rqstExtStCnt);
+                    rqstNoRplCnt = 0;
+                    PrintDbg("vSlaves[%d] RqstExtStatus offline\n", rqstExtStCnt);
                     //PT_EXIT();
                 }
             }
+            else
+            {
+                rqstNoRplCnt = 0;
+            }
+        } while (rqstNoRplCnt > 0);
+        if (++rqstExtStCnt == vSlaves.size())
+        {
+            rqstExtStCnt = 0;
         }
     };
     PT_END();
+}
+
+Utils::STATE3 Group::CheckAllSlavesNext()
+{
+    for (auto s : vSlaves)
+    {
+        allSlavesNext = s->IsNextMatched();
+        if (allSlavesNext != Utils::STATE3::S_1)
+        {
+            break;
+        }
+    }
+    return allSlavesNext;
+}
+
+Utils::STATE3 Group::CheckAllSlavesCurrent()
+{
+    for (auto s : vSlaves)
+    {
+        allSlavesCurrent = s->IsCurrentMatched();
+        if (allSlavesCurrent != Utils::STATE3::S_1)
+        {
+            break;
+        }
+    }
+    return allSlavesCurrent;
+}
+
+bool Group::CheckAllSlavesRxStatus()
+{
+    for (auto s : vSlaves)
+    {
+        if (s->rxStatus == 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Group::ClrAllSlavesRxStatus()
+{
+    for (auto s : vSlaves)
+    {
+        s->rxStatus = 0;
+    }
+    TaskRqstSlaveReset();
+}
+
+bool Group::CheckAllSlavesRxExtSt()
+{
+    for (auto s : vSlaves)
+    {
+        if (s->rxExtSt == 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Group::ClrAllSlavesRxExtSt()
+{
+    for (auto s : vSlaves)
+    {
+        s->rxExtSt = 0;
+    }
+    TaskRqstSlaveReset();
 }
 
 bool Group::IsSignInGroup(uint8_t id)
@@ -547,9 +612,9 @@ APP::ERROR Group::DispFrm(uint8_t id)
     if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
         uint8_t buf[3];
-        buf[0]=0x0E;
-        buf[1]=groupId;
-        buf[2]=id;
+        buf[0] = 0x0E;
+        buf[1] = groupId;
+        buf[2] = id;
         db.GetUciProcess().SetDisp(groupId, buf, 3);
         DispNext(DISP_STATUS::TYPE::FRM, id);
         return APP::ERROR::AppNoError;
@@ -562,11 +627,11 @@ APP::ERROR Group::DispMsg(uint8_t id)
     if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
         uint8_t buf[3];
-        buf[0]=0x0F;
-        buf[1]=groupId;
-        buf[2]=id;
+        buf[0] = 0x0F;
+        buf[1] = groupId;
+        buf[2] = id;
         db.GetUciProcess().SetDisp(groupId, buf, 3);
-                DispNext(DISP_STATUS::TYPE::MSG, id);
+        DispNext(DISP_STATUS::TYPE::MSG, id);
         return APP::ERROR::AppNoError;
     }
     return APP::ERROR::FacilitySwitchOverride;
@@ -628,7 +693,7 @@ void Group::SignSetPower(uint8_t v)
 // TODO
 APP::ERROR Group::SetDevice(uint8_t endis)
 {
-    devSet = (endis==0) ? DEV_DIS : DEV_EN;
+    devSet = (endis == 0) ? DEV_DIS : DEV_EN;
     db.GetUciProcess().SetDevice(groupId, devSet);
     for (auto sign : vSigns)
     {
@@ -725,151 +790,215 @@ void Group::ClrRx()
 {
 }
 
+int Group::Tx()
+{
+    return lowerLayer->Tx(txBuf, txLen);
+}
+
 void Group::SlaveStatusRpl(uint8_t *data, int len)
 {
     if (len != 14)
         return;
+    for (int i = 0; i < vSlaves.size(); i++)
+    {
+        auto s = vSlaves[i];
+        if (s->SlaveId() == *data)
+        {
+            if (s->DecodeStRpl(data, len) == 0)
+            {
+                if (i == vSlaves.size() - 1)
+                { // last slave of sign, make sign status
+                    RefreshSignByStatus();
+                }
+            }
+        }
+    }
 }
 
 void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 {
     if (len < 22)
         return;
+    for (int i = 0; i < vSlaves.size(); i++)
+    {
+        auto s = vSlaves[i];
+        if (s->SlaveId() == *data)
+        {
+            if (s->DecodeExtStRpl(data, len) == 0)
+            {
+                if (i == vSlaves.size() - 1)
+                { // last slave of sign, make sign ext status
+                    RefreshSignByExtSt();
+                }
+            }
+        }
+    }
 }
 
-int Group::Tx() 
+void Group::RefreshSignByStatus()
 {
-    return lowerLayer->Tx(txBuf, txLen);
+    for(auto s : vSigns)
+    {
+        s->RefreshSlaveStatus();
+    }
+}
+
+void Group::RefreshSignByExtSt()
+{
+    for(auto s : vSigns)
+    {
+        s->RefreshSlaveExtSt();
+    }
 }
 
 int Group::RqstStatus(uint8_t slvindex)
 {
-    LockBus(100);
-    Slave * s = vSlaves[slvindex]; 
+    PrintDbg("RqstStatus\n");
+    LockBus(db.GetUciProd().SlaveRqstStTo());
+    Slave *s = vSlaves[slvindex];
     s->rxStatus = 0;
-    txBuf[0]=s->SlaveId();
-    txBuf[1]=SLVCMD::RQST_STATUS;
-    txLen=2;
+    txBuf[0] = s->SlaveId();
+    txBuf[1] = SLVCMD::RQST_STATUS;
+    txLen = 2;
     return Tx();
 }
 
 int Group::RqstExtStatus(uint8_t slvindex)
 {
-    LockBus(100);
-    Slave * s = vSlaves[slvindex]; 
-    s->rxExtSt = 0;
-    uint8_t *p = txBuf;
-    *p++=s->SlaveId();
-    *p++=SLVCMD::RQST_EXT_ST;
-    *p++=0; // TODO control byte
-    p=Cnvt::PutU16(65535,p); // TODO dimming
-    p=Cnvt::PutU16(65535,p); // TODO dimming
-    p=Cnvt::PutU16(65535,p); // TODO dimming
-    p=Cnvt::PutU16(65535,p); // TODO dimming
-    txLen=11;
+    PrintDbg("RqstExtSt\n");
+    LockBus(db.GetUciProd().SlaveRqstExtTo());
+    if (slvindex == 0xFF)
+    {
+        txBuf[0] = 0xFF;
+    }
+    else
+    {
+        Slave *s = vSlaves[slvindex];
+        txBuf[0] = s->SlaveId();
+        s->rxExtSt = 0;
+    }
+
+    uint8_t *p = txBuf + 1;
+    *p++ = SLVCMD::RQST_EXT_ST;
+    *p++ = 0;                   // TODO control byte
+    p = Cnvt::PutU16(65535, p); // TODO dimming
+    p = Cnvt::PutU16(65535, p); // TODO dimming
+    p = Cnvt::PutU16(65535, p); // TODO dimming
+    p = Cnvt::PutU16(65535, p); // TODO dimming
+    txLen = 11;
     return Tx();
 }
 
 void Group::TranslateFrame(uint8_t frmId)
 {
-    if(0)// or buf
+    if (0) // or buf
     {
-
     }
     else
     {
         //just make a frame to show
-        uint8_t *p=txBuf;
-        *p++=SLVCMD::SET_TXT_FRM;
-        p++;    // don not care frame id
-        *p++=1; // font
-        *p++=0; // colour
-        *p++=0; // conspicuity
-        *p++=2; // char spacing
-        *p++=2; // line spacing
-        *p++=2; // number of chars
-        *p++='1';
-        *p++='A';
-        txLen=p-txBuf;
+        uint8_t *p = txBuf + 1;
+        *p++ = SLVCMD::SET_TXT_FRM;
+        p++;      // don not care frame id
+        *p++ = 1; // font
+        *p++ = 0; // colour
+        *p++ = 0; // conspicuity
+        *p++ = 2; // char spacing
+        *p++ = 2; // line spacing
+        *p++ = 2; // number of chars
+        *p++ = '1';
+        *p++ = 'A';
+        txLen = p - txBuf;
     }
 }
 
 int Group::SetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
 {
-    LockBus(100);
+    PrintDbg("SetFrame\n");
+    txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
     TranslateFrame(uciFrmId);
-    txBuf[0] = (slvindex==0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
-    txLen++;    // attched slaveid 1 byte
-    txBuf[2]=slvFrmId;
-    uint16_t crc=Crc::Crc16_1021(txBuf, txLen);
-    Cnvt::PutU16(crc, txBuf+txLen);
-    txLen+=2;
-    if(slvindex==0xFF)
+    txBuf[2] = slvFrmId;
+    char * asc = new char[(txLen-1)*2];
+    Cnvt::ParseToAsc(txBuf+1, asc, txLen-1);
+    uint16_t crc = Crc::Crc16_8005((uint8_t *)asc, (txLen-1)*2);
+    delete [] asc;
+    Cnvt::PutU16(crc, txBuf + txLen);
+    txLen += 2;
+    if (slvindex == 0xFF)
     {
-        for(auto s:vSlaves)
+        for (auto s : vSlaves)
         {
-            s->expectNextFrmId=slvFrmId;
-            s->frmCrc[slvFrmId]=crc;
-            s->nextState=Slave::FRM_ST::MATCH_NA;
+            s->expectNextFrmId = slvFrmId;
+            s->frmCrc[slvFrmId] = crc;
+            s->nextState = Slave::FRM_ST::MATCH_NA;
         }
     }
     else
     {
         auto s = vSlaves[slvindex];
-        s->expectNextFrmId=slvFrmId;
-        s->frmCrc[slvFrmId]=crc;
-        s->nextState=Slave::FRM_ST::MATCH_NA;
+        s->expectNextFrmId = slvFrmId;
+        s->frmCrc[slvFrmId] = crc;
+        s->nextState = Slave::FRM_ST::MATCH_NA;
     }
-    return Tx();
+    auto ms = Tx();
+    auto dly = db.GetUciProd().SlaveSetStFrmDly();
+    if (ms < dly)
+    {
+        ms = dly;
+    }
+    LockBus(ms);
+    return ms;
 }
 
 int Group::DisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    LockBus(100);
-    if(slvindex==0xFF)
+    PrintDbg("DisplayFrame\n");
+    LockBus(db.GetUciProd().SlaveDispDly());
+    if (slvindex == 0xFF)
     {
-        txBuf[0]=0xFF;
-        for(auto s:vSlaves)
+        txBuf[0] = 0xFF;
+        for (auto s : vSlaves)
         {
-            s->expectCurrentFrmId=slvFrmId;
-            s->currentState=Slave::FRM_ST::MATCH_NA;
+            s->expectCurrentFrmId = slvFrmId;
+            s->currentState = Slave::FRM_ST::MATCH_NA;
         }
     }
     else
     {
         auto s = vSlaves[slvindex];
-        txBuf[0]=s->SlaveId();
-        s->expectCurrentFrmId=slvFrmId;
-        s->currentState=Slave::FRM_ST::MATCH_NA;
+        txBuf[0] = s->SlaveId();
+        s->expectCurrentFrmId = slvFrmId;
+        s->currentState = Slave::FRM_ST::MATCH_NA;
     }
-    txBuf[1]=SLVCMD::DISPLAY_FRM;
-    txBuf[2]=slvFrmId;
-    txLen=3;
+    txBuf[1] = SLVCMD::DISPLAY_FRM;
+    txBuf[2] = slvFrmId;
+    txLen = 3;
     return Tx();
 }
 
 int Group::SetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    LockBus(100);
-    if(slvindex==0xFF)
+    PrintDbg("SetStoredFrame\n");
+    LockBus(db.GetUciProd().SlaveDispDly());
+    if (slvindex == 0xFF)
     {
-        txBuf[0]=0xFF;
-        for(auto s:vSlaves)
+        txBuf[0] = 0xFF;
+        for (auto s : vSlaves)
         {
-            s->expectCurrentFrmId=slvFrmId;
-            s->currentState=Slave::FRM_ST::MATCH_NA;
+            s->expectCurrentFrmId = slvFrmId;
+            s->currentState = Slave::FRM_ST::MATCH_NA;
         }
     }
     else
     {
         auto s = vSlaves[slvindex];
-        txBuf[0]=s->SlaveId();
-        s->expectCurrentFrmId=slvFrmId;
-        s->currentState=Slave::FRM_ST::MATCH_NA;
+        txBuf[0] = s->SlaveId();
+        s->expectCurrentFrmId = slvFrmId;
+        s->currentState = Slave::FRM_ST::MATCH_NA;
     }
-    txBuf[1]=SLVCMD::SET_STD_FRM;
-    txBuf[2]=slvFrmId;
-    txLen=3;
+    txBuf[1] = SLVCMD::SET_STD_FRM;
+    txBuf[2] = slvFrmId;
+    txLen = 3;
     return Tx();
 }
 
@@ -880,6 +1009,9 @@ bool Group::IsBusFree()
 
 void Group::LockBus(int ms)
 {
+    if (--ms < 1)
+    {
+        ms = 1;
+    }
     busLockTmr.Setms(ms);
 }
-

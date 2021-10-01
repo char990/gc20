@@ -1,10 +1,14 @@
 #include <cstring>
 #include <uci/DbHelper.h>
 #include <sign/SignAdg.h>
+#include <module/Utils.h>
 
-uint8_t *SignAdg::GetExtStatus(uint8_t *p)
+using namespace Utils;
+
+uint8_t *SignAdg::GetExtStatus(uint8_t *buf)
 {
     UciProd & prod = DbHelper::Instance().GetUciProd();
+    uint8_t * p = buf;
     *p++=signId;
     *p++=prod.ExtStsRplSignType();
     *p++=prod.CharRows(0);
@@ -12,21 +16,17 @@ uint8_t *SignAdg::GetExtStatus(uint8_t *p)
     *p++=signErr;
     *p++=DimmingMode();
     *p++=DimmingValue();
-    *p++=12;
-    *p++=prod.PixelColumns()/0x100;
-    *p++=prod.PixelColumns()&0xff;
-    *p++=prod.PixelRows()/0x100;
-    *p++=prod.PixelRows()&0xff;
-    {
-        Font * font = prod.Fonts(0);
-        *p++=font->ColumnsPerCell();
-        *p++=font->RowsPerCell();
-        *p++=font->CharSpacing();
-        *p++=font->LineSpacing();
-        *p++=strlen(prod.ColourLeds());
-        *p++=prod.ColourBits();
-        *p++=0;
-        *p++=0;
-    }
+    p++; // led status bytes
+    p=Cnvt::PutU16(prod.PixelColumns(),p);
+    p=Cnvt::PutU16(prod.PixelRows(),p);
+    Font * font = prod.Fonts(0);
+    *p++=font->ColumnsPerCell();
+    *p++=font->RowsPerCell();
+    *p++=font->CharSpacing();
+    *p++=font->LineSpacing();
+    *p++=strlen(prod.ColourLeds());
+    *p++=prod.ColourBits();
+    p=LedStatus(p);
+    buf[7] = p-buf-8;
     return p;
 }

@@ -2,6 +2,7 @@
 
 
 #include <cstdint>
+#include <module/Utils.h>
 
 class Slave
 {
@@ -36,11 +37,14 @@ public:
 
     uint8_t currentFrmId;       // display frame command
     uint16_t currentFrmCrc;
+    Utils::STATE3 IsCurrentMatched();
 
     uint8_t nextFrmId;          // set frame command
     uint16_t nextFrmCrc;
+    Utils::STATE3 IsNextMatched();
 
     int DecodeStRpl(uint8_t * buf, int len);
+
 
     // -------------------------- ext-status reply
     uint8_t rxExtSt{0};

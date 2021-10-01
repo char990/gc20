@@ -36,7 +36,7 @@ int LayerSlv::Rx(uint8_t * data, int len)
         {
             if (length > 0)
             {
-                if (length < maxPktSize - 1)
+                if (length < maxPktSize)
                 {
                     buf[length++] = c;
                     if (c == DATALINK::CTRL_CHAR::ETX)
@@ -79,8 +79,7 @@ int LayerSlv::Tx(uint8_t * data, int len)
     len+=4;
     *(buf+len)=DATALINK::CTRL_CHAR::ETX;
     len++;
-    lowerLayer->Tx(buf, len);
-    return 0;
+    return lowerLayer->Tx(buf, len);
 }
 
 void LayerSlv::ClrRx()

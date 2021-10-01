@@ -6,9 +6,9 @@
 
 SLV_LayerManager::SLV_LayerManager(std::string name_,  IUpperLayer * upperLayer)
 {
-    maxPktSize = 22 + Slave::numberOfTiles*Slave::numberOfColours;
+    maxPktSize = 22 + Slave::numberOfTiles*Slave::numberOfColours;  // 22 bytes + ledCnt
     prstLayer = new LayerPrst(maxPktSize);
-    dlLayer = new LayerSlv(name_, maxPktSize*2+2);
+    dlLayer = new LayerSlv(name_, (maxPktSize+2)*2+2);  // 0x02 + ([packet] + 2-byte CRC)*2 + 0x03
     appLayer = upperLayer;
     // lowerLayer<->dlLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer

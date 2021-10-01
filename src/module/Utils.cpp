@@ -12,7 +12,6 @@
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 
-
 using namespace Utils;
 
 const uint32_t Utils::MASK_BIT[32] = {
@@ -21,15 +20,15 @@ const uint32_t Utils::MASK_BIT[32] = {
     0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
     0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000};
 
-int Check::HexStr(uint8_t * frm, int len)
+int Check::HexStr(uint8_t *frm, int len)
 {
-    if(len<2 || len&1)
+    if (len < 2 || len & 1)
     {
         return -1;
     }
-    for(int i=0;i<len;i++)
+    for (int i = 0; i < len; i++)
     {
-        if(!isxdigit(*frm++))
+        if (!isxdigit(*frm++))
         {
             return -2;
         }
@@ -37,11 +36,11 @@ int Check::HexStr(uint8_t * frm, int len)
     return 0;
 }
 
-int Check::Text(uint8_t * frm, int len)
+int Check::Text(uint8_t *frm, int len)
 {
-    for(int i=0;i<len;i++)
+    for (int i = 0; i < len; i++)
     {
-        if(*frm<0x20 || *frm>0x7F)
+        if (*frm < 0x20 || *frm > 0x7F)
         {
             return -1;
         }
@@ -132,7 +131,7 @@ int64_t Cnvt::ParseToU32(const char *src)
     return k;
 }
 
-char * Cnvt::ParseToAsc(uint8_t h, char *p)
+char *Cnvt::ParseToAsc(uint8_t h, char *p)
 {
     static char ASC[16] = {
         '0', '1', '2', '3', '4', '5', '6', '7',
@@ -142,7 +141,7 @@ char * Cnvt::ParseToAsc(uint8_t h, char *p)
     return p;
 }
 
-char * Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
+char *Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
 {
     for (int i = 0; i < srclen; i++)
     {
@@ -153,142 +152,153 @@ char * Cnvt::ParseToAsc(uint8_t *src, char *dst, int srclen)
     return dst;
 }
 
-char * Cnvt::ParseToStr(uint8_t *src, char *dst, int srclen)
+char *Cnvt::ParseToStr(uint8_t *src, char *dst, int srclen)
 {
-    char *p=ParseToAsc(src, dst, srclen);
+    char *p = ParseToAsc(src, dst, srclen);
     *p = '\0';
     return p;
 }
 
-char * Cnvt::ParseU16ToAsc(uint16_t h, char *p)
+char *Cnvt::ParseU16ToAsc(uint16_t h, char *p)
 {
-    p = ParseToAsc(h/0x100, p);
-    p = ParseToAsc(h&0xFF, p);
+    p = ParseToAsc(h / 0x100, p);
+    p = ParseToAsc(h & 0xFF, p);
     return p;
 }
 
-char * Cnvt::ParseU32ToAsc(uint32_t h, char *p)
+char *Cnvt::ParseU32ToAsc(uint32_t h, char *p)
 {
-    p = ParseToAsc(h/0x1000000, p);
-    p = ParseToAsc(h/0x10000, p);
-    p = ParseToAsc(h/0x100, p);
-    p = ParseToAsc(h&0xFF, p);
+    p = ParseToAsc(h / 0x1000000, p);
+    p = ParseToAsc(h / 0x10000, p);
+    p = ParseToAsc(h / 0x100, p);
+    p = ParseToAsc(h & 0xFF, p);
     return p;
 }
 
 int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
 {
     char buf[4096];
-    memcpy(buf,src,4095);
-    buf[4096]='\0'; // copy max 4095 chars
+    memcpy(buf, src, 4095);
+    buf[4096] = '\0'; // copy max 4095 chars
     char delim[] = ",:;. ";
-	char *ptr = strtok (buf, delim);
-	int cnt=0;
-	while(ptr != NULL && cnt < srcmax)
-	{
-        errno=0;          
+    char *ptr = strtok(buf, delim);
+    int cnt = 0;
+    while (ptr != NULL && cnt < srcmax)
+    {
+        errno = 0;
         int x = strtol(ptr, nullptr, 0);
-		if(errno==0 && x>=min && x<=max)
-		{
-			*dst++=x;
-			cnt++;
-		}
-		else
-		{
-			break;
-		}
-		ptr = strtok(NULL, delim);
-	}
-	return cnt;
+        if (errno == 0 && x >= min && x <= max)
+        {
+            *dst++ = x;
+            cnt++;
+        }
+        else
+        {
+            break;
+        }
+        ptr = strtok(NULL, delim);
+    }
+    return cnt;
 }
-
 
 uint16_t Cnvt::GetU16(uint8_t *p)
 {
-    return (*p)*0x100+(*(p+1));
+    return (*p) * 0x100 + (*(p + 1));
 }
 
-uint8_t * Cnvt::PutU16(uint16_t v, uint8_t *p)
+uint8_t *Cnvt::PutU16(uint16_t v, uint8_t *p)
 {
-    *p++ = v/0x100;
-    *p++ = v&0xFF;
+    *p++ = v / 0x100;
+    *p++ = v & 0xFF;
     return p;
 }
 
 uint32_t Cnvt::GetU32(uint8_t *p)
 {
-    uint32_t x=0;
-    for(int i=0;i<4;i++)
+    uint32_t x = 0;
+    for (int i = 0; i < 4; i++)
     {
-        x*=0x100;
-        x+=*p++;
+        x *= 0x100;
+        x += *p++;
     }
     return x;
 }
 
-uint8_t * Cnvt::PutU32(uint32_t v, uint8_t *p)
+uint8_t *Cnvt::PutU32(uint32_t v, uint8_t *p)
 {
-    p+=3;
-    for(int i=0;i<4;i++)
+    p += 3;
+    for (int i = 0; i < 4; i++)
     {
-        *p--=v&0xFF;
-        v>>=8;
+        *p-- = v & 0xFF;
+        v >>= 8;
     }
-    return p+5;
+    return p + 5;
 }
 
-uint8_t * Cnvt::PutLocalTm(time_t t, uint8_t *p)
+uint8_t *Cnvt::PutLocalTm(time_t t, uint8_t *p)
 {
     struct tm tp;
-    if(localtime_r(&t, &tp)!=&tp)
+    if (localtime_r(&t, &tp) != &tp)
     {
-        memset(p,0,7);
-        return p+7;
+        memset(p, 0, 7);
+        return p + 7;
     }
-    *p++=tp.tm_mday;
-    *p++=tp.tm_mon+1;
-    int year = tp.tm_year+1900;
-    *p++=year/0x100;
-    *p++=year&0xFF;
-    *p++=tp.tm_hour;
-    *p++=tp.tm_min;
-    *p++=tp.tm_sec;
+    *p++ = tp.tm_mday;
+    *p++ = tp.tm_mon + 1;
+    int year = tp.tm_year + 1900;
+    *p++ = year / 0x100;
+    *p++ = year & 0xFF;
+    *p++ = tp.tm_hour;
+    *p++ = tp.tm_min;
+    *p++ = tp.tm_sec;
     return p;
 }
 
 void Cnvt::ClearTm(struct tm *tp)
 {
-    tp->tm_mday=1;
-    tp->tm_mon=0;
-    tp->tm_year = 1970-1900;
-    tp->tm_hour=0;
-    tp->tm_min=0;
-    tp->tm_sec=0;
+    tp->tm_mday = 1;
+    tp->tm_mon = 0;
+    tp->tm_year = 1970 - 1900;
+    tp->tm_hour = 0;
+    tp->tm_min = 0;
+    tp->tm_sec = 0;
 }
 
-char * Cnvt::ParseTmToLocalStr(time_t t, char *p)
+char *Cnvt::ParseTmToLocalStr(struct timeval *t, char *p)
 {
     struct tm tp;
-    if(localtime_r(&t, &tp)!=&tp)
+    if (localtime_r(&(t->tv_sec), &tp) != &tp)
     {
         ClearTm(&tp);
     }
-    int len = sprintf(p,"%d/%d/%d %d:%02d:%02d",
-        tp.tm_mday, tp.tm_mon, tp.tm_year+1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
-    return p+len;
+    int len = sprintf(p, "%d/%d/%d %d:%02d:%02d.%03d",
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec,t->tv_usec/1000);
+    return p + len;
+}
+
+char *Cnvt::ParseTmToLocalStr(time_t t, char *p)
+{
+    struct tm tp;
+    if (localtime_r(&t, &tp) != &tp)
+    {
+        ClearTm(&tp);
+    }
+    int len = sprintf(p, "%d/%d/%d %d:%02d:%02d",
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
+    return p + len;
 }
 
 time_t Cnvt::ParseLocalStrToTm(char *pbuf)
 {
     struct tm tp;
-    int len = sscanf(pbuf,"%d/%d/%d %d:%d:%d",
-        &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
-    if(len != 6)
+    int len = sscanf(pbuf, "%d/%d/%d %d:%d:%d",
+                     &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
+    if (len != 6)
     {
         return -1;
     }
     tp.tm_mon--;
-    tp.tm_year-=1900;
+    tp.tm_year -= 1900;
     return mktime(&tp);
 }
 
@@ -520,79 +530,79 @@ uint32_t Crc::Crc32(uint8_t *buf, int len, uint32_t precrc)
     return (crc);
 }
 
-
-int Exec::Run(const char* cmd, char * outbuf, int buf_len)
+int Exec::Run(const char *cmd, char *outbuf, int buf_len)
 {
     auto pipe = popen(cmd, "r");
     if (!pipe)
     {
         return -1;
     }
-    
-    int len = buf_len-1;
-    int cnt=0;
+
+    int len = buf_len - 1;
+    int cnt = 0;
     int pcs = 256;
-    char * p = outbuf;
+    char *p = outbuf;
     while (1)
     {
-        int left = len-cnt;
-        if(left<=0)
+        int left = len - cnt;
+        if (left <= 0)
         {
             break;
         }
-        if(left<pcs)
+        if (left < pcs)
         {
-            pcs=left;
+            pcs = left;
         }
         int k = fread(p, 1, pcs, pipe);
-        if(k<=0)
+        if (k <= 0)
         {
             break;
         }
-        cnt+=k;
-        p+=k;
-        *p='\0';
+        cnt += k;
+        p += k;
+        *p = '\0';
     }
     int r = pclose(pipe);
-    if(r!=0 || cnt<1)
+    if (r != 0 || cnt < 1)
     {
         return -1;
     }
     // remove tail('\n')
     cnt--;
-    outbuf[cnt]='\0';
+    outbuf[cnt] = '\0';
     return cnt;
 }
 
 void Exec::CopyFile(const char *src, const char *dst)
 {
     int srcfd = open(src, O_RDONLY);
-    if(srcfd<0)
+    if (srcfd < 0)
     {
         MyThrow("Can't open %s to read", src);
     }
-    int dstfd = open(dst, O_WRONLY|O_TRUNC, 0660);
-    if(dstfd<0)
+    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
+    if (dstfd < 0)
     {
         MyThrow("Can't open %s to write", dst);
     }
     uint8_t buf[1024];
-    while(1)
+    while (1)
     {
         ssize_t rd = read(srcfd, &buf[0], sizeof(buf));
-        if(rd<0)
+        if (rd < 0)
         {
             close(srcfd);
             close(dstfd);
-            MyThrow("Read %s error",src);
+            MyThrow("Read %s error", src);
         }
-        if (rd==0) break;
+        if (rd == 0)
+            break;
         ssize_t wr = write(dstfd, &buf[0], rd);
-        if(rd!=wr)
+        if (rd != wr)
         {
             close(srcfd);
             close(dstfd);
-            MyThrow("Write %s error",dst);
+            MyThrow("Write %s error", dst);
         }
     }
     close(srcfd);
@@ -601,12 +611,12 @@ void Exec::CopyFile(const char *src, const char *dst)
 
 bool Exec::FileExists(const char *filename)
 {
-    struct stat fileStat; 
-    if ( stat(filename, &fileStat) )
+    struct stat fileStat;
+    if (stat(filename, &fileStat))
     {
         return false;
     }
-    if ( !S_ISREG(fileStat.st_mode) )
+    if (!S_ISREG(fileStat.st_mode))
     {
         return false;
     }
@@ -616,11 +626,11 @@ bool Exec::FileExists(const char *filename)
 bool Exec::DirExists(const char *dirname)
 {
     struct stat fileStat;
-    if ( stat(dirname, &fileStat) )
+    if (stat(dirname, &fileStat))
     {
         return false;
     }
-    if ( !S_ISDIR(fileStat.st_mode) )
+    if (!S_ISDIR(fileStat.st_mode))
     {
         return false;
     }
@@ -631,42 +641,40 @@ void Time::PrintTime()
 {
     struct timespec _CLOCK_BOOTTIME;
     clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);
-    printf("[%ld.%09ld]\n",_CLOCK_BOOTTIME.tv_sec,_CLOCK_BOOTTIME.tv_nsec);
+    printf("[%ld.%09ld]\n", _CLOCK_BOOTTIME.tv_sec, _CLOCK_BOOTTIME.tv_nsec);
 }
 
 long Time::Interval()
 {
-    static struct timespec start={0,0};
+    static struct timespec start = {0, 0};
     static struct timespec end;
     clock_gettime(CLOCK_BOOTTIME, &end);
-    long ms = (end.tv_sec - start.tv_sec)*1000;
-    if(end.tv_nsec < start.tv_nsec)
+    long ms = (end.tv_sec - start.tv_sec) * 1000;
+    if (end.tv_nsec < start.tv_nsec)
     {
-        ms += (end.tv_nsec + 1000000000 - start.tv_nsec)/1000000 - 1000;
+        ms += (end.tv_nsec + 1000000000 - start.tv_nsec) / 1000000 - 1000;
     }
     else
     {
-        ms += (end.tv_nsec - start.tv_nsec)/1000000;
+        ms += (end.tv_nsec - start.tv_nsec) / 1000000;
     }
-    start=end;
+    start = end;
     return ms;
 }
 
 BitOption::BitOption()
-:bits(0)
+    : bits(0)
 {
-
 }
 
 BitOption::BitOption(uint32_t v)
-:bits(v)
+    : bits(v)
 {
-
 }
 
 void BitOption::Set(uint32_t v)
 {
-    bits=v;
+    bits = v;
 }
 
 uint32_t BitOption::Get()
@@ -684,26 +692,39 @@ void BitOption::ClrBit(int b)
 }
 bool BitOption::GetBit(int b)
 {
-    return (bits&MASK_BIT[b])!=0;
+    return (bits & MASK_BIT[b]) != 0;
 }
 
 std::string BitOption::ToString()
 {
     char buf[128];
-    int len=0;
-    for(int i=0;i<32;i++)
+    int len = 0;
+    for (int i = 0; i < 32; i++)
     {
-        if(GetBit(i))
+        if (GetBit(i))
         {
-            if(len>0)
+            if (len > 0)
             {
-                sprintf(buf+len,",");
+                sprintf(buf + len, ",");
                 len++;
             }
-            len+=sprintf(buf+len,"%d",i);
+            len += sprintf(buf + len, "%d", i);
         }
     }
     std::string s{buf};
     return s;
 }
 
+void BitOffset::SetBit(uint8_t *buf, int bitOffset)
+{
+    uint8_t * p = buf + bitOffset/8;
+    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
+    *p |= b;
+}
+
+void BitOffset::ClrBit(uint8_t *buf, int bitOffset)
+{
+    uint8_t * p = buf + bitOffset/8;
+    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
+    *p &= ~b;
+}

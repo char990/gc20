@@ -22,6 +22,7 @@
 
 #include <layer/StatusLed.h>
 #include <sign/Scheduler.h>
+#include <module/Utils.h>
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
@@ -41,38 +42,21 @@ void PrintVersion()
 {
     printf("\n");
     PrintBorder();
-    printf("* Version %s.%s, Build at %s %s *\n",
-           FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__); // 27 + 11 + 1 + 8
+    printf("* Version %s.%s, Build at UTC %s %s *\n",
+           FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
     PrintBorder();
 }
 
 class TickTock : public IPeriodicRun
 {
 public:
-    TickTock() : sec(0), min(0), hour(0), day(0){};
     virtual void PeriodicRun() override
     {
-        if (++sec == 60)
-        {
-            sec = 0;
-            if (++min == 60)
-            {
-                min = 0;
-                if (++hour == 24)
-                {
-                    hour = 0;
-                    day++;
-                }
-            }
-        }
-        printf("Day(%d) %d:%02d:%02d\n", day, hour, min, sec);
+        char buf[20];
+        Utils::Cnvt::ParseTmToLocalStr(time(nullptr), buf);
+        printf("\r[%s]", buf);
+        fflush(stdout);
     };
-
-private:
-    int sec;
-    int min;
-    int hour;
-    int day;
 };
 
 void TestCrc8005()

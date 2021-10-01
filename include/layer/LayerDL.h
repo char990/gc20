@@ -26,6 +26,6 @@ public:
 private:
     std::string name;
     uint8_t *buf;
-    int size;
+    int maxPktSize;
     int length;
 };

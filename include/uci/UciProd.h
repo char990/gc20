@@ -49,6 +49,7 @@ public:
     uint16_t LanternFaultDebounce() { return lanternFaultDebounce; };
     uint16_t SlaveVoltageLow() { return slaveVoltageLow; };
     uint16_t SlaveVoltageHigh() { return slaveVoltageHigh; };
+    uint16_t SlaveVoltageDebounce() { return slaveVoltageDebounce; };
     uint16_t LightSensorScale() { return lightSensorScale; };
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver;};
@@ -131,6 +132,7 @@ private:
     const char * _LanternFaultDebounce="LanternFaultDebounce";
     const char * _SlaveVoltageLow="SlaveVoltageLow";
     const char * _SlaveVoltageHigh="SlaveVoltageHigh";
+    const char * _SlaveVoltageDebounce="SlaveVoltageDebounce";
 
     /// uint8_t
     const char * _TsiSp003Ver="TsiSp003Ver";
@@ -180,6 +182,7 @@ private:
         lanternFaultDebounce,
         slaveVoltageLow,
         slaveVoltageHigh,
+        slaveVoltageDebounce,
         lightSensorScale;
 
     uint8_t

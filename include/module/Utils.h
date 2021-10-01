@@ -7,6 +7,7 @@
 
 namespace Utils
 {
+    enum STATE3 {S_NA=0, S_0, S_1};
 
     extern const uint32_t MASK_BIT[32];
 
@@ -106,6 +107,11 @@ namespace Utils
         ///         string format: d/M/yyyy h:mm:ss
         /// \return next byte of output buf
         static char * ParseTmToLocalStr(time_t t, char *pbuf);
+
+        /// \brief  Parse timeval to localtime string and wrtie to char *pbuf
+        ///         string format: d/M/yyyy h:mm:ss.mmm
+        /// \return next byte of output buf
+        static char * ParseTmToLocalStr(struct timeval *t, char *p);
 
         /// \brief  Parse localtime string to tm_t
         ///         string format: d/M/yyyy h:mm:ss
@@ -241,4 +247,15 @@ namespace Utils
     private:
         uint32_t bits;
     };
+
+    /// \brief  Set/Clr bit in uint8_t *buf
+    /// bifOffset is from [0:7](0), ..., [0:0](7), [1:7](8), ..., [1:0](15), ...
+    class BitOffset
+    {
+    public:
+        static void SetBit(uint8_t * buf, int bitOffset);
+        static void ClrBit(uint8_t * buf, int bitOffset);
+    };
+  
 } // namespace Utils
+

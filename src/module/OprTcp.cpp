@@ -4,7 +4,7 @@
 #include <module/Epoll.h>
 #include <layer/UI_LayerManager.h>
 
-#define TCPSPEED 1000
+#define TCPSPEED 1000000    // 1M bytes per seconds
 
 OprTcp::OprTcp()
 {
@@ -68,9 +68,9 @@ int OprTcp::Tx(uint8_t *data, int len)
     int x = TxBytes(data, len);
     if (x > 0)
     {
-        x = len / TCPSPEED;
+        x = len*1000 / TCPSPEED;    // get ms
     }
-    return (x == 0 ? 1 : x);
+    return (x < 10 ? 10 : x);
 }
 
 /// \brief  Called by TimerEvt

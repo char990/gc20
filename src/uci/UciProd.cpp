@@ -192,9 +192,9 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s '%s'", cbuf, str);
     }
 
-    slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 1000);
-    slaveRqstStTo = GetInt(uciSec, _SlaveRqstStTo, 10, 1000);
-    slaveRqstExtTo = GetInt(uciSec, _SlaveRqstExtTo, 10, 1000);
+    slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 5000);
+    slaveRqstStTo = GetInt(uciSec, _SlaveRqstStTo, 10, 5000);
+    slaveRqstExtTo = GetInt(uciSec, _SlaveRqstExtTo, 10, 5000);
     if (slaveRqstStTo > slaveRqstInterval)
     {
         MyThrow("UciProd Error: SlaveRqstStTo(%d) > SlaveRqstInterval(%d)", slaveRqstStTo, slaveRqstInterval);
@@ -226,6 +226,8 @@ void UciProd::LoadConfig()
     lanternFaultDebounce = GetInt(uciSec, _LanternFaultDebounce, 1, 65535);
     slaveVoltageLow = GetInt(uciSec, _SlaveVoltageLow, 1, 65535);
     slaveVoltageHigh = GetInt(uciSec, _SlaveVoltageHigh, 1, 65535);
+    slaveVoltageDebounce = GetInt(uciSec, _SlaveVoltageDebounce, 1, 65535);
+
     if (slaveVoltageLow > slaveVoltageHigh)
     {
         MyThrow("UciProd Error: SlaveVoltageLow(%d) > SlaveVoltageHigh(%d)", slaveVoltageLow, slaveVoltageHigh);
@@ -434,6 +436,7 @@ void UciProd::Dump()
     PrintOption_d(_LanternFaultDebounce, LanternFaultDebounce());
     PrintOption_d(_SlaveVoltageLow, SlaveVoltageLow());
     PrintOption_d(_SlaveVoltageHigh, SlaveVoltageHigh());
+    PrintOption_d(_SlaveVoltageDebounce, SlaveVoltageDebounce());
     PrintOption_d(_LightSensorScale, LightSensorScale());
     PrintOption_d(_SlavePowerUpDelay, SlavePowerUpDelay());
 

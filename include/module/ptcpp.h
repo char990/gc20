@@ -84,6 +84,9 @@ bool Pt_Task::Task2(int *_ptLine)
 // Cause protothread to wait while given condition is true.
 #define PT_WAIT_WHILE(condition) PT_WAIT_UNTIL(!(condition))
 
+// Cause protothread to setup a entry for next call of task
+#define PT_ENTRY() PT_WAIT_UNTIL(true)
+
 // Cause protothread to wait until given child protothread completes.
 //#define PT_WAIT_THREAD(child) PT_WAIT_WHILE((child).Run())
 

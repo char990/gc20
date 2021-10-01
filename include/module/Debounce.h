@@ -3,9 +3,7 @@
 
 #include <cstdint>
 #include <cstdio>
-
-typedef enum {F_NA=-1,F_CLEAR=0,F_ONSET=1} fault_t;
-
+#include <module/Debounce.h>
 
 /// \brief bool debounce
 /// start at invalid
@@ -14,6 +12,13 @@ typedef enum {F_NA=-1,F_CLEAR=0,F_ONSET=1} fault_t;
 class Debounce
 {
 public:
+    Debounce(){};
+    Debounce(int cnt)
+    {
+        SetCNT(cnt);
+        Reset();
+    }
+
     Debounce(int true_cnt,  int false_cnt)
     {
         SetCNT(true_cnt,false_cnt);
@@ -58,7 +63,13 @@ public:
     {
         CNT1=true_cnt;
         CNT0=false_cnt;
-    };
+    }
+
+    void SetCNT(int cnt)
+    {
+        CNT1=cnt;
+        CNT0=cnt;
+    }
 
     // Called regularly
     void Check(bool v)
@@ -104,23 +115,21 @@ public:
     bool changed=false;
     bool IsValid(){return is_valid;}
 
-    bool Value(){return value;}
-
-    fault_t Fault(void)
+    Utils::STATE3 Value(void)
     {
         if(!is_valid)
         {
-            return F_NA;
+            return Utils::STATE3::S_NA;
         }
-        return value?F_ONSET:F_CLEAR;
+        return value ? Utils::STATE3::S_1 : Utils::STATE3::S_0;
     };
     
 private:
-    bool is_valid;
-    bool value;
-    int CNT1;
-    int CNT0;
-    int cnt1;
-    int cnt0;
+    bool is_valid{false};
+    bool value{false};
+    int CNT1{1};
+    int CNT0{1};
+    int cnt1{0};
+    int cnt0{0};
 };
 

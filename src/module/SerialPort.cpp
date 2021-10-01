@@ -188,10 +188,12 @@ void SerialPort::ConfigureTermios()
 	{
 		MyThrow("Error reading ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
 	}
+	/*
 	if(spConfig.mode!=SpConfig::SpMode::RS232)
 	{
 		printf("Confirm RS485 mode is %s\n", (rs485conf.flags & SER_RS485_ENABLED) ? "set" : "NOT set");
 	}
+	*/
 }
 
 int SerialPort::Close()

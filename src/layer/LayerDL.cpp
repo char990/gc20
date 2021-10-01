@@ -5,7 +5,7 @@
 
 #include <layer/LayerDL.h>
 
-LayerDL::LayerDL(std::string name_, int size):size(size)
+LayerDL::LayerDL(std::string name_, int size):maxPktSize(size)
 {
     name = name_ + ":" + "DL";
     buf = new uint8_t[size];
@@ -33,7 +33,7 @@ int LayerDL::Rx(uint8_t *data, int len)
         {
             if (length > 0)
             {
-                if (length < size - 1)
+                if (length < maxPktSize)
                 {
                     buf[length++] = c;
                     if (c == DATALINK::CTRL_CHAR::ETX)

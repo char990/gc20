@@ -2,8 +2,10 @@
 #include <stdexcept>
 #include <cstdio>
 #include <ctime>
+#include <sys/time.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
+
 
 using namespace Utils;
 
@@ -19,9 +21,11 @@ void MyThrow(const char *fmt, ...)
 
 int MyPrintf(const char *fmt, ...)
 {
-	time_t t = time(nullptr);
+	struct timeval t;
+	struct timezone tz;
+	gettimeofday(&t,&tz);
 	MyDbgBuf[0]='[';
-	char *p = Cnvt::ParseTmToLocalStr(t, MyDbgBuf+1);
+	char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf+1);
 	*p++=']';
 	int len = p - MyDbgBuf;
 	va_list args;
