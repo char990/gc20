@@ -2,6 +2,9 @@
 #include <sign/GroupIslus.h>
 #include <uci/DbHelper.h>
 #include <sign/SignTxt.h>
+#include <module/ptcpp.h>
+#include <module/Utils.h>
+using namespace Utils;
 
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
@@ -14,6 +17,26 @@ GroupIslus::GroupIslus(uint8_t id)
     for (int i = 0; i < vSigns.size(); i++)
     { // slave id = Sign Id
         vSlaves.push_back(new Slave(vSigns[i]->SignId()));
+    }
+    // load process
+    auto disp = db.GetUciProcess().GetDisp(groupId);
+    if (disp[0] > 0)
+    {
+        switch (disp[1])
+        {
+        case MI::CODE::SignDisplayFrame:
+            DispFrm(disp[3]);
+            break;
+        case MI::CODE::SignDisplayMessage:
+            DispMsg(disp[3]);
+            break;
+        case MI::CODE::SignDisplayAtomicFrames:
+            DispAtomicFrm(&disp[1]);
+            break;
+        default:
+            MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
+            break;
+        }
     }
 }
 
@@ -56,7 +79,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         }
         p++;
         // frm is defined or frm0
-        if ((*p != 0) && DbHelper::Instance().GetUciFrm().GetFrm(*p) == nullptr)
+        if ((*p != 0) && !DbHelper::Instance().GetUciFrm().IsFrmDefined(*p))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -80,4 +103,19 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
     }
 #endif
     return APP::ERROR::AppNoError;
+}
+
+bool GroupIslus::TaskSetATF(int *_ptLine)
+{
+    PT_BEGIN();
+    for (sATF = 0; sATF < vSigns.size(); sATF++)
+    {
+        do
+        {
+            //SetFrame(vSigns[sATF]->SignId(), , newFrmId); // SignId is same as SlaveId
+            ClrAllSlavesRxStatus();
+            PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
+        } while (allSlavesNext == STATE3::S_0);
+    }
+    PT_END();
 }

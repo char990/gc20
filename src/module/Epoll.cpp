@@ -123,7 +123,7 @@ static void do_read(int epollfd,int fd,char *buf){
         delete_event(epollfd,fd,EPOLLIN); //删除监听 
     }     
     else {         
-        printf("read message is : %s",buf);        
+        PrintDbg("read message is : %s",buf);        
         //修改描述符对应的事件，由读改为写         
         modify_event(epollfd,fd,EPOLLOUT);     
     } 
@@ -138,7 +138,7 @@ static void handle_accpet(int epollfd,int listenfd){
      if (clifd == -1)         
      perror("accpet error:");     
      else {         
-         printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);                       //添加一个客户描述符和事件         
+         PrintDbg("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);                       //添加一个客户描述符和事件         
          add_event(epollfd,clifd,EPOLLIN);     
      } 
 }

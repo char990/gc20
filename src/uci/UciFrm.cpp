@@ -15,15 +15,22 @@ using namespace Utils;
 
 UciFrm::UciFrm()
 {
+	for (int i = 0; i < 255; i++)
+	{
+		frms[i]=nullptr;
+	}
 }
 
 UciFrm::~UciFrm()
 {
-	if (frmSize != 0)
+	if (maxFrmSize != 0)
 	{
 		for (int i = 0; i < 255; i++)
 		{
-			delete[] frms[i].rawData;
+			if(frms[i]!=nullptr)
+			{
+				delete frms[i];
+			}
 		}
 	}
 }
@@ -32,16 +39,11 @@ void UciFrm::LoadConfig()
 {
 	PATH = DbHelper::Instance().Path();
 	// using HRGFRM to allocate the memory
-	frmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
-	for (int i = 0; i < 255; i++)
-	{
-		frms[i].dataLen = 0;
-		frms[i].rawData = new uint8_t[frmSize];
-	}
+	maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	chksum = 0;
 	char filename[256];
-	uint8_t *b = new uint8_t[frmSize];
-	char *v = new char[frmSize * 2 + 1]; // with '\n' at the end
+	uint8_t *b = new uint8_t[maxFrmSize];
+	char *v = new char[maxFrmSize * 2 + 1]; // with '\n' at the end
 	try
 	{
 		for (int i = 1; i <= 255; i++)
@@ -50,7 +52,7 @@ void UciFrm::LoadConfig()
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
 			{
-				int len = read(frm_fd, v, frmSize * 2 + 1) - 1;
+				int len = read(frm_fd, v, maxFrmSize * 2 + 1) - 1;
 				if (Cnvt::ParseToU8(v, b, len) == 0)
 				{
 					SetFrm(b, len / 2);
@@ -61,7 +63,7 @@ void UciFrm::LoadConfig()
 	}
 	catch (const std::exception &e)
 	{
-		PrintDbg(e.what());
+		PrintDbg("%s\n",e.what());
 	}
 	delete[] v;
 	delete[] b;
@@ -74,50 +76,9 @@ void UciFrm::Dump()
 	printf("%s/frm_xxx\n", PATH);
 	for (int i = 0; i < 255; i++)
 	{
-		if (frms[i].dataLen != 0)
+		if (frms[i] != nullptr)
 		{
-			switch (frms[i].rawData[0])
-			{
-			case MI::CODE::SignSetTextFrame:
-				{
-					FrmTxt frm(frms[i].rawData, frms[i].dataLen);
-					if(frm.appErr==APP::ERROR::AppNoError)
-					{
-						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
-					}
-					else
-					{
-						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
-					}
-				}
-				break;
-			case MI::CODE::SignSetGraphicsFrame:
-				{
-					FrmGfx frm(frms[i].rawData, frms[i].dataLen);
-					if(frm.appErr==APP::ERROR::AppNoError)
-					{
-						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
-					}
-					else
-					{
-						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
-					}
-				}
-				break;
-			case MI::CODE::SignSetHighResolutionGraphicsFrame:
-				{
-					FrmHrg frm(frms[i].rawData, frms[i].dataLen);
-					if(frm.appErr==APP::ERROR::AppNoError)
-					{
-						printf("\tfrm_%03d: %s\n", i+1,  frm.ToString().c_str());
-					}
-					else
-					{
-						printf("!!! frm_%03d Error = 0x%02X\n", i+1, frm.appErr);
-					}
-				}
-				break;
-			}
+			printf("\tfrm_%03d: %s\n", i+1,  frms[i]->ToString().c_str());
 		}
 	}
 }
@@ -129,50 +90,40 @@ uint16_t UciFrm::ChkSum()
 
 bool UciFrm::IsFrmDefined(uint8_t i)
 {
-	return (i != 0 && frms[i - 1].dataLen != 0);
+	return (i != 0 && frms[i - 1] != nullptr);
 }
 
-StFrm *UciFrm::GetFrm(uint8_t i)
+StFrm *UciFrm::GetStFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? &frms[i - 1] : nullptr;
+	return IsFrmDefined(i) ? &(frms[i - 1]->stFrm) : nullptr;
+}
+
+Frame* UciFrm::GetFrm(uint8_t i)
+{
+	return (i != 0) ? frms[i - 1] : nullptr;
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)
 {
-	return IsFrmDefined(i) ? *(frms[i - 1].rawData + OFFSET_FRM_REV) : 0;
+	return IsFrmDefined(i) ? frms[i - 1]->frmRev : 0;
 }
 
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 {
-	if (len > frmSize)
+	if (len > maxFrmSize)
 		return APP::ERROR::LengthError;
-	uint16_t crc;
+	Frame *pFrm;
 	if (buf[0] == MI::CODE::SignSetTextFrame)
 	{
-		FrmTxt frm(buf, len);
-		if (frm.appErr != APP::ERROR::AppNoError)
-		{
-			return frm.appErr;
-		}
-		crc = frm.crc;
+		pFrm = new FrmTxt(buf, len);
 	}
 	else if (buf[0] == MI::CODE::SignSetGraphicsFrame)
 	{
-		FrmGfx frm(buf, len);
-		if (frm.appErr != APP::ERROR::AppNoError)
-		{
-			return frm.appErr;
-		}
-		crc = frm.crc;
+		pFrm = new FrmGfx(buf, len);
 	}
 	else if (buf[0] == MI::CODE::SignSetHighResolutionGraphicsFrame)
 	{
-		FrmHrg frm(buf, len);
-		if (frm.appErr != APP::ERROR::AppNoError)
-		{
-			return frm.appErr;
-		}
-		crc = frm.crc;
+		pFrm = new FrmHrg(buf, len);
 	}
 	else if (buf[1] == 0)
 	{
@@ -182,22 +133,30 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 	{
 		return APP::ERROR::UnknownMi;
 	}
-	StFrm *frm = &frms[buf[1] - 1];
-	if (frm->dataLen != 0)
+	if (pFrm->appErr != APP::ERROR::AppNoError)
 	{
-		chksum -= Cnvt::GetU16(frm->rawData + frm->dataLen - 2);
+		auto r = pFrm->appErr;
+		delete pFrm;
+		return r;
 	}
-	chksum += crc;
-	frm->dataLen = len;
-	memcpy(frm->rawData, buf, len);
+	auto vFrm = GetFrm(pFrm->frmId);
+	if(vFrm!=nullptr)
+	{
+		chksum -= vFrm->crc;
+		delete vFrm;
+	}
+	chksum -= pFrm->crc;
+	frms[pFrm->frmId-1]=pFrm;
 	return APP::ERROR::AppNoError;
 }
 
 void UciFrm::SaveFrm(uint8_t i)
 {
-	if (!IsFrmDefined(i))
+	auto frm = GetStFrm(i);
+	if(frm==nullptr)
+	{
 		return;
-	auto frm = GetFrm(i);
+	}
 	char filename[256];
 	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
 	int len = frm->dataLen * 2;

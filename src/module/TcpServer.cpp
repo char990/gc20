@@ -69,7 +69,7 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    printf("%s:Incomming...\n",name.c_str());
+    PrintDbg("%s:Incomming...\n",name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
@@ -79,13 +79,13 @@ void TcpServer::Accept()
     if(tcpOperator==nullptr)
     {
         close(connfd);
-        printf("%s:Connections full, reject\n",name.c_str());
+        PrintDbg("%s:Connections full, reject\n",name.c_str());
         return;
     }
     SetNonblocking(connfd);
     tcpOperator->SetServer(this);
     tcpOperator->Setup(connfd,tmrEvt);
-    printf("%s:Accept %s:[%d of %d]:%s\n",
+    PrintDbg("%s:Accept %s:[%d of %d]:%s\n",
         name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 
@@ -95,7 +95,7 @@ void TcpServer::Release(OprTcp * tcpOperator)
 {
     close(tcpOperator->GetFd());
     oPool.Push(tcpOperator);
-    printf("%s:tcpOperator released:[%d of %d]:%s\n",
+    PrintDbg("%s:tcpOperator released:[%d of %d]:%s\n",
         name.c_str(), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
 }
 

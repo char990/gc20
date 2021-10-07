@@ -188,7 +188,7 @@ private:
     uint8_t
         tsiSp003Ver,
         slavePowerUpDelay,
-        colourBits,
+        colourBits,             // 1,4,24
         isResetLogAllowed,
         isUpgradeAllowed,
         numberOfSigns,

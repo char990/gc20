@@ -25,38 +25,40 @@ public:
     UciFrm();
     ~UciFrm();
 
-    /// \brief  load frms[] from "UciFrm"
+    /// \brief  load stFrms[] from "UciFrm"
     void LoadConfig();
 
     /// \brief  Sum all frames's crc
     uint16_t ChkSum();
 
+    /// \brief  Get frms[i-1]->stFrm, frms[0]/undefined frm return nullptr
+    StFrm* GetStFrm(uint8_t i);
+
     /// \brief  Get frms[i-1], check frm->micode to get type, frms[0] is nullptr
-    StFrm * GetFrm(uint8_t i);
+    Frame* GetFrm(uint8_t i);
 
     bool IsFrmDefined(uint8_t i);
 
-    /// \brief  Get frms[i-1]->frmRev, frms[0] is 0
+    /// \brief  Get stFrms[i-1]->frmRev, stFrms[0] is 0
     uint8_t GetFrmRev(uint8_t i);
 
     /// \brief  Set a frame from hex array, e.g. app layer data of SighSetTextFrame
-    ///         frame will be stored in frms[] (but not saved in "UciFrm")
+    ///         frame will be stored in stFrms[] (but not saved in "UciFrm")
     /// \param  buf: hex array
     /// \param  len: array length
     /// \return APP::ERROR
     APP::ERROR SetFrm(uint8_t * buf, int len);
 
-    /// \brief  Save frms[i-1] to "UciFrm"
+    /// \brief  Save stFrms[i-1] to "UciFrm"
     ///         When TsiSp003 set a frame, call SetFrm then SaveFrm
     /// \param  i: frm id
     void SaveFrm(uint8_t i);
 
 private:
     const char * PATH;
-    StFrm frms[255];
-    int frmSize{0};
+    int maxFrmSize{0};
     uint16_t chksum{0};
-
+    Frame *frms[255];
     void Dump();
 };
 

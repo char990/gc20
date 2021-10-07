@@ -24,7 +24,7 @@ void OprTcp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        printf("Disconnected:events=0x%08X\n", events);
+        PrintDbg("Disconnected:events=0x%08X\n", events);
         Release();
     }
     else if (events & EPOLLIN)
@@ -78,7 +78,7 @@ void OprTcp::PeriodicRun()
 {
     if (tcpIdleTmr.IsExpired())
     {
-        printf("Idle timeout. Disconnected\n");
+        PrintDbg("Idle timeout. Disconnected\n");
         Release();
     }
 }
@@ -97,14 +97,14 @@ int OprTcp::RxHandle()
         }
         else
         {
-            printf("TcpRx %d bytes\n", n);
+            PrintDbg("TcpRx %d bytes\n", n);
             if (IsTxRdy()) // if tx is busy, discard this rx
             {
                 upperLayer->Rx(buf, n);
             }
             else
             {
-                printf("TcpTx not ready\n");
+                PrintDbg("TcpTx not ready\n");
             }
         }
     }

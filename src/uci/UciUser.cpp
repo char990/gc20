@@ -61,6 +61,7 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
     }
 
+    lastFrmOn = GetInt(uciSec, _LastFrmOn, 1, 60);
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
     lockedMsg = GetInt(uciSec, _LockedMsg, 0, 255);
     passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);

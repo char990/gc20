@@ -16,6 +16,8 @@ public:
     
     APP::ERROR DispAtomicFrm(uint8_t *id) override;
 
+    bool TaskSetATF(int *_ptLine) override ; // no use for VMS, MyThrow("VMS can run ATF")
+
 private:
 
 };

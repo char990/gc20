@@ -19,10 +19,16 @@ void MyThrow(const char *fmt, ...)
 	throw std::runtime_error(&MyDbgBuf[0]);
 }
 
+char _r_need_n=0;
 int MyPrintf(const char *fmt, ...)
 {
 	struct timeval t;
 	struct timezone tz;
+	if(_r_need_n!=0)
+	{
+		putchar('\n');
+		_r_need_n=0;
+	}
 	gettimeofday(&t,&tz);
 	MyDbgBuf[0]='[';
 	char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf+1);
@@ -32,7 +38,7 @@ int MyPrintf(const char *fmt, ...)
 	va_start(args, fmt);
 	len += vsnprintf(p, 1024 - 1 - len, fmt, args);
 	va_end(args);
-	puts(MyDbgBuf);
+	printf("%s", MyDbgBuf);
 	return len;
 }
 

@@ -77,8 +77,7 @@ void Scheduler::PeriodicRun()
 void Scheduler::RefreshDispTime()
 {
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    ms = (ms == 0) ? -1 : (ms * 1000);
-    displayTimeout.Setms(ms);
+    (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms*1000);
 }
 
 void Scheduler::SessionLed(uint8_t v)
@@ -144,7 +143,6 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    StFrm *frm;
     if (frmId != 0)
     {
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))

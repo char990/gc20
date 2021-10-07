@@ -6,7 +6,7 @@
 
 SLV_LayerManager::SLV_LayerManager(std::string name_,  IUpperLayer * upperLayer)
 {
-    maxPktSize = 22 + Slave::numberOfTiles*Slave::numberOfColours;  // 22 bytes + ledCnt
+    maxPktSize = 1 + 9 + DbHelper::Instance().GetUciProd().MaxFrmLen() + 2;
     prstLayer = new LayerPrst(maxPktSize);
     dlLayer = new LayerSlv(name_, (maxPktSize+2)*2+2);  // 0x02 + ([packet] + 2-byte CRC)*2 + 0x03
     appLayer = upperLayer;

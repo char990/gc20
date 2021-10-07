@@ -12,6 +12,8 @@ public:
 
     virtual APP::ERROR DispAtomicFrm(uint8_t *id) override;
 
-private:
+    bool TaskSetATF(int *_ptLine) override;
 
+private:
+    uint8_t sATF;
 };

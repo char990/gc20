@@ -341,7 +341,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     {
     case 0: // frm
     {
-        auto frm = db.GetUciFrm().GetFrm(data[2]);
+        auto frm = db.GetUciFrm().GetStFrm(data[2]);
         if (frm == nullptr)
         {
             Reject(APP::ERROR::FrmMsgPlnUndefined);

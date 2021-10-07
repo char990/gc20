@@ -41,7 +41,7 @@ public:
     uint8_t * LedStatus(uint8_t * p);
 
     // set current display
-    void CurrentDisp(uint8_t f, uint8_t m, uint8_t p)
+    void SetReportDisp(uint8_t f, uint8_t m, uint8_t p)
     {
         reportPln = p;
         reportMsg = m;

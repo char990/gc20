@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstring>
 #include <vector>
 #include <module/OprSp.h>
 #include <module/OprTcp.h>
@@ -42,16 +42,11 @@ public:
     int RqstStatus(uint8_t slvindex);
     int RqstExtStatus(uint8_t slvindex);
 
-    /// \brief      translate a frame to txBuf
-    /// \param      frmId is the frame id in UciFrame, should be defined and not be 0
-    ///             total bytes in txLen
-    void TranslateFrame(uint8_t uciFrmId);
-
     /// \brief      call TranslateFrame and send txBuf by SetTextFrame/SetGfxFrm
-    int SetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId);
+    int SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId);
 
-    int DisplayFrame(uint8_t slvindex, uint8_t slvFrmId);
-    int SetStoredFrame(uint8_t slvindex, uint8_t slvFrmId);
+    int SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId);
+    int SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId);
 
     // called by scheduler
     void PeriodicRun();
@@ -111,9 +106,9 @@ protected:
     void SlaveStatusRpl(uint8_t *data, int len);
     void SlaveExtStatusRpl(uint8_t *data, int len);
 
-    bool CheckAllSlavesRxStatus();
+    bool AllSlavesGotStatus();
     void ClrAllSlavesRxStatus();
-    bool CheckAllSlavesRxExtSt();
+    bool AllSlavesGotExtSt();
     void ClrAllSlavesRxExtSt();
 
     Utils::STATE3 CheckAllSlavesNext();
@@ -129,6 +124,9 @@ protected:
     DispStatus *dsCurrent;
     DispStatus *dsNext;
     DispStatus *dsExt;
+
+    int taskATFLine{0};
+    virtual bool TaskSetATF(int *_ptLine)=0;
 
 private:
 
@@ -152,14 +150,7 @@ private:
         typeTRS = 255 // transition time in MSG
     };
 
-    uint8_t         // new plan entry
-        newPlnFM,
-        plnEntryType, // 0:EMPTY, 1:frm, 2:msg
-        plnEntryId;
 
-    uint8_t
-        newFrm,   //  0:EMPTY, 1:new frm load
-        newFrmId; // if frmId is 0, BLANK
 
     // group status
     enum PWR_STATE
@@ -191,6 +182,15 @@ private:
 
     bool IsDsNextEmergency();
 
+    /******************** Task Plan ********************/
+    uint8_t
+        newPln,         // 0:EMPTY, 1:new pln load
+        newPlnId;
+    uint8_t         // new plan entry
+        newPlnFM,
+        plnEntryType, // 0:EMPTY, 1:frm, 2:msg
+        plnEntryId;
+
     int taskPlnLine{0};
     BootTimer taskPlnTmr;
     bool TaskPln(int *_ptLine);
@@ -199,21 +199,73 @@ private:
         taskPlnLine=0;
     }
 
+    /******************** Task Message ********************/
+    uint8_t orType{0}; // 0:None, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
+    int orLen;
+    uint8_t *orBuf;
+    void ClrOrBuf()
+    {
+        orType=0;
+        memset(orBuf,0,orLen);
+    }
+
+    uint8_t
+        newMsg,         // 0:EMPTY, 1:new msg load
+        newMsgId,
+        msgEntryCnt;   // 0 - (msg->entries-1)
+    // msgSetEntry/Max depend on frame 'onTime'=0(frame overlay)
+    // if there is an entry onTime(!0) following an entry onTime(0), msgSetEntryMax = msg->entries + last onTime(0) entry
+    // otherwise, msgSetEntryMax=msg->entries
+    // E.g.
+    //  6 frames in msg(entry[0-5]) and entry[0].onTime=50, entry[1].onTime=0
+    //  msgSetEntryMax = 6 + 1;
+    //  first round:
+    //      set [0]                 :1
+    //      [1] set in orBUf        :2
+    //      set [2-5] with orBuf    :3-6
+    //      set [0] with orBuf      :7
+    // E.g.
+    //  4 frames in msg(entry[0-3]) and entry[0-2].onTime=50, entry[3].onTime=0
+    //  msgSetEntryMax = 4;
+    //  first round:
+    //      set [0-2]               :1-3
+    //      set [3] (last entry)    :4
+    // E.g.
+    //  4 frames in msg(entry[0-3]) and entry[0-1].onTime=0, entry[2-3].onTime=50
+    //  msgSetEntryMax = 4;
+    //  first round:
+    //      [0-1] set in orBUf      :1-2
+    //      set [2-3]  with orBuf   :3-4
+    uint8_t
+        msgSetEntry,     // entry counter to set frame
+        msgSetEntryMax;  // max netries to set frame
+    Message * pMsg;
     int taskMsgLine{0};
     BootTimer taskMsgTmr;
+    BootTimer taskMsgLastFrmTmr;
     bool TaskMsg(int *_ptLine);
     void TaskMsgReset()
     {
         taskMsgLine=0;
+        msgEntryCnt=0;
+        msgSetEntryMax=0;
+        msgSetEntry=0;
     }
+    void InitMsgOverlayBuf(Message * pMsg);    
+    void TransFrmToOrBuf(uint8_t frmId);
+
+    /******************** Task Frame ********************/
+    uint8_t
+        newFrm,   // 0:EMPTY, 1:new frm load
+        newFrmId; // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
 
     bool TaskFrm(int *_ptLine);
     int taskFrmLine{0};
     BootTimer taskFrmTmr;
-    uint8_t frmFor;
     void TaskFrmReset()
     {
         taskFrmLine=0;
+        taskATFLine=0;
     }
 
     bool TaskRqstSlave(int *_ptLine);
@@ -231,11 +283,9 @@ private:
         taskRqstSlaveTmr.Setms(0);
     }
 
-    bool IsDimmingChanged();
+    void GroupSetReportDisp(uint8_t newFrmId, uint8_t newMsgId, uint8_t newPlnId);
 
-    uint8_t orType{0}; // 0:None, 1:mono, 4:4-bit, 24:24-bit
-    int orLen;
-    uint8_t *orBuf;
+    bool IsDimmingChanged();
 
     enum SLVCMD
     {

@@ -4,6 +4,7 @@
 #include <sign/SignTxt.h>
 #include <sign/SignGfx.h>
 #include <sign/SignAdg.h>
+#include <module/MyDbg.h>
 
 GroupVms::GroupVms(uint8_t id)
     : Group(id)
@@ -19,7 +20,23 @@ GroupVms::GroupVms(uint8_t id)
         vSlaves.push_back(s);
         vSigns[0]->AddSlave(s);
     }
-    //TODO Process.Disp;
+    // load process
+    auto disp = db.GetUciProcess().GetDisp(groupId);
+    if (disp[0] > 0)
+    {
+        switch (disp[1])
+        {
+        case MI::CODE::SignDisplayFrame:
+            DispFrm(disp[3]);
+            break;
+        case MI::CODE::SignDisplayMessage:
+            DispMsg(disp[3]);
+            break;
+        default:
+            MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
+            break;
+        }
+    }
 }
 
 GroupVms::~GroupVms()
@@ -35,3 +52,8 @@ APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
     return APP::ERROR::MiNotSupported;
 }
 
+bool GroupVms::TaskSetATF(int *_ptLine)
+{
+    MyThrow("VMS can not run ATF");
+    return true;
+}

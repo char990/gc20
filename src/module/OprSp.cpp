@@ -78,14 +78,14 @@ int OprSp::RxHandle()
     }
     else
     {
-        //printf("ComRx %d bytes\n", n);
+        //PrintDbg("ComRx %d bytes\n", n);
         if(IsTxRdy()) // if tx is busy, discard this rx
         {
             upperLayer->Rx(buf, n);
         }
         else
         {
-            printf("ComTx not ready\n");
+            PrintDbg("ComTx not ready\n");
         }
     }
     return 0;

@@ -8,6 +8,7 @@
 #include <mcheck.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <module/Epoll.h>
 #include <module/SerialPort.h>
@@ -29,22 +30,18 @@ const char *FirmwareMinorVer = "50";
 
 using namespace std;
 
-void PrintBorder()
-{
-#define BoerderSize (16 + 10 + 11 + 1 + 8 + 2)
-    char buf[BoerderSize + 1];
-    memset(buf, '*', BoerderSize);
-    buf[BoerderSize] = '\0';
-    printf("%s\n", buf);
-}
-
 void PrintVersion()
 {
-    printf("\n");
-    PrintBorder();
-    printf("* Version %s.%s, Build at UTC %s %s *\n",
+    PrintDbg("\n");
+    char sbuf[256];
+    int len = sprintf(sbuf,"* Version %s.%s, Build at UTC: %s %s *",
            FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
-    PrintBorder();
+    char buf[256];
+    memset(buf, '*', len);
+    buf[len] = '\0';
+    printf("%s\n", buf);
+    printf("%s\n", sbuf);
+    printf("%s\n", buf);
 }
 
 class TickTock : public IPeriodicRun
@@ -52,22 +49,23 @@ class TickTock : public IPeriodicRun
 public:
     virtual void PeriodicRun() override
     {
-        char buf[20];
-        Utils::Cnvt::ParseTmToLocalStr(time(nullptr), buf);
-        printf("\r[%s]", buf);
+        _r_need_n=0;
+        putchar('\r');
+        PrintDbg("");
         fflush(stdout);
+        _r_need_n=1;
     };
 };
 
 void TestCrc8005()
 {
     uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
-    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
+    PrintDbg("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
     uint8_t buf2[] = {
         0x02, 0x30, 0x32, 0x30, 0x36,
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
         0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
-    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
+    PrintDbg("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
 
 int main(int argc, char *argv[])
@@ -80,20 +78,26 @@ int main(int argc, char *argv[])
         printf("Usage: %s DIRECTORY\n", argv[0]);
         return 1;
     }
+    else
     {
+        int x = strlen(argv[1]);
+        if(argv[1][x-1]=='/')
+        {
+            argv[1][x-1]='\0';  // remove last'/'
+        }
         struct stat st;
-        if(stat(argv[1], &st) == 0)
+        if(stat(argv[1], &st) != 0)
+        {
+            printf("'%s' does NOT exist\n", argv[1]);
+            return 2;
+        }
+        else
         {
             if(!S_ISDIR(st.st_mode))
             {
                 printf("'%s' is NOT a directory\n", argv[1]);
-                exit(3);
+                return 3;
             }
-        }
-        else
-        {
-            printf("'%s' does NOT exist\n", argv[1]);
-            exit(2);
         }
     }
 

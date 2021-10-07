@@ -32,7 +32,7 @@ void Sign::AddSlave(Slave * slave)
 
 void Sign::Reset()
 {
-    CurrentDisp(0, 0, 0);
+    SetReportDisp(0, 0, 0);
     dbcLight.Reset();
     dbcChain.Reset();
     dbcMultiLed.Reset();
@@ -67,17 +67,20 @@ void Sign::RefreshSlaveStatus()
 	uint8_t check_selftest=0;
 	uint8_t check_lightsensor=0;
 	uint8_t check_fan=0;
+    uint8_t check_lantern=0;
 
-    for (auto s : vsSlaves)
+    for (auto& s : vsSlaves)
     {
         check_chain_fault |= s->panelFault & 0x0F;
         check_selftest |= s->selfTest & 1;
-        check_lightsensor |= s->lightSensorFault & 1;
         check_fan |= s->lanternFan & 0x30;
     }
-	uint8_t check_lantern = (vsSlaves.size()==1)?
-            (vsSlaves[0]->lanternFan & 0x0F) :
-            ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size()-1]->lanternFan & 0x03)<<2));
+    // light sensor installed at first slave
+    check_lightsensor = vsSlaves[0]->lightSensorFault & 1;
+    // light sensor installed at first&last slaves
+	check_lantern = (vsSlaves.size()==1)?
+        (vsSlaves[0]->lanternFan & 0x0F) :
+        ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size()-1]->lanternFan & 0x03)<<2));
 
     dbcChain.Check(check_chain_fault>0);
     dbcSelftest.Check(check_selftest>0);
@@ -92,7 +95,7 @@ void Sign::RefreshSlaveExtSt()
     uint16_t temperature=0;   // 0.1'C
     uint16_t faultLedCnt=0;
 
-    for (auto s : vsSlaves)
+    for (auto& s : vsSlaves)
     {
         if(s->voltage > maxvoltage)
         {
@@ -151,7 +154,7 @@ uint8_t * Sign::LedStatus(uint8_t * buf)
     uint8_t tbytes = (tiles+7)/8;
     memset(buf, 0, tbytes);
     int bitOffset=0;
-    for (auto s : vsSlaves)
+    for (auto& s : vsSlaves)
     {
         for(int i=0;i<s->numberOfTiles;i++)
         {

@@ -16,38 +16,36 @@ Frame::~Frame()
 {
 }
 
-void Frame::FrameCheck()
+int Frame::FrameCheck(uint8_t *frm, int len)
 {
-    uint8_t *frm = stFrm.rawData;
-    int len = stFrm.dataLen;
     crc = Crc::Crc16_1021(frm, len - 2);
     if (crc != Cnvt::GetU16(frm + len - 2))
     {
         appErr = APP::ERROR::DataChksumError;
-        return;
+        return 1;
     }
     if (frmId == 0)
     {
         appErr = APP::ERROR::SyntaxError;
-        return;
+        return 1;
     }
-    if (len != (frmOffset + 2 + frmlen))
+    if (len != (frmOffset + 2 + frmBytes))
     {
         appErr = APP::ERROR::LengthError;
-        return;
+        return 1;
     }
     if (CheckLength(len) != 0)
     {
-        return;
+        return 1;
     }
-    if (CheckSub() != 0)
+    if (CheckSub(frm, len) != 0)
     {
-        return;
+        return 1;
     }
     if (CheckColour() != 0)
     {
         appErr = APP::ERROR::ColourNotSupported;
-        return;
+        return 1;
     }
     // int CheckConspicuity();
     UciProd & prod = DbHelper::Instance().GetUciProd();
@@ -56,28 +54,63 @@ void Frame::FrameCheck()
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
         appErr = APP::ERROR::ConspicuityNotSupported;
+        return 1;
     }
+    appErr = APP::ERROR::AppNoError;
+    return 0;
+}
+
+uint8_t* Frame::ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf)
+{
+    uint8_t* p = buf;
+    if(colourType==0)
+    {
+        *p++ = 0x0B;  // Gfx frame
+        p++;        // skip slave frame id
+        auto & prod = DbHelper::Instance().GetUciProd();
+        *p++ = prod.PixelRows();
+        p = Cnvt::PutU16(prod.PixelColumns(), p);
+        *p++ = colour;
+        *p++ = conspicuity;
+        p = Cnvt::PutU16(frmBytes, p);
+        memcpy(p, stFrm.rawData+frmOffset, frmBytes);
+        p+=frmBytes;
+    }
+    else if(colourType==1)
+    {
+        
+    }
+    else if(colourType==4)
+    {
+        
+    }
+    else// if(colourType==24)
+    {
+        
+    }
+    return p;
 }
 
 /*****************************FrmTxt*******************************/
 FrmTxt::FrmTxt(uint8_t *frm, int len)
 {
     frmOffset = TXTFRM_HEADER_SIZE;
-    stFrm.rawData = frm;
-    stFrm.dataLen = len;
     micode = frm[0];
     frmId = frm[1];
     frmRev = frm[2];
     font = frm[3];
     colour = frm[4];
     conspicuity = frm[5];
-    frmlen = frm[6];
-    Frame::FrameCheck();
+    frmBytes = frm[6];
+    if(Frame::FrameCheck(frm, len)==0)
+    {
+        stFrm.Init(frm,len);
+    }
 }
 
 int FrmTxt::CheckLength(int len)
 {
-    if (len > (255 + frmOffset + 2) || 0 /* if text could fit in the sign: X chars * Y chars*/)
+    if (len > (255 + frmOffset + 2) || 0 /* TODO if text could fit in the sign: X chars * Y chars*/)
     {
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
@@ -90,14 +123,14 @@ int FrmTxt::CheckLength(int len)
     return 0;
 }
 
-int FrmTxt::CheckSub()
+int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
     if (micode != MI::CODE::SignSetTextFrame)
     {
         appErr = APP::ERROR::UnknownMi;
         return 1;
     }
-    else if (Check::Text(stFrm.rawData + frmOffset, frmlen) != 0)
+    else if (Check::Text(frm + frmOffset, frmBytes) != 0)
     {
         appErr = APP::ERROR::TextNonASC;
         return 1;
@@ -119,17 +152,48 @@ std::string FrmTxt::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Txt), Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, font, colour, conspicuity, frmlen, crc);
+            micode, frmId, frmRev, font, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
+}
+
+uint8_t* FrmTxt::ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf)
+{
+    uint8_t* p = buf;
+    if(colourType==0)
+    {
+        *p++ = 0x0A;  // Text frame
+        p++;        // skip slave frame id
+        auto & user = DbHelper::Instance().GetUciUser();
+        *p++ = (font==0)?user.DefaultFont():font;
+        *p++ = colour;
+        *p++ = conspicuity;
+        auto pFont = DbHelper::Instance().GetUciProd().Fonts(font);
+        *p++ = pFont->CharSpacing();
+        *p++ = pFont->LineSpacing();
+        *p++ = frmBytes;
+        memcpy(p, stFrm.rawData+frmOffset, frmBytes);
+        p+=frmBytes;
+    }
+    else if(colourType==1)
+    {
+        
+    }
+    else if(colourType==4)
+    {
+        
+    }
+    else// if(colourType==24)
+    {
+        
+    }
+    return p;
 }
 
 /****************************** FrmGfx *******************************/
 FrmGfx::FrmGfx(uint8_t *frm, int len)
 {
     frmOffset = GFXFRM_HEADER_SIZE;
-    stFrm.rawData = frm;
-    stFrm.dataLen = len;
     micode = frm[0];
     frmId = frm[1];
     frmRev = frm[2];
@@ -137,11 +201,14 @@ FrmGfx::FrmGfx(uint8_t *frm, int len)
     pixelColumns = frm[4];
     colour = frm[5];
     conspicuity = frm[6];
-    frmlen = Cnvt::GetU16(frm + 7);
-    Frame::FrameCheck();
+    frmBytes = Cnvt::GetU16(frm + 7);
+    if(Frame::FrameCheck(frm, len)==0)
+    {
+        stFrm.Init(frm,len);
+    }
 }
 
-int FrmGfx::CheckSub()
+int FrmGfx::CheckSub(uint8_t *frm, int len) // TODO
 {
     if (micode != MI::CODE::SignSetGraphicsFrame)
     {
@@ -180,11 +247,11 @@ int FrmGfx::CheckLength(int len)
         }
         if (x != 0)
         {
-            if (frmlen > x)
+            if (frmBytes > x)
             {
                 appErr = APP::ERROR::FrameTooLarge;
             }
-            else if (frmlen < x)
+            else if (frmBytes < x)
             {
                 appErr = APP::ERROR::FrameTooSmall;
             }
@@ -206,7 +273,7 @@ std::string FrmGfx::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Gfx), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
+            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
 }
@@ -215,8 +282,6 @@ std::string FrmGfx::ToString()
 FrmHrg::FrmHrg(uint8_t *frm, int len)
 {
     frmOffset = HRGFRM_HEADER_SIZE;
-    stFrm.rawData = frm;
-    stFrm.dataLen = len;
     micode = frm[0];
     frmId = frm[1];
     frmRev = frm[2];
@@ -224,11 +289,14 @@ FrmHrg::FrmHrg(uint8_t *frm, int len)
     pixelColumns = Cnvt::GetU16(frm + 5);
     colour = frm[7];
     conspicuity = frm[8];
-    frmlen = Cnvt::GetU32(frm + 9);
-    Frame::FrameCheck();
+    frmBytes = Cnvt::GetU32(frm + 9);
+    if(Frame::FrameCheck(frm, len)==0)
+    {
+        stFrm.Init(frm,len);
+    }
 }
 
-int FrmHrg::CheckSub()
+int FrmHrg::CheckSub(uint8_t *frm, int len) // TODO
 {
     if (micode != MI::CODE::SignSetHighResolutionGraphicsFrame)
     {
@@ -267,11 +335,11 @@ int FrmHrg::CheckLength(int len)
         }
         if (x != 0)
         {
-            if (frmlen > x)
+            if (frmBytes > x)
             {
                 appErr = APP::ERROR::FrameTooLarge;
             }
-            else if (frmlen < x)
+            else if (frmBytes < x)
             {
                 appErr = APP::ERROR::FrameTooSmall;
             }
@@ -293,7 +361,8 @@ std::string FrmHrg::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Hrg), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmlen, crc);
+            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
 }
+

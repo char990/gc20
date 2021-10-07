@@ -637,7 +637,7 @@ bool Exec::DirExists(const char *dirname)
     return true;
 }
 
-void Time::PrintTime()
+void Time::PrintBootTime()
 {
     struct timespec _CLOCK_BOOTTIME;
     clock_gettime(CLOCK_BOOTTIME, &_CLOCK_BOOTTIME);

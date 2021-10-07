@@ -119,7 +119,7 @@ Utils::STATE3 Slave::IsCurrentMatched()
     {
         return Utils::STATE3::S_1;
     }
-    PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)",
+    PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)\n",
         currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
     return Utils::STATE3::S_0;
 }
@@ -134,7 +134,7 @@ Utils::STATE3 Slave::IsNextMatched()
     {
         return Utils::STATE3::S_1;
     }
-    PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)",
+    PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)\n",
         nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
     return Utils::STATE3::S_0;
 }

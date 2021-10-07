@@ -55,7 +55,7 @@ void TimerEvent::EventsHandle(uint32_t events)
         {
             cnt=0;
             sec++;
-            printf("(%s)sec=%d\n", name.c_str(), sec);
+            PrintDbg("(%s)sec=%d\n", name.c_str(), sec);
         }*/
         for(int i=0;i<pEvts.size();i++)
         {

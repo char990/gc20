@@ -5,7 +5,9 @@
 // This was "ported" to C++ from Adam Dunkels' protothreads C library at:
 //     http://www.sics.se/~adam/pt/
 //
-
+// !!! Do NOT use 'break' in task !!!
+// !!! Do NOT use 'break' in task !!!
+// !!! Do NOT use 'break' in task !!!
 
 /* E.g.
 
@@ -69,6 +71,8 @@ bool Pt_Task::Task2(int *_ptLine)
 // return:  bool:   Task status
 //          false:  Task finished
 //          true:   Task is running
+#define PT_RUNNING  true
+#define PT_NOT_RUNNING  false
 
 // Declare start of protothread (use at start of TASK(int *_ptLine) implementation).
 #define PT_BEGIN() bool ptYielded = true; switch (*_ptLine) { case 0:
@@ -85,7 +89,7 @@ bool Pt_Task::Task2(int *_ptLine)
 #define PT_WAIT_WHILE(condition) PT_WAIT_UNTIL(!(condition))
 
 // Cause protothread to setup a entry for next call of task
-#define PT_ENTRY() PT_WAIT_UNTIL(true)
+#define PT_NEW_ENTRY() PT_WAIT_UNTIL(true)
 
 // Cause protothread to wait until given child protothread completes.
 //#define PT_WAIT_THREAD(child) PT_WAIT_WHILE((child).Run())

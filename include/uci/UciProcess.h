@@ -19,6 +19,7 @@ public:
     void DisablePlan(uint8_t gid, uint8_t pid);
 
     void SetDisp(uint8_t gid, uint8_t *cmd, int len);
+    /// \brief  [0]:len, [1]MI, [2]GroupID, [3]FrmId/MsgId/NumberOfSigns..... 
     uint8_t * GetDisp(uint8_t gid);
 
     void SetDimming(uint8_t gid, uint8_t v);

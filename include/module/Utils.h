@@ -225,7 +225,7 @@ namespace Utils
     {
     public:
         /// \brief      Print time
-        void PrintTime();
+        void PrintBootTime();
         
         /// \brief      Get interval from last Interval() called
         /// \return     interval of ms
