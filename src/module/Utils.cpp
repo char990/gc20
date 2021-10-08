@@ -728,3 +728,30 @@ void BitOffset::ClrBit(uint8_t *buf, int bitOffset)
     uint8_t b = MASK_BIT[7 - (bitOffset&7)];
     *p &= ~b;
 }
+
+bool BitOffset::GetBit(uint8_t *buf, int bitOffset)
+{
+    uint8_t * p = buf + bitOffset/8;
+    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
+    return (*p & b)!=0;
+}
+
+void Bool256::Set(uint8_t bitOffset)
+{
+    BitOffset::SetBit(data, bitOffset);
+}
+
+void Bool256::Clr(uint8_t bitOffset)
+{
+    BitOffset::ClrBit(data, bitOffset);
+}
+
+void Bool256::ClrAll()
+{
+    memset(data,0,sizeof(data));
+}
+
+bool Bool256::Get(uint8_t bitOffset)
+{
+    return BitOffset::GetBit(data, bitOffset);
+}

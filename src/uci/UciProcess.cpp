@@ -48,7 +48,7 @@ void UciProcess::LoadConfig()
 			{
 				if (db.GetUciPln().IsPlnDefined(buf[k]))
 				{
-					p->EnablePlan(buf[k]);
+					p->EnDisPlan(buf[k], true);
 				}
 			}
 		}
@@ -114,19 +114,11 @@ bool UciProcess::IsPlanEnabled(uint8_t gid, uint8_t pid)
 	return grpProc[gid - 1].IsPlanEnabled(pid);
 }
 
-void UciProcess::EnablePlan(uint8_t gid, uint8_t pid)
+void UciProcess::EnDisPlan(uint8_t gid, uint8_t pid, bool endis)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	grpProc[gid - 1].EnablePlan(pid);
-	SaveGrpPln(gid);
-}
-
-void UciProcess::DisablePlan(uint8_t gid, uint8_t pid)
-{
-	if (gid == 0 || gid > grpCnt)
-		return;
-	grpProc[gid - 1].DisablePlan(pid);
+	grpProc[gid - 1].EnDisPlan(pid, endis);
 	SaveGrpPln(gid);
 }
 

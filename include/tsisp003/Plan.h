@@ -11,9 +11,14 @@ struct Hm
     uint8_t min;
 };
 
+enum PLN_ENTRY_TYPE{
+    PLN_ENTRY_NA = 0,
+    PLN_ENTRY_FRM = 1,
+    PLN_ENTRY_MSG = 2
+};
 struct PlnEntry
 {
-    uint8_t type{0};
+    uint8_t fmType{0};
     uint8_t fmId;
     struct Hm start;
     struct Hm stop;

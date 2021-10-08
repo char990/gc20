@@ -225,7 +225,7 @@ namespace Utils
     {
     public:
         /// \brief      Print time
-        void PrintBootTime();
+        static void PrintBootTime();
         
         /// \brief      Get interval from last Interval() called
         /// \return     interval of ms
@@ -255,7 +255,18 @@ namespace Utils
     public:
         static void SetBit(uint8_t * buf, int bitOffset);
         static void ClrBit(uint8_t * buf, int bitOffset);
+        static bool GetBit(uint8_t * buf, int bitOffset);
     };
-  
+
+    class Bool256
+    {
+    public:
+        void Set(uint8_t bitOffset);
+        void Clr(uint8_t bitOffset);
+        void ClrAll();
+        bool Get(uint8_t bitOffset);
+    private:
+        uint8_t data[256/8]{};
+    };
 } // namespace Utils
 

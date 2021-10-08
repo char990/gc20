@@ -7,36 +7,13 @@ using namespace Utils;
 
 bool GrpProc::IsPlanEnabled(uint8_t id)
 {
-    if (id == 0)
-        return false;
-    return (enabledPln[id - 1] != 0);
+    return (id == 0) ? false : enabledPln.Get(id);
 }
 
-void GrpProc::EnablePlan(uint8_t id)
+void GrpProc::EnDisPlan(uint8_t id, bool endis)
 {
-    if (id == 0)
-    {
-        DisablePlan(0);
-    }
-    else
-    {
-        enabledPln[id - 1] = 1;
-    }
-}
-
-void GrpProc::DisablePlan(uint8_t id)
-{
-    if (id == 0)
-    {
-        for (int i = 0; i < 255; i++)
-        {
-            enabledPln[i] = 0;
-        }
-    }
-    else
-    {
-        enabledPln[id - 1] = 0;
-    }
+    (id == 0) ? enabledPln.ClrAll() :
+                (endis ? enabledPln.Set(id) : enabledPln.Clr(id));
 }
 
 void GrpProc::ProcDisp(uint8_t *cmd, int len)

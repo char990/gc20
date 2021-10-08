@@ -15,8 +15,7 @@ public:
 	void Dump() override;
 
     bool IsPlanEnabled(uint8_t gid, uint8_t pid);
-    void EnablePlan(uint8_t gid, uint8_t pid);
-    void DisablePlan(uint8_t gid, uint8_t pid);
+    void EnDisPlan(uint8_t gid, uint8_t pid, bool endis);
 
     void SetDisp(uint8_t gid, uint8_t *cmd, int len);
     /// \brief  [0]:len, [1]MI, [2]GroupID, [3]FrmId/MsgId/NumberOfSigns..... 

@@ -4,6 +4,7 @@
 #include <string>
 #include <uci/UciProd.h>
 #include <tsisp003/Frame.h>
+#include <module/Utils.h>
 
 /*
 Filename: "./config/frm_xxx"
@@ -61,5 +62,4 @@ private:
     Frame *frms[255];
     void Dump();
 };
-
 

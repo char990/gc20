@@ -23,13 +23,12 @@ char _r_need_n=0;
 int MyPrintf(const char *fmt, ...)
 {
 	struct timeval t;
-	struct timezone tz;
 	if(_r_need_n!=0)
 	{
 		putchar('\n');
 		_r_need_n=0;
 	}
-	gettimeofday(&t,&tz);
+	gettimeofday(&t,nullptr);
 	MyDbgBuf[0]='[';
 	char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf+1);
 	*p++=']';

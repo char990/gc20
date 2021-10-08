@@ -53,11 +53,6 @@ public:
 
     virtual std::string ToString()=0;
 
-    // colourType could 0/1/4/24
-    // For Gfx & Hrg frames
-    // For Txt frame, override this function
-    virtual uint8_t* ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf);
-
 protected:
     /// \brief Check item
     /// \return 0:success
@@ -78,8 +73,6 @@ public:
     uint8_t font;
 
     std::string ToString() override;
-
-    virtual uint8_t* ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf) override;
 
 private:
     virtual int CheckColour() override;

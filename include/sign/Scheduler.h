@@ -47,8 +47,7 @@ public:
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
 
     int CmdRequestEnabledPlans(uint8_t * buf);
-    APP::ERROR CmdEnablePlan(uint8_t *cmd);
-    APP::ERROR CmdDisablePlan(uint8_t *cmd);
+    APP::ERROR CmdEnDisPlan(uint8_t *cmd);
 
     APP::ERROR CmdSetDimmingLevel(uint8_t *cmd);
     APP::ERROR CmdPowerOnOff(uint8_t *cmd, int len);

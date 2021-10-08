@@ -35,8 +35,8 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     entries=0;
     for (int i = 0; i < 6; i++)
     {
-        plnEntries[i].type = *p++;
-        if (plnEntries[i].type == 0)
+        plnEntries[i].fmType = *p++;
+        if (plnEntries[i].fmType == PLN_ENTRY_NA)
         {
             if (i == 0)
             {
@@ -72,8 +72,8 @@ int Plan::ToArray(uint8_t *pbuf)
     *p++ = weekdays;
     for (int i = 0; i < 6; i++)
     {
-        *p++ = plnEntries[i].type;
-        if (plnEntries[i].type == 0)
+        *p++ = plnEntries[i].fmType;
+        if (plnEntries[i].fmType == PLN_ENTRY_NA)
         {
             break;
         }
@@ -110,11 +110,11 @@ std::string Plan::ToString()
     len += snprintf(buf + len, 1023 - len, " Entries(%d)=", entries);
     for (int i = 0; i < 6; i++)
     {
-        if (plnEntries[i].type == 1)
+        if (plnEntries[i].fmType == PLN_ENTRY_FRM)
         {
             len += snprintf(buf + len, 1023 - len, "(Frm");
         }
-        else if (plnEntries[i].type == 2)
+        else if (plnEntries[i].fmType == PLN_ENTRY_MSG)
         {
             len += snprintf(buf + len, 1023 - len, "(Msg");
         }
@@ -135,8 +135,8 @@ int Plan::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if( (plnEntries[i].type == 1 && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId)) ||
-            (plnEntries[i].type == 2 && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId)) )
+        if( (plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId)) ||
+            (plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId)) )
         {
             return -1;
         }

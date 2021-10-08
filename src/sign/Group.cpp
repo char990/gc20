@@ -76,10 +76,18 @@ Group::Group(uint8_t groupId)
     orBuf = new uint8_t[orLen];
 
     // load process
-    devSet = db.GetUciProcess().GetDevice(groupId);
+    auto &proc = db.GetUciProcess();
+    devSet = proc.GetDevice(groupId);
     devCur = devSet;
+    for (int i = 1; i <= 255; i++)
+    {
+        if (proc.IsPlanEnabled(groupId, i))
+        {
+            LoadPlanToPlnMin(i);
+        }
+    }
+    PrintPlnMin();
     // TODO power
-    // TODO enabled plan
     // TODO Dimming
 }
 
@@ -157,15 +165,9 @@ void Group::PeriodicRun()
             // TODO reload
         }
         newCurrent = LoadDsNext(); // current->bak and next/fs/ext->current
-        if (newCurrent)
-        {
-            newPlnId = 0;
-            newMsgId = 0;
-            newFrmId = 0;
-        }
     }
 
-    //TaskPln(&taskPlnLine);
+    TaskPln(&taskPlnLine);
     TaskMsg(&taskMsgLine);
     TaskFrm(&taskFrmLine);
     TaskRqstSlave(&taskRqstSlaveLine);
@@ -218,56 +220,120 @@ void Group::ExtInputFunc()
 // TODO
 bool Group::TaskPln(int *_ptLine)
 {
-    if (!IsBusFree() || dsCurrent->dispType != DISP_STATUS::TYPE::PLN)
+    if (!IsBusFree() || dsCurrent->dispType != DISP_STATUS::TYPE::PLN || !readyToLoad)
     {
         return PT_RUNNING;
     }
     if (newCurrent)
     {
         newCurrent = 0;
-        newPln = 1;
-    }
-    if (newPln)
-    {
         ClrOrBuf();
         TaskPlnReset();
-        newPln = 0;
-        newPlnId = dsCurrent->fmpid[0];
     }
-
     PT_BEGIN();
     while (true)
     {
-        // TODO new plan
-        // step 1: load msg/frm in plan
-        // if msg, set load msg flag
-        // if frm, set load frm flag
-        // step 2: wait readyToLoad
-        // step 3: check time
-        // if(new localtime::minute)
-        //      check msg/frm
-        //      if(new msg/frm)
-        //          continue; // got to step1:
-        PrintDbg("TaskPln, delay 5 sec\n");
-        taskPlnTmr.Setms(5000);
-        PT_WAIT_UNTIL(taskPlnTmr.IsExpired());
-
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN)
         {
+            auto &plnmin = GetCurrentMinPln();
+            if (plnmin.plnId == 0)
+            {
+                if (newPlnId != 0 || newMsgId != 0 || newFrmId != 0)
+                { // previouse is not BLANK
+                    TaskFrmReset();
+                    TaskMsgReset();
+                    newPlnId = 0;
+                    newMsg = 0;
+                    newMsgId = 0;
+                    newFrm = 1;
+                    plnEntryType = PLN_ENTRY_FRM;
+                    plnEntryId = 0;
+                    activeMsg.ClrAll();
+                    activeFrm.ClrAll();
+                }
+            }
+            else
+            {
+                if (newPlnId != plnmin.plnId)
+                {
+                    activeMsg.ClrAll();
+                    activeFrm.ClrAll();
+                    auto pln = db.GetUciPln().GetPln(plnmin.plnId);
+                    if (pln == nullptr)
+                    {
+                        readyToLoad = 0;
+                        // TODO log
+                        return false;
+                    }
+                    for (int i = 0; i < pln->entries; i++)
+                    {
+                        if (pln->plnEntries[i].fmType == PLN_ENTRY_FRM)
+                        {
+                            activeFrm.Set(pln->plnEntries[i].fmId);
+                        }
+                        else if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
+                        {
+                            SetActiveMsg(pln->plnEntries[i].fmId);
+                        }
+                        else
+                        {
+                            readyToLoad = 0;
+                            // TODO log
+                            return false;
+                        }
+                    }
+                }
+                if (plnmin.fmType == PLN_ENTRY_FRM) // frame
+                {
+                    if (newPlnId != plnmin.plnId || newMsgId != 0 || newFrmId != plnmin.fmId)
+                    { // previouse is not same, set pln:frm type
+                        TaskFrmReset();
+                        TaskMsgReset();
+                        newPlnId = plnmin.plnId;
+                        newMsg = 0;
+                        newMsgId = 0;
+                        newFrm = 1;
+                        plnEntryType = PLN_ENTRY_FRM;
+                        plnEntryId = plnmin.fmId;
+                    }
+                }
+                else // if(plnmin.fmType==PLN_ENTRY_MSG) // msg
+                {
+                    if (newPlnId != plnmin.plnId || newMsgId != plnmin.fmId)
+                    { // previouse is not same, set pln:msg type
+                        TaskFrmReset();
+                        TaskMsgReset();
+                        newPlnId = plnmin.plnId;
+                        newMsg = 1;
+                        plnEntryType = PLN_ENTRY_MSG;
+                        plnEntryId = plnmin.fmId;
+                    }
+                }
+            }
         }
+        // task sleep 1 second
+        taskPlnTmr.Setms(1000);
+        PT_WAIT_UNTIL(taskPlnTmr.IsExpired());
     };
     PT_END();
+}
+
+PlnMinute &Group::GetCurrentMinPln()
+{
+    time_t t = time(nullptr);
+    struct tm stm;
+    localtime_r(&t, &stm);
+    return plnMin[(stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min];
 }
 
 // TODO
 bool Group::TaskMsg(int *_ptLine)
 {
-    uint8_t nextEntry;
+    uint8_t nextEntry; // temp using
     if (!IsBusFree() ||
         (dsCurrent->dispType != DISP_STATUS::TYPE::MSG &&
          dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
          dsCurrent->dispType != DISP_STATUS::TYPE::EXT &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == typeMSG)))
+         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_MSG)))
     {
         return PT_RUNNING;
     }
@@ -281,25 +347,43 @@ bool Group::TaskMsg(int *_ptLine)
     {
         TaskMsgReset();
         newMsg = 0;
-        newMsgId = (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == typeMSG) ? plnEntryId : dsCurrent->fmpid[0];
+        if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_MSG)
+        {
+            newMsgId = plnEntryId;
+            // msg set active in TaskPln
+        }
+        else
+        {
+            newPlnId = 0;
+            newMsgId = dsCurrent->fmpid[0];
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::MSG)
+            {
+                activeMsg.ClrAll(); // this is CmdDisplayMsg, Clear all previouse active msg
+                // But for FSW/EXT, do not clear previouse
+            }
+            SetActiveMsg(newMsgId);
+        }
     }
     PT_BEGIN();
     while (true)
     {
         pMsg = db.GetUciMsg().GetMsg(newMsgId);
         if (pMsg == nullptr)
-        { // msg undedined, BLANK=frm0
-            ClrOrBuf();
-            while (true) // null msg task, only for DISP_STATUS::TYPE::FSW/EXT
+        { // null msg task, only for DISP_STATUS::TYPE::FSW/EXT
+            if (dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
+                dsCurrent->dispType != DISP_STATUS::TYPE::EXT)
             {
-                // step1: set frame
-                do
-                {
-                    SlaveSetFrame(0xFF, 0, 0);
-                    ClrAllSlavesRxStatus();
-                    PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
-                } while (allSlavesNext == STATE3::S_0);
-                // step2: display frame
+                // Something wrong, Load pln0 to run plan
+                newCurrent = 1;
+                dsCurrent->Pln0();
+                // log
+                TaskMsgReset();
+                return false;
+            }
+            // msg undefined, BLANK
+            ClrOrBuf();
+            while (true)
+            {
                 do
                 {
                     SlaveSetStoredFrame(0xFF, 0);
@@ -328,12 +412,12 @@ bool Group::TaskMsg(int *_ptLine)
                 msgEntryCnt = 0;
                 // set & display, TotalRound
                 // +++++++++ first round & first frame, set orbuf and frame 1
-                while (pMsg->msgEntries[msgEntryCnt].onTime == 0)
-                { // onTime==0, trans frame to set orBuf
+                while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries-1))
+                { // onTime==0 && not last entry, trans frame to set orBuf
                     TransFrmToOrBuf(pMsg->msgEntries[msgEntryCnt].frmId);
                     msgEntryCnt++;
                     msgSetEntry++;
-                }
+                };
                 do
                 {
                     SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
@@ -379,7 +463,7 @@ bool Group::TaskMsg(int *_ptLine)
                     if (msgSetEntry < msgSetEntryMax)
                     {
                         nextEntry = (msgEntryCnt == pMsg->entries - 1) ? 0 : (msgEntryCnt + 1);
-                        if (pMsg->msgEntries[nextEntry].onTime == 0 && nextEntry != (pMsg->entries-1))
+                        if (pMsg->msgEntries[nextEntry].onTime == 0 && nextEntry != (pMsg->entries - 1))
                         { // onTime==0 and not last entry, trans frame to set orBuf
                             if (msgSetEntry < pMsg->entries)
                             { // only set orBuf at first round
@@ -454,25 +538,25 @@ bool Group::TaskMsg(int *_ptLine)
 
 void Group::InitMsgOverlayBuf(Message *pMsg)
 {
-    int colour = -1;
-    msgSetEntryMax = pMsg->entries;
+    msgOverlay = 0;                 // no overlay
+    msgSetEntryMax = pMsg->entries; // no overlay
     bool onTime1 = false;
     for (int i = 0; i < pMsg->entries; i++)
     {
         auto &me = pMsg->msgEntries[i];
         if (me.onTime == 0)
         {
-            auto frm = db.GetUciFrm().GetFrm(me.frmId);
-            if (frm != nullptr)
-            {
-                if ((frm->colour > colour) && (colour != -1 || i < (pMsg->entries - 1)))
-                {
-                    colour = frm->colour; // get max colour
+            if (i != (pMsg->entries - 1))
+            { // NOT last entry
+                msgOverlay = db.GetUciProd().ColourBits();
+                if (onTime1)
+                { // previouse entry ontime>0
+                    msgSetEntryMax = pMsg->entries + i;
                 }
-                if(onTime1)
-                {
-                    msgSetEntryMax = pMsg->entries+i;
-                }
+            }
+            else
+            { // last entry is 0, so just set max 
+                msgSetEntryMax = pMsg->entries;
             }
         }
         else
@@ -480,27 +564,6 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
             onTime1 = true;
         }
     }
-    if(colour==-1) // no overlay
-    {
-        orType = 0;
-    }
-    else if (colour < FRM::COLOUR::MonoFinished)
-    {
-        orType = 1;
-    }
-    else if (colour == FRM::COLOUR::MultipleColours)
-    {
-        orType = 4;
-    }
-    else if (colour == FRM::COLOUR::RGB24)
-    {
-        orType = 24;
-    }
-}
-
-void Group::TransFrmToOrBuf(uint8_t frmId)
-{
-
 }
 
 bool Group::TaskFrm(int *_ptLine)
@@ -508,7 +571,7 @@ bool Group::TaskFrm(int *_ptLine)
     if (!IsBusFree() ||
         (dsCurrent->dispType != DISP_STATUS::TYPE::FRM &&
          dsCurrent->dispType != DISP_STATUS::TYPE::ATF &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == typeFRM)))
+         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_FRM)))
     {
         return PT_RUNNING;
     }
@@ -530,23 +593,36 @@ bool Group::TaskFrm(int *_ptLine)
         // step1: set frame
         if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
         {
+            newPlnId = 0;
+            newMsgId = 0;
+            newFrmId = 1; // set newFrmId as 'NOT 0'
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
-            newFrmId = 255; // set newFrmId as 'NOT 0'
-            // TODO
-            for (auto &s : vSigns)
-            {
-                s->SetReportDisp(newFrmId, newMsgId, newPlnId);
-            }
         }
         else
         {
-            newFrmId = (dsCurrent->dispType == DISP_STATUS::TYPE::FRM) ? dsCurrent->fmpid[0] : plnEntryId;
-            do
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM)
+            { // from CmdDispFrm
+                newPlnId = 0;
+                newMsgId = 0;
+                newFrmId = dsCurrent->fmpid[0];
+                activeFrm.ClrAll();
+                activeFrm.Set(newFrmId);
+            }
+            else
+            { // from plan
+                newMsgId = 0;
+                newFrmId = plnEntryId;
+                // frm set active in TaskPln
+            }
+            if (newFrmId > 0)
             {
-                SlaveSetFrame(0xFF, (newFrmId == 0) ? 0 : 1, newFrmId);
-                ClrAllSlavesRxStatus();
-                PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
-            } while (allSlavesNext == STATE3::S_0);
+                do
+                {
+                    SlaveSetFrame(0xFF, (newFrmId == 0) ? 0 : 1, newFrmId);
+                    ClrAllSlavesRxStatus();
+                    PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
+                } while (allSlavesNext == STATE3::S_0);
+            }
             GroupSetReportDisp(newFrmId, newMsgId, newPlnId);
         }
         // step2: display frame
@@ -566,6 +642,18 @@ bool Group::TaskFrm(int *_ptLine)
         // Next is NOT matched, restart from SlaveSetFrame
     };
     PT_END();
+}
+
+void Group::SetActiveMsg(uint8_t mid)
+{
+    auto msg = db.GetUciMsg().GetMsg(mid);
+    if (msg == nullptr)
+        return;
+    for (int i = 0; i < msg->entries; i++)
+    {
+        activeFrm.Set(msg->msgEntries[i].frmId);
+    }
+    activeMsg.Set(mid);
 }
 
 bool Group::TaskRqstSlave(int *_ptLine)
@@ -743,40 +831,148 @@ void Group::GroupSetReportDisp(uint8_t newFrmId, uint8_t newMsgId, uint8_t newPl
 // TODO
 bool Group::IsEnPlanOverlap(uint8_t id)
 {
-    if (id == 0)
+    Plan *pln = db.GetUciPln().GetPln(id);
+    if (pln == nullptr)
+    {
         return false;
+    }
+    uint8_t week = 0x01;
+    for (int i = 0; i < 7; i++)
+    {
+        if (pln->weekdays & week)
+        {
+            for (int j = 0; j < pln->entries; j++)
+            {
+                PlnEntry &entry = pln->plnEntries[j];
+                int start = GetMinOffset(i, &(entry.start));
+                int stop = GetMinOffset(i, &(entry.stop));
+                if (stop <= start)
+                {
+                    stop += 24 * 60;
+                    if (stop >= 7 * 24 * 60)
+                    {
+                        stop -= 7 * 24 * 60;
+                    }
+                }
+                do
+                {
+                    if (plnMin[start].plnId != 0)
+                    {
+                        return true;
+                    }
+                    start++;
+                    if (start == 7 * 24 * 60)
+                    {
+                        start = 0;
+                    }
+                } while (start != stop);
+            }
+        }
+        week <<= 1;
+    }
     return false;
 }
 
-// TODO
+int Group::GetMinOffset(int day, Hm *t)
+{
+    return (day * 24 + t->hour) * 60 + t->min;
+}
+
 bool Group::IsPlanActive(uint8_t id)
 {
-    if (id == 0)
-    { // check all plans
-    }
-
-    return false;
+    return (id == 0) ? (newPlnId != 0) : (newPlnId == id);
 }
 
-// TODO
 bool Group::IsPlanEnabled(uint8_t id)
 {
+    auto &proc = db.GetUciProcess();
     if (id == 0)
     { // check all plans
+        for (int i = 1; i <= 255; i++)
+        {
+            if (proc.IsPlanEnabled(groupId, id))
+            {
+                return true;
+            }
+        }
+        return false;
     }
-    return db.GetUciProcess().IsPlanEnabled(groupId, id);
+    return proc.IsPlanEnabled(groupId, id);
 }
 
-APP::ERROR Group::EnablePlan(uint8_t id)
+void Group::LoadPlanToPlnMin(uint8_t id)
+{
+    Plan *pln = db.GetUciPln().GetPln(id);
+    if (pln == nullptr)
+    {
+        // Log
+        return;
+    }
+    uint8_t week = 0x01;
+    for (int i = 0; i < 7; i++)
+    {
+        if (pln->weekdays & week)
+        {
+            for (int j = 0; j < pln->entries; j++)
+            {
+                PlnEntry &entry = pln->plnEntries[j];
+                int start = GetMinOffset(i, &(entry.start));
+                int stop = GetMinOffset(i, &(entry.stop));
+                if (stop <= start)
+                {
+                    stop += 24 * 60;
+                    if (stop >= 7 * 24 * 60)
+                    {
+                        stop -= 7 * 24 * 60;
+                    }
+                }
+                auto ppm = &plnMin[start];
+                auto fmType = entry.fmType;
+                auto fmId = entry.fmId;
+                do
+                {
+                    ppm->plnId = id;
+                    ppm->fmType = fmType;
+                    ppm->fmId = fmId;
+                    ppm++;
+                    if (++start == 7 * 24 * 60)
+                    {
+                        start = 0;
+                    }
+                } while (start != stop);
+            }
+        }
+        week <<= 1;
+    }
+}
+
+APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
 {
     if (id == 0)
     {
-        return DisablePlan(0);
+        memset(plnMin, 0, sizeof(plnMin));
+        return APP::ERROR::AppNoError;
+    }
+    if (!db.GetUciPln().IsPlnDefined(id))
+    {
+        return APP::ERROR::FrmMsgPlnUndefined;
     }
     if (IsPlanActive(id))
     {
         return APP::ERROR::FrmMsgPlnActive;
     }
+    APP::ERROR r = endis ? EnPlan(id) : DisPlan(id);
+    if(r != APP::ERROR::AppNoError)
+    {
+        return r;
+    }
+    db.GetUciProcess().EnDisPlan(groupId, id, endis);
+    PrintPlnMin();
+    return APP::ERROR::AppNoError;
+}
+
+APP::ERROR Group::EnPlan(uint8_t id)
+{
     if (IsPlanEnabled(id))
     {
         return APP::ERROR::PlanEnabled;
@@ -785,36 +981,63 @@ APP::ERROR Group::EnablePlan(uint8_t id)
     {
         return APP::ERROR::OverlaysNotSupported;
     }
-    db.GetUciProcess().EnablePlan(groupId, id);
+    LoadPlanToPlnMin(id);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DisablePlan(uint8_t id)
+APP::ERROR Group::DisPlan(uint8_t id)
 {
-    if (IsPlanActive(id))
-    {
-        return APP::ERROR::FrmMsgPlnActive;
-    }
-    if (id != 0 && !IsPlanEnabled(id))
+    if (!IsPlanEnabled(id))
     {
         return APP::ERROR::PlanNotEnabled;
     }
-    db.GetUciProcess().DisablePlan(groupId, id);
+    db.GetUciProcess().EnDisPlan(groupId, id, false);
+    Plan *pln = db.GetUciPln().GetPln(id);
+    uint8_t week = 0x01;
+    for (int i = 0; i < 7; i++)
+    {
+        if (pln->weekdays & week)
+        {
+            for (int j = 0; j < pln->entries; j++)
+            {
+                PlnEntry &entry = pln->plnEntries[j];
+                int start = GetMinOffset(i, &(entry.start));
+                int stop = GetMinOffset(i, &(entry.stop));
+                if (stop <= start)
+                {
+                    stop += 24 * 60;
+                    if (stop >= 7 * 24 * 60)
+                    {
+                        stop -= 7 * 24 * 60;
+                    }
+                }
+                if (start < stop)
+                {
+                    memset(&plnMin[start], 0, (stop - start) * sizeof(PlnMinute));
+                }
+                else
+                { // week day overlap
+                    memset(&plnMin[start], 0, (7 * 24 * 60 - start) * sizeof(PlnMinute));
+                    if (stop > 0)
+                    {
+                        memset(&plnMin[0], 0, stop * sizeof(PlnMinute));
+                    }
+                }
+            }
+        }
+        week <<= 1;
+    }
     return APP::ERROR::AppNoError;
 }
 
-// TODO
 bool Group::IsMsgActive(uint8_t p)
 {
-
-    return false;
+    return activeMsg.Get(p);
 }
 
-// TODO
 bool Group::IsFrmActive(uint8_t p)
 {
-
-    return false;
+    return activeFrm.Get(p);
 }
 
 void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
@@ -1130,13 +1353,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
                 slvindex, slvFrmId, uciFrmId);
     }
     PrintDbg("SlaveSetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
-    auto frm = db.GetUciFrm().GetFrm(uciFrmId);
-    if (frm == nullptr)
-    {
-        MyThrow("ERROR: TranslateFrame(frmId=%d): Frm is null", uciFrmId);
-    }
-    // TODO ToSlaveFormat with orBuf
-    txLen = frm->ToSlaveFormat(txBuf + 1, orType, orBuf) - txBuf;
+    MakeFrameForSlave(uciFrmId);
     txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
     txBuf[2] = slvFrmId;
 
@@ -1244,4 +1461,35 @@ void Group::LockBus(int ms)
         ms = 1;
     }
     busLockTmr.Setms(ms);
+}
+
+void Group::PrintPlnMin()
+{
+    PlnMinute *ppm = &plnMin[0];
+    for (int d = 0; d < 7; d++)
+    {
+        printf("\nD%d:", d);
+        for (int x = 0; x < 60; x++)
+        {
+            printf("%02d|", x);
+        }
+        printf("\n");
+        for (int h = 0; h < 24; h++)
+        {
+            printf("%02d:", h);
+            for (int k = 0; k < 60; k++)
+            {
+                if (ppm->plnId == 0)
+                {
+                    printf("()|");
+                }
+                else
+                {
+                    printf("%02X|", ppm->plnId);
+                }
+                ppm++;
+            }
+            printf("\n");
+        }
+    }
 }

@@ -26,8 +26,7 @@ private:
     void SignSetMessage(uint8_t * data, int len);
     void SignDisplayMessage(uint8_t * data, int len);
     void SignSetPlan(uint8_t * data, int len);
-    void EnablePlan(uint8_t * data, int len);
-    void DisablePlan(uint8_t * data, int len);
+    void EnDisPlan(uint8_t * data, int len);
     void RequestEnabledPlans(uint8_t * data, int len);
     void SignSetDimmingLevel(uint8_t *data, int len);
     void PowerOnOff(uint8_t * data, int len);

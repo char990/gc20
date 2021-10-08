@@ -14,6 +14,10 @@ public:
 
     bool TaskSetATF(int *_ptLine) override;
 
+    virtual void MakeFrameForSlave(uint8_t fid) override;
+
+    virtual void TransFrmToOrBuf(uint8_t fid) override;
+
 private:
     uint8_t sATF;
 };

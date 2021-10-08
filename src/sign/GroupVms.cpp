@@ -6,6 +6,8 @@
 #include <sign/SignAdg.h>
 #include <module/MyDbg.h>
 
+using namespace Utils;
+ 
 GroupVms::GroupVms(uint8_t id)
     : Group(id)
 {
@@ -56,4 +58,81 @@ bool GroupVms::TaskSetATF(int *_ptLine)
 {
     MyThrow("VMS can not run ATF");
     return true;
+}
+
+    // TODO ToSlaveFormat with orBuf
+void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
+{
+    uint8_t *p = txBuf+1;
+    auto &prod = db.GetUciProd();
+    auto &user = db.GetUciUser();
+    auto xfrm = db.GetUciFrm().GetFrm(uciFrmId);
+    if (xfrm == nullptr)
+    {
+        MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+    }
+    if(xfrm->micode == MI::CODE::SignSetTextFrame)
+    {
+        FrmTxt * frm = dynamic_cast<FrmTxt *>(xfrm);
+        if (msgOverlay == 0)
+        {
+            *p++ = 0x0A; // Text frame
+            p++;         // skip slave frame id
+            uint8_t font = (frm->font == 0) ? user.DefaultFont() : frm->font;
+            *p++ = font;
+            *p++ = frm->colour;
+            *p++ = frm->conspicuity;
+            auto pFont = prod.Fonts(font);
+            *p++ = pFont->CharSpacing();
+            *p++ = pFont->LineSpacing();
+            *p++ = frm->frmBytes;
+            memcpy(p, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
+            p += frm->frmBytes;
+        }
+        else if (msgOverlay == 1)
+        {
+        }
+        else if (msgOverlay == 4)
+        {
+        }
+        else // if(msgOverlay==24)
+        {
+        }
+    }
+    else if(xfrm->micode == MI::CODE::SignSetGraphicsFrame || xfrm->micode == MI::CODE::SignSetHighResolutionGraphicsFrame)
+    {
+        auto frm = xfrm;
+        if (msgOverlay == 0)
+        {
+            *p++ = 0x0B; // Gfx frame
+            p++;         // skip slave frame id
+            *p++ = prod.PixelRows();
+            p = Cnvt::PutU16(prod.PixelColumns(), p);
+            *p++ = frm->colour;
+            *p++ = frm->conspicuity;
+            p = Cnvt::PutU16(frm->frmBytes, p);
+            memcpy(p, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
+            p += frm->frmBytes;
+        }
+        else if (msgOverlay == 1)
+        {
+        }
+        else if (msgOverlay == 4)
+        {
+        }
+        else // if(msgOverlay==24)
+        {
+        }
+    }
+    else
+    {
+        MyThrow("ERROR: Unknown MIcode of Frame(frmId=%d, micode=0x%02X)", uciFrmId, xfrm->micode);
+    }
+    txLen = p - txBuf;
+}
+
+
+void GroupVms::TransFrmToOrBuf(uint8_t frmId)
+{
+
 }

@@ -48,8 +48,8 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         return 1;
     }
     // int CheckConspicuity();
-    UciProd & prod = DbHelper::Instance().GetUciProd();
-    if ( (conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03)>2 ||
+    UciProd &prod = DbHelper::Instance().GetUciProd();
+    if ((conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03) > 2 ||
         !prod.IsConspicuity(conspicuity & 0x07) ||
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
@@ -58,37 +58,6 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     }
     appErr = APP::ERROR::AppNoError;
     return 0;
-}
-
-uint8_t* Frame::ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf)
-{
-    uint8_t* p = buf;
-    if(colourType==0)
-    {
-        *p++ = 0x0B;  // Gfx frame
-        p++;        // skip slave frame id
-        auto & prod = DbHelper::Instance().GetUciProd();
-        *p++ = prod.PixelRows();
-        p = Cnvt::PutU16(prod.PixelColumns(), p);
-        *p++ = colour;
-        *p++ = conspicuity;
-        p = Cnvt::PutU16(frmBytes, p);
-        memcpy(p, stFrm.rawData+frmOffset, frmBytes);
-        p+=frmBytes;
-    }
-    else if(colourType==1)
-    {
-        
-    }
-    else if(colourType==4)
-    {
-        
-    }
-    else// if(colourType==24)
-    {
-        
-    }
-    return p;
 }
 
 /*****************************FrmTxt*******************************/
@@ -102,9 +71,9 @@ FrmTxt::FrmTxt(uint8_t *frm, int len)
     colour = frm[4];
     conspicuity = frm[5];
     frmBytes = frm[6];
-    if(Frame::FrameCheck(frm, len)==0)
+    if (Frame::FrameCheck(frm, len) == 0)
     {
-        stFrm.Init(frm,len);
+        stFrm.Init(frm, len);
     }
 }
 
@@ -145,49 +114,16 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
 
 int FrmTxt::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsTxtFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsTxtFrmColour(colour) ? 0 : -1;
 }
 
 std::string FrmTxt::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Txt), Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, font, colour, conspicuity, frmBytes, crc);
+             micode, frmId, frmRev, font, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
-}
-
-uint8_t* FrmTxt::ToSlaveFormat(uint8_t *buf, uint8_t colourType, uint8_t *orBuf)
-{
-    uint8_t* p = buf;
-    if(colourType==0)
-    {
-        *p++ = 0x0A;  // Text frame
-        p++;        // skip slave frame id
-        auto & user = DbHelper::Instance().GetUciUser();
-        *p++ = (font==0)?user.DefaultFont():font;
-        *p++ = colour;
-        *p++ = conspicuity;
-        auto pFont = DbHelper::Instance().GetUciProd().Fonts(font);
-        *p++ = pFont->CharSpacing();
-        *p++ = pFont->LineSpacing();
-        *p++ = frmBytes;
-        memcpy(p, stFrm.rawData+frmOffset, frmBytes);
-        p+=frmBytes;
-    }
-    else if(colourType==1)
-    {
-        
-    }
-    else if(colourType==4)
-    {
-        
-    }
-    else// if(colourType==24)
-    {
-        
-    }
-    return p;
 }
 
 /****************************** FrmGfx *******************************/
@@ -202,9 +138,9 @@ FrmGfx::FrmGfx(uint8_t *frm, int len)
     colour = frm[5];
     conspicuity = frm[6];
     frmBytes = Cnvt::GetU16(frm + 7);
-    if(Frame::FrameCheck(frm, len)==0)
+    if (Frame::FrameCheck(frm, len) == 0)
     {
-        stFrm.Init(frm,len);
+        stFrm.Init(frm, len);
     }
 }
 
@@ -220,9 +156,9 @@ int FrmGfx::CheckSub(uint8_t *frm, int len) // TODO
 
 int FrmGfx::CheckLength(int len)
 {
-    UciProd & prod = DbHelper::Instance().GetUciProd();
+    UciProd &prod = DbHelper::Instance().GetUciProd();
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
-        len > frmOffset + 2 + prod.MaxFrmLen() )
+        len > frmOffset + 2 + prod.MaxFrmLen())
     {
         appErr = APP::ERROR::LengthError;
     }
@@ -266,14 +202,14 @@ int FrmGfx::CheckLength(int len)
 
 int FrmGfx::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsGfxFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsGfxFrmColour(colour) ? 0 : -1;
 }
 
 std::string FrmGfx::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Gfx), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
+             micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
 }
@@ -290,9 +226,9 @@ FrmHrg::FrmHrg(uint8_t *frm, int len)
     colour = frm[7];
     conspicuity = frm[8];
     frmBytes = Cnvt::GetU32(frm + 9);
-    if(Frame::FrameCheck(frm, len)==0)
+    if (Frame::FrameCheck(frm, len) == 0)
     {
-        stFrm.Init(frm,len);
+        stFrm.Init(frm, len);
     }
 }
 
@@ -308,9 +244,9 @@ int FrmHrg::CheckSub(uint8_t *frm, int len) // TODO
 
 int FrmHrg::CheckLength(int len)
 {
-    UciProd & prod = DbHelper::Instance().GetUciProd();
+    UciProd &prod = DbHelper::Instance().GetUciProd();
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
-        len > frmOffset + 2 + prod.MaxFrmLen() )
+        len > frmOffset + 2 + prod.MaxFrmLen())
     {
         appErr = APP::ERROR::LengthError;
     }
@@ -354,15 +290,14 @@ int FrmHrg::CheckLength(int len)
 
 int FrmHrg::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsHrgFrmColour(colour) ? 0 : -1 ;
+    return DbHelper::Instance().GetUciProd().IsHrgFrmColour(colour) ? 0 : -1;
 }
 
 std::string FrmHrg::ToString()
 {
     char buf[1024];
     snprintf(buf, 1023, "MI=0x%02X(Hrg), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
-            micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
+             micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
 }
-

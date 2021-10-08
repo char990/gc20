@@ -16,8 +16,9 @@
 class PlnMinute
 {
 public:
-    uint8_t type{0}; // 0:Empty, 1:Frm, 2:Msg
-    uint8_t id{0};
+    uint8_t plnId{0};   // 0:Empty, 1-255 pln Id
+    uint8_t fmType{0};    // 1:Frm, 2:Msg
+    uint8_t fmId{0};    // frm/msg Id
 };
 
 class Group : public IUpperLayer
@@ -75,9 +76,9 @@ public:
 
     /********* command from Tsi-sp-003 ********/
     // if planid==0, disable all plans
-    APP::ERROR EnablePlan(uint8_t id);
-    // if planid==0, disable all plans
-    APP::ERROR DisablePlan(uint8_t id);
+    APP::ERROR EnDisPlan(uint8_t id, bool endis);
+    APP::ERROR EnPlan(uint8_t id);
+    APP::ERROR DisPlan(uint8_t id);
 
     APP::ERROR DispFrm(uint8_t id);
     APP::ERROR DispMsg(uint8_t id);
@@ -128,6 +129,17 @@ protected:
     int taskATFLine{0};
     virtual bool TaskSetATF(int *_ptLine)=0;
 
+    virtual void TransFrmToOrBuf(uint8_t frmId)=0;
+    virtual void MakeFrameForSlave(uint8_t fid)=0;
+    uint8_t msgOverlay{0}; // 0:No overlay, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
+    int orLen;
+    uint8_t *orBuf;
+    void ClrOrBuf()
+    {
+        msgOverlay=0;
+        memset(orBuf,0,orLen);
+    }
+
 private:
 
     uint8_t readyToLoad{1}, newCurrent{0};
@@ -141,16 +153,6 @@ private:
     uint8_t
         devSet, // DEV_DIS/DEV_EN
         devCur; // DEV_WAIT: dev set as disabled, but blank not sent out
-
-    enum
-    {
-        typeEMPTY = 0,
-        typeFRM = 1,
-        typeMSG = 2,
-        typeTRS = 255 // transition time in MSG
-    };
-
-
 
     // group status
     enum PWR_STATE
@@ -177,18 +179,18 @@ private:
     void ExtInputFunc();
 
     PlnMinute plnMin[7 * 24 * 60]{};
-
+    PlnMinute & GetCurrentMinPln();
+    int GetMinOffset(int day, Hm * t);
+    void LoadPlanToPlnMin(uint8_t id);
+    void PrintPlnMin();
     bool LoadDsNext();
 
     bool IsDsNextEmergency();
 
     /******************** Task Plan ********************/
     uint8_t
-        newPln,         // 0:EMPTY, 1:new pln load
-        newPlnId;
-    uint8_t         // new plan entry
-        newPlnFM,
-        plnEntryType, // 0:EMPTY, 1:frm, 2:msg
+        newPlnId,
+        plnEntryType, // 1:frm, 2:msg
         plnEntryId;
 
     int taskPlnLine{0};
@@ -200,15 +202,6 @@ private:
     }
 
     /******************** Task Message ********************/
-    uint8_t orType{0}; // 0:None, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
-    int orLen;
-    uint8_t *orBuf;
-    void ClrOrBuf()
-    {
-        orType=0;
-        memset(orBuf,0,orLen);
-    }
-
     uint8_t
         newMsg,         // 0:EMPTY, 1:new msg load
         newMsgId,
@@ -252,7 +245,6 @@ private:
         msgSetEntry=0;
     }
     void InitMsgOverlayBuf(Message * pMsg);    
-    void TransFrmToOrBuf(uint8_t frmId);
 
     /******************** Task Frame ********************/
     uint8_t
@@ -302,4 +294,10 @@ private:
     BootTimer busLockTmr;
     bool IsBusFree();
     void LockBus(int ms);
+    
+    Utils::Bool256 activeFrm;
+
+    Utils::Bool256 activeMsg;
+    // will set activeMsg & activeFrm
+    void SetActiveMsg(uint8_t mid);
 };

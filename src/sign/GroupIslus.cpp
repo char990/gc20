@@ -105,6 +105,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
     return APP::ERROR::AppNoError;
 }
 
+// TODO set slave frame, active frm, reprot frm
 bool GroupIslus::TaskSetATF(int *_ptLine)
 {
     PT_BEGIN();
@@ -118,4 +119,14 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
         } while (allSlavesNext == STATE3::S_0);
     }
     PT_END();
+}
+
+void GroupIslus::MakeFrameForSlave(uint8_t fid)
+{
+
+}
+
+void GroupIslus::TransFrmToOrBuf(uint8_t frmId)
+{
+
 }

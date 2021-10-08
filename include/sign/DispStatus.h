@@ -34,6 +34,12 @@ public:
         fmpid[0] = 0;
     };
     
+    void Pln0()
+    {
+        dispType = DISP_STATUS::TYPE::PLN;
+        fmpid[0] = 0;
+    };
+    
     void N_A()
     {
         dispType = DISP_STATUS::TYPE::N_A;

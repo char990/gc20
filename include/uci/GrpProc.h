@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <tsisp003/TsiSp003Const.h>
+#include <module/Utils.h>
 
 class GrpProc
 {
@@ -11,8 +12,7 @@ public:
     ~GrpProc(){};
 
     bool IsPlanEnabled(uint8_t id);
-    void EnablePlan(uint8_t id);
-    void DisablePlan(uint8_t id);
+    void EnDisPlan(uint8_t id, bool endis);
 
     void ProcDisp(uint8_t *cmd, int len);
     uint8_t * ProcDisp() { return disp; };
@@ -27,7 +27,7 @@ public:
     uint8_t Device() { return device; };
 
 private:
-    uint8_t enabledPln[255]{};
+    Utils::Bool256 enabledPln;
     uint8_t dimming{0};
     uint8_t power{1};
     uint8_t device{1};

@@ -58,10 +58,8 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
         SignDisplayMessage(data, len);
         break;
     case MI::CODE::EnablePlan:
-        EnablePlan(data, len);
-        break;
     case MI::CODE::DisablePlan:
-        DisablePlan(data, len);
+        EnDisPlan(data, len);
         break;
     case MI::CODE::RequestEnabledPlans:
         RequestEnabledPlans(data, len);
@@ -201,12 +199,35 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     }
     else
     {
-        Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
-        UciMsg &msg = db.GetUciMsg();
-        r = msg.SetMsg(data, len + 2);
-        if (r == APP::ERROR::AppNoError)
+        uint8_t *fid = data+4;
+        for(int i=0;i<6;i++)    // overlay frames in msg not supported
         {
-            msg.SaveMsg(id);
+            if(*fid==0)
+            {
+                break;
+            }
+            else
+            {
+                if(*(fid+1)==0)
+                {
+                    if(i<5 && *(fid+2)!=0)
+                    {
+                        r = APP::ERROR::OverlaysNotSupported;
+                        break;
+                    }
+                }
+            }
+            fid+=2;
+        }
+        if(r == APP::ERROR::AppNoError)
+        {
+            Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
+            UciMsg &msg = db.GetUciMsg();
+            r = msg.SetMsg(data, len + 2);
+            if (r == APP::ERROR::AppNoError)
+            {
+                msg.SaveMsg(id);
+            }
         }
     }
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
@@ -255,23 +276,13 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
-void TsiSp003AppVer21::EnablePlan(uint8_t *data, int len)
+void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
 {
     if (!CheckOlineReject() || !ChkLen(len, 3))
     {
         return;
     }
-    auto r = sch.CmdEnablePlan(data);
-    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
-}
-
-void TsiSp003AppVer21::DisablePlan(uint8_t *data, int len)
-{
-    if (!CheckOlineReject() || !ChkLen(len, 3))
-    {
-        return;
-    }
-    auto r = sch.CmdDisablePlan(data);
+    auto r = sch.CmdEnDisPlan(data);
     (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 

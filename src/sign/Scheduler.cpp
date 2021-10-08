@@ -182,7 +182,7 @@ APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
     return GetGroup(grpId)->DispAtomicFrm(cmd);
 }
 
-APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
+APP::ERROR Scheduler::CmdEnDisPlan(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
@@ -191,33 +191,13 @@ APP::ERROR Scheduler::CmdEnablePlan(uint8_t *cmd)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (!DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
+    else if (plnId!=0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else
     {
-        r = GetGroup(grpId)->EnablePlan(plnId);
-    }
-    return r;
-}
-
-APP::ERROR Scheduler::CmdDisablePlan(uint8_t *cmd)
-{
-    uint8_t grpId = cmd[1];
-    uint8_t plnId = cmd[2];
-    APP::ERROR r = APP::ERROR::AppNoError;
-    if (grpId > groupCnt || grpId == 0)
-    {
-        r = APP::ERROR::UndefinedDeviceNumber;
-    }
-    else if (!DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
-    {
-        r = APP::ERROR::FrmMsgPlnUndefined;
-    }
-    else
-    {
-        r = GetGroup(grpId)->DisablePlan(plnId);
+        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == MI::CODE::EnablePlan);
     }
     return r;
 }
