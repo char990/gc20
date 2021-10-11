@@ -97,7 +97,7 @@ int OprTcp::RxHandle()
         }
         else
         {
-            PrintDbg("TcpRx %d bytes\n", n);
+            //PrintDbg("TcpRx %d bytes\n", n);
             if (IsTxRdy()) // if tx is busy, discard this rx
             {
                 upperLayer->Rx(buf, n);

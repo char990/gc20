@@ -64,6 +64,9 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
     case MI::CODE::RequestEnabledPlans:
         RequestEnabledPlans(data, len);
         break;
+    case MI::CODE::SignSetDimmingLevel:
+        SignSetDimmingLevel(data, len);
+        break;
     case MI::CODE::PowerOnOff:
         PowerOnOff(data, len);
         break;

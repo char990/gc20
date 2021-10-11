@@ -24,9 +24,12 @@
 #include <layer/StatusLed.h>
 #include <sign/Scheduler.h>
 #include <module/Utils.h>
+#include <module/DS3231.h>
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
+
+DS3231 * pDS3231;
 
 using namespace std;
 
@@ -54,6 +57,8 @@ public:
         PrintDbg("");
         fflush(stdout);
         _r_need_n=1;
+		time_t alarm_t=time(NULL);
+		pDS3231->WriteTimeAlarm(alarm_t);
     };
 };
 
@@ -104,9 +109,13 @@ int main(int argc, char *argv[])
     try
     {
         srand(time(NULL));
+
+        pDS3231 = new DS3231{1};
+        pDS3231->Print();
+
+
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
-
         // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
         Epoll::Instance().Init(32);
         TimerEvent timerEvt10ms{10, "[tmrEvt10ms:10ms]"};
@@ -177,6 +186,7 @@ int main(int argc, char *argv[])
             tcppool[i].Init("Tcp" + std::to_string(i), "NTS", (user.SessionTimeout() + 60) * 1000);
         }
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
+
 
         /*************** Start ****************/
         while (1)

@@ -70,6 +70,7 @@ public:
     // ----------------------------- result
     FRM_ST currentState{FRM_ST::MATCH_NA};
     FRM_ST nextState{FRM_ST::MATCH_NA};
+
 private:
     uint8_t slaveId;
 };

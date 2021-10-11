@@ -13,6 +13,7 @@ Group::Group(uint8_t groupId)
 {
     pwrUpTmr.Setms(0);
     busLockTmr.Setms(0);
+    dimmingAdjTimer.Setms(0);
     UciProd &prod = db.GetUciProd();
     int signCnt = prod.NumberOfSigns();
     switch (prod.ExtStsRplSignType())
@@ -86,7 +87,7 @@ Group::Group(uint8_t groupId)
             LoadPlanToPlnMin(i);
         }
     }
-    PrintPlnMin();
+    //PrintPlnMin();
     // TODO power
     // TODO Dimming
 }
@@ -412,7 +413,7 @@ bool Group::TaskMsg(int *_ptLine)
                 msgEntryCnt = 0;
                 // set & display, TotalRound
                 // +++++++++ first round & first frame, set orbuf and frame 1
-                while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries-1))
+                while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries - 1))
                 { // onTime==0 && not last entry, trans frame to set orBuf
                     TransFrmToOrBuf(pMsg->msgEntries[msgEntryCnt].frmId);
                     msgEntryCnt++;
@@ -555,7 +556,7 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
                 }
             }
             else
-            { // last entry is 0, so just set max 
+            { // last entry is 0, so just set max
                 msgSetEntryMax = pMsg->entries;
             }
         }
@@ -711,6 +712,13 @@ bool Group::TaskRqstSlave(int *_ptLine)
         if (++rqstExtStCnt == vSlaves.size())
         {
             rqstExtStCnt = 0;
+        }
+
+        // dimming adjusting
+        if(DimmingAdjust())
+        {
+            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+            PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
         }
     };
     PT_END();
@@ -951,23 +959,25 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     if (id == 0)
     {
         memset(plnMin, 0, sizeof(plnMin));
-        return APP::ERROR::AppNoError;
     }
-    if (!db.GetUciPln().IsPlnDefined(id))
+    else
     {
-        return APP::ERROR::FrmMsgPlnUndefined;
-    }
-    if (IsPlanActive(id))
-    {
-        return APP::ERROR::FrmMsgPlnActive;
-    }
-    APP::ERROR r = endis ? EnPlan(id) : DisPlan(id);
-    if(r != APP::ERROR::AppNoError)
-    {
-        return r;
+        if (!db.GetUciPln().IsPlnDefined(id))
+        {
+            return APP::ERROR::FrmMsgPlnUndefined;
+        }
+        if (IsPlanActive(id))
+        {
+            return APP::ERROR::FrmMsgPlnActive;
+        }
+        APP::ERROR r = endis ? EnPlan(id) : DisPlan(id);
+        if (r != APP::ERROR::AppNoError)
+        {
+            return r;
+        }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
-    PrintPlnMin();
+    //PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
 
@@ -1101,10 +1111,7 @@ void Group::DispExtSw(uint8_t id)
 APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
-    for (auto &sign : vSigns)
-    {
-        sign->DimmingSet(dimming);
-    }
+    targetDimmingLvl = 0x80 | dimming;
     return APP::ERROR::AppNoError;
 }
 
@@ -1322,7 +1329,8 @@ int Group::RqstStatus(uint8_t slvindex)
 int Group::RqstExtStatus(uint8_t slvindex)
 {
     //PrintDbg("RqstExtSt\n");
-    LockBus(db.GetUciProd().SlaveRqstExtTo());
+    UciProd & prod = db.GetUciProd();
+    LockBus(prod.SlaveRqstExtTo());
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1336,11 +1344,14 @@ int Group::RqstExtStatus(uint8_t slvindex)
 
     uint8_t *p = txBuf + 1;
     *p++ = SLVCMD::RQST_EXT_ST;
-    *p++ = 0;                    // TODO control byte
-    p = Cnvt::PutU16(0x1010, p); // TODO dimming
-    p = Cnvt::PutU16(0x1010, p); // TODO dimming
-    p = Cnvt::PutU16(0x1010, p); // TODO dimming
-    p = Cnvt::PutU16(0x1010, p); // TODO dimming
+    *p++ = 0; // TODO control byte
+    uint8_t * pc = prod.ColourRatio();
+    bool dmode = prod.DriverMode();
+    for(int i=0;i<4;i++)
+    {
+        uint16_t dim = dmode ? (pc[i] * 0x100 + setDimming) : (setDimming * 0x100 + pc[i]) ;
+        p = Cnvt::PutU16(dim, p);
+    }
     txLen = 11;
     return Tx();
 }
@@ -1352,7 +1363,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         MyThrow("ERROR: SlaveSetFrame(slvindex=%d, slvFrmId=%d, uciFrmId=%d)",
                 slvindex, slvFrmId, uciFrmId);
     }
-    PrintDbg("SlaveSetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
+    PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
     MakeFrameForSlave(uciFrmId);
     txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
     txBuf[2] = slvFrmId;
@@ -1389,9 +1400,10 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
     return ms;
 }
 
+// this function is actually for transistion time
 int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    PrintDbg("SlaveDisplayFrame [%X]:%d\n", slvindex, slvFrmId);
+    PrintDbg("Slv-DisplayFrm [%X]:%d\n", slvindex, slvFrmId);
     LockBus(db.GetUciProd().SlaveDispDly());
     if (slvindex == 0xFF)
     {
@@ -1421,7 +1433,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 
 int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    PrintDbg("SlaveSetStoredFrame [%X]:%d\n", slvindex, slvFrmId);
+    PrintDbg("Slv-SetStoredFrm [%X]:%d\n", slvindex, slvFrmId);
     LockBus(db.GetUciProd().SlaveDispDly());
     if (slvindex == 0xFF)
     {
@@ -1492,4 +1504,71 @@ void Group::PrintPlnMin()
             printf("\n");
         }
     }
+}
+
+bool Group::DimmingAdjust()
+{
+    bool r = false;
+    if (targetDimmingLvl & 0x80)
+    {
+        targetDimmingLvl &= 0x7F;
+        if (targetDimmingLvl == 0)
+        {
+            for (auto &sign : vSigns)
+            {
+                sign->DimmingSet(targetDimmingLvl);
+                sign->DimmingV(currentDimmingLvl);
+            }
+        }
+        else
+        {
+            for (auto &sign : vSigns)
+            {
+                sign->DimmingSet(targetDimmingLvl);
+                sign->DimmingV(targetDimmingLvl);
+            }
+        }
+        adjDimmingSteps = 0;
+        dimmingAdjTimer.Setms(0);
+    }
+    if (dimmingAdjTimer.IsExpired())
+    {
+        int tgt = (targetDimmingLvl == 0) ? 15 : targetDimmingLvl - 1; // 0-15
+        int cur = (currentDimmingLvl - 1);                       // 0-15
+        UciProd &prod = db.GetUciProd();
+        if (tgt != cur)
+        {
+            uint8_t *p = prod.Dimming();
+            uint8_t newdim;
+            if (++adjDimmingSteps < 16)
+            {
+                tgt = (tgt > cur) ? *(p + cur + 1) : *(p + cur - 1);
+                cur = *(p + cur);
+                newdim = cur + (tgt - cur) * adjDimmingSteps / 16;
+            }
+            else
+            { // last step
+                if (tgt > cur)
+                {
+                    currentDimmingLvl++;
+                }
+                else
+                {
+                    currentDimmingLvl--;
+                }
+                newdim = *(p + currentDimmingLvl - 1);
+                adjDimmingSteps = 0;
+            }
+            if(newdim!=setDimming)
+            {
+                setDimming = newdim;
+                PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d, setDimming=%d\n",
+                        currentDimmingLvl, targetDimmingLvl, setDimming);
+                RqstExtStatus(0xFF);
+                r=true;
+            }
+        }
+        dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16);
+    }
+    return r;
 }

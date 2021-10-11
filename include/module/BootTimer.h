@@ -6,7 +6,6 @@
 class BootTimer
 {
     public:
-
         /// \brief		Set timer in ms (1/1000 second)
         /// \param		ms (If ms<0, set as LONG_MAX)
         void Setms(long ms);

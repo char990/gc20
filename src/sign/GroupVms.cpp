@@ -47,6 +47,7 @@ GroupVms::~GroupVms()
 
 void GroupVms::PeriodicHook()
 {
+
 }
 
 APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)

@@ -1,5 +1,8 @@
 #include <tsisp003/TsiSp003App.h>
 #include <sign/Scheduler.h>
+#include <module/DS3231.h>
+
+extern DS3231 * pDS3231;
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
@@ -151,7 +154,34 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     if (!CheckOlineReject() || !ChkLen(len, 8))
         return;
     // set time
-    Ack();
+    struct tm stm;
+    data++;
+    stm.tm_mday = *data++;
+    stm.tm_mon = *data - 1; data++;
+    stm.tm_year = Utils::Cnvt::GetU16(data) - 1900; data+=2;
+    stm.tm_hour = *data++;
+    stm.tm_min = *data++;
+    stm.tm_sec = *data;
+	stm.tm_isdst=-1;
+	time_t t = mktime(&stm);
+	if(t>0)
+	{
+        if (stime(&t) < 0 )
+        {
+            printf("Error : %s\n", strerror(errno));
+            // TODO log system error
+        }
+        if(pDS3231->SetTimet(t)<0)
+        {
+            printf("Error : DS3231.SetRTC\n");
+            // TODO log DS3231 error
+        }
+        Ack();
+	}
+	else
+    {
+        Reject(APP::ERROR::SyntaxError);
+    }
 }
 
 uint16_t TsiSp003App::MakePassword()

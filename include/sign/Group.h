@@ -300,4 +300,13 @@ private:
     Utils::Bool256 activeMsg;
     // will set activeMsg & activeFrm
     void SetActiveMsg(uint8_t mid);
+
+    // dimming value in RqstExtStatus
+    uint8_t setDimming{0x10};
+    uint8_t targetDimmingLvl;         // bit[7] is new setting flag
+    uint8_t currentDimmingLvl;
+    uint8_t adjDimmingSteps;
+    bool DimmingAdjust();
+    BootTimer dimmingAdjTimer;
+
 };

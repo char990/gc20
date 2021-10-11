@@ -66,6 +66,11 @@ public:
     uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
     uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
 
+    uint8_t * Dimming() { return &dimming[0]; };
+    uint8_t * ColourRatio() { return &colourRatio[0]; };
+    uint8_t DriverMode() { return driverMode; };
+    uint8_t DimmingAdjTime() { return dimmingAdjTime; };
+
     char * ColourLeds() { return colourLeds; };
 
     bool IsResetLogAllowed() { return isResetLogAllowed!=0; };
@@ -149,6 +154,11 @@ private:
     const char * _TileColumnsPerSlave="TileColumnsPerSlave";
     const char * _SlaveRowsPerSign="SlaveRowsPerSign";
     const char * _SlaveColumnsPerSign="SlaveColumnsPerSign";
+    const char * _DriverMode="DriverMode";
+    const char * _ColourRatio="ColourRatio";
+    const char * _Dimming="Dimming";
+    const char * _DimmingAdjTime="DimmingAdjTime";
+    
 
     // float
     const char * _LightSensorScale="LightSensorScale";
@@ -200,8 +210,13 @@ private:
         tileColumnsPerSlave,
         slaveRowsPerSign,
         slaveColumnsPerSign,
-        powerOnDelay;
+        powerOnDelay,
+        dimmingAdjTime,
+        driverMode;
     
+    uint8_t dimming[16];
+    uint8_t colourRatio[4];
+
     uint8_t * groupCfg;
 
     char colourLeds[5];

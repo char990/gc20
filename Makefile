@@ -17,6 +17,7 @@
 
 #CXX      := -c++
 #CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror -std=c++11
+CFLAGS 	 := -std=c99
 CXXFLAGS := -std=c++11
 #LDFLAGS  := -L/usr/lib -lstdc++ -lm
 LDFLAGS  := -luci
@@ -25,14 +26,20 @@ OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 TARGET   := main
 INCLUDE  := -Iinclude/
-SRC_DIRS := $(shell find ./src -maxdepth 3 -type d)
-SRC      := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
+SRC_DIRS := $(shell find ./src -maxdepth 5 -type d)
+SRC_C    := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
+SRC_CXX  := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
+SRC		 := $(SRC_C) $(SRC_CXX)
 
-OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
+OBJECTS  := $(SRC_C:%.c=$(OBJ_DIR)/%.o) $(SRC_CXX:%.cpp=$(OBJ_DIR)/%.o)
 DEPENDENCIES \
 	:= $(OBJECTS:.o=.d)
 
 all: build $(APP_DIR)/$(TARGET)
+
+$(OBJ_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCLUDE) -c $< -MMD -o $@
 
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
@@ -52,9 +59,11 @@ build:
 	@mkdir -p $(OBJ_DIR)
 
 debug: CXXFLAGS += -DDEBUG -g -O0
+debug: CFLAGS += -DDEBUG -g -O0
 debug: all
 
 release: CXXFLAGS += -O2
+release: CFLAGS += -O2
 release: all
 
 clean:
