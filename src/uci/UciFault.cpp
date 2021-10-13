@@ -197,5 +197,6 @@ void UciFault::Reset()
     }
     int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
     write(dstfd, &dst[0], len);
+    fsync(dstfd);
     close(dstfd);
 }

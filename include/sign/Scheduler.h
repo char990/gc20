@@ -53,6 +53,8 @@ public:
     APP::ERROR CmdPowerOnOff(uint8_t *cmd, int len);
     APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
 
+    APP::ERROR CmdSystemReset(uint8_t *cmd);
+
 private:
     Scheduler();
     ~Scheduler();

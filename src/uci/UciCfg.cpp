@@ -218,7 +218,8 @@ void UciCfg::CloseSectionForSave()
 {
 	Commit();
 	Close();
-	DbHelper::Instance().RefreshSync();
+	//Changed(true);
+	//DbHelper::Instance().RefreshSync();
 }
 
 void UciCfg::OptionSave(const char *option, const char *str)

@@ -20,6 +20,7 @@ protected:
 private:
     void HeartbeatPoll(uint8_t * data, int len);
     void SignStatusReply();
+    void SystemReset(uint8_t * data, int len);
     void SignSetTextFrame(uint8_t * data, int len);
     void SignSetGraphicsFrame(uint8_t * data, int len);
     void SignDisplayFrame(uint8_t * data, int len);

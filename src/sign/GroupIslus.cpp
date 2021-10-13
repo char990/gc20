@@ -113,7 +113,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
     {
         do
         {
-            //SetFrame(vSigns[sATF]->SignId(), , newFrmId); // SignId is same as SlaveId
+            //SetFrame(vSigns[sATF]->SignId(), , onDispFrmId); // SignId is same as SlaveId
             ClrAllSlavesRxStatus();
             PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
         } while (allSlavesNext == STATE3::S_0);

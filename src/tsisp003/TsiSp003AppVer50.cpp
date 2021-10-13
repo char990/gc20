@@ -67,5 +67,21 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
         Reject(APP::ERROR::SyntaxError);
     }
     auto r = sch.CmdDispAtomicFrm(data, len);
-    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
+    if (r == APP::ERROR::AppNoError)
+    {
+        char buf[64];
+        int len = sprintf(buf, "SignDisplayAtomicFrames: GroupId=%d", data[1]);
+        uint8_t *p=data+3;
+        for(int i=0;i<data[2];i++)
+        {
+            len+=snprintf(buf+len, 63-len ,":%d,%d", p[0], p[1]);
+            p+=2;
+        }
+        db.GetUciEvent().Push(0, buf);
+        Ack();
+    }
+    else
+    {
+        Reject(r);
+    }
 }

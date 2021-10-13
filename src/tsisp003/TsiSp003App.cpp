@@ -3,6 +3,7 @@
 #include <module/DS3231.h>
 
 extern DS3231 * pDS3231;
+using namespace Utils;
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
@@ -32,7 +33,7 @@ int TsiSp003App::Rx(uint8_t *data, int len)
         UpdateTime(data, len);
         break;
     default:
-        return -1;
+        return UserDefinedCmd(data, len);
     }
     return 0;
 }
@@ -154,11 +155,12 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     if (!CheckOlineReject() || !ChkLen(len, 8))
         return;
     // set time
+    time_t cur = time(nullptr);
     struct tm stm;
     data++;
     stm.tm_mday = *data++;
     stm.tm_mon = *data - 1; data++;
-    stm.tm_year = Utils::Cnvt::GetU16(data) - 1900; data+=2;
+    stm.tm_year = Cnvt::GetU16(data) - 1900; data+=2;
     stm.tm_hour = *data++;
     stm.tm_min = *data++;
     stm.tm_sec = *data;
@@ -166,15 +168,26 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
 	time_t t = mktime(&stm);
 	if(t>0)
 	{
+        char buf[64];
+        char * p = buf + sprintf(buf, "UpdateTime:");
+        p=Cnvt::ParseTmToLocalStr(cur, p);
+        sprintf(p,"->");
+        Cnvt::ParseTmToLocalStr(t, p+2);
+        db.GetUciEvent().Push(0, buf);
         if (stime(&t) < 0 )
         {
             printf("Error : %s\n", strerror(errno));
-            // TODO log system error
+            db.GetUciAlarm().Push(0, "UpdateTime: Set system time failed(MemoryError)");
+            db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
         }
-        if(pDS3231->SetTimet(t)<0)
+        else
         {
-            printf("Error : DS3231.SetRTC\n");
-            // TODO log DS3231 error
+            if(pDS3231->SetTimet(t)<0)
+            {
+                printf("Error : DS3231.SetRTC\n");
+                db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
+                db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
+            }
         }
         Ack();
 	}

@@ -62,6 +62,7 @@ public:
     };
 };
 
+/*
 void TestCrc8005()
 {
     uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
@@ -72,7 +73,7 @@ void TestCrc8005()
         0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
     PrintDbg("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
-
+*/
 
 void LogResetTime()
 {
@@ -131,7 +132,7 @@ int main(int argc, char *argv[])
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
         timerEvt1s.Add(new TickTock{});
         StatusLed::Instance().Init(&timerEvt10ms);
-        DbHelper::Instance().Init(&timerEvt1s, argv[1]);
+        DbHelper::Instance().Init(argv[1]);
         UciProd & prod = DbHelper::Instance().GetUciProd();
         UciUser & user = DbHelper::Instance().GetUciUser();
         Scheduler::Instance().Init(&timerEvt10ms);

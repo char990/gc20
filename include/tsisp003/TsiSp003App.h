@@ -7,6 +7,7 @@
 #include <sign/Scheduler.h>
 #include <layer/ISession.h>
 
+
 /// \brief TSiSp003 Application Layer base
 class TsiSp003App : public IUpperLayer
 {
@@ -74,5 +75,11 @@ protected:
     /// \brief  Make password from seed
     uint16_t MakePassword ();
 
+private:
+    // all UserDefinedCmd functions are in UserDefinedCmd.cpp
+    int UserDefinedCmd(uint8_t *data, int len);
+    int UserDefinedCmdFA(uint8_t *data, int len);
+    int FA0A_RetrieveLogs(uint8_t *data, int len);
+    int FA0F_ResetLogs(uint8_t *data, int len);
 };
 

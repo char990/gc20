@@ -90,7 +90,7 @@ Group::Group(uint8_t groupId)
     //PrintPlnMin();
     // TODO power
     // TODO Dimming
-    for (auto & s : vSigns)
+    for (auto &s : vSigns)
     {
         s->SignErr(proc.SignErr(s->SignId())->Get());
     }
@@ -242,14 +242,14 @@ bool Group::TaskPln(int *_ptLine)
             auto &plnmin = GetCurrentMinPln();
             if (plnmin.plnId == 0)
             {
-                if (newPlnId != 0 || newMsgId != 0 || newFrmId != 0)
+                if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
                     TaskFrmReset();
                     TaskMsgReset();
-                    newPlnId = 0;
-                    newMsg = 0;
-                    newMsgId = 0;
-                    newFrm = 1;
+                    onDispPlnId = 0;
+                    onDispMsg = 0;
+                    onDispMsgId = 0;
+                    onDispFrm = 1;
                     plnEntryType = PLN_ENTRY_FRM;
                     plnEntryId = 0;
                     activeMsg.ClrAll();
@@ -258,7 +258,7 @@ bool Group::TaskPln(int *_ptLine)
             }
             else
             {
-                if (newPlnId != plnmin.plnId)
+                if (onDispPlnId != plnmin.plnId)
                 {
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -266,7 +266,7 @@ bool Group::TaskPln(int *_ptLine)
                     if (pln == nullptr)
                     {
                         readyToLoad = 0;
-                        // TODO log
+                        // TODO log: want to plan but undefined
                         return false;
                     }
                     for (int i = 0; i < pln->entries; i++)
@@ -275,40 +275,34 @@ bool Group::TaskPln(int *_ptLine)
                         {
                             activeFrm.Set(pln->plnEntries[i].fmId);
                         }
-                        else if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
+                        else// if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
                         {
                             SetActiveMsg(pln->plnEntries[i].fmId);
-                        }
-                        else
-                        {
-                            readyToLoad = 0;
-                            // TODO log
-                            return false;
                         }
                     }
                 }
                 if (plnmin.fmType == PLN_ENTRY_FRM) // frame
                 {
-                    if (newPlnId != plnmin.plnId || newMsgId != 0 || newFrmId != plnmin.fmId)
+                    if (onDispPlnId != plnmin.plnId || onDispMsgId != 0 || onDispFrmId != plnmin.fmId)
                     { // previouse is not same, set pln:frm type
                         TaskFrmReset();
                         TaskMsgReset();
-                        newPlnId = plnmin.plnId;
-                        newMsg = 0;
-                        newMsgId = 0;
-                        newFrm = 1;
+                        onDispPlnId = plnmin.plnId;
+                        onDispMsg = 0;
+                        onDispMsgId = 0;
+                        onDispFrm = 1;
                         plnEntryType = PLN_ENTRY_FRM;
                         plnEntryId = plnmin.fmId;
                     }
                 }
                 else // if(plnmin.fmType==PLN_ENTRY_MSG) // msg
                 {
-                    if (newPlnId != plnmin.plnId || newMsgId != plnmin.fmId)
+                    if (onDispPlnId != plnmin.plnId || onDispMsgId != plnmin.fmId)
                     { // previouse is not same, set pln:msg type
                         TaskFrmReset();
                         TaskMsgReset();
-                        newPlnId = plnmin.plnId;
-                        newMsg = 1;
+                        onDispPlnId = plnmin.plnId;
+                        onDispMsg = 1;
                         plnEntryType = PLN_ENTRY_MSG;
                         plnEntryId = plnmin.fmId;
                     }
@@ -345,34 +339,34 @@ bool Group::TaskMsg(int *_ptLine)
     if (newCurrent)
     {
         newCurrent = 0;
-        newMsg = 1;
+        onDispMsg = 1;
         ClrOrBuf();
     }
-    if (newMsg)
+    if (onDispMsg)
     {
         TaskMsgReset();
-        newMsg = 0;
+        onDispMsg = 0;
         if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_MSG)
         {
-            newMsgId = plnEntryId;
+            onDispMsgId = plnEntryId;
             // msg set active in TaskPln
         }
         else
         {
-            newPlnId = 0;
-            newMsgId = dsCurrent->fmpid[0];
+            onDispPlnId = 0;
+            onDispMsgId = dsCurrent->fmpid[0];
             if (dsCurrent->dispType == DISP_STATUS::TYPE::MSG)
             {
                 activeMsg.ClrAll(); // this is CmdDisplayMsg, Clear all previouse active msg
                 // But for FSW/EXT, do not clear previouse
             }
-            SetActiveMsg(newMsgId);
+            SetActiveMsg(onDispMsgId);
         }
     }
     PT_BEGIN();
     while (true)
     {
-        pMsg = db.GetUciMsg().GetMsg(newMsgId);
+        pMsg = db.GetUciMsg().GetMsg(onDispMsgId);
         if (pMsg == nullptr)
         { // null msg task, only for DISP_STATUS::TYPE::FSW/EXT
             if (dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
@@ -392,7 +386,7 @@ bool Group::TaskMsg(int *_ptLine)
                 do
                 {
                     SlaveSetStoredFrame(0xFF, 0);
-                    GroupSetReportDisp(0, newMsgId, 0);
+                    GroupSetReportDisp(0, onDispMsgId, 0);
                     ClrAllSlavesRxStatus();
                     do
                     {
@@ -437,7 +431,7 @@ bool Group::TaskMsg(int *_ptLine)
                     readyToLoad = 0; // when a msg begin, clear readyToLoad
                     if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run DispFrm
-                        GroupSetReportDisp(pMsg->msgEntries[msgEntryCnt].frmId, newMsgId, newPlnId);
+                        GroupSetReportDisp(pMsg->msgEntries[msgEntryCnt].frmId, onDispMsgId, onDispPlnId);
                         do // +++++++++ DispFrm X
                         {
                             SlaveSetStoredFrame(0xFF, msgEntryCnt + 1);
@@ -584,13 +578,13 @@ bool Group::TaskFrm(int *_ptLine)
     if (newCurrent)
     {
         newCurrent = 0;
-        newFrm = 1;
+        onDispFrm = 1;
         ClrOrBuf();
     }
-    if (newFrm)
+    if (onDispFrm)
     {
         TaskFrmReset();
-        newFrm = 0;
+        onDispFrm = 0;
     }
     PT_BEGIN();
     while (true)
@@ -598,42 +592,42 @@ bool Group::TaskFrm(int *_ptLine)
         // step1: set frame
         if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
         {
-            newPlnId = 0;
-            newMsgId = 0;
-            newFrmId = 1; // set newFrmId as 'NOT 0'
+            onDispPlnId = 0;
+            onDispMsgId = 0;
+            onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
         }
         else
         {
             if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM)
             { // from CmdDispFrm
-                newPlnId = 0;
-                newMsgId = 0;
-                newFrmId = dsCurrent->fmpid[0];
+                onDispPlnId = 0;
+                onDispMsgId = 0;
+                onDispFrmId = dsCurrent->fmpid[0];
                 activeFrm.ClrAll();
-                activeFrm.Set(newFrmId);
+                activeFrm.Set(onDispFrmId);
             }
             else
             { // from plan
-                newMsgId = 0;
-                newFrmId = plnEntryId;
+                onDispMsgId = 0;
+                onDispFrmId = plnEntryId;
                 // frm set active in TaskPln
             }
-            if (newFrmId > 0)
+            if (onDispFrmId > 0)
             {
                 do
                 {
-                    SlaveSetFrame(0xFF, (newFrmId == 0) ? 0 : 1, newFrmId);
+                    SlaveSetFrame(0xFF, (onDispFrmId == 0) ? 0 : 1, onDispFrmId);
                     ClrAllSlavesRxStatus();
                     PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
                 } while (allSlavesNext == STATE3::S_0);
             }
-            GroupSetReportDisp(newFrmId, newMsgId, newPlnId);
+            GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
         }
         // step2: display frame
         do
         {
-            SlaveSetStoredFrame(0xFF, (newFrmId == 0) ? 0 : 1);
+            SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
             ClrAllSlavesRxStatus();
             do
             {
@@ -719,7 +713,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
         }
 
         // dimming adjusting
-        if(DimmingAdjust())
+        if (DimmingAdjust())
         {
             taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
             PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
@@ -832,11 +826,11 @@ Slave *Group::GetSlave(uint8_t id)
     return nullptr;
 }
 
-void Group::GroupSetReportDisp(uint8_t newFrmId, uint8_t newMsgId, uint8_t newPlnId)
+void Group::GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t onDispPlnId)
 {
     for (auto &s : vSigns)
     {
-        s->SetReportDisp(newFrmId, newMsgId, newPlnId);
+        s->SetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
     }
 }
 
@@ -892,7 +886,7 @@ int Group::GetMinOffset(int day, Hm *t)
 
 bool Group::IsPlanActive(uint8_t id)
 {
-    return (id == 0) ? (newPlnId != 0) : (newPlnId == id);
+    return (id == 0) ? (onDispPlnId != 0) : (onDispPlnId == id);
 }
 
 bool Group::IsPlanEnabled(uint8_t id)
@@ -960,6 +954,10 @@ void Group::LoadPlanToPlnMin(uint8_t id)
 
 APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
 {
+    if (IsPlanActive(id))
+    {
+        return APP::ERROR::FrmMsgPlnActive;
+    }
     if (id == 0)
     {
         memset(plnMin, 0, sizeof(plnMin));
@@ -969,10 +967,6 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         if (!db.GetUciPln().IsPlnDefined(id))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
-        }
-        if (IsPlanActive(id))
-        {
-            return APP::ERROR::FrmMsgPlnActive;
         }
         APP::ERROR r = endis ? EnPlan(id) : DisPlan(id);
         if (r != APP::ERROR::AppNoError)
@@ -1082,7 +1076,7 @@ APP::ERROR Group::DispFrm(uint8_t id)
     if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
         uint8_t buf[3];
-        buf[0] = 0x0E;
+        buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
         buf[1] = groupId;
         buf[2] = id;
         db.GetUciProcess().SetDisp(groupId, buf, 3);
@@ -1097,7 +1091,7 @@ APP::ERROR Group::DispMsg(uint8_t id)
     if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
         uint8_t buf[3];
-        buf[0] = 0x0F;
+        buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
         buf[1] = groupId;
         buf[2] = id;
         db.GetUciProcess().SetDisp(groupId, buf, 3);
@@ -1333,7 +1327,7 @@ int Group::RqstStatus(uint8_t slvindex)
 int Group::RqstExtStatus(uint8_t slvindex)
 {
     //PrintDbg("RqstExtSt\n");
-    UciProd & prod = db.GetUciProd();
+    UciProd &prod = db.GetUciProd();
     LockBus(prod.SlaveRqstExtTo());
     if (slvindex == 0xFF)
     {
@@ -1349,11 +1343,11 @@ int Group::RqstExtStatus(uint8_t slvindex)
     uint8_t *p = txBuf + 1;
     *p++ = SLVCMD::RQST_EXT_ST;
     *p++ = 0; // TODO control byte
-    uint8_t * pc = prod.ColourRatio();
+    uint8_t *pc = prod.ColourRatio();
     bool dmode = prod.DriverMode();
-    for(int i=0;i<4;i++)
+    for (int i = 0; i < 4; i++)
     {
-        uint16_t dim = dmode ? (pc[i] * 0x100 + setDimming) : (setDimming * 0x100 + pc[i]) ;
+        uint16_t dim = dmode ? (pc[i] * 0x100 + setDimming) : (setDimming * 0x100 + pc[i]);
         p = Cnvt::PutU16(dim, p);
     }
     txLen = 11;
@@ -1539,7 +1533,7 @@ bool Group::DimmingAdjust()
     {
         // TODO auto dimming
         int tgt = (targetDimmingLvl == 0) ? 15 : targetDimmingLvl - 1; // 0-15
-        int cur = (currentDimmingLvl - 1);                       // 0-15
+        int cur = (currentDimmingLvl - 1);                             // 0-15
         UciProd &prod = db.GetUciProd();
         if (tgt != cur)
         {
@@ -1564,17 +1558,61 @@ bool Group::DimmingAdjust()
                 newdim = *(p + currentDimmingLvl - 1);
                 adjDimmingSteps = 0;
             }
-            if(newdim!=setDimming)
+            if (newdim != setDimming)
             {
                 setDimming = newdim;
                 /*
                 PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d, setDimming=%d\n",
                         currentDimmingLvl, targetDimmingLvl, setDimming);
-                */RqstExtStatus(0xFF);
-                r=true;
+                */
+                RqstExtStatus(0xFF);
+                r = true;
             }
         }
         dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16);
     }
     return r;
+}
+
+APP::ERROR Group::SystemReset(uint8_t v)
+{
+    if (v >= 0)
+    {
+        SystemReset0();
+    }
+    if (v >= 1)
+    {
+        SystemReset1();
+    }
+    if (v >= 2)
+    {
+        SystemReset2();
+    }
+    return APP::ERROR::AppNoError;
+}
+
+void Group::SystemReset0()
+{
+    uint8_t buf[3];
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+    buf[1] = groupId;
+    buf[2] = 0;
+    db.GetUciProcess().SetDisp(groupId, buf, 3);
+    DispNext(DISP_STATUS::TYPE::FRM, 0);
+    readyToLoad = 1;
+    SetDimming(0);
+    SetDevice(1);
+    activeMsg.ClrAll();
+    activeFrm.ClrAll();
+}
+
+void Group::SystemReset1()
+{
+    onDispPlnId = 0;
+    onDispFrmId = 1;        // force to issue a BLANK cmd to slaves 
+    EnDisPlan(0, false);
+}
+
+void Group::SystemReset2()
+{
 }

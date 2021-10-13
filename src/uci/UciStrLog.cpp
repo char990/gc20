@@ -82,6 +82,8 @@ int UciStrLog::GetLog(uint8_t *dst)
             p = Cnvt::PutU16(log.entryNo, p);
             p = Cnvt::PutLocalTm(log.logTime, p);
             p = CharCpy(p, log.str, STR_SIZE - 1);
+            p++;
+            *p='\0';
             cnt++;
             if (--logi < 0)
             {
@@ -141,5 +143,6 @@ void UciStrLog::Reset()
     }
     int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
     write(dstfd, &dst[0], len);
+    fsync(dstfd);
     close(dstfd);
 }

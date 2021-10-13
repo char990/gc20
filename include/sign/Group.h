@@ -88,6 +88,8 @@ public:
     APP::ERROR SetPower(uint8_t v);
     APP::ERROR SetDevice(uint8_t v);
 
+    APP::ERROR SystemReset(uint8_t v);
+
     //
     void DispExtSw(uint8_t id);
 
@@ -189,7 +191,7 @@ private:
 
     /******************** Task Plan ********************/
     uint8_t
-        newPlnId,
+        onDispPlnId,
         plnEntryType, // 1:frm, 2:msg
         plnEntryId;
 
@@ -203,8 +205,8 @@ private:
 
     /******************** Task Message ********************/
     uint8_t
-        newMsg,         // 0:EMPTY, 1:new msg load
-        newMsgId,
+        onDispMsg,         // 0:EMPTY, 1:new msg load
+        onDispMsgId,
         msgEntryCnt;   // 0 - (msg->entries-1)
     // msgSetEntry/Max depend on frame 'onTime'=0(frame overlay)
     // if there is an entry onTime(!0) following an entry onTime(0), msgSetEntryMax = msg->entries + last onTime(0) entry
@@ -248,8 +250,8 @@ private:
 
     /******************** Task Frame ********************/
     uint8_t
-        newFrm,   // 0:EMPTY, 1:new frm load
-        newFrmId; // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
+        onDispFrm,   // 0:EMPTY, 1:new frm load
+        onDispFrmId; // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
 
     bool TaskFrm(int *_ptLine);
     int taskFrmLine{0};
@@ -275,7 +277,7 @@ private:
         taskRqstSlaveTmr.Setms(0);
     }
 
-    void GroupSetReportDisp(uint8_t newFrmId, uint8_t newMsgId, uint8_t newPlnId);
+    void GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t onDispPlnId);
 
     bool IsDimmingChanged();
 
@@ -309,4 +311,8 @@ private:
     bool DimmingAdjust();
     BootTimer dimmingAdjTimer;
 
+
+    void SystemReset0();
+    void SystemReset1();
+    void SystemReset2();
 };

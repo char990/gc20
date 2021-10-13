@@ -136,6 +136,27 @@ bool Scheduler::IsPlnActive(uint8_t id)
     return false;
 }
 
+APP::ERROR Scheduler::CmdSystemReset(uint8_t *cmd)
+{
+    auto grpId = cmd[1];
+    if (grpId > groupCnt)
+    {
+        return APP::ERROR::UndefinedDeviceNumber;
+    }
+    if (grpId != 0)
+    {
+        GetGroup(grpId)->SystemReset(cmd[2]);
+    }
+    else
+    {
+        for (int i = 1; i <= groupCnt; i++)
+        {
+            GetGroup(i)->SystemReset(cmd[2]);
+        }
+    }
+    return APP::ERROR::AppNoError;
+}
+
 APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
