@@ -1,13 +1,18 @@
 #pragma once
 
-
 #include <cstdint>
 #include <ctime>
 #include <string>
+#include <cstring>
 
 namespace Utils
 {
-    enum STATE3 {S_NA=0, S_0, S_1};
+    enum STATE3
+    {
+        S_NA = 0,
+        S_0,
+        S_1
+    };
 
     extern const uint32_t MASK_BIT[32];
 
@@ -52,29 +57,29 @@ namespace Utils
 
         /// \brief  parse uint8_t to 2 Asc. Example: 0x1F => "1F"
         /// \return     next byte of dst
-        static char * ParseToAsc(uint8_t h, char *dst);
+        static char *ParseToAsc(uint8_t h, char *dst);
 
         /// \brief  parse uint8_t array to 2 Asc no '\0' attached. Example: 0x1F 0x2A 0x3E ... => "1F2A3E......"
         /// \param      src : hex buffer
         /// \param      dst : ascii buffer
         /// \param      srclen : hex len ( = asc_len / 2)
         /// \return     next byte of dst
-        static char * ParseToAsc(uint8_t *src, char *dst, int srclen);
+        static char *ParseToAsc(uint8_t *src, char *dst, int srclen);
 
         /// \brief  parse uint8_t array to 2 Asc with '\0' attached. Example: 0x1F 0x2A 0x3E ... => "1F2A3E......\0"
         /// \param      src : hex buffer
         /// \param      dst : ascii buffer
         /// \param      srclen : hex len ( = asc_len / 2)
         /// \return     next byte of dst
-        static char * ParseToStr(uint8_t *src, char *dst, int srclen);
+        static char *ParseToStr(uint8_t *src, char *dst, int srclen);
 
         /// \brief  parse uint16_t to 4 Asc. Example: 0x1F09 => "1F09"
         /// \return     next byte of dst
-        static char * ParseU16ToAsc(uint16_t h, char *dst);
+        static char *ParseU16ToAsc(uint16_t h, char *dst);
 
         /// \brief  parse uint32_t to 4 Asc. Example: 0x1F09 => "1F09"
         /// \return     next byte of dst
-        static char * ParseU32ToAsc(uint32_t h, char *dst);
+        static char *ParseU32ToAsc(uint32_t h, char *dst);
 
         /// \brief	convert int string to array, "2,3,100" => {0x02,0x03,0x64}
         ///			If number is less than min or greater than max, just return
@@ -86,19 +91,18 @@ namespace Utils
         /// \return numbers converted
         static int GetIntArray(const char *src, int srcmax, int *dst, int min, int max);
 
-
         /// \brief Convert 2 bytes uint8_t to uint16_t
         static uint16_t GetU16(uint8_t *p);
         /// \brief Put uint16_t to uint8_t *
-        static uint8_t * PutU16(uint16_t v, uint8_t *p);
+        static uint8_t *PutU16(uint16_t v, uint8_t *p);
 
         /// \brief Convert 4 bytes uint8_t to uint32_t
         static uint32_t GetU32(uint8_t *p);
         /// \brief Put uint32_t to uint8_t *
-        static uint8_t * PutU32(uint32_t v, uint8_t *p);
+        static uint8_t *PutU32(uint32_t v, uint8_t *p);
 
         /// \brief Parse time_t to localtime and wrtie to uint8_t *Tm
-        static uint8_t * PutLocalTm(time_t t, uint8_t *tm);
+        static uint8_t *PutLocalTm(time_t t, uint8_t *tm);
 
         /// \brief Set tp as 1/1/1970 0:00:00
         static void ClearTm(struct tm *tp);
@@ -106,18 +110,17 @@ namespace Utils
         /// \brief  Parse time_t to localtime string and wrtie to char *pbuf
         ///         string format: d/M/yyyy h:mm:ss
         /// \return next byte of output buf
-        static char * ParseTmToLocalStr(time_t t, char *pbuf);
+        static char *ParseTmToLocalStr(time_t t, char *pbuf);
 
         /// \brief  Parse timeval to localtime string and wrtie to char *pbuf
         ///         string format: d/M/yyyy h:mm:ss.mmm
         /// \return next byte of output buf
-        static char * ParseTmToLocalStr(struct timeval *t, char *p);
+        static char *ParseTmToLocalStr(struct timeval *t, char *p);
 
         /// \brief  Parse localtime string to tm_t
         ///         string format: d/M/yyyy h:mm:ss
         /// \retunr -1:fail
         static time_t ParseLocalStrToTm(char *pbuf);
-
     };
 
     class Crc
@@ -208,17 +211,15 @@ namespace Utils
         /// \param      len:output buffer size
         /// \return     -1:failed; >=0:output size(include 0x0a attached)
         static int Run(const char *cmd, char *outbuf, int len);
-    
+
         /// \brief      Copy a file
         /// \param      src:
         /// \param      dst:
         static void CopyFile(const char *src, const char *dst);
 
-
         /// \brief      Check if a file/dir exists
         static bool FileExists(const char *path);
         static bool DirExists(const char *path);
-
     };
 
     class Time
@@ -226,24 +227,24 @@ namespace Utils
     public:
         /// \brief      Print time
         static void PrintBootTime();
-        
+
         /// \brief      Get interval from last Interval() called
         /// \return     interval of ms
         long Interval();
     };
 
-
-    class BitOption
+    class Bool32
     {
     public:
-        BitOption();
-        BitOption(uint32_t v);
+        Bool32();
+        Bool32(uint32_t v);
         void Set(uint32_t v);
         uint32_t Get();
         void SetBit(int b);
         void ClrBit(int b);
         bool GetBit(int b);
         std::string ToString();
+
     private:
         uint32_t bits;
     };
@@ -253,9 +254,9 @@ namespace Utils
     class BitOffset
     {
     public:
-        static void SetBit(uint8_t * buf, int bitOffset);
-        static void ClrBit(uint8_t * buf, int bitOffset);
-        static bool GetBit(uint8_t * buf, int bitOffset);
+        static void SetBit(uint8_t *buf, int bitOffset);
+        static void ClrBit(uint8_t *buf, int bitOffset);
+        static bool GetBit(uint8_t *buf, int bitOffset);
     };
 
     class Bool256
@@ -265,8 +266,31 @@ namespace Utils
         void Clr(uint8_t bitOffset);
         void ClrAll();
         bool Get(uint8_t bitOffset);
-    private:
-        uint8_t data[256/8]{};
-    };
-} // namespace Utils
+        std::string ToString();
 
+    private:
+        uint8_t data[256 / 8]{};
+    };
+
+    // Only for byte type: uint8_t/char
+    template <typename T>
+    T *CharCpy(T *dst, const char *from, int n)
+    {
+        if (from == nullptr || n <= 0)
+        {
+            return dst;
+        }
+        if(sizeof(T)!=sizeof(char))
+        {
+            throw "CharCpy: sizeof(T)!=sizeof(char)";
+        }
+        int len = strlen(from);
+        if (len > n)
+            len = n;
+        memcpy(dst, from, len);
+        dst += len;
+        *dst = '\0';
+        return dst;
+    }
+
+} // namespace Utils

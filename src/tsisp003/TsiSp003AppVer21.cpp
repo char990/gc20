@@ -76,6 +76,12 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
     case MI::CODE::SignRequestStoredFMP:
         SignRequestStoredFMP(data, len);
         break;
+    case MI::CODE::RetrieveFaultLog:
+        RetrieveFaultLog(data, len);
+        break;
+    case MI::CODE::ResetFaultLog:
+        ResetFaultLog(data, len);
+        break;
     case MI::CODE::SignExtendedStatusRequest:
         SignExtendedStatusRequest(data, len);
         break;
@@ -440,7 +446,9 @@ void TsiSp003AppVer21::RetrieveFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    //Tx(txbuf, applen);
+    int applen = db.GetUciFault().GetFaultLog20(txbuf+1);
+    txbuf[0] = static_cast<uint8_t>(MI::CODE::FaultLogReply);
+    Tx(txbuf, applen+1);
 }
 
 void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
@@ -449,6 +457,6 @@ void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    // reset fault log
+    db.GetUciFault().Reset();
     Ack();
 }

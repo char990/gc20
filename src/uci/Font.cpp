@@ -8,6 +8,7 @@
 Font::Font(const char *fontname)
 {
     strncpy(fontName, fontname, 15);
+    fontName[15]='\0';
     for (int i = 0x20; i < 0x80; i++)
     {
         cellPtr[i - 0x20] = nullptr;

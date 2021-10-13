@@ -3,6 +3,7 @@
 #include <vector>
 #include <sign/Slave.h>
 #include <module/Debounce.h>
+#include <sign/DeviceError.h>
 
 /*
     Sign is fit to TSI-SP-003
@@ -27,12 +28,14 @@ public:
     virtual uint8_t *GetExtStatus(uint8_t *p) = 0;
 
     // set
-    void SignErr(uint8_t err);
+    void SignErr(DEV::ERROR err, bool v) { signErr.Push(signId, err, v); };
+    void SignErr(uint32_t v) { signErr.SetV(v); };
     void DimmingSet(uint8_t v) { dimmingSet = v; };
     void DimmingV(uint8_t v) { dimmingV = v; };
     void Device(uint8_t v) { deviceSet = v; };
 
     // get
+    SignError & SignErr() { return signErr; };
     uint8_t DimmingSet() { return dimmingV; };
     uint8_t DimmingV() { return dimmingV; };
     uint8_t Device() { return deviceV; };
@@ -65,8 +68,6 @@ protected:
     uint8_t signId;
     std::vector<Slave *> vsSlaves;
 
-    uint8_t signErr{0};
-
     uint8_t dimmingSet{0}, dimmingV{1};
     uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
     uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
@@ -78,4 +79,5 @@ protected:
     uint8_t setFrm{0};
     uint8_t dispFrm{0};
 
+    SignError signErr;
 };

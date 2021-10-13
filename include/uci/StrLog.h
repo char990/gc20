@@ -11,9 +11,9 @@ public :
     StrLog(){};
     ~StrLog(){};
 
-    uint8_t id;
-    uint16_t entryNo;
-    time_t logTime;
+    uint8_t id{0};
+    uint16_t entryNo{0};
+    time_t logTime{-1};
     char str[STR_SIZE];
 };
 

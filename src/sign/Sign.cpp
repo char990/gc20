@@ -4,7 +4,7 @@
 #include <module/Utils.h>
 
 Sign::Sign(uint8_t id)
-    : signId(id), signErr(0),
+    : signId(id),
       dimmingSet(0), dimmingV(1),
       deviceSet(1), deviceV(1),
       reportFrm(0), reportMsg(0), reportPln(0)
@@ -33,6 +33,7 @@ void Sign::AddSlave(Slave * slave)
 void Sign::Reset()
 {
     SetReportDisp(0, 0, 0);
+    signErr.Reset();
     dbcLight.Reset();
     dbcChain.Reset();
     dbcMultiLed.Reset();
@@ -48,7 +49,7 @@ uint8_t *Sign::GetStatus(uint8_t *p)
 {
     DbHelper & db = DbHelper::Instance();
     *p++ = signId;
-    *p++ = signErr;
+    *p++ = static_cast<uint8_t>(signErr.GetErrorCode());
     *p++ = deviceV;
     *p++ = reportFrm;
     *p++ = db.GetUciFrm().GetFrmRev(reportFrm);

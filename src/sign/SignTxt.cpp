@@ -10,7 +10,7 @@ uint8_t *SignTxt::GetExtStatus(uint8_t *buf)
     *p++=prod.ExtStsRplSignType();
     *p++=prod.CharRows(0);
     *p++=prod.CharColumns(0);
-    *p++=signErr;
+    *p++=static_cast<uint8_t>(signErr.GetErrorCode());
     *p++=DimmingMode();
     *p++=DimmingValue();
     p++;

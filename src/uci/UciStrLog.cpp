@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
-
+#include <fcntl.h>
+#include <unistd.h>
 #include <uci.h>
 #include <module/Utils.h>
 #include <uci/UciStrLog.h>
@@ -11,136 +12,134 @@ using namespace Utils;
 
 void UciStrLog::LoadConfig()
 {
-    for(int i=0;i<maxEntries;i++)
+    Open();
+    struct uci_section *uciSec = GetSection(SECTION);
+    struct uci_element *e;
+    struct uci_option *option;
+    char *p;
+    int id, entryNo;
+    time_t t;
+    uci_foreach_element(&uciSec->options, e)
     {
-        (pStrLog+i)->logTime=-1;
+        if (memcmp(e->name, _Log, 4) != 0)
+        {
+            continue;
+        }
+        option = uci_to_option(e);
+        int i = atoi(e->name + 4);
+        if (i < 0 || i >= maxEntries || option->type != uci_option_type::UCI_TYPE_STRING)
+        {
+            continue;
+        }
+        if ((p = strchr(option->v.string, '[')) == nullptr)
+        {
+            continue;
+        }
+        if ((t = Cnvt::ParseLocalStrToTm(p + 1)) == -1)
+        {
+            continue;
+        }
+        if ((p = strchr(p, ']')) == nullptr)
+        {
+            continue;
+        }
+        if (sscanf(p, _Fmt_1, &id, &entryNo) != 2)
+        {
+            continue;
+        }
+        if ((p = strstr(p, _Fmt_2)) == nullptr)
+        {
+            continue;
+        }
+        p += 4;
+        auto &log = pStrLog[i];
+        log.id = id;
+        log.entryNo = entryNo;
+        log.logTime = t;
+        p=CharCpy(log.str, p, STR_SIZE - 1);
+        lastLog = i;
     }
-	Open();
-	struct uci_section *uciSec = GetSection(SECTION);
-	struct uci_element *e;
-	struct uci_option *option;
-    char option_[8];
-    int optLen = snprintf(option_, 7, "%s_",SECTION);
-    char *pc;
-	uci_foreach_element(&uciSec->options, e)
-	{
-		if (memcmp(e->name, option_, optLen) != 0)
-		{
-            continue;
-        }
-		struct uci_option *option = uci_to_option(e);
-		int i = atoi(e->name + optLen);
-		if (i < 0 || i >= maxEntries || option->type != uci_option_type::UCI_TYPE_STRING)
-		{
-            continue;
-        }
-        pc = option->v.string;
-        (pStrLog+i)->id=Cnvt::ParseToU8(pc);pc++;
-        (pStrLog+i)->entryNo=Cnvt::ParseToU16(pc);pc+=2;
-        if( *pc++ !='[' )
-        {
-            continue;
-        }
-        (pStrLog+i)->logTime=Cnvt::ParseLocalStrToTm(pc);
-        if( (pStrLog+i)->logTime <= 0 )
-        {
-            continue;
-        }
-        pc=strchr( pc, ']' );
-        if(pc++==NULL)
-        {
-            (pStrLog+i)->logTime=-1;
-            continue;
-        }
-        strncpy( (pStrLog+i)->str, pc, STR_SIZE-1 );
-        (pStrLog+i)->str[STR_SIZE]='\0';
-	}
-
-    try
-    {
-        lastLog = GetInt(uciSec, _LastLog, 0, maxEntries-1);
-    }
-    catch(...)
-    {
-        time_t t=0;
-        for(int i=0;i<maxEntries;i++)
-        {
-            if((pStrLog+i)->logTime>t)
-            {
-                lastLog = i;
-                t=(pStrLog+i)->logTime;
-            }
-        }
-    }
-
-	Close();
+    Close();
 }
 
 int UciStrLog::GetLog(uint8_t *dst)
 {
-	if(lastLog<0)
+    if (lastLog < 0)
     {
-        return 0;
+        dst[0]=0;
+        dst[1]=0;
+        return 2;
     }
-    char *c;
-    uint8_t *p=dst+2;
-    int cnt=0;
-    int log=lastLog;
-    for(int i=0;i<maxEntries;i++)
+    uint8_t *p = dst + 2;
+    int cnt = 0;
+    int logi = lastLog;
+    for (int i = 0; i < maxEntries; i++)
     {
-        if((pStrLog+log)->logTime>=0)
+        auto &log = pStrLog[logi];
+        if (log.logTime >= 0)
         {
-            *p++=(pStrLog+log)->id;
-            p=Cnvt::PutU16((pStrLog+log)->entryNo, p);
-            p=Cnvt::PutLocalTm((pStrLog+log)->logTime, p);
-            c=(pStrLog+log)->str;
-            for(int j=0;j<STR_SIZE-1;j++)
-            {
-                if(*c=='\0')
-                {
-                    break;
-                }
-                *p++=*c++;
-            }
-            *p++='\0';
+            *p++ = log.id;
+            p = Cnvt::PutU16(log.entryNo, p);
+            p = Cnvt::PutLocalTm(log.logTime, p);
+            p = CharCpy(p, log.str, STR_SIZE - 1);
             cnt++;
-            if(--log<0)
+            if (--logi < 0)
             {
-                log = maxEntries-1;
+                logi = maxEntries - 1;
             }
         }
     }
-    dst[0]=cnt/0x100;
-    dst[1]=cnt&0xFF;
-    return p-dst;
+    Cnvt::PutU16(cnt, dst);
+    return p - dst;
 }
 
 void UciStrLog::Push(uint8_t id, const char *pbuf)
 {
-    uint16_t entryNo=0;
-    if(lastLog!=-1)
+    uint16_t entryNo = 0;
+    if (lastLog != -1)
     {
-        entryNo = (pStrLog+lastLog)->entryNo+1;
+        entryNo = (pStrLog + lastLog)->entryNo + 1;
     }
     lastLog++;
-    if(lastLog>=maxEntries)
+    if (lastLog >= maxEntries)
     {
-        lastLog=0;
+        lastLog = 0;
     }
 
-    (pStrLog+lastLog)->id = id;
-    (pStrLog+lastLog)->entryNo = entryNo;
-    time_t t=time(NULL);
-    (pStrLog+lastLog)->logTime = t;
-    strncpy((pStrLog+lastLog)->str, pbuf, STR_SIZE-1);
-    char v[(1+2)*2 + 21 + STR_SIZE + 1];
     char *p;
-    p=Cnvt::ParseToAsc(id,v);
-    p=Cnvt::ParseU16ToAsc(entryNo,p);
-    *p++='[';
-    p=Cnvt::ParseTmToLocalStr(t, p);
-    *p++=']';
-  	strncpy(p,pbuf,STR_SIZE-1);
-    v[(1+2)*2 + 21 + STR_SIZE] = '\0';
-    SaveLastLog(v);
+    auto &log = pStrLog[lastLog];
+    time_t t = time(NULL);
+    log.id = id;
+    log.entryNo = entryNo;
+    log.logTime = t;
+    p = CharCpy(log.str, pbuf, STR_SIZE - 1);
+
+    char option[16];
+    sprintf(option, "%s%d", _Log, lastLog);
+
+    char v[128];
+    v[0] = '[';
+    p = Cnvt::ParseTmToLocalStr(t, v + 1);
+    sprintf(p, _Fmt_3, id, entryNo, log.str);
+
+    OpenSaveClose(SECTION, option, v);
+}
+
+void UciStrLog::Reset()
+{
+    lastLog=-1;
+    for(int i=0;i<maxEntries;i++)
+    {
+        pStrLog[i].logTime=-1;
+    }
+    char dst[256];
+    sprintf(dst, "%s/%s", PATH, PACKAGE);
+    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
+    if (dstfd < 0)
+    {
+        MyThrow("Can't open %s to write", dst);
+    }
+    int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
+    write(dstfd, &dst[0], len);
+    close(dstfd);
 }

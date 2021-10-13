@@ -73,6 +73,15 @@ void TestCrc8005()
     PrintDbg("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
 
+
+void LogResetTime()
+{
+    time_t t;
+    pDS3231->ReadTimeAlarm(&t);
+    DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
+    DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
+}
+
 int main(int argc, char *argv[])
 {
     // setenv("MALLOC_TRACE","./test.log",1);
@@ -111,7 +120,6 @@ int main(int argc, char *argv[])
         srand(time(NULL));
 
         pDS3231 = new DS3231{1};
-        pDS3231->Print();
 
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
@@ -127,7 +135,7 @@ int main(int argc, char *argv[])
         UciProd & prod = DbHelper::Instance().GetUciProd();
         UciUser & user = DbHelper::Instance().GetUciUser();
         Scheduler::Instance().Init(&timerEvt10ms);
-
+        LogResetTime();
         //AllGroupPowerOn();
 
         // init serial ports

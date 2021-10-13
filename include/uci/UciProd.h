@@ -223,12 +223,12 @@ private:
 
 	uint8_t mappedColoursTable[10];				// colourtable[0] is always 0
 
-    Utils::BitOption bFont;
-    Utils::BitOption bConspicuity;
-    Utils::BitOption bAnnulus;
-    Utils::BitOption bTxtFrmColour;
-    Utils::BitOption bGfxFrmColour;
-    Utils::BitOption bHrgFrmColour;
+    Utils::Bool32 bFont;
+    Utils::Bool32 bConspicuity;
+    Utils::Bool32 bAnnulus;
+    Utils::Bool32 bTxtFrmColour;
+    Utils::Bool32 bGfxFrmColour;
+    Utils::Bool32 bHrgFrmColour;
 
     // configurations calculated from other configurations
     uint16_t pixelRows;

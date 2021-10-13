@@ -272,7 +272,7 @@ char *Cnvt::ParseTmToLocalStr(struct timeval *t, char *p)
         ClearTm(&tp);
     }
     int len = sprintf(p, "%d/%d/%d %d:%02d:%02d.%03d",
-                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec,t->tv_usec/1000);
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec, t->tv_usec / 1000);
     return p + len;
 }
 
@@ -662,40 +662,46 @@ long Time::Interval()
     return ms;
 }
 
-BitOption::BitOption()
+Bool32::Bool32()
     : bits(0)
 {
 }
 
-BitOption::BitOption(uint32_t v)
+Bool32::Bool32(uint32_t v)
     : bits(v)
 {
 }
 
-void BitOption::Set(uint32_t v)
+void Bool32::Set(uint32_t v)
 {
     bits = v;
 }
 
-uint32_t BitOption::Get()
+uint32_t Bool32::Get()
 {
     return bits;
 }
 
-void BitOption::SetBit(int b)
+void Bool32::SetBit(int b)
 {
-    bits |= MASK_BIT[b];
+    if (b < 32)
+    {
+        bits |= MASK_BIT[b];
+    }
 }
-void BitOption::ClrBit(int b)
+void Bool32::ClrBit(int b)
 {
-    bits &= ~MASK_BIT[b];
+    if (b < 32)
+    {
+        bits &= ~MASK_BIT[b];
+    }
 }
-bool BitOption::GetBit(int b)
+bool Bool32::GetBit(int b)
 {
-    return (bits & MASK_BIT[b]) != 0;
+    return (b < 32) ? ((bits & MASK_BIT[b]) != 0) : false;
 }
 
-std::string BitOption::ToString()
+std::string Bool32::ToString()
 {
     char buf[128];
     int len = 0;
@@ -711,29 +717,28 @@ std::string BitOption::ToString()
             len += sprintf(buf + len, "%d", i);
         }
     }
-    std::string s{buf};
-    return s;
+    return (len == 0) ? " " : std::string{buf};
 }
 
 void BitOffset::SetBit(uint8_t *buf, int bitOffset)
 {
-    uint8_t * p = buf + bitOffset/8;
-    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
     *p |= b;
 }
 
 void BitOffset::ClrBit(uint8_t *buf, int bitOffset)
 {
-    uint8_t * p = buf + bitOffset/8;
-    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
     *p &= ~b;
 }
 
 bool BitOffset::GetBit(uint8_t *buf, int bitOffset)
 {
-    uint8_t * p = buf + bitOffset/8;
-    uint8_t b = MASK_BIT[7 - (bitOffset&7)];
-    return (*p & b)!=0;
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
+    return (*p & b) != 0;
 }
 
 void Bool256::Set(uint8_t bitOffset)
@@ -748,10 +753,30 @@ void Bool256::Clr(uint8_t bitOffset)
 
 void Bool256::ClrAll()
 {
-    memset(data,0,sizeof(data));
+    memset(data, 0, sizeof(data));
 }
 
 bool Bool256::Get(uint8_t bitOffset)
 {
     return BitOffset::GetBit(data, bitOffset);
 }
+
+std::string Bool256::ToString()
+{
+    char buf[1024];
+    int len = 0;
+    for (int i = 0; i < 256; i++)
+    {
+        if (BitOffset::GetBit(data, i))
+        {
+            if (len > 0)
+            {
+                sprintf(buf + len, ",");
+                len++;
+            }
+            len += sprintf(buf + len, "%d", i);
+        }
+    }
+    return (len == 0) ? " " : std::string{buf};
+}
+

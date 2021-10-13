@@ -68,4 +68,6 @@ private:
         sessionLed{0},
         ctrllerErr{0},
         groupCnt{0};
+
+    CtrllerError ctrllerError;
 };

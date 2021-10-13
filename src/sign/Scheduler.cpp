@@ -34,11 +34,12 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
     }
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
+
     displayTimeout.Clear();
-    UciProd & prod = DbHelper::Instance().GetUciProd(); 
+    ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr().Get());
+    UciProd &prod = DbHelper::Instance().GetUciProd();
     groupCnt = prod.NumberOfGroups();
     groups = new Group *[groupCnt];
-
     switch (prod.ProdType())
     {
     case 0: // vms
@@ -77,7 +78,7 @@ void Scheduler::PeriodicRun()
 void Scheduler::RefreshDispTime()
 {
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms*1000);
+    (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms * 1000);
 }
 
 void Scheduler::SessionLed(uint8_t v)
@@ -139,7 +140,7 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t frmId = cmd[2];
-    if (grpId==0 || grpId > groupCnt)
+    if (grpId == 0 || grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
@@ -157,7 +158,7 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t msgId = cmd[2];
-    if (grpId==0 || grpId > Scheduler::Instance().GroupCnt())
+    if (grpId == 0 || grpId > Scheduler::Instance().GroupCnt())
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
@@ -191,7 +192,7 @@ APP::ERROR Scheduler::CmdEnDisPlan(uint8_t *cmd)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (plnId!=0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
+    else if (plnId != 0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
@@ -253,7 +254,7 @@ APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
         p += 2;
     }
     p = cmd + 2;
-    
+
     for (int i = 0; i < entry; i++)
     {
         uint8_t d = (p[1] == 0);
@@ -287,7 +288,7 @@ APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
         p += 2;
     }
     p = cmd + 2;
-    
+
     for (int i = 0; i < entry; i++)
     {
         uint8_t d = (p[1] == 0);

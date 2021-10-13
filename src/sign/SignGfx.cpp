@@ -10,7 +10,7 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *buf)
     *p++=prod.ExtStsRplSignType();
     *p++=prod.PixelRows();
     *p++=prod.PixelColumns();
-    *p++=signErr;
+    *p++=static_cast<uint8_t>(signErr.GetErrorCode());
     *p++=DimmingMode();
     *p++=DimmingValue();
     p++;

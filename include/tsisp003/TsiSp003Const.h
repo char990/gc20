@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
 
 namespace MI
 {
-    enum CODE
+    enum CODE:uint8_t
     {
         Reject = 0x00,
         ACK,
@@ -75,7 +76,7 @@ namespace MI
 }
 namespace APP
 {
-    enum ERROR
+    enum ERROR:uint8_t
     {
         AppNoError = 0,
         DeviceControllerOffline,
@@ -121,7 +122,7 @@ namespace APP
 
 namespace DEV
 {
-    enum ERROR
+    enum ERROR:uint8_t
     {
         DevNoError = 0,
         PowerFailure,
@@ -136,10 +137,10 @@ namespace DEV
         UnderTemperatureAlarm,
         ConspicuityDeviceFailure,
         SignLuminanceControllerFailure,
-        ControllerReset,
+        ControllerResetViaWatchdog,
         BatteryLow,
         PoweredOffByCommand,
-        FacilitySwitchoverride,
+        FacilitySwitchOverride,
         SignDisplayDriverFailure,
         SignFirmwareMismatch,
         SignLampPairFailure,
@@ -153,12 +154,25 @@ namespace DEV
         HARVoiceDataError,
         DisplayTimeoutError,
         BackupControllerUnavailable,
+        NotAllocated1E,
+        NotAllocated1F,
+        UnderLocalControl,
+        MainProcessorCommunicationsError,
+        MimicStateError,
+        SignMovedFromSetLocation,
+        CabinetDoorOpen,
+        SignTilted,
+        SignorientationChanged,
+        BatteryChargerRegulatorFault,
+        InternalPowerSupplyFault,
+        VibrationAlarm,
+        OperatingOnSecondaryPower,
         PreexistingOrReoccurringFaultExists = 0xFF
     };
 }
 namespace MULTI
 {
-    enum COLOUR
+    enum COLOUR:uint8_t
     {
         OFF,
         Red,
@@ -175,7 +189,7 @@ namespace MULTI
 
 namespace FRM
 {
-    enum COLOUR
+    enum COLOUR:uint8_t
     {
         Default = 0,
         Red,
@@ -195,7 +209,7 @@ namespace FRM
 
 namespace ANNULUS
 {
-    enum CODE
+    enum CODE:uint8_t
     {
         Off = 0,
         Flashing = 0x08,
@@ -205,7 +219,7 @@ namespace ANNULUS
 
 namespace CONSP
 {
-    enum CODE
+    enum CODE:uint8_t
     {
         Off = 0,
         UpDown,
@@ -218,7 +232,7 @@ namespace CONSP
 
 namespace SESR
 {
-    enum SIGN_TYPE
+    enum SIGN_TYPE:uint8_t
     {
         TEXT,
         GFX,
@@ -228,7 +242,7 @@ namespace SESR
 
 namespace SCR
 {
-    enum SIGN_TYPE
+    enum SIGN_TYPE:uint8_t
     {
         TEXT,
         GFXMONO,
@@ -239,7 +253,7 @@ namespace SCR
 
 namespace LOG
 {
-    enum TYPE
+    enum TYPE:uint8_t
     {
         FaultLog20 = 0,
         FaultLog500 = 0x0B,
@@ -250,7 +264,7 @@ namespace LOG
 
 namespace DISP_STATUS
 {
-    enum TYPE
+    enum TYPE:uint8_t
     {
         N_A,    // not available
         FRM,    // frame (0 should to be convert to plan)
@@ -317,7 +331,7 @@ namespace DISP_STATUS
 
 namespace DATALINK
 {
-    enum CTRL_CHAR
+    enum CTRL_CHAR:uint8_t
     {
         SOH = 1,
         STX = 2,
@@ -335,8 +349,8 @@ extern const char * TSISP003VER[TSISP003VER_SIZE];
 extern const char *PRODTYPE[PRODTYPE_SIZE];
 namespace CTRLLER_STATE
 {
-    enum FCLTSWITCH {FS_AUTO, FS_MSG1, FS_MSG2, FS_OFF=255};
-    enum EXTSWITCH {EXT_NONE, EXT_SW3, EXT_SW4, EXT_SW5};
-    enum DISPSTATE {DISP_NONE, DISP_FRM, DISP_MSG, DISP_PLN, DISP_FCLTSW, DISP_EXTSW, DISP_PWR_OFF, DISP_DISABLED};
+    enum FCLTSWITCH:uint8_t {FS_AUTO, FS_MSG1, FS_MSG2, FS_OFF=255};
+    enum EXTSWITCH:uint8_t {EXT_NONE, EXT_SW3, EXT_SW4, EXT_SW5};
+    enum DISPSTATE:uint8_t {DISP_NONE, DISP_FRM, DISP_MSG, DISP_PLN, DISP_FCLTSW, DISP_EXTSW, DISP_PWR_OFF, DISP_DISABLED};
 }
 

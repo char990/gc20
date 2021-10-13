@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <uci.h>
 #include <module/Utils.h>
@@ -12,16 +14,12 @@ using namespace Utils;
 UciFault::UciFault()
 {
     faultLog = new FaultLog[FAULT_LOG_ENTRIES];
-    for (int i = 0; i < FAULT_LOG_ENTRIES; i++)
-    {
-        faultLog[i].logTime = -1;
-    }
     lastLog = -1;
 }
 
 UciFault::~UciFault()
 {
-    delete [] faultLog;
+    delete[] faultLog;
 }
 
 void UciFault::LoadConfig()
@@ -33,11 +31,13 @@ void UciFault::LoadConfig()
     struct uci_section *uciSec = GetSection(SECTION);
     struct uci_element *e;
     struct uci_option *option;
-    uint8_t buf[FAULT_LOG_SIZE];
+    time_t t;
+    int id, entryNo, errorCode, onset, crc;
+    char *p;
 
     uci_foreach_element(&uciSec->options, e)
     {
-        if (memcmp(e->name, "flt_", 4) != 0)
+        if (memcmp(e->name, _Log, 4) != 0)
         {
             continue;
         }
@@ -47,38 +47,35 @@ void UciFault::LoadConfig()
         {
             continue;
         }
-        int len = strlen(option->v.string);
-        if (len != FAULT_LOG_SIZE ||
-            Cnvt::ParseToU8(option->v.string, buf, FAULT_LOG_SIZE) != 0 ||
-            Crc::Crc16_1021(buf, FAULT_LOG_SIZE - 2) != Cnvt::GetU16(buf + (FAULT_LOG_SIZE - 2)))
+        if ((p = strchr(option->v.string, '[')) == nullptr)
         {
             continue;
         }
-        uint8_t *p = &buf[0];
-        faultLog[i].logTime = Cnvt::GetU32(p);
-        p += 4;
-        faultLog[i].entryNo = *p++;
-        faultLog[i].errorCode = *p++;
-        faultLog[i].onset = *p++;
-    }
-
-    try
-    {
-        lastLog = GetInt(uciSec, _LastLog, 0, FAULT_LOG_ENTRIES - 1);
-    }
-    catch (...)
-    {
-        time_t t = 0;
-        for (int i = 0; i < FAULT_LOG_ENTRIES; i++)
+        if ((t = Cnvt::ParseLocalStrToTm(p + 1)) == -1)
         {
-            if (faultLog[i].logTime > t)
-            {
-                lastLog = i;
-                t = faultLog[i].logTime;
-            }
+            continue;
         }
+        if ((p = strchr(p, ']')) == nullptr)
+        {
+            continue;
+        }
+        if (sscanf(p, _Fmt, &id, &entryNo, &errorCode, &onset, &crc) != 5)
+        {
+            continue;
+        }
+        auto & log = faultLog[i];
+        log.id = id;
+        log.logTime = t;
+        log.entryNo = entryNo;
+        log.errorCode = errorCode;
+        log.onset = onset;
+        if (log.MakeCrc() != crc)
+        {
+            log.logTime = -1; // logTIme=-1 means log is invalid
+            continue;
+        }
+        lastLog = i;
     }
-
     Close();
 }
 
@@ -86,28 +83,30 @@ void UciFault::Dump()
 {
 }
 
-int UciFault::GetFaultLog003(uint8_t *dst)
+int UciFault::GetFaultLog20(uint8_t *dst)
 {
     if (lastLog < 0)
     {
-        return 0;
+        dst[0]=0;
+        return 1;
     }
     uint8_t *p = dst + 1;
     int cnt = 0;
-    int log = lastLog;
+    int logi = lastLog;
     for (int i = 0; i < FAULT_LOG_ENTRIES && cnt < 20; i++)
     {
-        if (faultLog[log].logTime >= 0)
+        auto &log = faultLog[logi];
+        if (log.logTime >= 0)
         {
-            *p++ = faultLog[log].id;
-            *p++ = faultLog[log].entryNo & 0xFF;
-            p = Cnvt::PutLocalTm(faultLog[log].logTime, p);
-            *p++ = faultLog[log].errorCode;
-            *p++ = faultLog[log].onset;
+            *p++ = log.id;
+            *p++ = log.entryNo & 0xFF;
+            p = Cnvt::PutLocalTm(log.logTime, p);
+            *p++ = log.errorCode;
+            *p++ = log.onset;
             cnt++;
-            if (--log < 0)
+            if (--logi < 0)
             {
-                log = FAULT_LOG_ENTRIES - 1;
+                logi = FAULT_LOG_ENTRIES - 1;
             }
         }
     }
@@ -119,69 +118,84 @@ int UciFault::GetLog(uint8_t *dst)
 {
     if (lastLog < 0)
     {
-        return 0;
+        dst[0]=0;
+        dst[1]=0;
+        return 2;
     }
     uint8_t *p = dst + 2;
     int cnt = 0;
-    int log = lastLog;
+    int logi = lastLog;
     for (int i = 0; i < FAULT_LOG_ENTRIES; i++)
     {
-        if (faultLog[log].logTime >= 0)
+        auto &log = faultLog[logi];
+        if (log.logTime >= 0)
         {
-            *p++ = faultLog[log].id;
-            p = Cnvt::PutU16(faultLog[log].entryNo, p);
-            p = Cnvt::PutLocalTm(faultLog[log].logTime, p);
-            *p++ = faultLog[log].errorCode;
-            *p++ = faultLog[log].onset;
+            *p++ = log.id;
+            p = Cnvt::PutU16(log.entryNo, p);
+            p = Cnvt::PutLocalTm(log.logTime, p);
+            *p++ = log.errorCode;
+            *p++ = log.onset;
             cnt++;
-            if (--log < 0)
+            if (--logi < 0)
             {
-                log = FAULT_LOG_ENTRIES - 1;
+                logi = FAULT_LOG_ENTRIES - 1;
             }
         }
     }
-    dst[0] = cnt / 0x100;
-    dst[1] = cnt & 0xFF;
+    Cnvt::PutU16(cnt, dst);
     return p - dst;
 }
 
-void UciFault::Push(uint8_t id, uint8_t errorCode, uint8_t onset)
+void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
 {
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
         entryNo = faultLog[lastLog].entryNo + 1;
     }
-    lastLog++;
-    if (lastLog >= FAULT_LOG_ENTRIES)
+    if (++lastLog >= FAULT_LOG_ENTRIES)
     {
         lastLog = 0;
     }
+    auto &log = faultLog[lastLog];
+    log.id = id;
+    log.entryNo = entryNo;
+    log.logTime = t;
+    log.errorCode = static_cast<uint8_t>(errorCode);
+    log.onset = onset;
+    log.MakeCrc();
 
-    faultLog[lastLog].id = id;
-    faultLog[lastLog].entryNo = entryNo;
-    time_t t;
-    faultLog[lastLog].logTime = t;
-    faultLog[lastLog].errorCode = errorCode;
-    faultLog[lastLog].onset = onset;
-
-    uint8_t buf[FAULT_LOG_SIZE];
-    uint8_t *p = &buf[0];
-    *p++ = id;
-    *p++ = entryNo;
-    p = Cnvt::PutU32(t, p);
-    *p++ = errorCode;
-    *p++ = onset;
-
-    uint16_t crc = Crc::Crc16_1021(buf, FAULT_LOG_SIZE - 2);
-    Cnvt::PutU16(crc, buf + (FAULT_LOG_SIZE - 2));
-
-    char v[FAULT_LOG_SIZE * 2 + 1];
-    Cnvt::ParseToStr(buf, v, FAULT_LOG_SIZE);
     char option[16];
-    sprintf(option, "flt_%d", lastLog);
-    OpenSaveClose(SECTION, option, v);
+    sprintf(option, "%s%d", _Log, lastLog);
 
-    sprintf(v, "%d", lastLog);
-    OpenSaveClose(SECTION, _LastLog, v);
+    char v[128];
+    v[0] = '[';
+    char *p = Cnvt::ParseTmToLocalStr(t, v + 1);
+    sprintf(p, _Fmt, id, entryNo, log.errorCode, onset, log.crc);
+
+    OpenSaveClose(SECTION, option, v);
+}
+
+void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset)
+{
+    Push(id, errorCode, onset, time(nullptr));
+}
+
+void UciFault::Reset()
+{
+    lastLog=-1;
+    for(int i=0;i<FAULT_LOG_ENTRIES;i++)
+    {
+        faultLog[i].logTime=-1;
+    }
+    char dst[256];
+    sprintf(dst, "%s/%s", PATH, PACKAGE);
+    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
+    if (dstfd < 0)
+    {
+        MyThrow("Can't open %s to write", dst);
+    }
+    int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
+    write(dstfd, &dst[0], len);
+    close(dstfd);
 }

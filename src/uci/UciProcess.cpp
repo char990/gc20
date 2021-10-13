@@ -11,6 +11,8 @@ UciProcess::UciProcess()
 {
 	grpProc = nullptr;
 	grpCnt = 0;
+	signErr = nullptr;
+	signCnt = 0;
 }
 
 UciProcess::~UciProcess()
@@ -19,26 +21,33 @@ UciProcess::~UciProcess()
 	{
 		delete[] grpProc;
 	}
+	if (signErr != nullptr)
+	{
+		delete[] signErr;
+	}
 }
 
 void UciProcess::LoadConfig()
 {
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
-	SECTION = &GroupX[0];
+	SECTION = &sectionBuf[0];
 	Open();
 	DbHelper &db = DbHelper::Instance();
-	grpCnt = db.GetUciProd().NumberOfGroups();
-	grpProc = new GrpProc[grpCnt];
 	char option[16];
 	int buf[255];
 	const char *str;
 	int d;
+	struct uci_section *uciSec;
+
+	/************************** GroupX *************************/
+	grpCnt = db.GetUciProd().NumberOfGroups();
+	grpProc = new GrpProc[grpCnt];
 	GrpProc *p;
 	for (int i = 1; i <= grpCnt; i++)
 	{
-		sprintf(GroupX, "Group%d", i);
-		struct uci_section *uciSec = GetSection(SECTION);
+		sprintf(sectionBuf, "%s%d", _Group, i);
+		uciSec = GetSection(SECTION);
 		p = GetGrpProc(i);
 		str = GetStr(uciSec, _EnabledPlan);
 		if (str != NULL)
@@ -72,6 +81,28 @@ void UciProcess::LoadConfig()
 		p->Device(d);
 	}
 
+	/************************** Ctrller *************************/
+	sprintf(sectionBuf, _Ctrller);
+	uciSec = GetSection(SECTION);
+	try
+	{
+		ReadBool32(uciSec, _CtrllerError, ctrllerErr);
+	}
+	catch (...){};
+
+	/************************** SignX *************************/
+	signCnt = db.GetUciProd().NumberOfSigns();
+	signErr = new Utils::Bool32[signCnt];
+	for (int i = 1; i <= signCnt; i++)
+	{
+		sprintf(sectionBuf, "%s%d", _Sign, i);
+		uciSec = GetSection(SECTION);
+		try
+		{
+			ReadBool32(uciSec, _SignError, signErr[i - 1]);
+		}
+		catch (...){};
+	}
 	Close();
 	Dump();
 }
@@ -83,22 +114,32 @@ void UciProcess::Dump()
 	char buf[1024];
 	for (int i = 1; i <= grpCnt; i++)
 	{
+		printf("\t%s%d:\n", _Group, i);
 		auto p = GetGrpProc(i);
 		PrintGrpPln(i, buf);
-		printf("\tGroup%d.%s \t'%s'\n", i, _EnabledPlan, buf);
+		printf("\t%s \t'%s'\n", _EnabledPlan, buf);
 		uint8_t *disp = p->ProcDisp();
 		if (*disp == 0)
 		{
-			printf("\tGroup%d.%s \t''\n", i, _Display);
+			printf("\t%s \t''\n", _Display);
 		}
 		else
 		{
 			Cnvt::ParseToStr(disp + 1, buf, *disp);
-			printf("\tGroup%d.%s \t'%s'\n", i, _Display, buf);
+			printf("\t%s \t'%s'\n", _Display, buf);
 		}
-		printf("\tGroup%d.%s \t'%d'\n", i, _Dimming, p->Dimming());
-		printf("\tGroup%d.%s \t'%d'\n", i, _Power, p->Power());
-		printf("\tGroup%d.%s \t'%d'\n", i, _Device, p->Device());
+		printf("\t%s \t'%d'\n", _Dimming, p->Dimming());
+		printf("\t%s \t'%d'\n", _Power, p->Power());
+		printf("\t%s \t'%d'\n", _Device, p->Device());
+	}
+
+	printf("\t%s:\n", _Ctrller);
+	PrintOption_str(_CtrllerError, ctrllerErr.ToString().c_str());
+
+	for (int i = 1; i <= signCnt; i++)
+	{
+		printf("\t%s%d:\n", _Sign, i);
+		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
 }
 
@@ -126,7 +167,7 @@ void UciProcess::SaveGrpPln(uint8_t gid)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	sprintf(GroupX, "Group%d", gid);
+	sprintf(sectionBuf, "%s%d", _Group, gid);
 	char buf[1024];
 	PrintGrpPln(gid, buf);
 	OpenSaveClose(SECTION, _EnabledPlan, buf);
@@ -168,7 +209,7 @@ void UciProcess::SetDisp(uint8_t gid, uint8_t *cmd, int len)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	sprintf(GroupX, "Group%d", gid);
+	sprintf(sectionBuf, "%s%d", _Group, gid);
 
 	grpProc[gid - 1].ProcDisp(cmd, len);
 
@@ -190,7 +231,7 @@ void UciProcess::SetDimming(uint8_t gid, uint8_t v)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	sprintf(GroupX, "Group%d", gid);
+	sprintf(sectionBuf, "%s%d", _Group, gid);
 	grpProc[gid - 1].Dimming(v);
 	OpenSaveClose(SECTION, _Dimming, v);
 }
@@ -204,7 +245,7 @@ void UciProcess::SetPower(uint8_t gid, uint8_t v)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	sprintf(GroupX, "Group%d", gid);
+	sprintf(sectionBuf, "%s%d", _Group, gid);
 	grpProc[gid - 1].Power(v);
 	OpenSaveClose(SECTION, _Power, v);
 }
@@ -218,7 +259,7 @@ void UciProcess::SetDevice(uint8_t gid, uint8_t v)
 {
 	if (gid == 0 || gid > grpCnt)
 		return;
-	sprintf(GroupX, "Group%d", gid);
+	sprintf(sectionBuf, "%s%d", _Group, gid);
 	grpProc[gid - 1].Device(v);
 	OpenSaveClose(SECTION, _Device, v);
 }
@@ -226,4 +267,19 @@ void UciProcess::SetDevice(uint8_t gid, uint8_t v)
 uint8_t UciProcess::GetDevice(uint8_t gid)
 {
 	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Device();
+}
+
+void UciProcess::SaveCtrllerErr(uint32_t v)
+{
+	ctrllerErr.Set(v);
+	OpenSaveClose(_Ctrller, _CtrllerError, ctrllerErr);
+}
+
+void UciProcess::SaveSignErr(uint8_t signId, uint32_t v)
+{
+	if (signId == 0 || signId > signCnt)
+		return;
+	signErr[signId - 1].Set(v);
+	sprintf(sectionBuf, "%s%d", _Sign, signId);
+	OpenSaveClose(SECTION, _SignError, signErr[signId - 1]);
 }

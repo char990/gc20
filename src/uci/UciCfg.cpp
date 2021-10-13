@@ -180,6 +180,21 @@ void UciCfg::OpenSaveClose(const char *section, struct OptChars **optval, int le
 	CloseSectionForSave();
 }
 */
+
+void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bool32 &bo)
+{
+	OpenSectionForSave(section);
+	OptionSave(option, bo.ToString().c_str());
+	CloseSectionForSave();
+}
+
+void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bool256 &bo)
+{
+	OpenSectionForSave(section);
+	OptionSave(option, bo.ToString().c_str());
+	CloseSectionForSave();
+}
+
 void UciCfg::SetByPtr()
 {
 	int r = uci_set(ctx, &ptrSecSave);
@@ -259,7 +274,7 @@ void UciCfg::PrintOption_str(const char * option, const char *str)
 	printf("\t%s \t'%s'\n", option, str);
 }
 
-void UciCfg::ReadBitOption(struct uci_section *uciSec, const char *option, Utils::BitOption &bo)
+void UciCfg::ReadBool32(struct uci_section *uciSec, const char *option, Utils::Bool32 &bo)
 {
     int ibuf[32];
     const char *str = GetStr(uciSec, option);

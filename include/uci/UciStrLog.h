@@ -4,26 +4,9 @@
 #include <uci/StrLog.h>
 
 /*
-E.g:
-Filename: "./config/UciEvent"
-Format: UCI
-
-The prefix of option should be same as section
-E.g.
-Section name is "evt", then option name is "evt_xxx" 
---- Start ---
-config UciEvent evt
-    # evt_xxx : xxx is event ID, 0-999
-    // data format
-    // uint8_t id
-    // uint16_t entryNo
-    // [local time string] : [31/12/2020 12:34:56]
+    # log_xxx : xxx is log ID
     // string, max length is 63
-    option evt_0  "............."
-
-    // option LastLog is the last log entry number
-    option LastLog "244"
---- End ---
+    option log_0  "[d/m/yyyy h:mm:ss]ID=%d, EntryNo=%d, Str=%s"
 */
 
 class UciStrLog : public UciLog
@@ -39,7 +22,13 @@ public:
     /// \brief  Push a string log into Log and save to Ucixxx
     virtual void Push(uint8_t id, const char *str);
 
+    void Reset();
+
 protected:
     StrLog *pStrLog;
     int maxEntries;
+    const char * _Log = "log_";
+    const char * _Fmt_1 =  "]ID=%d, EntryNo=%d, ";
+    const char * _Fmt_2 =  "Str=";
+    const char * _Fmt_3 =  "]ID=%d, EntryNo=%d, Str=%s";
 };

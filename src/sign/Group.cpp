@@ -90,6 +90,10 @@ Group::Group(uint8_t groupId)
     //PrintPlnMin();
     // TODO power
     // TODO Dimming
+    for (auto & s : vSigns)
+    {
+        s->SignErr(proc.SignErr(s->SignId())->Get());
+    }
 }
 
 Group::~Group()
@@ -1533,6 +1537,7 @@ bool Group::DimmingAdjust()
     }
     if (dimmingAdjTimer.IsExpired())
     {
+        // TODO auto dimming
         int tgt = (targetDimmingLvl == 0) ? 15 : targetDimmingLvl - 1; // 0-15
         int cur = (currentDimmingLvl - 1);                       // 0-15
         UciProd &prod = db.GetUciProd();
@@ -1562,9 +1567,10 @@ bool Group::DimmingAdjust()
             if(newdim!=setDimming)
             {
                 setDimming = newdim;
+                /*
                 PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d, setDimming=%d\n",
                         currentDimmingLvl, targetDimmingLvl, setDimming);
-                RqstExtStatus(0xFF);
+                */RqstExtStatus(0xFF);
                 r=true;
             }
         }

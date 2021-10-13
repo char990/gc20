@@ -297,7 +297,7 @@ void UciProd::LoadConfig()
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
 
-    ReadBitOption(uciSec, _Font, bFont);
+    ReadBool32(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
     {
         MyThrow("UciProd Error: Font : Default(0) is not enabled");
@@ -306,19 +306,19 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: Font : Only 0-5 allowed");
     }
-    ReadBitOption(uciSec, _Conspicuity, bConspicuity);
+    ReadBool32(uciSec, _Conspicuity, bConspicuity);
     if ((bConspicuity.Get() & 0xFFFFFFC0) != 0)
     {
         MyThrow("UciProd Error: Conspicuity : Only 0-5 allowed");
     }
-    ReadBitOption(uciSec, _Annulus, bAnnulus);
+    ReadBool32(uciSec, _Annulus, bAnnulus);
     if ((bAnnulus.Get() & 0xFFFFFFF8) != 0)
     {
         MyThrow("UciProd Error: Annulus : Only 0-2 allowed");
     }
-    ReadBitOption(uciSec, _TxtFrmColour, bTxtFrmColour);
-    ReadBitOption(uciSec, _GfxFrmColour, bGfxFrmColour);
-    ReadBitOption(uciSec, _HrgFrmColour, bHrgFrmColour);
+    ReadBool32(uciSec, _TxtFrmColour, bTxtFrmColour);
+    ReadBool32(uciSec, _GfxFrmColour, bGfxFrmColour);
+    ReadBool32(uciSec, _HrgFrmColour, bHrgFrmColour);
     // check colourLeds & b___FrmColour
 
     // Font0 'P5X7'
