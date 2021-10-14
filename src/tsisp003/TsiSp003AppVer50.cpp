@@ -1,7 +1,7 @@
 #include <tsisp003/TsiSp003AppVer50.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 
 TsiSp003AppVer50::TsiSp003AppVer50()
 {
@@ -66,7 +66,7 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     {
         Reject(APP::ERROR::SyntaxError);
     }
-    auto r = sch.CmdDispAtomicFrm(data, len);
+    auto r = ctrller.CmdDispAtomicFrm(data, len);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];

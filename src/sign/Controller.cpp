@@ -1,4 +1,4 @@
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 #include <sign/GroupVms.h>
 #include <sign/GroupIslus.h>
 #include <uci/DbHelper.h>
@@ -6,11 +6,11 @@
 #include <sign/SignGfx.h>
 #include <sign/SignAdg.h>
 
-Scheduler::Scheduler()
+Controller::Controller()
 {
 }
 
-Scheduler::~Scheduler()
+Controller::~Controller()
 {
     if (groups != nullptr)
     {
@@ -26,11 +26,11 @@ Scheduler::~Scheduler()
     }
 }
 
-void Scheduler::Init(TimerEvent *tmrEvt_)
+void Controller::Init(TimerEvent *tmrEvt_)
 {
     if (tmrEvt != nullptr)
     {
-        MyThrow("Re-invoke Scheduler::Init()");
+        MyThrow("Re-invoke Controller::Init()");
     }
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
@@ -57,7 +57,7 @@ void Scheduler::Init(TimerEvent *tmrEvt_)
     }
 }
 
-void Scheduler::PeriodicRun()
+void Controller::PeriodicRun()
 { // run every 10ms
     if (displayTimeout.IsExpired())
     {
@@ -75,23 +75,23 @@ void Scheduler::PeriodicRun()
     }
 }
 
-void Scheduler::RefreshDispTime()
+void Controller::RefreshDispTime()
 {
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms * 1000);
 }
 
-void Scheduler::SessionLed(uint8_t v)
+void Controller::SessionLed(uint8_t v)
 {
     sessionLed = v;
 }
 
-uint8_t Scheduler::CtrllerErr()
+uint8_t Controller::CtrllerErr()
 {
     return ctrllerErr;
 }
 
-bool Scheduler::IsFrmActive(uint8_t id)
+bool Controller::IsFrmActive(uint8_t id)
 {
     if (id > 0)
     {
@@ -106,7 +106,7 @@ bool Scheduler::IsFrmActive(uint8_t id)
     return false;
 }
 
-bool Scheduler::IsMsgActive(uint8_t id)
+bool Controller::IsMsgActive(uint8_t id)
 {
     if (id > 0)
     {
@@ -121,7 +121,7 @@ bool Scheduler::IsMsgActive(uint8_t id)
     return false;
 }
 
-bool Scheduler::IsPlnActive(uint8_t id)
+bool Controller::IsPlnActive(uint8_t id)
 {
     if (id > 0)
     {
@@ -136,28 +136,44 @@ bool Scheduler::IsPlnActive(uint8_t id)
     return false;
 }
 
-APP::ERROR Scheduler::CmdSystemReset(uint8_t *cmd)
+APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
 {
     auto grpId = cmd[1];
+    auto lvl = cmd[2];
     if (grpId > groupCnt)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
     {
-        GetGroup(grpId)->SystemReset(cmd[2]);
+        GetGroup(grpId)->SystemReset(lvl);
     }
     else
     {
         for (int i = 1; i <= groupCnt; i++)
         {
-            GetGroup(i)->SystemReset(cmd[2]);
+            GetGroup(i)->SystemReset(lvl);
+        }
+        auto & db = DbHelper::Instance();
+        if(lvl>=2)
+        {
+            db.GetUciFault().Reset();
+        }
+        if(lvl>=3)
+        {
+            db.GetUciFrm().Reset();
+            db.GetUciMsg().Reset();
+            db.GetUciPln().Reset();
+        }
+        if(lvl==255)
+        {
+            
         }
     }
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
+APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t frmId = cmd[2];
@@ -175,11 +191,11 @@ APP::ERROR Scheduler::CmdDispFrm(uint8_t *cmd)
     return GetGroup(grpId)->DispFrm(frmId);
 }
 
-APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
+APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t msgId = cmd[2];
-    if (grpId == 0 || grpId > Scheduler::Instance().GroupCnt())
+    if (grpId == 0 || grpId > Controller::Instance().GroupCnt())
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
@@ -194,7 +210,7 @@ APP::ERROR Scheduler::CmdDispMsg(uint8_t *cmd)
     return GetGroup(grpId)->DispMsg(msgId);
 }
 
-APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
     uint8_t grpId = cmd[1];
     if (grpId == 0 || grpId > groupCnt)
@@ -204,7 +220,7 @@ APP::ERROR Scheduler::CmdDispAtomicFrm(uint8_t *cmd, int len)
     return GetGroup(grpId)->DispAtomicFrm(cmd);
 }
 
-APP::ERROR Scheduler::CmdEnDisPlan(uint8_t *cmd)
+APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
@@ -224,7 +240,7 @@ APP::ERROR Scheduler::CmdEnDisPlan(uint8_t *cmd)
     return r;
 }
 
-APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
+APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -261,7 +277,7 @@ APP::ERROR Scheduler::CmdSetDimmingLevel(uint8_t *cmd)
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -295,7 +311,7 @@ APP::ERROR Scheduler::CmdPowerOnOff(uint8_t *cmd, int len)
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -329,7 +345,7 @@ APP::ERROR Scheduler::CmdDisableEnableDevice(uint8_t *cmd, int len)
     return APP::ERROR::AppNoError;
 }
 
-int Scheduler::CmdRequestEnabledPlans(uint8_t *txbuf)
+int Controller::CmdRequestEnabledPlans(uint8_t *txbuf)
 {
     txbuf[0] = MI::CODE::ReportEnabledPlans;
     uint8_t *p = &txbuf[2];

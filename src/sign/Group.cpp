@@ -1615,4 +1615,7 @@ void Group::SystemReset1()
 
 void Group::SystemReset2()
 {
+    // TODO reset all faults
+    
+    // TODO uciprocess
 }

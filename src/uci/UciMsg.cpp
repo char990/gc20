@@ -30,21 +30,23 @@ void UciMsg::LoadConfig()
 
 	Message msg;
 	uint8_t b[MSG_LEN_MAX + MSG_TAIL];
+	int i;
 	uci_foreach_element(&uciSec->options, e)
 	{
-		if (memcmp(e->name, "msg_", 4) != 0)
-			continue;
-		struct uci_option *option = uci_to_option(e);
-		int i = atoi(e->name + 4);
-		if (i < 1 || i > 255 || option->type != uci_option_type::UCI_TYPE_STRING)
-			continue;
-		int len = strlen(option->v.string);
-		if (Cnvt::ParseToU8(option->v.string, b, len) == 0)
+		if (sscanf(e->name, _Option, &i) == 1)
 		{
-			len/=2;
-			if (Crc::Crc16_1021(b, len - MSG_TAIL) == Cnvt::GetU16(b + len - MSG_TAIL))
+			option = uci_to_option(e);
+			if (i >= 1 && i <= 255 && option->type != uci_option_type::UCI_TYPE_STRING)
 			{
-				SetMsg(b, len);
+				int len = strlen(option->v.string);
+				if (Cnvt::ParseToU8(option->v.string, b, len) == 0)
+				{
+					len /= 2;
+					if (Crc::Crc16_1021(b, len - MSG_TAIL) == Cnvt::GetU16(b + len - MSG_TAIL))
+					{
+						SetMsg(b, len);
+					}
+				}
 			}
 		}
 	}
@@ -54,13 +56,13 @@ void UciMsg::LoadConfig()
 
 void UciMsg::Dump()
 {
-    PrintDash();
+	PrintDash();
 	printf("%s/%s\n", PATH, PACKAGE);
-	for (int i = 1; i <= 255; i++)
+	for (int i = 0; i < 255; i++)
 	{
 		if (IsMsgDefined(i))
 		{
-			printf("\t%s\n", msgs[i - 1].ToString().c_str());
+			printf("\t%s\n", msgs[i].ToString().c_str());
 		}
 	}
 }
@@ -77,7 +79,7 @@ bool UciMsg::IsMsgDefined(uint8_t i)
 
 Message *UciMsg::GetMsg(uint8_t i)
 {
-	return  IsMsgDefined(i) ? &msgs[i - 1] : nullptr;
+	return IsMsgDefined(i) ? &msgs[i - 1] : nullptr;
 }
 
 uint8_t UciMsg::GetMsgRev(uint8_t i)
@@ -92,7 +94,7 @@ APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
 	if (r == APP::ERROR::AppNoError)
 	{
 		int i = msg.msgId - 1;
-		if(msgs[i].micode !=0)
+		if (msgs[i].micode != 0)
 		{
 			chksum -= msgs[i].crc;
 		}
@@ -107,11 +109,20 @@ void UciMsg::SaveMsg(uint8_t i)
 	if (!IsMsgDefined(i))
 		return;
 	char option[8];
-	sprintf(option, "msg_%d", i);
+	sprintf(option, _Option, i);
 	i--;
 	uint8_t a[MSG_LEN_MAX + MSG_TAIL];
 	int len = msgs[i].ToArray(a);
 	char v[(MSG_LEN_MAX + MSG_TAIL) * 2 + 1];
 	Cnvt::ParseToStr(a, v, len);
 	OpenSaveClose(SECTION, option, v);
+}
+
+void UciMsg::Reset()
+{
+	for (int i = 0; i < 255; i++)
+	{
+		msgs[i].micode = 0;
+	}
+	UciCfg::ClrSECTION();
 }

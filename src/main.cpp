@@ -22,7 +22,7 @@
 #include <layer/SLV_LayerManager.h>
 
 #include <layer/StatusLed.h>
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 #include <module/Utils.h>
 #include <module/DS3231.h>
 
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
         DbHelper::Instance().Init(argv[1]);
         UciProd & prod = DbHelper::Instance().GetUciProd();
         UciUser & user = DbHelper::Instance().GetUciUser();
-        Scheduler::Instance().Init(&timerEvt10ms);
+        Controller::Instance().Init(&timerEvt10ms);
         LogResetTime();
         //AllGroupPowerOn();
 
@@ -156,11 +156,11 @@ int main(int argc, char *argv[])
             { // com port
                 if (oprSp[cn->com_ip] == nullptr)
                 {
-                    for (uint8_t g = 1; g <= Scheduler::Instance().GroupCnt(); g++)
+                    for (uint8_t g = 1; g <= Controller::Instance().GroupCnt(); g++)
                     {
-                        if (Scheduler::Instance().GetGroup(g)->IsSignInGroup(i))
+                        if (Controller::Instance().GetGroup(g)->IsSignInGroup(i))
                         {
-                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn->com_ip].name, Scheduler::Instance().GetGroup(g));
+                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn->com_ip].name, Controller::Instance().GetGroup(g));
                             oprSp[cn->com_ip] = new OprSp{(uint8_t)cn->com_ip, cn->bps_port, upperLayer};
                         }
                     }

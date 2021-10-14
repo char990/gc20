@@ -55,6 +55,9 @@ public:
     /// \param  i: frm id
     void SaveFrm(uint8_t i);
 
+
+    void Reset();
+    
 private:
     const char * PATH;
     int maxFrmSize{0};

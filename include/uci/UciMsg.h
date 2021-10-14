@@ -56,8 +56,11 @@ public:
     /// \param  i: msgs index
     void SaveMsg(uint8_t i);
 
+    void Reset();
+    
 private:
     Message *msgs;  // 255 msgs
     uint16_t chksum;
+    const char * _Option = "msg_%d";
 };
 

@@ -10,14 +10,14 @@
 #include <sign/Group.h>
 #include <tsisp003/TsiSp003Const.h>
 
-class Scheduler : public IPeriodicRun
+class Controller : public IPeriodicRun
 {
 public:
-    Scheduler(Scheduler const &) = delete;
-    void operator=(Scheduler const &) = delete;
-    static Scheduler &Instance()
+    Controller(Controller const &) = delete;
+    void operator=(Controller const &) = delete;
+    static Controller &Instance()
     {
-        static Scheduler instance;
+        static Controller instance;
         return instance;
     }
 
@@ -56,8 +56,8 @@ public:
     APP::ERROR CmdSystemReset(uint8_t *cmd);
 
 private:
-    Scheduler();
-    ~Scheduler();
+    Controller();
+    ~Controller();
 
     Group **groups{nullptr};
 

@@ -185,3 +185,18 @@ void UciFrm::SaveFrm(uint8_t i)
 	}
 	delete v;
 }
+
+void UciFrm::Reset()
+{
+	for (int i = 0; i < 255; i++)
+	{
+		if(frms[i]!=nullptr)
+		{
+			delete frms[i];
+			frms[i]=nullptr;
+		}
+	}
+	char buf[256];
+	snprintf(buf, 255, "rm %s/frm*", PATH);
+	system(buf);
+}

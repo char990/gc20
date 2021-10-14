@@ -1,5 +1,5 @@
 #include <tsisp003/TsiSp003App.h>
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 #include <module/DS3231.h>
 
 extern DS3231 * pDS3231;
@@ -7,7 +7,7 @@ using namespace Utils;
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
-      sch(Scheduler::Instance())
+      ctrller(Controller::Instance())
 {
 }
 
@@ -137,7 +137,7 @@ bool TsiSp003App::CheckOlineReject()
         Reject(APP::ERROR::DeviceControllerOffline);
         return false;
     }
-    sch.RefreshDispTime();
+    ctrller.RefreshDispTime();
     return true;
 }
 

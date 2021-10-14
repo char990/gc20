@@ -63,9 +63,12 @@ public:
     /// \param  i: plns index
     void SavePln(uint8_t i);
 
+    void Reset();
+
 private:
     Plan *plns;  // 255 plans
     uint16_t chksum;
+    const char * _Option = "pln_%d";
 };
 
 

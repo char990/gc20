@@ -3,7 +3,7 @@
 #include <tsisp003/TsiSp003AppVer21.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 #include <module/Utils.h>
 
 using namespace Utils;
@@ -110,15 +110,15 @@ void TsiSp003AppVer21::SignStatusReply()
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16 >> 8;
     txbuf[11] = i16 & 0xff;
-    txbuf[12] = sch.CtrllerErr();
+    txbuf[12] = ctrller.CtrllerErr();
     int scnt = db.GetUciProd().NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
     for (int j = 1; j <= scnt; j++)
     {
-        for (int i = 1; i <= sch.GroupCnt(); i++)
+        for (int i = 1; i <= ctrller.GroupCnt(); i++)
         {
-            auto sign = sch.GetGroup(i)->GetSign(j);
+            auto sign = ctrller.GetGroup(i)->GetSign(j);
             if (sign != nullptr)
             {
                 p = sign->GetStatus(p);
@@ -143,7 +143,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
         Reject(APP::ERROR::SyntaxError);
         return;
     }
-    auto r = sch.CmdSystemReset(data);
+    auto r = ctrller.CmdSystemReset(data);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -165,7 +165,7 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
-    else if (sch.IsFrmActive(id))
+    else if (ctrller.IsFrmActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
@@ -213,7 +213,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdDispFrm(data);
+    auto r = ctrller.CmdDispFrm(data);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -243,7 +243,7 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     {
         r = APP::ERROR::LengthError;
     }
-    else if (sch.IsMsgActive(id))
+    else if (ctrller.IsMsgActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
@@ -293,7 +293,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdDispMsg(data);
+    auto r = ctrller.CmdDispMsg(data);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -323,7 +323,7 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     {
         r = APP::ERROR::LengthError;
     }
-    else if (sch.IsPlnActive(id))
+    else if (ctrller.IsPlnActive(id))
     {
         r = APP::ERROR::FrmMsgPlnActive;
     }
@@ -349,7 +349,7 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdEnDisPlan(data);
+    auto r = ctrller.CmdEnDisPlan(data);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -370,7 +370,7 @@ void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
     {
         return;
     }
-    int bytes = sch.CmdRequestEnabledPlans(txbuf);
+    int bytes = ctrller.CmdRequestEnabledPlans(txbuf);
     Tx(txbuf, bytes);
 }
 
@@ -384,7 +384,7 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdSetDimmingLevel(data);
+    auto r = ctrller.CmdSetDimmingLevel(data);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -414,7 +414,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdPowerOnOff(data, len);
+    auto r = ctrller.CmdPowerOnOff(data, len);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -444,7 +444,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
     {
         return;
     }
-    auto r = sch.CmdDisableEnableDevice(data, len);
+    auto r = ctrller.CmdDisableEnableDevice(data, len);
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
@@ -534,15 +534,15 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     UciProd &prod = db.GetUciProd();
     memcpy(txbuf + 3, prod.MfcCode(), 10);
     Time2Buf(txbuf + 13);
-    txbuf[20] = sch.CtrllerErr();
+    txbuf[20] = ctrller.CtrllerErr();
     int scnt = prod.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];
     for (int j = 1; j <= scnt; j++)
     {
-        for (int i = 1; i <= sch.GroupCnt(); i++)
+        for (int i = 1; i <= ctrller.GroupCnt(); i++)
         {
-            auto sign = sch.GetGroup(i)->GetSign(j);
+            auto sign = ctrller.GetGroup(i)->GetSign(j);
             if (sign != nullptr)
             {
                 p = sign->GetExtStatus(p);

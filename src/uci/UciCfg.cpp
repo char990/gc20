@@ -2,7 +2,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-
+#include <fcntl.h>
+#include <unistd.h>
 #include <uci/UciCfg.h>
 #include <uci/DbHelper.h>
 #include <module/MyDbg.h>
@@ -309,4 +310,17 @@ int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, cons
 	return 0; // avoid warning
 }
 
-
+void UciCfg::ClrSECTION()
+{
+    char dst[256];
+    sprintf(dst, "%s/%s", PATH, PACKAGE);
+    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
+    if (dstfd < 0)
+    {
+        MyThrow("Can't open %s to write", dst);
+    }
+    int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
+    write(dstfd, &dst[0], len);
+    fsync(dstfd);
+    close(dstfd);
+}

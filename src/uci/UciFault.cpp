@@ -1,8 +1,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
-#include <fcntl.h>
-#include <unistd.h>
+
 
 #include <uci.h>
 #include <module/Utils.h>
@@ -148,6 +147,10 @@ int UciFault::GetLog(uint8_t *dst)
 
 void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
 {
+    if(t<0)
+    {
+        return;
+    }
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
@@ -188,15 +191,5 @@ void UciFault::Reset()
     {
         faultLog[i].logTime=-1;
     }
-    char dst[256];
-    sprintf(dst, "%s/%s", PATH, PACKAGE);
-    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
-    if (dstfd < 0)
-    {
-        MyThrow("Can't open %s to write", dst);
-    }
-    int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
-    write(dstfd, &dst[0], len);
-    fsync(dstfd);
-    close(dstfd);
+    UciCfg::ClrSECTION();
 }

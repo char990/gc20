@@ -3,7 +3,7 @@
 #include <tsisp003/TsiSp003AppVer31.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
-#include <sign/Scheduler.h>
+#include <sign/Controller.h>
 #include <module/Utils.h>
 
 using namespace Utils;

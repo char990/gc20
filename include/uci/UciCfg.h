@@ -45,6 +45,9 @@ protected:
 	/// section name name
     const char * SECTION;
 
+	// clear Uci File and Only left empty SECTION (Only one section)
+	virtual void ClrSECTION();
+	
 	/// \brief	Open a package, context=>ctx, package=>pkg
 	/// \throw	If can't load path/package
 	void Open();
