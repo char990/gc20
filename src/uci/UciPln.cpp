@@ -35,7 +35,7 @@ void UciPln::LoadConfig()
         if (sscanf(e->name, _Option, &i) == 1)
         {
             option = uci_to_option(e);
-            if (i >= 1 && i <= 255 && option->type != uci_option_type::UCI_TYPE_STRING)
+            if (i >= 1 && i <= 255 && option->type == uci_option_type::UCI_TYPE_STRING)
             {
                 int len = strlen(option->v.string);
                 if (Cnvt::ParseToU8(option->v.string, b, len) == 0)

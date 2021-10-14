@@ -12,6 +12,8 @@ public:
     bool IsChanged() { return isChanged; };
     void ClearChangeFlag() { isChanged = false; };
 
+    void Reset();
+    
     EXT_STATE Get() { return state; };
 
 private:

@@ -4,10 +4,7 @@
 #include <module/Utils.h>
 
 Sign::Sign(uint8_t id)
-    : signId(id),
-      dimmingSet(0), dimmingV(1),
-      deviceSet(1), deviceV(1),
-      reportFrm(0), reportMsg(0), reportPln(0)
+    : signId(id)
 {
     UciProd & prod = DbHelper::Instance().GetUciProd();
     dbcLight.SetCNT(prod.LightSensorFaultDebounce());
@@ -50,13 +47,13 @@ uint8_t *Sign::GetStatus(uint8_t *p)
     DbHelper & db = DbHelper::Instance();
     *p++ = signId;
     *p++ = static_cast<uint8_t>(signErr.GetErrorCode());
-    *p++ = deviceV;
+    *p++ = device;
     *p++ = reportFrm;
     *p++ = db.GetUciFrm().GetFrmRev(reportFrm);
     *p++ = reportMsg;
-    *p++ = db.GetUciMsg().GetMsgRev(reportFrm);
+    *p++ = db.GetUciMsg().GetMsgRev(reportMsg);
     *p++ = reportPln;
-    *p++ = db.GetUciPln().GetPlnRev(reportFrm);
+    *p++ = db.GetUciPln().GetPlnRev(reportPln);
     return p;
 }
 

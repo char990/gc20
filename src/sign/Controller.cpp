@@ -35,8 +35,18 @@ void Controller::Init(TimerEvent *tmrEvt_)
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
 
-    displayTimeout.Clear();
     ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr().Get());
+    long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
+    if(ms == 0)
+    {
+        displayTimeout.Clear();
+        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
+    }
+    else
+    {
+        displayTimeout.Setms(ms * 1000);
+    }
+
     UciProd &prod = DbHelper::Instance().GetUciProd();
     groupCnt = prod.NumberOfGroups();
     groups = new Group *[groupCnt];
@@ -63,6 +73,7 @@ void Controller::PeriodicRun()
     {
         // log
         displayTimeout.Clear();
+        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
         for (int i = 0; i < groupCnt; i++)
         {
             groups[i]->DispFrm(0);
@@ -79,16 +90,12 @@ void Controller::RefreshDispTime()
 {
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms * 1000);
+    ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
 }
 
 void Controller::SessionLed(uint8_t v)
 {
     sessionLed = v;
-}
-
-uint8_t Controller::CtrllerErr()
-{
-    return ctrllerErr;
 }
 
 bool Controller::IsFrmActive(uint8_t id)
@@ -154,20 +161,19 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         {
             GetGroup(i)->SystemReset(lvl);
         }
-        auto & db = DbHelper::Instance();
-        if(lvl>=2)
+        auto &db = DbHelper::Instance();
+        if (lvl >= 2)
         {
             db.GetUciFault().Reset();
         }
-        if(lvl>=3)
+        if (lvl >= 3)
         {
             db.GetUciFrm().Reset();
             db.GetUciMsg().Reset();
             db.GetUciPln().Reset();
         }
-        if(lvl==255)
+        if (lvl == 255)
         {
-            
         }
     }
     return APP::ERROR::AppNoError;
@@ -328,7 +334,7 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
 
     for (int i = 0; i < entry; i++)
     {
-        uint8_t d = (p[1] == 0);
+        uint8_t d = (p[1] == 0) ? 0 : 1;
         if (p[0] == 0)
         {
             for (int i = 1; i <= groupCnt; i++)

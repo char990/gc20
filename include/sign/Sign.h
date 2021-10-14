@@ -32,13 +32,10 @@ public:
     void SignErr(uint32_t v) { signErr.SetV(v); };
     void DimmingSet(uint8_t v) { dimmingSet = v; };
     void DimmingV(uint8_t v) { dimmingV = v; };
-    void Device(uint8_t v) { deviceSet = v; };
+    void Device(uint8_t v) { device = v; };
 
     // get
     SignError & SignErr() { return signErr; };
-    uint8_t DimmingSet() { return dimmingV; };
-    uint8_t DimmingV() { return dimmingV; };
-    uint8_t Device() { return deviceV; };
     uint8_t SignTiles() { return vsSlaves.size()*Slave::numberOfTiles; };
 
     uint8_t * LedStatus(uint8_t * p);
@@ -72,7 +69,7 @@ protected:
     uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
     uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
 
-    uint8_t deviceSet{1}, deviceV{1};
+    uint8_t device{1};
 
     uint8_t reportPln{0}, reportMsg{0}, reportFrm{0};
 

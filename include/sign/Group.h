@@ -146,15 +146,7 @@ private:
 
     uint8_t readyToLoad{1}, newCurrent{0};
 
-    enum
-    {
-        DEV_DIS = 0,
-        DEV_EN = 1,
-        DEV_WAIT = 2
-    };
-    uint8_t
-        devSet, // DEV_DIS/DEV_EN
-        devCur; // DEV_WAIT: dev set as disabled, but blank not sent out
+    uint8_t devSet, devCur;
 
     // group status
     enum PWR_STATE
@@ -164,13 +156,13 @@ private:
         RISING
     };
     PWR_STATE power;
+    void GoPowerOn();
+    void GoPowerOff();
 
     // for Display command except for ATF
     void DispNext(DISP_STATUS::TYPE type, uint8_t id);
 
     void DispBackup();
-
-    void SignSetPower(uint8_t v);
 
     BootTimer pwrUpTmr;
 
@@ -274,7 +266,7 @@ private:
         rqstStCnt=0;
         rqstExtStCnt=0;
         rqstNoRplCnt=0;
-        taskRqstSlaveTmr.Setms(0);
+        //taskRqstSlaveTmr.Setms(0);
     }
 
     void GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t onDispPlnId);

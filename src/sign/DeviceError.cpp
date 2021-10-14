@@ -82,8 +82,8 @@ bool SignError::Push(uint8_t sid, DEV::ERROR code, bool v)
 
 /***************** CtrllerError *****************/
 const DEV::ERROR CtrllerError::ctrllerErr[9] = {
-    DEV::ERROR::DisplayTimeoutError,
     DEV::ERROR::CommunicationsTimeoutError,
+    DEV::ERROR::DisplayTimeoutError,
     DEV::ERROR::EquipmentOverTemperature,
     DEV::ERROR::ControllerResetViaWatchdog,
     DEV::ERROR::BatteryLow,

@@ -39,7 +39,7 @@ private:
     uint8_t seed;
 
     /// \brief Session timeout timer
-    BootTimer sessionTimeout;
+    static BootTimer sessionTimeout;
 
     /// \brief protocol fields 
     uint8_t _addr;

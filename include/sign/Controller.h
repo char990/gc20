@@ -55,6 +55,8 @@ public:
 
     APP::ERROR CmdSystemReset(uint8_t *cmd);
 
+    CtrllerError ctrllerError;
+
 private:
     Controller();
     ~Controller();
@@ -68,8 +70,6 @@ private:
 
     uint8_t
         sessionLed{0},
-        ctrllerErr{0},
         groupCnt{0};
 
-    CtrllerError ctrllerError;
 };

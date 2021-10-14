@@ -79,7 +79,8 @@ Group::Group(uint8_t groupId)
     // load process
     auto &proc = db.GetUciProcess();
     devSet = proc.GetDevice(groupId);
-    devCur = devSet;
+    devCur = !devSet;
+
     for (int i = 1; i <= 255; i++)
     {
         if (proc.IsPlanEnabled(groupId, i))
@@ -118,37 +119,12 @@ void Group::PeriodicRun()
 {
 #if 0
     // components PeriodicRun
-    fcltSw.PeriodicRun();
-    extInput.PeriodicRun();
-
-    if (fcltSw.IsChanged())
-    {
-        FcltSwitchFunc();
-        fcltSw.ClearChangeFlag();
-    }
-    else
-    {
-        if (FacilitySwitch::FS_STATE::OFF != fcltSw.Get())
-        {
-            if (power == PWR_STATE::RISING)
-            {
-                if (pwrUpTmr.IsExpired())
-                {
-                    power = PWR_STATE::ON;
-                    SignSetPower(1);
-                    // TODO reset sign
-                }
-            }
-            if (power == PWR_STATE::ON &&
-                FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
-            {
-                ExtInputFunc();
-            }
-        }
-    }
+    FcltSwitchFunc();
+    ExtInputFunc();
 #endif
 
-    if (!IsBusFree())
+    // TODO power function
+    if (/*power == PWR_STATE::OFF || */ !IsBusFree())
     {
         return;
     }
@@ -159,15 +135,15 @@ void Group::PeriodicRun()
     }
     if (readyToLoad)
     {
-        if (devSet == DEV_DIS && devCur == DEV_EN)
+        if (devSet != devCur)
         {
-            devCur = DEV_DIS;
-            // TODO send blank
-        }
-        else if (devSet == DEV_EN && devCur == DEV_DIS)
-        {
-            devCur = DEV_DIS;
-            // TODO reload
+            TaskMsgReset();
+            TaskFrmReset();
+            devCur = devSet;
+            for (auto &s : vSigns)
+            {
+                s->Device(devCur);
+            }
         }
         newCurrent = LoadDsNext(); // current->bak and next/fs/ext->current
     }
@@ -182,43 +158,69 @@ void Group::PeriodicRun()
 
 void Group::FcltSwitchFunc()
 {
+    fcltSw.PeriodicRun();
     FacilitySwitch::FS_STATE fs = fcltSw.Get();
-    if (fs == FacilitySwitch::FS_STATE::OFF)
+    if (fcltSw.IsChanged())
     {
-        // PowerOutput(0);
-        SetPower(0);
-        // reset signs
-    }
-    else
-    {
-        if (power == PWR_STATE::OFF)
+        fcltSw.ClearChangeFlag();
+        if (fs == FacilitySwitch::FS_STATE::OFF)
         {
-            //PowerOutput(1);
-            SetPower(1);
-        }
-        if (fs == FacilitySwitch::FS_STATE::AUTO)
-        {
-            DispNext(DISP_STATUS::TYPE::FRM, 0);
+            if (power != PWR_STATE::OFF)
+            {
+                GoPowerOff();
+            }
         }
         else
         {
-            uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-            DispNext(DISP_STATUS::TYPE::FSW, msg);
+            if (power == PWR_STATE::OFF)
+            {
+                GoPowerOn();
+                if (fs == FacilitySwitch::FS_STATE::AUTO)
+                {
+                    DispNext(DISP_STATUS::TYPE::FRM, 0);
+                }
+                else
+                {
+                    uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                    DispNext(DISP_STATUS::TYPE::FSW, msg);
+                }
+            }
+        }
+    }
+    else
+    {
+        if (FacilitySwitch::FS_STATE::OFF != fs)
+        {
+            if (power == PWR_STATE::RISING)
+            {
+                if (pwrUpTmr.IsExpired())
+                {
+                    power = PWR_STATE::ON;
+                    extInput.Reset();
+                    // TODO reset sign
+                }
+            }
         }
     }
 }
 
 void Group::ExtInputFunc()
 {
-    if (extInput.IsChanged())
+    if (power == PWR_STATE::ON && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
-        uint8_t msg = 0;
-        if ((dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
-            (dsExt->dispType != DISP_STATUS::TYPE::EXT))
+        extInput.PeriodicRun();
+        if (extInput.IsChanged())
         {
-            DispNext(DISP_STATUS::TYPE::EXT, msg);
+            extInput.ClearChangeFlag();
+            uint8_t msg = 0; // TODO get msg number, start/reload timer
+
+
+            if ((dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
+                (dsExt->dispType != DISP_STATUS::TYPE::EXT))
+            {
+                DispNext(DISP_STATUS::TYPE::EXT, msg);
+            }
         }
-        extInput.ClearChangeFlag();
     }
 }
 
@@ -266,7 +268,7 @@ bool Group::TaskPln(int *_ptLine)
                     if (pln == nullptr)
                     {
                         readyToLoad = 0;
-                        // TODO log: want to plan but undefined
+                        // TODO log: start plan but undefined
                         return false;
                     }
                     for (int i = 0; i < pln->entries; i++)
@@ -275,7 +277,7 @@ bool Group::TaskPln(int *_ptLine)
                         {
                             activeFrm.Set(pln->plnEntries[i].fmId);
                         }
-                        else// if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
+                        else // if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
                         {
                             SetActiveMsg(pln->plnEntries[i].fmId);
                         }
@@ -324,7 +326,6 @@ PlnMinute &Group::GetCurrentMinPln()
     return plnMin[(stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min];
 }
 
-// TODO
 bool Group::TaskMsg(int *_ptLine)
 {
     uint8_t nextEntry; // temp using
@@ -428,7 +429,11 @@ bool Group::TaskMsg(int *_ptLine)
                 // msg loop begin
                 do
                 {
-                    readyToLoad = 0; // when a msg begin, clear readyToLoad
+                    if(devCur)
+                    {
+                        readyToLoad = 0; // when a msg begin, clear readyToLoad
+                    }
+                    
                     if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run DispFrm
                         GroupSetReportDisp(pMsg->msgEntries[msgEntryCnt].frmId, onDispMsgId, onDispPlnId);
@@ -834,7 +839,6 @@ void Group::GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t
     }
 }
 
-// TODO
 bool Group::IsEnPlanOverlap(uint8_t id)
 {
     Plan *pln = db.GetUciPln().GetPln(id);
@@ -1117,49 +1121,45 @@ APP::ERROR Group::SetPower(uint8_t v)
 {
     if (v == 0)
     {
-        // TODO set power off
-        power = PWR_STATE::OFF;
+        GoPowerOff();
         db.GetUciProcess().SetPower(groupId, 0);
-        dsBak->Frm0();
-        dsCurrent->Frm0();
-        dsNext->Frm0();
-        dsExt->N_A();
-        for (auto &sign : vSigns)
-        {
-            sign->Reset();
-        }
     }
     else
     {
-        // TODO set power on
         if (power == PWR_STATE::OFF)
         {
-            pwrUpTmr.Setms(db.GetUciProd().SlavePowerUpDelay() * 1000);
-            power = PWR_STATE::RISING;
+            GoPowerOn();
             db.GetUciProcess().SetPower(groupId, 1);
         }
     }
     return APP::ERROR::AppNoError;
 }
 
-// TODO
-void Group::SignSetPower(uint8_t v)
+void Group::GoPowerOff()
 {
+    // TODO set power off
+    power = PWR_STATE::OFF;
+    dsBak->Frm0();
+    dsCurrent->Frm0();
+    dsNext->Frm0();
+    dsExt->N_A();
     for (auto &sign : vSigns)
     {
-        //sign->SetPower(power);
+        sign->Reset();
     }
 }
 
-// TODO
+void Group::GoPowerOn()
+{
+    // TODO set power on
+    pwrUpTmr.Setms(db.GetUciProd().SlavePowerUpDelay() * 1000);
+    power = PWR_STATE::RISING;
+}
+
 APP::ERROR Group::SetDevice(uint8_t endis)
 {
-    devSet = (endis == 0) ? DEV_DIS : DEV_EN;
+    devSet = (endis == 0) ? 0 : 1;
     db.GetUciProcess().SetDevice(groupId, devSet);
-    for (auto &sign : vSigns)
-    {
-        //sign->SetDevice(endis);
-    }
     return APP::ERROR::AppNoError;
 }
 
@@ -1361,39 +1361,63 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         MyThrow("ERROR: SlaveSetFrame(slvindex=%d, slvFrmId=%d, uciFrmId=%d)",
                 slvindex, slvFrmId, uciFrmId);
     }
-    PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
-    MakeFrameForSlave(uciFrmId);
-    txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
-    txBuf[2] = slvFrmId;
-
-    char *asc = new char[(txLen - 1) * 2];
-    Cnvt::ParseToAsc(txBuf + 1, asc, txLen - 1);
-    uint16_t crc = Crc::Crc16_8005((uint8_t *)asc, (txLen - 1) * 2);
-    delete[] asc;
-    Cnvt::PutU16(crc, txBuf + txLen);
-    txLen += 2;
-    if (slvindex == 0xFF)
+    int ms=10;
+    if(devCur)
     {
-        for (auto &s : vSlaves)
+        PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
+        MakeFrameForSlave(uciFrmId);
+        txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
+        txBuf[2] = slvFrmId;
+
+        char *asc = new char[(txLen - 1) * 2];
+        Cnvt::ParseToAsc(txBuf + 1, asc, txLen - 1);
+        uint16_t crc = Crc::Crc16_8005((uint8_t *)asc, (txLen - 1) * 2);
+        delete[] asc;
+        Cnvt::PutU16(crc, txBuf + txLen);
+        txLen += 2;
+        if (slvindex == 0xFF)
         {
+            for (auto &s : vSlaves)
+            {
+                s->expectNextFrmId = slvFrmId;
+                s->frmCrc[slvFrmId] = crc;
+                s->nextState = Slave::FRM_ST::MATCH_NA;
+            }
+        }
+        else
+        {
+            auto &s = vSlaves[slvindex];
             s->expectNextFrmId = slvFrmId;
             s->frmCrc[slvFrmId] = crc;
             s->nextState = Slave::FRM_ST::MATCH_NA;
         }
+        ms = Tx();
+        auto dly = db.GetUciProd().SlaveSetStFrmDly();
+        if (ms < dly)
+        {
+            ms = dly;
+        }
     }
+    /*
     else
     {
-        auto &s = vSlaves[slvindex];
-        s->expectNextFrmId = slvFrmId;
-        s->frmCrc[slvFrmId] = crc;
-        s->nextState = Slave::FRM_ST::MATCH_NA;
-    }
-    auto ms = Tx();
-    auto dly = db.GetUciProd().SlaveSetStFrmDly();
-    if (ms < dly)
-    {
-        ms = dly;
-    }
+        if (slvindex == 0xFF)
+        {
+            for (auto &s : vSlaves)
+            {
+                s->expectNextFrmId = 0;
+                s->frmCrc[0] = 0;
+                s->nextState = Slave::FRM_ST::MATCH_NA;
+            }
+        }
+        else
+        {
+            auto &s = vSlaves[slvindex];
+            s->expectNextFrmId = 0;
+            s->frmCrc[0] = 0;
+            s->nextState = Slave::FRM_ST::MATCH_NA;
+        }
+    }*/
     LockBus(ms);
     return ms;
 }
@@ -1401,8 +1425,11 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
 // this function is actually for transistion time
 int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
+    if (devCur == 0)
+    {
+        slvFrmId = 0;
+    }
     PrintDbg("Slv-DisplayFrm [%X]:%d\n", slvindex, slvFrmId);
-    LockBus(db.GetUciProd().SlaveDispDly());
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1426,13 +1453,19 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
     txBuf[1] = SLVCMD::DISPLAY_FRM;
     txBuf[2] = slvFrmId;
     txLen = 3;
-    return Tx();
+    Tx();
+    int ms = db.GetUciProd().SlaveDispDly();
+    LockBus(ms);
+    return ms;
 }
 
 int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
+    if (devCur == 0)
+    {
+        slvFrmId = 0;
+    }
     PrintDbg("Slv-SetStoredFrm [%X]:%d\n", slvindex, slvFrmId);
-    LockBus(db.GetUciProd().SlaveDispDly());
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1456,7 +1489,10 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
     txBuf[1] = SLVCMD::SET_STD_FRM;
     txBuf[2] = slvFrmId;
     txLen = 3;
-    return Tx();
+    Tx();
+    int ms = db.GetUciProd().SlaveDispDly();
+    LockBus(ms);
+    return ms;
 }
 
 bool Group::IsBusFree()
@@ -1609,13 +1645,13 @@ void Group::SystemReset0()
 void Group::SystemReset1()
 {
     onDispPlnId = 0;
-    onDispFrmId = 1;        // force to issue a BLANK cmd to slaves 
+    onDispFrmId = 1; // force to issue a BLANK cmd to slaves
     EnDisPlan(0, false);
 }
 
 void Group::SystemReset2()
 {
     // TODO reset all faults
-    
+
     // TODO uciprocess
 }

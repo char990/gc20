@@ -14,3 +14,8 @@ void ExtInput::PeriodicRun()
 {
     
 }
+
+void ExtInput::Reset()
+{
+    
+}

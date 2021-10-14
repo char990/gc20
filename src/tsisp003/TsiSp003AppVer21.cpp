@@ -110,7 +110,7 @@ void TsiSp003AppVer21::SignStatusReply()
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16 >> 8;
     txbuf[11] = i16 & 0xff;
-    txbuf[12] = ctrller.CtrllerErr();
+    txbuf[12] = ctrller.ctrllerError.GetErrorCode();
     int scnt = db.GetUciProd().NumberOfSigns();
     txbuf[13] = scnt;
     uint8_t *p = &txbuf[14];
@@ -534,7 +534,7 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     UciProd &prod = db.GetUciProd();
     memcpy(txbuf + 3, prod.MfcCode(), 10);
     Time2Buf(txbuf + 13);
-    txbuf[20] = ctrller.CtrllerErr();
+    txbuf[20] = ctrller.ctrllerError.GetErrorCode();
     int scnt = prod.NumberOfSigns();
     txbuf[21] = scnt;
     uint8_t *p = &txbuf[22];

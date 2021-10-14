@@ -114,7 +114,7 @@ void UciProcess::Dump()
 	char buf[1024];
 	for (int i = 1; i <= grpCnt; i++)
 	{
-		printf("\t%s%d:\n", _Group, i);
+		printf("%s%d:\n", _Group, i);
 		auto p = GetGrpProc(i);
 		PrintGrpPln(i, buf);
 		printf("\t%s \t'%s'\n", _EnabledPlan, buf);
@@ -133,12 +133,12 @@ void UciProcess::Dump()
 		printf("\t%s \t'%d'\n", _Device, p->Device());
 	}
 
-	printf("\t%s:\n", _Ctrller);
+	printf("%s:\n", _Ctrller);
 	PrintOption_str(_CtrllerError, ctrllerErr.ToString().c_str());
 
 	for (int i = 1; i <= signCnt; i++)
 	{
-		printf("\t%s%d:\n", _Sign, i);
+		printf("%s%d:\n", _Sign, i);
 		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
 }

@@ -4,8 +4,11 @@
 #include <layer/LayerNTS.h>
 #include <module/Utils.h>
 #include <layer/StatusLed.h>
+#include <sign/Controller.h>
 
 using namespace Utils;
+
+BootTimer LayerNTS::sessionTimeout;
 
 const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE]={
     MI::CODE::SystemReset,
@@ -29,7 +32,6 @@ const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE]={
 LayerNTS::LayerNTS(std::string name_)
 {
     name = name_ + ":" + "NTS";
-    sessionTimeout.Clear();
 }
 
 LayerNTS::~LayerNTS()
@@ -57,12 +59,16 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     _addr=addr;
     int mi = Cnvt::ParseToU8((char *)data+8);
-    if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) ||
-        sessionTimeout.IsExpired())
+    auto sessionT = sessionTimeout.IsExpired();
+    if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) || sessionT)
     {
         session=ISession::SESSION::OFF_LINE;
-        sessionTimeout.Clear();
         _ns=0;_nr=0;
+        if(sessionT)
+        {
+            sessionTimeout.Clear();
+            Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+        }
     }
     if(session==ISession::SESSION::ON_LINE)
     {
@@ -117,10 +123,10 @@ int LayerNTS::Rx(uint8_t *data, int len)
     if(session==ISession::SESSION::ON_LINE)
     {
         sessionTimeout.Setms(user.SessionTimeout()*1000);
+        Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
     }
     return 0;
 }
-
 
 bool LayerNTS::IsTxReady()
 {
@@ -157,7 +163,6 @@ void LayerNTS::ClrRx()
     _nr = 0;
     _ns = 0;
     upperLayer->ClrRx();
-    sessionTimeout.Setms(0);
 }
 
 void LayerNTS::ClrTx()
