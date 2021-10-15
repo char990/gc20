@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <string>
+#include <vector>
 
 #include <module/BootTimer.h>
 #include <layer/ILayer.h>
@@ -17,7 +18,7 @@ class LayerNTS : public ILayer, public ISession
 public:
     LayerNTS(std::string name_);
     ~LayerNTS();
-
+    
     int Rx(uint8_t * data, int len) override;
 
     bool IsTxReady() override;
@@ -35,7 +36,8 @@ public:
 
 private:
     std::string name;
-    enum ISession::SESSION session{ISession::SESSION::OFF_LINE};
+
+    enum ISession::SESSION session;
     uint8_t seed;
     BootTimer sessionTimeout;
 

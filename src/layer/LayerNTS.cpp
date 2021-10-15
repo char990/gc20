@@ -58,7 +58,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     _addr=addr;
     int mi = Cnvt::ParseToU8((char *)data+8);
     if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) ||
-        (sessionTimeout.IsExpired() && session==ISession::SESSION::OFF_LINE))
+        (sessionTimeout.IsExpired() && session==ISession::SESSION::ON_LINE))
     {
         session=ISession::SESSION::OFF_LINE;
         _ns=0;_nr=0;
@@ -156,8 +156,7 @@ int LayerNTS::Tx(uint8_t *data, int len)
 
 void LayerNTS::ClrRx()
 {
-    _nr = 0;
-    _ns = 0;
+    Session(ISession::SESSION::OFF_LINE);
     upperLayer->ClrRx();
 }
 

@@ -104,6 +104,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
         //SetStatusLed(1);
         Ack();
         // !!! first Ack, then set online
+        // 'cause nr&ns related to SESSION::ON_LINE
         session->Session(ISession::SESSION::ON_LINE);
     }
     else
@@ -125,12 +126,10 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
 {
     if (!CheckOlineReject() || !ChkLen(len, 1) || session == nullptr)
         return;
-    // refresh sessionTimeout
-    auto & ctrl = Controller::Instance();
-    ctrl.sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout()*1000);
-    ctrl.ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
+    Controller::Instance().sessionTimeout.Clear();
     Ack();
     // !!! first Ack, then set offline
+    // 'cause nr&ns related to SESSION::ON_LINE
     session->Session(ISession::SESSION::OFF_LINE);
 }
 
