@@ -36,15 +36,29 @@ bool DeviceError::DevError(DEV::ERROR code, bool v)
 
 DEV::ERROR DeviceError::GetErrorCode()
 {
-    int i = size;
-    for (int k = 0; k < size; k++)
+    int k = size;
+    for (int i = 0; i < size; i++)
     {
         if (errBit.GetBit(i))
         {
-            i = k;
+            k = i;
         }
     }
-    return (i == size) ? DEV::ERROR::DevNoError : devErr[i];
+    return (k == size) ? DEV::ERROR::DevNoError : devErr[k];
+}
+
+bool DeviceError::IsSet(DEV::ERROR code)
+{
+    int i;
+    for (i = 0; i < size; i++)
+    {
+        if (devErr[i] == code)
+        {
+            return errBit.GetBit(i);
+        }
+    }
+    MyThrow("Illegal DEV::ERROR:%d", code);
+    return false; // avoid warning
 }
 
 /***************** SignError *****************/

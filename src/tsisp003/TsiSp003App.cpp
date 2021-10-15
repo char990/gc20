@@ -125,6 +125,10 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
 {
     if (!CheckOlineReject() || !ChkLen(len, 1) || session == nullptr)
         return;
+    // refresh sessionTimeout
+    auto & ctrl = Controller::Instance();
+    ctrl.sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout()*1000);
+    ctrl.ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
     Ack();
     // !!! first Ack, then set offline
     session->Session(ISession::SESSION::OFF_LINE);

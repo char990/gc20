@@ -84,6 +84,12 @@ void Controller::PeriodicRun()
         displayTimeout.Clear();
     }
 
+    if(sessionTimeout.IsExpired())
+    {
+        ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+        sessionTimeout.Clear();
+    }
+
     for (int i = 0; i < groupCnt; i++)
     {
         groups[i]->PeriodicRun();

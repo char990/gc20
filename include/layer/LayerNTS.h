@@ -37,9 +37,7 @@ private:
     std::string name;
     enum ISession::SESSION session{ISession::SESSION::OFF_LINE};
     uint8_t seed;
-
-    /// \brief Session timeout timer
-    static BootTimer sessionTimeout;
+    BootTimer sessionTimeout;
 
     /// \brief protocol fields 
     uint8_t _addr;

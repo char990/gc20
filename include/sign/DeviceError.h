@@ -19,6 +19,7 @@ public:
     void Reset() { errBit.Set(0); };
     uint32_t GetV() { return errBit.Get(); };
     void SetV(uint32_t v) { errBit.Set(v); } ;
+    bool IsSet(DEV::ERROR code);
 
     // highest priority error code
     DEV::ERROR GetErrorCode();

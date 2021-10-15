@@ -56,6 +56,8 @@ public:
     APP::ERROR CmdSystemReset(uint8_t *cmd);
 
     CtrllerError ctrllerError;
+    /// \brief Session timeout timer
+    BootTimer sessionTimeout;
 
 private:
     Controller();

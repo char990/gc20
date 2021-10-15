@@ -8,8 +8,6 @@
 
 using namespace Utils;
 
-BootTimer LayerNTS::sessionTimeout;
-
 const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE]={
     MI::CODE::SystemReset,
     MI::CODE::UpdateTime,
@@ -59,17 +57,11 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     _addr=addr;
     int mi = Cnvt::ParseToU8((char *)data+8);
-    auto sessionT = sessionTimeout.IsExpired();
-    if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) || sessionT)
+    if((mi == MI::CODE::StartSession && len==15 && addr==user.DeviceId()) ||
+        (sessionTimeout.IsExpired() && session==ISession::SESSION::OFF_LINE))
     {
         session=ISession::SESSION::OFF_LINE;
         _ns=0;_nr=0;
-        if(sessionT)
-        {
-            PrintDbg("SessionTimeout!!!\n");
-            sessionTimeout.Clear();
-            Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
-        }
     }
     if(session==ISession::SESSION::ON_LINE)
     {
@@ -121,11 +113,13 @@ int LayerNTS::Rx(uint8_t *data, int len)
         }
     }
     upperLayer->Rx(data+8, len-13);
+    auto & ctrl = Controller::Instance();
     if(session==ISession::SESSION::ON_LINE)
     {
         PrintDbg("Reload SessionTimeout\n");
         sessionTimeout.Setms(user.SessionTimeout()*1000);
-        Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
+        ctrl.sessionTimeout.Setms(user.SessionTimeout()*1000);
+        ctrl.ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
     }
     return 0;
 }
@@ -183,6 +177,10 @@ void LayerNTS::Session(enum ISession::SESSION v)
     session = v;
     _nr = 0;
     _ns = 0;
+    if(v==ISession::SESSION::OFF_LINE)
+    {
+        sessionTimeout.Clear();
+    }
 }
 
 /// -------------------------------------------------------
