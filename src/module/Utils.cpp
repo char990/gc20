@@ -663,44 +663,6 @@ long Time::Interval()
     return ms;
 }
 
-Bool32::Bool32()
-    : bits(0)
-{
-}
-
-Bool32::Bool32(uint32_t v)
-    : bits(v)
-{
-}
-
-void Bool32::Set(uint32_t v)
-{
-    bits = v;
-}
-
-uint32_t Bool32::Get()
-{
-    return bits;
-}
-
-void Bool32::SetBit(int b)
-{
-    if (b < 32)
-    {
-        bits |= MASK_BIT[b];
-    }
-}
-void Bool32::ClrBit(int b)
-{
-    if (b < 32)
-    {
-        bits &= ~MASK_BIT[b];
-    }
-}
-bool Bool32::GetBit(int b)
-{
-    return (b < 32) ? ((bits & MASK_BIT[b]) != 0) : false;
-}
 
 std::string Bool32::ToString()
 {

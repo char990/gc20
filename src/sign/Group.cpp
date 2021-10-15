@@ -323,7 +323,7 @@ PlnMinute &Group::GetCurrentMinPln()
     time_t t = time(nullptr);
     struct tm stm;
     localtime_r(&t, &stm);
-    return plnMin[(stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min];
+    return plnMin.at((stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min);
 }
 
 bool Group::TaskMsg(int *_ptLine)
@@ -866,7 +866,7 @@ bool Group::IsEnPlanOverlap(uint8_t id)
                 }
                 do
                 {
-                    if (plnMin[start].plnId != 0)
+                    if (plnMin.at(start).plnId != 0)
                     {
                         return true;
                     }
@@ -936,15 +936,12 @@ void Group::LoadPlanToPlnMin(uint8_t id)
                         stop -= 7 * 24 * 60;
                     }
                 }
-                auto ppm = &plnMin[start];
-                auto fmType = entry.fmType;
-                auto fmId = entry.fmId;
                 do
                 {
-                    ppm->plnId = id;
-                    ppm->fmType = fmType;
-                    ppm->fmId = fmId;
-                    ppm++;
+                    auto & k = plnMin.at(start);
+                    k.plnId = id;
+                    k.fmType = entry.fmType;
+                    k.fmId = entry.fmId;
                     if (++start == 7 * 24 * 60)
                     {
                         start = 0;
@@ -964,7 +961,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     }
     if (id == 0)
     {
-        memset(plnMin, 0, sizeof(plnMin));
+        plnMin.assign(plnMin.size(), PlnMinute{});
     }
     else
     {
@@ -1023,18 +1020,15 @@ APP::ERROR Group::DisPlan(uint8_t id)
                         stop -= 7 * 24 * 60;
                     }
                 }
-                if (start < stop)
+                do
                 {
-                    memset(&plnMin[start], 0, (stop - start) * sizeof(PlnMinute));
-                }
-                else
-                { // week day overlap
-                    memset(&plnMin[start], 0, (7 * 24 * 60 - start) * sizeof(PlnMinute));
-                    if (stop > 0)
+                    auto & k = plnMin.at(start);
+                    k.plnId = 0;
+                    if (++start == 7 * 24 * 60)
                     {
-                        memset(&plnMin[0], 0, stop * sizeof(PlnMinute));
+                        start = 0;
                     }
-                }
+                } while (start != stop);
             }
         }
         week <<= 1;
@@ -1511,7 +1505,7 @@ void Group::LockBus(int ms)
 
 void Group::PrintPlnMin()
 {
-    PlnMinute *ppm = &plnMin[0];
+    std::vector<PlnMinute>::iterator it = plnMin.begin();
     for (int d = 0; d < 7; d++)
     {
         printf("\nD%d:", d);
@@ -1525,15 +1519,16 @@ void Group::PrintPlnMin()
             printf("%02d:", h);
             for (int k = 0; k < 60; k++)
             {
-                if (ppm->plnId == 0)
+                auto plnId = it->plnId;
+                if (plnId == 0)
                 {
                     printf("()|");
                 }
                 else
                 {
-                    printf("%02X|", ppm->plnId);
+                    printf("%02X|", plnId);
                 }
-                ppm++;
+                std::advance(it , 1);
             }
             printf("\n");
         }

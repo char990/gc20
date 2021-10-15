@@ -5,6 +5,7 @@
 #include <sign/SignTxt.h>
 #include <sign/SignGfx.h>
 #include <sign/SignAdg.h>
+#include <module/MyDbg.h>
 
 Controller::Controller()
 {
@@ -71,13 +72,16 @@ void Controller::PeriodicRun()
 { // run every 10ms
     if (displayTimeout.IsExpired())
     {
-        // log
-        displayTimeout.Clear();
-        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
-        for (int i = 0; i < groupCnt; i++)
+        if(!IsPlnActive(0))
         {
-            groups[i]->DispFrm(0);
+            PrintDbg("displayTimeout!!!\n");
+            ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
+            for (int i = 0; i < groupCnt; i++)
+            {
+                groups[i]->DispFrm(0);
+            }
         }
+        displayTimeout.Clear();
     }
 
     for (int i = 0; i < groupCnt; i++)
@@ -88,6 +92,7 @@ void Controller::PeriodicRun()
 
 void Controller::RefreshDispTime()
 {
+    PrintDbg("RefreshDispTime\n");
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms * 1000);
     ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
@@ -130,14 +135,11 @@ bool Controller::IsMsgActive(uint8_t id)
 
 bool Controller::IsPlnActive(uint8_t id)
 {
-    if (id > 0)
+    for (int i = 0; i < groupCnt; i++)
     {
-        for (int i = 0; i < groupCnt; i++)
+        if (groups[i]->IsPlanActive(id))
         {
-            if (groups[i]->IsPlanActive(id))
-            {
-                return true;
-            }
+            return true;
         }
     }
     return false;

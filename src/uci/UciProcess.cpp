@@ -49,6 +49,8 @@ void UciProcess::LoadConfig()
 		sprintf(sectionBuf, "%s%d", _Group, i);
 		uciSec = GetSection(SECTION);
 		p = GetGrpProc(i);
+
+		// _EnabledPlan
 		str = GetStr(uciSec, _EnabledPlan);
 		if (str != NULL)
 		{
@@ -61,18 +63,19 @@ void UciProcess::LoadConfig()
 				}
 			}
 		}
-
+		// _Display
 		uint8_t *plen = p->ProcDisp();
 		*plen = 0;
 		str = GetStr(uciSec, _Display);
 		if (str != NULL)
 		{
 			int len = strlen(str);
-			if (len <= (255 * 2) && Cnvt::ParseToU8(str, p->ProcDisp() + 1, len) == 0)
+			if (len <= (255 * 2) && Cnvt::ParseToU8(str, plen + 1, len) == 0)
 			{
 				*plen = len / 2;
 			}
 		}
+		// _Dimming, _Power, _Device
 		d = GetInt(uciSec, _Dimming, 0, 16);
 		p->Dimming(d);
 		d = GetInt(uciSec, _Power, 0, 1);
@@ -81,6 +84,7 @@ void UciProcess::LoadConfig()
 		p->Device(d);
 	}
 
+#if 1
 	/************************** Ctrller *************************/
 	sprintf(sectionBuf, _Ctrller);
 	uciSec = GetSection(SECTION);
@@ -89,10 +93,11 @@ void UciProcess::LoadConfig()
 		ReadBool32(uciSec, _CtrllerError, ctrllerErr);
 	}
 	catch (...){};
-
+#endif
 	/************************** SignX *************************/
 	signCnt = db.GetUciProd().NumberOfSigns();
 	signErr = new Utils::Bool32[signCnt];
+#if 1
 	for (int i = 1; i <= signCnt; i++)
 	{
 		sprintf(sectionBuf, "%s%d", _Sign, i);
@@ -103,6 +108,8 @@ void UciProcess::LoadConfig()
 		}
 		catch (...){};
 	}
+#endif
+
 	Close();
 	Dump();
 }
@@ -168,9 +175,11 @@ void UciProcess::SaveGrpPln(uint8_t gid)
 	if (gid == 0 || gid > grpCnt)
 		return;
 	sprintf(sectionBuf, "%s%d", _Group, gid);
+	//char * buf = new char[1024];
 	char buf[1024];
 	PrintGrpPln(gid, buf);
 	OpenSaveClose(SECTION, _EnabledPlan, buf);
+	//delete [] buf;
 }
 
 int UciProcess::PrintGrpPln(uint8_t gid, char *buf)

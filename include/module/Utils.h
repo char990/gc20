@@ -236,13 +236,28 @@ namespace Utils
     class Bool32
     {
     public:
-        Bool32();
-        Bool32(uint32_t v);
-        void Set(uint32_t v);
-        uint32_t Get();
-        void SetBit(int b);
-        void ClrBit(int b);
-        bool GetBit(int b);
+        Bool32() : bits(0) {}
+        Bool32(uint32_t v) : bits(v) {}
+        void Set(uint32_t v) { bits = v; }
+
+        uint32_t Get() { return bits; }
+
+        void SetBit(int b)
+        {
+            if (b < 32)
+            {
+                bits |= MASK_BIT[b];
+            }
+        }
+        void ClrBit(int b)
+        {
+            if (b < 32)
+            {
+                bits &= ~MASK_BIT[b];
+            }
+        }
+        bool GetBit(int b) { return (b < 32) ? ((bits & MASK_BIT[b]) != 0) : false; }
+
         std::string ToString();
 
     private:
@@ -280,7 +295,7 @@ namespace Utils
         {
             return dst;
         }
-        if(sizeof(T)!=sizeof(char))
+        if (sizeof(T) != sizeof(char))
         {
             throw "CharCpy: sizeof(T)!=sizeof(char)";
         }

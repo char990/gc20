@@ -66,6 +66,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
         _ns=0;_nr=0;
         if(sessionT)
         {
+            PrintDbg("SessionTimeout!!!\n");
             sessionTimeout.Clear();
             Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
         }
@@ -122,6 +123,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     upperLayer->Rx(data+8, len-13);
     if(session==ISession::SESSION::ON_LINE)
     {
+        PrintDbg("Reload SessionTimeout\n");
         sessionTimeout.Setms(user.SessionTimeout()*1000);
         Controller::Instance().ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
     }

@@ -172,7 +172,7 @@ private:
     void FcltSwitchFunc();
     void ExtInputFunc();
 
-    PlnMinute plnMin[7 * 24 * 60]{};
+    std::vector<PlnMinute> plnMin{7 * 24 * 60};
     PlnMinute & GetCurrentMinPln();
     int GetMinOffset(int day, Hm * t);
     void LoadPlanToPlnMin(uint8_t id);
