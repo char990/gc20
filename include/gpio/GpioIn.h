@@ -25,12 +25,7 @@ private:
     unsigned int pin;
 };
 
-extern GpioIn *pFsAuto;
-extern GpioIn *pFsM1;
-extern GpioIn *pFsM2;
-extern GpioIn *pExtM3;
-extern GpioIn *pExtM4;
-extern GpioIn *pExtM5;
+
 extern GpioIn *pMainPwr;
 extern GpioIn *pBatLow;
 extern GpioIn *pBatOpen;

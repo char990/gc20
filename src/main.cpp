@@ -86,30 +86,11 @@ void LogResetTime()
     DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
 }
 
-void GpioInit(TimerEvent * tmr)
+void GpioInit()
 {
-    pFsAuto = new GpioIn(5, 10, PIN_AUTO);
-    tmr->Add(pFsAuto);
-    pFsM1 = new GpioIn(5, 10, PIN_MSG1);
-    tmr->Add(pFsM1);
-    pFsM2 = new GpioIn(5, 10, PIN_MSG2);
-    tmr->Add(pFsM2);
-
-    pExtM3 = new GpioIn(2, 2, PIN_CN7_7_MSG3);
-    tmr->Add(pExtM3);
-    pExtM4 = new GpioIn(2, 2, PIN_CN7_8_MSG4);
-    tmr->Add(pExtM4);
-    pExtM5 = new GpioIn(2, 2, PIN_CN7_9_MSG5);
-    tmr->Add(pExtM5);
-
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
-    tmr->Add(pMainPwr);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
-    tmr->Add(pBatLow);
     pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
-    tmr->Add(pBatLow);
-
-    pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 1); // power_on_off command control
 
     pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1); // heartbeat led, yellow
 
@@ -169,15 +150,16 @@ int main(int argc, char *argv[])
         TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
         timerEvt1s.Add(new TickTock{});
-        GpioInit(&timerEvt100ms);
 
         DbHelper::Instance().Init(argv[1]);
-        UciProd &prod = DbHelper::Instance().GetUciProd();
-        UciUser &user = DbHelper::Instance().GetUciUser();
+        GpioInit();
         Controller::Instance().Init(&timerEvt10ms);
+
         LogResetTime();
         //AllGroupPowerOn();
 
+        UciProd &prod = DbHelper::Instance().GetUciProd();
+        UciUser &user = DbHelper::Instance().GetUciUser();
         // init serial ports
         OprSp *oprSp[COMPORT_SIZE];
         for (int i = 0; i < COMPORT_SIZE; i++)

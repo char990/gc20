@@ -9,15 +9,10 @@
 #include "gpio/GpioIn.h"
 #include "module/MyDbg.h"
 
-GpioIn *pFsAuto;
-GpioIn *pFsM1;
-GpioIn *pFsM2;
-GpioIn *pExtM3;
-GpioIn *pExtM4;
-GpioIn *pExtM5;
-GpioIn *pMainPwr;
-GpioIn *pBatLow;
-GpioIn *pBatOpen;
+
+GpioIn *pMainPwr=nullptr;
+GpioIn *pBatLow=nullptr;
+GpioIn *pBatOpen=nullptr;
 
 GpioIn::GpioIn(int true_cnt, int false_cnt, unsigned int pin)
     : dbnc(true_cnt, false_cnt), gpioex(pin, GpioEx::DIR::INPUT), pin(pin)

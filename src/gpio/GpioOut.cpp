@@ -8,13 +8,12 @@
 
 #include "gpio/GpioOut.h"
 
-GpioOut *pPinCmdPower;
-GpioOut *pPinHeartbeatLed;
-GpioOut *pPinStatusLed;
-GpioOut *pPinWdt;
-GpioOut *pPinRelay;
-GpioOut *pPinMosfet2;
-
+GpioOut *pPinCmdPower=nullptr;
+GpioOut *pPinHeartbeatLed=nullptr;
+GpioOut *pPinStatusLed=nullptr;
+GpioOut *pPinWdt=nullptr;
+GpioOut *pPinRelay=nullptr;
+GpioOut *pPinMosfet2=nullptr;
 
 GpioOut::GpioOut(unsigned int pin, bool init_value)
 :gpioex(pin,GpioEx::DIR::OUTPUT)

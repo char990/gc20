@@ -5,13 +5,19 @@
 #include <sign/SignTxt.h>
 #include <sign/SignGfx.h>
 #include <sign/SignAdg.h>
+#include <gpio/GpioIn.h>
+#include <gpio/GpioOut.h>
+#include <sign/Controller.h>
 
 using namespace Utils;
 
 Group::Group(uint8_t groupId)
-    : groupId(groupId), db(DbHelper::Instance())
+    : groupId(groupId), db(DbHelper::Instance()),
+     fcltSw(PIN_AUTO, PIN_MSG1, PIN_MSG2),
+     extInput(PIN_CN7_7_MSG3,PIN_CN7_8_MSG4,PIN_CN7_9_MSG5)
 {
-    pwrUpTmr.Setms(0);
+    pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 0);
+
     busLockTmr.Setms(0);
     dimmingAdjTimer.Setms(0);
     UciProd &prod = db.GetUciProd();
@@ -89,16 +95,18 @@ Group::Group(uint8_t groupId)
         }
     }
     //PrintPlnMin();
-    // TODO power
-    // TODO Dimming
     for (auto &s : vSigns)
     {
         s->SignErr(proc.SignErr(s->SignId())->Get());
     }
+    currentDimmingLvl = proc.GetDimming(groupId);
+    targetDimmingLvl = currentDimmingLvl | 0x80;
+    cmdPwr = proc.GetPower(groupId);
 }
 
 Group::~Group()
 {
+    delete pPinCmdPower;
     delete[] orBuf;
     delete txBuf;
     delete dsBak;
@@ -117,14 +125,14 @@ Group::~Group()
 
 void Group::PeriodicRun()
 {
-#if 0
+
     // components PeriodicRun
     FcltSwitchFunc();
+#if 0
     ExtInputFunc();
 #endif
 
-    // TODO power function
-    if (/*power == PWR_STATE::OFF || */ !IsBusFree())
+    if (power != PWR_STATE::ON || !IsBusFree())
     {
         return;
     }
@@ -163,26 +171,29 @@ void Group::FcltSwitchFunc()
     if (fcltSw.IsChanged())
     {
         fcltSw.ClearChangeFlag();
-        if (fs == FacilitySwitch::FS_STATE::OFF)
+        if (cmdPwr)
         {
-            if (power != PWR_STATE::OFF)
+            if (fs == FacilitySwitch::FS_STATE::OFF)
             {
-                GoPowerOff();
-            }
-        }
-        else
-        {
-            if (power == PWR_STATE::OFF)
-            {
-                GoPowerOn();
-                if (fs == FacilitySwitch::FS_STATE::AUTO)
+                if (power != PWR_STATE::OFF)
                 {
-                    DispNext(DISP_STATUS::TYPE::FRM, 0);
+                    GoPowerOff();
                 }
-                else
+            }
+            else
+            {
+                if (power != PWR_STATE::ON)
                 {
-                    uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                    DispNext(DISP_STATUS::TYPE::FSW, msg);
+                    GoPowerOn();
+                    if (fs == FacilitySwitch::FS_STATE::AUTO)
+                    {
+                        DispNext(DISP_STATUS::TYPE::FRM, 0);
+                    }
+                    else
+                    {
+                        uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                        DispNext(DISP_STATUS::TYPE::FSW, msg);
+                    }
                 }
             }
         }
@@ -198,6 +209,7 @@ void Group::FcltSwitchFunc()
                     power = PWR_STATE::ON;
                     extInput.Reset();
                     // TODO reset sign
+                    // reload
                 }
             }
         }
@@ -213,7 +225,6 @@ void Group::ExtInputFunc()
         {
             extInput.ClearChangeFlag();
             uint8_t msg = 0; // TODO get msg number, start/reload timer
-
 
             if ((dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
                 (dsExt->dispType != DISP_STATUS::TYPE::EXT))
@@ -429,11 +440,11 @@ bool Group::TaskMsg(int *_ptLine)
                 // msg loop begin
                 do
                 {
-                    if(devCur)
+                    if (devCur)
                     {
                         readyToLoad = 0; // when a msg begin, clear readyToLoad
                     }
-                    
+
                     if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run DispFrm
                         GroupSetReportDisp(pMsg->msgEntries[msgEntryCnt].frmId, onDispMsgId, onDispPlnId);
@@ -938,7 +949,7 @@ void Group::LoadPlanToPlnMin(uint8_t id)
                 }
                 do
                 {
-                    auto & k = plnMin.at(start);
+                    auto &k = plnMin.at(start);
                     k.plnId = id;
                     k.fmType = entry.fmType;
                     k.fmId = entry.fmId;
@@ -1022,7 +1033,7 @@ APP::ERROR Group::DisPlan(uint8_t id)
                 }
                 do
                 {
-                    auto & k = plnMin.at(start);
+                    auto &k = plnMin.at(start);
                     k.plnId = 0;
                     if (++start == 7 * 24 * 60)
                     {
@@ -1113,17 +1124,26 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
 
 APP::ERROR Group::SetPower(uint8_t v)
 {
-    if (v == 0)
+    if (cmdPwr != v)
     {
-        GoPowerOff();
-        db.GetUciProcess().SetPower(groupId, 0);
-    }
-    else
-    {
-        if (power == PWR_STATE::OFF)
+        if (FacilitySwitch::FS_STATE::OFF != fcltSw.Get())
         {
-            GoPowerOn();
-            db.GetUciProcess().SetPower(groupId, 1);
+            if (v == 1)
+            {
+                GoPowerOn();
+                // TODO load ds
+            }
+            else
+            {
+                GoPowerOff();
+                // TODO backup ds
+            }
+        }
+        cmdPwr = v;
+        db.GetUciProcess().SetPower(groupId, v);
+        for (auto &sign : vSigns)
+        {
+            sign->SignErr(DEV::ERROR::PoweredOffByCommand, v==0);
         }
     }
     return APP::ERROR::AppNoError;
@@ -1131,12 +1151,12 @@ APP::ERROR Group::SetPower(uint8_t v)
 
 void Group::GoPowerOff()
 {
-    // TODO set power off
+    PinCmdPowerOff();
     power = PWR_STATE::OFF;
-    dsBak->Frm0();
-    dsCurrent->Frm0();
-    dsNext->Frm0();
-    dsExt->N_A();
+//    dsBak->Clone(dsCurrent);
+//   dsCurrent->Frm0();
+//    dsNext->Frm0();
+//    dsExt->N_A();
     for (auto &sign : vSigns)
     {
         sign->Reset();
@@ -1145,7 +1165,7 @@ void Group::GoPowerOff()
 
 void Group::GoPowerOn()
 {
-    // TODO set power on
+    PinCmdPowerOn();
     pwrUpTmr.Setms(db.GetUciProd().SlavePowerUpDelay() * 1000);
     power = PWR_STATE::RISING;
 }
@@ -1355,8 +1375,8 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         MyThrow("ERROR: SlaveSetFrame(slvindex=%d, slvFrmId=%d, uciFrmId=%d)",
                 slvindex, slvFrmId, uciFrmId);
     }
-    int ms=10;
-    if(devCur)
+    int ms = 10;
+    if (devCur)
     {
         PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
         MakeFrameForSlave(uciFrmId);
@@ -1528,7 +1548,7 @@ void Group::PrintPlnMin()
                 {
                     printf("%02X|", plnId);
                 }
-                std::advance(it , 1);
+                std::advance(it, 1);
             }
             printf("\n");
         }

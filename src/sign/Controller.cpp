@@ -103,9 +103,9 @@ void Controller::PeriodicRun()
 
 void Controller::RefreshDispTime()
 {
-    PrintDbg("RefreshDispTime\n");
+    //PrintDbg("RefreshDispTime\n");
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    if(ms > 0)
+    if (ms > 0)
     {
         displayTimeout.Setms(ms * 1000);
         ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
@@ -114,7 +114,7 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    PrintDbg("RefreshSessionTime\n");
+    //PrintDbg("RefreshSessionTime\n");
     sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
     ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
 }
@@ -134,25 +134,22 @@ void Controller::BlinkSessionLed()
         taskSessionCnt = 0;
         break;
     case 1:
-        if (taskSessionCnt == 0)
+        ++taskSessionCnt;
+        if (taskSessionCnt == 1)
         {
             pPinStatusLed->SetPinLow();
         }
-        else if(taskSessionCnt == 50)
+        else if (taskSessionCnt > 20)
         {
             pPinStatusLed->SetPinHigh();
             taskSessionCnt = 0;
             sessionLed = 255;
         }
-        else
-        {
-            taskSessionCnt++;
-        }
         break;
     case 2:
         // TODO led on
         sessionLed = 255;
-        taskSessionCnt = 50;
+        taskSessionCnt = 20;
         break;
     default: // keep LED on/off, do nothing
         break;
@@ -358,17 +355,16 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
 
     for (int i = 0; i < entry; i++)
     {
-        uint8_t d = (p[1] == 0);
         if (p[0] == 0)
         {
             for (int i = 1; i <= groupCnt; i++)
             {
-                GetGroup(i)->SetPower(d);
+                GetGroup(i)->SetPower(p[1]);
             }
         }
         else
         {
-            GetGroup(p[0])->SetPower(d);
+            GetGroup(p[0])->SetPower(p[1]);
         }
         p += 2;
     }

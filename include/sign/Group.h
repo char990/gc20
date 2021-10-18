@@ -155,7 +155,8 @@ private:
         ON,
         RISING
     };
-    PWR_STATE power;
+    PWR_STATE power{OFF};
+    uint8_t cmdPwr;
     void GoPowerOn();
     void GoPowerOff();
 
@@ -307,4 +308,7 @@ private:
     void SystemReset0();
     void SystemReset1();
     void SystemReset2();
+
+
+
 };

@@ -65,9 +65,11 @@ public:
     Debounce dbcFan;
     Debounce dbcVoltage;
 
+
 protected:
     uint8_t signId;
     std::vector<Slave *> vsSlaves;
+    SignError signErr;
 
     uint8_t dimmingSet{0}, dimmingV{1};
     uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
@@ -80,7 +82,6 @@ protected:
     uint8_t setFrm{0};
     uint8_t dispFrm{0};
 
-    SignError signErr;
 
     BootTimer luxTimer;     // set as 60 seconds, so luxDebounce counter would be 15
     int cnt18hours{0}, cntMidnignt{0}, cntMidday{0};

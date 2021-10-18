@@ -21,8 +21,16 @@ private:
 };
 
 extern GpioOut * pPinCmdPower;
+inline void PinCmdPowerOn() {pPinCmdPower->SetPinHigh();};
+inline void PinCmdPowerOff() {pPinCmdPower->SetPinLow();};
+
 extern GpioOut * pPinHeartbeatLed;
+
 extern GpioOut * pPinStatusLed;
+inline void PinStatusLedOn() {pPinHeartbeatLed->SetPinLow();};
+inline void PinStatusLedOff() {pPinHeartbeatLed->SetPinHigh();};
+
 extern GpioOut * pPinWdt;
 extern GpioOut * pPinRelay;
 extern GpioOut * pPinMosfet2;
+

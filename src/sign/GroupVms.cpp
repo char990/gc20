@@ -29,10 +29,12 @@ GroupVms::GroupVms(uint8_t id)
         switch (disp[1])
         {
         case MI::CODE::SignDisplayFrame:
-            DispFrm(disp[3]);
+            dsNext->dispType = DISP_STATUS::TYPE::FRM;
+            dsNext->fmpid[0] = disp[3];
             break;
         case MI::CODE::SignDisplayMessage:
-            DispMsg(disp[3]);
+            dsNext->dispType = DISP_STATUS::TYPE::MSG;
+            dsNext->fmpid[0] = disp[3];
             break;
         default:
             MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);

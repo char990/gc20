@@ -84,7 +84,6 @@ void UciProcess::LoadConfig()
 		p->Device(d);
 	}
 
-#if 1
 	/************************** Ctrller *************************/
 	sprintf(sectionBuf, _Ctrller);
 	uciSec = GetSection(SECTION);
@@ -93,11 +92,10 @@ void UciProcess::LoadConfig()
 		ReadBool32(uciSec, _CtrllerError, ctrllerErr);
 	}
 	catch (...){};
-#endif
+
 	/************************** SignX *************************/
 	signCnt = db.GetUciProd().NumberOfSigns();
 	signErr = new Utils::Bool32[signCnt];
-#if 1
 	for (int i = 1; i <= signCnt; i++)
 	{
 		sprintf(sectionBuf, "%s%d", _Sign, i);
@@ -108,8 +106,6 @@ void UciProcess::LoadConfig()
 		}
 		catch (...){};
 	}
-#endif
-
 	Close();
 	Dump();
 }

@@ -209,7 +209,7 @@ int GpioEx::GetValue()
 			}
 			close(fd);
 		}
-		return ch;
+		return ch=='1';
 	}
 	return -1;
 }
