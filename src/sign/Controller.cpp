@@ -6,6 +6,9 @@
 #include <sign/SignGfx.h>
 #include <sign/SignAdg.h>
 #include <module/MyDbg.h>
+#include <module/ptcpp.h>
+#include <gpio/GpioIn.h>
+#include <gpio/GpioOut.h>
 
 Controller::Controller()
 {
@@ -38,7 +41,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
 
     ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr().Get());
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    if(ms == 0)
+    if (ms == 0)
     {
         displayTimeout.Clear();
         ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
@@ -72,7 +75,7 @@ void Controller::PeriodicRun()
 { // run every 10ms
     if (displayTimeout.IsExpired())
     {
-        if(!IsPlnActive(0))
+        if (!IsPlnActive(0))
         {
             PrintDbg("displayTimeout!!!\n");
             ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
@@ -84,7 +87,7 @@ void Controller::PeriodicRun()
         displayTimeout.Clear();
     }
 
-    if(sessionTimeout.IsExpired())
+    if (sessionTimeout.IsExpired())
     {
         ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
         sessionTimeout.Clear();
@@ -94,19 +97,66 @@ void Controller::PeriodicRun()
     {
         groups[i]->PeriodicRun();
     }
+
+    BlinkSessionLed();
 }
 
 void Controller::RefreshDispTime()
 {
     PrintDbg("RefreshDispTime\n");
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    (ms == 0) ? displayTimeout.Clear() : displayTimeout.Setms(ms * 1000);
-    ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
+    if(ms > 0)
+    {
+        displayTimeout.Setms(ms * 1000);
+        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
+    }
+}
+
+void Controller::RefreshSessionTime()
+{
+    PrintDbg("RefreshSessionTime\n");
+    sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
+    ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
 }
 
 void Controller::SessionLed(uint8_t v)
 {
     sessionLed = v;
+}
+
+void Controller::BlinkSessionLed()
+{
+    switch (sessionLed)
+    {
+    case 0:
+        pPinStatusLed->SetPinHigh();
+        sessionLed = 255;
+        taskSessionCnt = 0;
+        break;
+    case 1:
+        if (taskSessionCnt == 0)
+        {
+            pPinStatusLed->SetPinLow();
+        }
+        else if(taskSessionCnt == 50)
+        {
+            pPinStatusLed->SetPinHigh();
+            taskSessionCnt = 0;
+            sessionLed = 255;
+        }
+        else
+        {
+            taskSessionCnt++;
+        }
+        break;
+    case 2:
+        // TODO led on
+        sessionLed = 255;
+        taskSessionCnt = 50;
+        break;
+    default: // keep LED on/off, do nothing
+        break;
+    }
 }
 
 bool Controller::IsFrmActive(uint8_t id)

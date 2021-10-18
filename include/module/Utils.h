@@ -231,6 +231,10 @@ namespace Utils
         /// \brief      Get interval from last Interval() called
         /// \return     interval of ms
         long Interval();
+
+        /// \brief      get localtime to stm. Note !!! stm->tm_mon(1-12),  stm->year(1970-)
+        /// \return     time_t
+        static time_t GetLocalTime(struct tm * stm);
     };
 
     class Bool32

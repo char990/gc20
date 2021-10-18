@@ -4,6 +4,7 @@
 #include <sign/Slave.h>
 #include <module/Debounce.h>
 #include <sign/DeviceError.h>
+#include <module/BootTimer.h>
 
 /*
     Sign is fit to TSI-SP-003
@@ -51,7 +52,10 @@ public:
     void RefreshSlaveStatus();
     void RefreshSlaveExtSt();
     
-    Debounce dbcLight;
+    bool LightSnsrFailed(){return lightSnsrFailed;};
+
+    Debounce dbcLightSnsr;
+    Debounce dbcLux;
     Debounce dbcChain;
     Debounce dbcMultiLed;
     Debounce dbcSingleLed;
@@ -77,4 +81,8 @@ protected:
     uint8_t dispFrm{0};
 
     SignError signErr;
+
+    BootTimer luxTimer;     // set as 60 seconds, so luxDebounce counter would be 15
+    int cnt18hours{0}, cntMidnignt{0}, cntMidday{0};
+    bool lightSnsrFailed{false};
 };

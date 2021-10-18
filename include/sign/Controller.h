@@ -30,6 +30,7 @@ public:
 
     void RefreshDispTime();
 
+    void RefreshSessionTime();
     void SessionLed(uint8_t v);
 
     uint8_t CtrllerErr();
@@ -70,8 +71,10 @@ private:
     /// \brief Display timeout timer
     BootTimer displayTimeout;
 
-    uint8_t
-        sessionLed{0},
-        groupCnt{0};
+    uint8_t groupCnt{0};
+
+    void BlinkSessionLed();
+    uint8_t sessionLed{0};      // 0:Off, 1:Blink, 2:On, default:Keep On/Off
+    uint8_t taskSessionCnt{0};
 
 };

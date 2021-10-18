@@ -663,6 +663,14 @@ long Time::Interval()
     return ms;
 }
 
+time_t Time::GetLocalTime(struct tm * stm)
+{
+    time_t t = time(nullptr);
+    localtime_r(&t, stm);
+    stm->tm_mon += 1;
+    stm->tm_year += 1900;
+    return t;
+}
 
 std::string Bool32::ToString()
 {

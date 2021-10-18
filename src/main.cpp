@@ -21,15 +21,17 @@
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
-#include <layer/StatusLed.h>
 #include <sign/Controller.h>
 #include <module/Utils.h>
 #include <module/DS3231.h>
+#include <gpio/GpioIn.h>
+#include <gpio/GpioOut.h>
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
 
-DS3231 * pDS3231;
+DS3231 *pDS3231;
+
 
 using namespace std;
 
@@ -37,8 +39,8 @@ void PrintVersion()
 {
     PrintDbg("\n");
     char sbuf[256];
-    int len = sprintf(sbuf,"* Version %s.%s, Build at UTC: %s %s *",
-           FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
+    int len = sprintf(sbuf, "* Version %s.%s, Build at UTC: %s %s *",
+                      FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';
@@ -52,13 +54,14 @@ class TickTock : public IPeriodicRun
 public:
     virtual void PeriodicRun() override
     {
-        _r_need_n=0;
+        _r_need_n = 0;
         putchar('\r');
         PrintDbg("");
         fflush(stdout);
-        _r_need_n=1;
-		time_t alarm_t=time(NULL);
-		pDS3231->WriteTimeAlarm(alarm_t);
+        _r_need_n = 1;
+        time_t alarm_t = time(NULL);
+        pDS3231->WriteTimeAlarm(alarm_t);
+        pPinHeartbeatLed->Toggle();
     };
 };
 
@@ -83,12 +86,48 @@ void LogResetTime()
     DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
 }
 
+void GpioInit(TimerEvent * tmr)
+{
+    pFsAuto = new GpioIn(5, 10, PIN_AUTO);
+    tmr->Add(pFsAuto);
+    pFsM1 = new GpioIn(5, 10, PIN_MSG1);
+    tmr->Add(pFsM1);
+    pFsM2 = new GpioIn(5, 10, PIN_MSG2);
+    tmr->Add(pFsM2);
+
+    pExtM3 = new GpioIn(2, 2, PIN_CN7_7_MSG3);
+    tmr->Add(pExtM3);
+    pExtM4 = new GpioIn(2, 2, PIN_CN7_8_MSG4);
+    tmr->Add(pExtM4);
+    pExtM5 = new GpioIn(2, 2, PIN_CN7_9_MSG5);
+    tmr->Add(pExtM5);
+
+    pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
+    tmr->Add(pMainPwr);
+    pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
+    tmr->Add(pBatLow);
+    pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
+    tmr->Add(pBatLow);
+
+    pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 1); // power_on_off command control
+
+    pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1); // heartbeat led, yellow
+
+    pPinStatusLed = new GpioOut(PIN_ST_LED, 1); // status led, green
+
+    pPinWdt = new GpioOut(PIN_WDT, 1); // watchdog
+
+    pPinRelay = new GpioOut(PIN_RELAY_CTRL, 0); // relay off
+
+    pPinMosfet2 = new GpioOut(PIN_MOSFET2_CTRL, 0); // mosfet off
+}
+
 int main(int argc, char *argv[])
 {
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
     PrintVersion();
-    if(argc !=2)
+    if (argc != 2)
     {
         printf("Usage: %s DIRECTORY\n", argv[0]);
         return 1;
@@ -96,19 +135,19 @@ int main(int argc, char *argv[])
     else
     {
         int x = strlen(argv[1]);
-        if(argv[1][x-1]=='/')
+        if (argv[1][x - 1] == '/')
         {
-            argv[1][x-1]='\0';  // remove last'/'
+            argv[1][x - 1] = '\0'; // remove last'/'
         }
         struct stat st;
-        if(stat(argv[1], &st) != 0)
+        if (stat(argv[1], &st) != 0)
         {
             printf("'%s' does NOT exist\n", argv[1]);
             return 2;
         }
         else
         {
-            if(!S_ISDIR(st.st_mode))
+            if (!S_ISDIR(st.st_mode))
             {
                 printf("'%s' is NOT a directory\n", argv[1]);
                 return 3;
@@ -122,7 +161,6 @@ int main(int argc, char *argv[])
 
         pDS3231 = new DS3231{1};
 
-
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
         // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
@@ -131,16 +169,17 @@ int main(int argc, char *argv[])
         TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
         timerEvt1s.Add(new TickTock{});
-        StatusLed::Instance().Init(&timerEvt10ms);
+        GpioInit(&timerEvt100ms);
+
         DbHelper::Instance().Init(argv[1]);
-        UciProd & prod = DbHelper::Instance().GetUciProd();
-        UciUser & user = DbHelper::Instance().GetUciUser();
+        UciProd &prod = DbHelper::Instance().GetUciProd();
+        UciUser &user = DbHelper::Instance().GetUciUser();
         Controller::Instance().Init(&timerEvt10ms);
         LogResetTime();
         //AllGroupPowerOn();
 
         // init serial ports
-        OprSp* oprSp[COMPORT_SIZE];
+        OprSp *oprSp[COMPORT_SIZE];
         for (int i = 0; i < COMPORT_SIZE; i++)
         {
             oprSp[i] = nullptr;
@@ -195,7 +234,6 @@ int main(int argc, char *argv[])
             tcppool[i].Init("Tcp" + std::to_string(i), "NTS", (user.SessionTimeout() + 60) * 1000);
         }
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
-
 
         /*************** Start ****************/
         while (1)

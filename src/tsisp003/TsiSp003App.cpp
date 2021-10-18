@@ -140,7 +140,6 @@ bool TsiSp003App::CheckOlineReject()
         Reject(APP::ERROR::DeviceControllerOffline);
         return false;
     }
-    ctrller.RefreshDispTime();
     return true;
 }
 

@@ -3,7 +3,8 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <module/Debounce.h>
+#include <module/Utils.h>
+
 
 /// \brief bool debounce
 /// start at invalid
