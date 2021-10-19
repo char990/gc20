@@ -200,3 +200,12 @@ void UciFrm::Reset()
 	snprintf(buf, 255, "rm %s/frm*", PATH);
 	system(buf);
 }
+
+bool UciFrm::IsFrmFlashing(uint8_t i)
+{
+	if(!IsFrmDefined(i))
+	{
+		return false;
+	}
+	return frms[i - 1]->conspicuity !=0;
+}

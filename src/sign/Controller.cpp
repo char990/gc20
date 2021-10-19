@@ -349,10 +349,13 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
         {
             return APP::ERROR::UndefinedDeviceNumber;
         }
+        if(p[1]>1)
+        {
+            return APP::ERROR::SyntaxError;
+        }
         p += 2;
     }
     p = cmd + 2;
-
     for (int i = 0; i < entry; i++)
     {
         if (p[0] == 0)
@@ -382,23 +385,25 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
         {
             return APP::ERROR::UndefinedDeviceNumber;
         }
+        if (p[1] > 1)
+        {
+            return APP::ERROR::SyntaxError;
+        }
         p += 2;
     }
     p = cmd + 2;
-
     for (int i = 0; i < entry; i++)
     {
-        uint8_t d = (p[1] == 0) ? 0 : 1;
         if (p[0] == 0)
         {
             for (int i = 1; i <= groupCnt; i++)
             {
-                GetGroup(i)->SetDevice(d);
+                GetGroup(i)->SetDevice(p[1]);
             }
         }
         else
         {
-            GetGroup(p[0])->SetDevice(d);
+            GetGroup(p[0])->SetDevice(p[1]);
         }
         p += 2;
     }

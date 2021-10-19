@@ -13,10 +13,12 @@ using namespace Utils;
 
 Group::Group(uint8_t groupId)
     : groupId(groupId), db(DbHelper::Instance()),
-     fcltSw(PIN_AUTO, PIN_MSG1, PIN_MSG2),
-     extInput(PIN_CN7_7_MSG3,PIN_CN7_8_MSG4,PIN_CN7_9_MSG5)
+      fcltSw(PIN_AUTO, PIN_MSG1, PIN_MSG2)
 {
     pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 0);
+    extInput.push_back(new GpioIn(2, 2, PIN_CN7_7_MSG3));
+    extInput.push_back(new GpioIn(2, 2, PIN_CN7_8_MSG4));
+    extInput.push_back(new GpioIn(2, 2, PIN_CN7_9_MSG5));
 
     busLockTmr.Setms(0);
     dimmingAdjTimer.Setms(0);
@@ -106,6 +108,10 @@ Group::Group(uint8_t groupId)
 
 Group::~Group()
 {
+    for (auto& s : extInput)
+    {
+        delete s;
+    }
     delete pPinCmdPower;
     delete[] orBuf;
     delete txBuf;
@@ -153,7 +159,14 @@ void Group::PeriodicRun()
                 s->Device(devCur);
             }
         }
-        newCurrent = LoadDsNext(); // current->bak and next/fs/ext->current
+        newCurrent = 0;
+        if(dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
+        {
+            extDispTmr.Clear();
+            DispBackup();
+            newCurrent = 1;
+        }
+        newCurrent |= LoadDsNext(); // current->bak and next/fs/ext->current
     }
 
     TaskPln(&taskPlnLine);
@@ -170,7 +183,13 @@ void Group::FcltSwitchFunc()
     FacilitySwitch::FS_STATE fs = fcltSw.Get();
     if (fcltSw.IsChanged())
     {
-        fcltSw.ClearChangeFlag();
+        fcltSw.ClearChanged();
+        Controller::Instance().ctrllerError.Push(
+            DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
+        char buf[64];
+        int len = sprintf(buf, "Group%d:", groupId);
+        fcltSw.ToStr(buf + len);
+        db.GetUciEvent().Push(0, buf);
         if (cmdPwr)
         {
             if (fs == FacilitySwitch::FS_STATE::OFF)
@@ -185,15 +204,15 @@ void Group::FcltSwitchFunc()
                 if (power != PWR_STATE::ON)
                 {
                     GoPowerOn();
-                    if (fs == FacilitySwitch::FS_STATE::AUTO)
-                    {
-                        DispNext(DISP_STATUS::TYPE::FRM, 0);
-                    }
-                    else
-                    {
-                        uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                        DispNext(DISP_STATUS::TYPE::FSW, msg);
-                    }
+                }
+                if (fs == FacilitySwitch::FS_STATE::AUTO)
+                {
+                    DispNext(DISP_STATUS::TYPE::FRM, 0);
+                }
+                else
+                {
+                    uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                    DispNext(DISP_STATUS::TYPE::FSW, msg);
                 }
             }
         }
@@ -207,7 +226,6 @@ void Group::FcltSwitchFunc()
                 if (pwrUpTmr.IsExpired())
                 {
                     power = PWR_STATE::ON;
-                    extInput.Reset();
                     // TODO reset sign
                     // reload
                 }
@@ -220,22 +238,53 @@ void Group::ExtInputFunc()
 {
     if (power == PWR_STATE::ON && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
     {
-        extInput.PeriodicRun();
-        if (extInput.IsChanged())
+        if (++extInputCnt >= 10)
         {
-            extInput.ClearChangeFlag();
-            uint8_t msg = 0; // TODO get msg number, start/reload timer
-
-            if ((dsExt->dispType == DISP_STATUS::TYPE::EXT && msg <= dsExt->fmpid[0]) ||
-                (dsExt->dispType != DISP_STATUS::TYPE::EXT))
+            extInputCnt = 0;
+            for (int i = 0; i < extInput.size(); i++)
             {
-                DispNext(DISP_STATUS::TYPE::EXT, msg);
+                auto gin = extInput[i];
+                gin->PeriodicRun();
+                if (gin->IsChanged() && gin->Value() == Utils::STATE3::S_1)
+                {
+                    gin->ClearChanged();
+                    uint8_t msg = i + 3;
+                    if (dsExt->dispType != DISP_STATUS::TYPE::EXT)
+                    {
+                        DispNext(DISP_STATUS::TYPE::EXT, msg);
+                    }
+                    else
+                    {
+                        if (msg < dsExt->fmpid[0])
+                        {
+                            DispNext(DISP_STATUS::TYPE::EXT, msg);
+                        }
+                        else if (msg == dsExt->fmpid[0])
+                        {
+                            auto time = db.GetUciUser().ExtSwCfgX(msg)->dispTime;
+                            if (time != 0)
+                            {
+                                extDispTmr.Setms(time * 1000);
+                            }
+                        }
+                    }
+                    while(++i < extInput.size())
+                    {// clear others changed flag
+                        auto gin = extInput[i];
+                        gin->PeriodicRun();
+                        gin->ClearChanged();
+                    }
+                    return;
+                }
             }
         }
     }
+    else
+    {
+        extInputCnt = 0;
+    }
 }
 
-// TODO
 bool Group::TaskPln(int *_ptLine)
 {
     if (!IsBusFree() || dsCurrent->dispType != DISP_STATUS::TYPE::PLN || !readyToLoad)
@@ -257,14 +306,15 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
+                    PrintDbg("Plan:BLANK\n");
                     TaskFrmReset();
                     TaskMsgReset();
                     onDispPlnId = 0;
-                    onDispMsg = 0;
+                    onDispNewMsg = 0;
                     onDispMsgId = 0;
-                    onDispFrm = 1;
-                    plnEntryType = PLN_ENTRY_FRM;
-                    plnEntryId = 0;
+                    onDispNewFrm = 1;
+                    onDispPlnEntryType = PLN_ENTRY_FRM;
+                    onDispPlnEntryId = 0;
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                 }
@@ -273,6 +323,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 {
+                    PrintDbg("Load Plan:%d\n", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                     auto pln = db.GetUciPln().GetPln(plnmin.plnId);
@@ -301,11 +352,11 @@ bool Group::TaskPln(int *_ptLine)
                         TaskFrmReset();
                         TaskMsgReset();
                         onDispPlnId = plnmin.plnId;
-                        onDispMsg = 0;
+                        onDispNewMsg = 0;
                         onDispMsgId = 0;
-                        onDispFrm = 1;
-                        plnEntryType = PLN_ENTRY_FRM;
-                        plnEntryId = plnmin.fmId;
+                        onDispNewFrm = 1;
+                        onDispPlnEntryType = PLN_ENTRY_FRM;
+                        onDispPlnEntryId = plnmin.fmId;
                     }
                 }
                 else // if(plnmin.fmType==PLN_ENTRY_MSG) // msg
@@ -315,9 +366,9 @@ bool Group::TaskPln(int *_ptLine)
                         TaskFrmReset();
                         TaskMsgReset();
                         onDispPlnId = plnmin.plnId;
-                        onDispMsg = 1;
-                        plnEntryType = PLN_ENTRY_MSG;
-                        plnEntryId = plnmin.fmId;
+                        onDispNewMsg = 1;
+                        onDispPlnEntryType = PLN_ENTRY_MSG;
+                        onDispPlnEntryId = plnmin.fmId;
                     }
                 }
             }
@@ -344,24 +395,24 @@ bool Group::TaskMsg(int *_ptLine)
         (dsCurrent->dispType != DISP_STATUS::TYPE::MSG &&
          dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
          dsCurrent->dispType != DISP_STATUS::TYPE::EXT &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_MSG)))
+         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)))
     {
         return PT_RUNNING;
     }
     if (newCurrent)
     {
         newCurrent = 0;
-        onDispMsg = 1;
+        onDispNewMsg = 1;
         ClrOrBuf();
     }
-    if (onDispMsg)
+    if (onDispNewMsg)
     {
         TaskMsgReset();
-        onDispMsg = 0;
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_MSG)
+        onDispNewMsg = 0;
+        if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)
         {
-            onDispMsgId = plnEntryId;
-            // msg set active in TaskPln
+            onDispMsgId = onDispPlnEntryId;
+            // No need to set active msg, 'cause set in TaskPln
         }
         else
         {
@@ -374,6 +425,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
+        PrintDbg("Display Msg:%d\n", onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -391,14 +443,15 @@ bool Group::TaskMsg(int *_ptLine)
                 TaskMsgReset();
                 return false;
             }
-            // msg undefined, BLANK
+            //for FSW/EXT, if msg undefined, show BLANK and report msgX+frm0
             ClrOrBuf();
             while (true)
             {
                 do
                 {
                     SlaveSetStoredFrame(0xFF, 0);
-                    GroupSetReportDisp(0, onDispMsgId, 0);
+                    onDispFrmId = 0;
+                    GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                     ClrAllSlavesRxStatus();
                     do
                     {
@@ -447,7 +500,8 @@ bool Group::TaskMsg(int *_ptLine)
 
                     if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run DispFrm
-                        GroupSetReportDisp(pMsg->msgEntries[msgEntryCnt].frmId, onDispMsgId, onDispPlnId);
+                        onDispFrmId = pMsg->msgEntries[msgEntryCnt].frmId;
+                        GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                         do // +++++++++ DispFrm X
                         {
                             SlaveSetStoredFrame(0xFF, msgEntryCnt + 1);
@@ -586,7 +640,7 @@ bool Group::TaskFrm(int *_ptLine)
     if (!IsBusFree() ||
         (dsCurrent->dispType != DISP_STATUS::TYPE::FRM &&
          dsCurrent->dispType != DISP_STATUS::TYPE::ATF &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && plnEntryType == PLN_ENTRY_FRM)))
+         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_FRM)))
     {
         return PT_RUNNING;
     }
@@ -594,13 +648,14 @@ bool Group::TaskFrm(int *_ptLine)
     if (newCurrent)
     {
         newCurrent = 0;
-        onDispFrm = 1;
+        onDispNewFrm = 1;
         ClrOrBuf();
     }
-    if (onDispFrm)
+    if (onDispNewFrm)
     {
         TaskFrmReset();
-        onDispFrm = 0;
+        onDispNewFrm = 0;
+        onDispMsgId = 0;
     }
     PT_BEGIN();
     while (true)
@@ -609,26 +664,25 @@ bool Group::TaskFrm(int *_ptLine)
         if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
         {
             onDispPlnId = 0;
-            onDispMsgId = 0;
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
+            PrintDbg("Display ATF\n");
         }
         else
         {
             if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM)
             { // from CmdDispFrm
                 onDispPlnId = 0;
-                onDispMsgId = 0;
                 onDispFrmId = dsCurrent->fmpid[0];
                 activeFrm.ClrAll();
                 activeFrm.Set(onDispFrmId);
             }
             else
             { // from plan
-                onDispMsgId = 0;
-                onDispFrmId = plnEntryId;
+                onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
+            PrintDbg("Display Frm:%d\n", onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -1061,8 +1115,23 @@ void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
 {
     if (type == DISP_STATUS::TYPE::EXT)
     {
-        dsExt->dispType = type;
-        dsExt->fmpid[0] = id;
+        auto cfg = db.GetUciUser().ExtSwCfgX(id);
+        auto time = cfg->dispTime;
+        if (time != 0)
+        {
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A ||
+                dsCurrent->dispType == DISP_STATUS::TYPE::BLK ||
+                (onDispMsgId == 0 && onDispFrmId == 0) ||
+                cfg->flashingOv == 0 ||
+                (cfg->flashingOv != 0 &&
+                 ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
+                  onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
+            {
+                extDispTmr.Setms(time * 1000);
+                dsExt->dispType = type;
+                dsExt->fmpid[0] = id;
+            }
+        }
     }
     else
     {
@@ -1071,13 +1140,10 @@ void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
     }
 }
 
-// TODO
 void Group::DispBackup()
 {
-    for (auto &sign : vSigns)
-    {
-        //sign->DispBackup();
-    }
+    dsCurrent->Clone(dsBak);
+    dsBak->N_A();
 }
 
 APP::ERROR Group::DispFrm(uint8_t id)
@@ -1110,11 +1176,6 @@ APP::ERROR Group::DispMsg(uint8_t id)
     return APP::ERROR::FacilitySwitchOverride;
 }
 
-void Group::DispExtSw(uint8_t id)
-{
-    DispNext(DISP_STATUS::TYPE::EXT, id);
-}
-
 APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
@@ -1143,7 +1204,7 @@ APP::ERROR Group::SetPower(uint8_t v)
         db.GetUciProcess().SetPower(groupId, v);
         for (auto &sign : vSigns)
         {
-            sign->SignErr(DEV::ERROR::PoweredOffByCommand, v==0);
+            sign->SignErr(DEV::ERROR::PoweredOffByCommand, v == 0);
         }
     }
     return APP::ERROR::AppNoError;
@@ -1153,10 +1214,10 @@ void Group::GoPowerOff()
 {
     PinCmdPowerOff();
     power = PWR_STATE::OFF;
-//    dsBak->Clone(dsCurrent);
-//   dsCurrent->Frm0();
-//    dsNext->Frm0();
-//    dsExt->N_A();
+    //    dsBak->Clone(dsCurrent);
+    //   dsCurrent->Frm0();
+    //    dsNext->Frm0();
+    //    dsExt->N_A();
     for (auto &sign : vSigns)
     {
         sign->Reset();
@@ -1185,7 +1246,7 @@ bool Group::IsDsNextEmergency()
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 5)
         {
-            if (DbHelper::Instance().GetUciUser().ExtSwCfgX(mid)->emergency)
+            if (db.GetUciUser().ExtSwCfgX(mid)->emergency)
             {
                 r = true;
             }
@@ -1378,7 +1439,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
     int ms = 10;
     if (devCur)
     {
-        PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
+        //PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
         MakeFrameForSlave(uciFrmId);
         txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
         txBuf[2] = slvFrmId;
@@ -1443,7 +1504,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
     {
         slvFrmId = 0;
     }
-    PrintDbg("Slv-DisplayFrm [%X]:%d\n", slvindex, slvFrmId);
+    //PrintDbg("Slv-DisplayFrm [%X]:%d\n", slvindex, slvFrmId);
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1479,7 +1540,7 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
     {
         slvFrmId = 0;
     }
-    PrintDbg("Slv-SetStoredFrm [%X]:%d\n", slvindex, slvFrmId);
+    //PrintDbg("Slv-SetStoredFrm [%X]:%d\n", slvindex, slvFrmId);
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;

@@ -9,9 +9,9 @@ namespace Utils
 {
     enum STATE3
     {
-        S_NA = 0,
-        S_0,
-        S_1
+        S_NA    = -1,
+        S_0     = 0,
+        S_1     = 1
     };
 
     extern const uint32_t MASK_BIT[32];

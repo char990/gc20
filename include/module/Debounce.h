@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <module/Utils.h>
+//#include <module/MyDbg.h>
 
 /// \brief bool debounce
 /// start at invalid
@@ -81,8 +82,12 @@ public:
             {
                 cnt0 = 0;
                 cnt1 = CNT1;
-                changed = (value != Utils::STATE3::S_1);
-                value = Utils::STATE3::S_1;
+                if (value != Utils::STATE3::S_1)
+                {
+                    changed = true;
+                    value = Utils::STATE3::S_1;
+                    //PrintDbg("changed v=1\n");
+                }
             }
         }
         else
@@ -95,8 +100,12 @@ public:
             {
                 cnt1 = 0;
                 cnt0 = CNT0;
-                changed = (value != Utils::STATE3::S_0);
-                value = Utils::STATE3::S_0;
+                if (value != Utils::STATE3::S_0)
+                {
+                    changed = true;
+                    value = Utils::STATE3::S_0;
+                    //PrintDbg("changed v=0\n");
+                }
             }
         }
     }
@@ -119,6 +128,6 @@ private:
     Utils::STATE3 value{Utils::STATE3::S_NA};
     int CNT1{1};
     int CNT0{1};
-    int cnt1{0};
-    int cnt0{0};
+    int cnt1;
+    int cnt0;
 };

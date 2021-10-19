@@ -28,7 +28,7 @@ public:
 class SignError : public DeviceError
 {
 private:
-    static const DEV::ERROR signErr[9];
+    static const DEV::ERROR SIGNERROR[9];
 
 public:
     SignError();
@@ -39,7 +39,7 @@ public:
 class CtrllerError : public DeviceError
 {
 private:
-    static const DEV::ERROR ctrllerErr[9];
+    static const DEV::ERROR CTRLERROR[9];
 
 public:
     CtrllerError();

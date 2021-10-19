@@ -147,7 +147,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        sprintf(buf, "SystemReset: GroupId=%d, Level=%d", gid, level);
+        sprintf(buf, "SystemReset: Group%d, Level%d", gid, level);
         db.GetUciEvent().Push(0, buf);
         Ack();
     }
@@ -181,7 +181,7 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
         {
             frm.SaveFrm(id);
             char buf[64];
-            sprintf(buf, "%s: FrameId=%d",
+            sprintf(buf, "%s: Frame%d",
                    (*data == MI::CODE::SignSetTextFrame) ? "SignSetTextFrame" : ((*data == MI::CODE::SignSetGraphicsFrame) ? "SignSetGraphicsFrame" : "SignSetHighResolutionGraphicsFrame"), id);
             db.GetUciEvent().Push(0, buf);
         }
@@ -217,7 +217,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        sprintf(buf, "SignDisplayFrame: GroupId=%d, FrameId=%d", data[1], data[2]);
+        sprintf(buf, "SignDisplayFrame: Group%d, Frame%d", data[1], data[2]);
         db.GetUciEvent().Push(0, buf);
         Ack();
     }
@@ -281,6 +281,9 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
             if (r == APP::ERROR::AppNoError)
             {
                 msg.SaveMsg(id);
+                char buf[64];
+                sprintf(buf, "SignSetMessage: Msg%d", id);
+                db.GetUciEvent().Push(0, buf);
             }
         }
     }
@@ -297,7 +300,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        sprintf(buf, "SignDisplayMsg: GroupId=%d, MsgId=%d", data[1], data[2]);
+        sprintf(buf, "SignDisplayMessage: Group%d, Msg%d", data[1], data[2]);
         db.GetUciEvent().Push(0, buf);
         Ack();
     }
@@ -336,7 +339,7 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
         {
             pln.SavePln(id);
             char buf[64];
-            sprintf(buf, "SignSetPlan: PlanId=%d", data[1]);
+            sprintf(buf, "SignSetPlan: Plan%d", data[1]);
             db.GetUciEvent().Push(0, buf);
         }
     }
@@ -353,7 +356,7 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        sprintf(buf, "%sablePlan: GroupId=%d, PlanId=%d",
+        sprintf(buf, "%sablePlan: Group%d, Plan%d",
             (data[0]==MI::CODE::EnablePlan) ? "En" : "Dis", data[1], data[2]);
         db.GetUciEvent().Push(0, buf);
         Ack();
@@ -387,12 +390,12 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
     auto r = ctrller.CmdSetDimmingLevel(data);
     if (r == APP::ERROR::AppNoError)
     {
-        char buf[64];
-        int len = sprintf(buf, "SignSetDimmingLevel");
+        char buf[256];
+        int len = sprintf(buf, "SignSetDimming");
         uint8_t *p=data+2;
-        for(int i=0;i<data[1];i++)
+        for(int i=0;i<data[1]&&i<4;i++)
         {
-            len+=snprintf(buf+len, 63-len ,":%d,%d,%d", p[0], p[1], p[2]);
+            len+=snprintf(buf+len, 255-len ,":Group%d(%d,%d)", p[0], p[1], p[2]);
             p+=3;
         }
         db.GetUciEvent().Push(0, buf);
@@ -422,7 +425,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
         uint8_t *p=data+2;
         for(int i=0;i<data[1];i++)
         {
-            len+=snprintf(buf+len, 63-len ,":%d,%d", p[0], p[1]);
+            len+=snprintf(buf+len, 63-len ,":Group%d,%d", p[0], p[1]);
             p+=2;
         }
         db.GetUciEvent().Push(0, buf);
@@ -452,7 +455,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
         uint8_t *p=data+2;
         for(int i=0;i<data[1];i++)
         {
-            len+=snprintf(buf+len, 63-len ,":%d,%d", p[0], p[1]);
+            len+=snprintf(buf+len, 63-len ,":Group%d,%d", p[0], p[1]);
             p+=2;
         }
         db.GetUciEvent().Push(0, buf);

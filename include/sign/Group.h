@@ -6,7 +6,6 @@
 #include <sign/Sign.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <module/FacilitySwitch.h>
-#include <module/ExtInput.h>
 #include <module/BootTimer.h>
 #include <sign/DispStatus.h>
 #include <layer/ILayer.h>
@@ -90,9 +89,6 @@ public:
 
     APP::ERROR SystemReset(uint8_t v);
 
-    //
-    void DispExtSw(uint8_t id);
-
     int CmdToSlave(uint8_t id, uint8_t *data, int len); // to slave[id]
     int CmdToSlave(uint8_t *data, int len);             // broadcast
 
@@ -168,7 +164,9 @@ private:
     BootTimer pwrUpTmr;
 
     FacilitySwitch fcltSw;
-    ExtInput extInput;
+    std::vector<GpioIn*> extInput;
+    uint8_t extInputCnt{0};
+    BootTimer extDispTmr;
 
     void FcltSwitchFunc();
     void ExtInputFunc();
@@ -183,10 +181,11 @@ private:
     bool IsDsNextEmergency();
 
     /******************** Task Plan ********************/
-    uint8_t
-        onDispPlnId,
-        plnEntryType, // 1:frm, 2:msg
-        plnEntryId;
+    uint8_t onDispPlnId;
+    
+    // these two setting for TaskMsg/TaskFrm
+    uint8_t onDispPlnEntryType; // 1:frm, 2:msg
+    uint8_t onDispPlnEntryId;
 
     int taskPlnLine{0};
     BootTimer taskPlnTmr;
@@ -198,7 +197,7 @@ private:
 
     /******************** Task Message ********************/
     uint8_t
-        onDispMsg,         // 0:EMPTY, 1:new msg load
+        onDispNewMsg,         // 0:EMPTY, 1:new msg load
         onDispMsgId,
         msgEntryCnt;   // 0 - (msg->entries-1)
     // msgSetEntry/Max depend on frame 'onTime'=0(frame overlay)
@@ -243,7 +242,7 @@ private:
 
     /******************** Task Frame ********************/
     uint8_t
-        onDispFrm,   // 0:EMPTY, 1:new frm load
+        onDispNewFrm,   // 0:EMPTY, 1:new frm load
         onDispFrmId; // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
 
     bool TaskFrm(int *_ptLine);

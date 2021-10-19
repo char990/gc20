@@ -126,3 +126,20 @@ void UciMsg::Reset()
 	}
 	UciCfg::ClrSECTION();
 }
+
+bool UciMsg::IsMsgFlashing(uint8_t i)
+{
+	if (IsMsgDefined(i))
+	{
+		auto & msg = msgs[i - 1];
+		auto & uciFrm = DbHelper::Instance().GetUciFrm();
+		for (int k = 0; k < msg.entries; k++)
+		{
+			if (uciFrm.IsFrmFlashing(msg.msgEntries[k].frmId))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}

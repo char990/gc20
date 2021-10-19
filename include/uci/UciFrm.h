@@ -57,7 +57,9 @@ public:
 
 
     void Reset();
-    
+
+    bool IsFrmFlashing(uint8_t i);
+
 private:
     const char * PATH;
     int maxFrmSize{0};

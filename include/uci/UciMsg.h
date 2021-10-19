@@ -57,6 +57,8 @@ public:
     void SaveMsg(uint8_t i);
 
     void Reset();
+
+    bool IsMsgFlashing(uint8_t i);
     
 private:
     Message *msgs;  // 255 msgs

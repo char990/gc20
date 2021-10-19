@@ -114,7 +114,6 @@ int LayerNTS::Rx(uint8_t *data, int len)
     auto &ctrl = Controller::Instance();
     if (session == ISession::SESSION::ON_LINE)
     {
-        PrintDbg("Reload SessionTimeout\n");
         sessionTimeout.Setms(user.SessionTimeout() * 1000);
         ctrl.SessionLed(1);
         ctrl.RefreshSessionTime();
