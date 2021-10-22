@@ -50,3 +50,5 @@ private:
      int _bus;
      void PrintTm(struct tm *tm);
 };
+
+extern DS3231 * pDS3231;

@@ -120,8 +120,9 @@ namespace APP
 
 }
 
-namespace DEV
+class DEV
 {
+public:
     enum ERROR:uint8_t
     {
         DevNoError = 0,
@@ -169,7 +170,10 @@ namespace DEV
         OperatingOnSecondaryPower,
         PreexistingOrReoccurringFaultExists = 0xFF
     };
-}
+    static const char* STR[];
+    static const char* GetStr(enum ERROR err);
+};
+
 namespace MULTI
 {
     enum COLOUR:uint8_t

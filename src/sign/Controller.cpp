@@ -7,15 +7,32 @@
 #include <sign/SignAdg.h>
 #include <module/MyDbg.h>
 #include <module/ptcpp.h>
-#include <gpio/GpioIn.h>
 #include <gpio/GpioOut.h>
+#include <module/DS3231.h>
 
 Controller::Controller()
 {
+    pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
+    pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
+    pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
+    unsigned int pins[4] = {PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
+    for (int i = 0; i < 4; i++)
+    {
+        extInput[i] = new GpioIn(2, 2, pins[i]);
+        extInput[i]->Init(Utils::STATE3::S_1);
+        extInput[i]->ClearChanged();
+    }
 }
 
 Controller::~Controller()
 {
+    for (int i = 0; i < 4; i++)
+    {
+        delete extInput[i];
+    }
+    delete pBatOpen;
+    delete pBatLow;
+    delete pMainPwr;
     if (groups != nullptr)
     {
         for (int i = 0; i < groupCnt; i++)
@@ -72,33 +89,129 @@ void Controller::Init(TimerEvent *tmrEvt_)
 }
 
 void Controller::PeriodicRun()
-{ // run every 10ms
-    if (displayTimeout.IsExpired())
-    {
-        if (!IsPlnActive(0))
-        {
-            PrintDbg("displayTimeout!!!\n");
-            ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
-            for (int i = 0; i < groupCnt; i++)
-            {
-                groups[i]->DispFrm(0);
-            }
-        }
-        displayTimeout.Clear();
-    }
-
-    if (sessionTimeout.IsExpired())
-    {
-        ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
-        sessionTimeout.Clear();
-    }
-
+{
+    // run every 10ms
     for (int i = 0; i < groupCnt; i++)
     {
         groups[i]->PeriodicRun();
     }
 
-    BlinkSessionLed();
+    if (++cnt10ms >= 10)
+    { // 100ms
+        cnt10ms = 0;
+#if 0
+    ExtInputFunc();
+#endif
+
+        PowerMonitor();
+        BlinkSessionLed();
+        if (displayTimeout.IsExpired())
+        {
+            if (!IsPlnActive(0))
+            {
+                //PrintDbg("displayTimeout!!!\n");
+                ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
+                for (int i = 0; i < groupCnt; i++)
+                {
+                    groups[i]->DispFrm(0);
+                }
+            }
+            displayTimeout.Clear();
+        }
+        if (sessionTimeout.IsExpired())
+        {
+            ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+            sessionTimeout.Clear();
+        }
+    }
+
+    if (++msTemp >= 60 * 100)
+    {
+        msTemp = 0;
+        int t;
+        if (pDS3231->GetTemp(&t) == 0)
+        {
+            curTemp = t;
+            if (curTemp > maxTemp)
+            {
+                maxTemp = curTemp;
+            }
+            auto ot = DbHelper::Instance().GetUciUser().OverTemp();
+            if (curTemp > ot)
+            {
+                ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, true);
+            }
+            else if (curTemp < (ot - 3))
+            {
+                ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, false);
+            }
+        }
+    }
+}
+
+void Controller::PowerMonitor()
+{ // 100ms periodic
+    pMainPwr->PeriodicRun();
+    pBatLow->PeriodicRun();
+    pBatOpen->PeriodicRun();
+    if (pMainPwr->IsChanged())
+    {
+        pMainPwr->ClearChanged();
+        if (pMainPwr->Value() == Utils::STATE3::S_1)
+        {
+            ctrllerError.Push(DEV::ERROR::PowerFailure, 0);
+        }
+        else
+        {
+            ctrllerError.Push(DEV::ERROR::PowerFailure, 1);
+        }
+    }
+    if (pBatOpen->IsChanged())
+    {
+        pBatOpen->ClearChanged();
+        if (pBatOpen->Value() == Utils::STATE3::S_1)
+        {
+            ctrllerError.Push(DEV::ERROR::BatteryFailure, 0);
+        }
+        else
+        {
+            ctrllerError.Push(DEV::ERROR::BatteryFailure, 1);
+            // if there is BatOpen, don not check BatLow
+            pBatLow->ClearChanged();
+            return;
+        }
+    }
+    if (pBatLow->IsChanged())
+    {
+        pBatLow->ClearChanged();
+        ctrllerError.Push(DEV::ERROR::BatteryLow, (pBatLow->Value() == Utils::STATE3::S_0));
+    }
+}
+
+void Controller::ExtInputFunc()
+{
+    for (int i = 0; i < 4; i++)
+    {
+        auto gin = extInput[i];
+        gin->PeriodicRun();
+        if (gin->IsChanged() && gin->Value() == Utils::STATE3::S_1)
+        {
+            gin->ClearChanged();
+            uint8_t msg = i + 3;
+            for (int g = 0; g < groupCnt; g++)
+            {
+                groups[g]->DispExt(i + 3);
+            }
+            // only the highest priority will be triggered, ignore others
+            while (++i < 4)
+            { // clear others changed flag
+                auto gin = extInput[i];
+                gin->PeriodicRun();
+                gin->ClearChanged();
+            };
+            return;
+        }
+    }
 }
 
 void Controller::RefreshDispTime()
@@ -125,7 +238,7 @@ void Controller::SessionLed(uint8_t v)
 }
 
 void Controller::BlinkSessionLed()
-{
+{ // 100ms periodic
     switch (sessionLed)
     {
     case 0:
@@ -139,7 +252,7 @@ void Controller::BlinkSessionLed()
         {
             pPinStatusLed->SetPinLow();
         }
-        else if (taskSessionCnt > 20)
+        else if (taskSessionCnt > 2)
         {
             pPinStatusLed->SetPinHigh();
             taskSessionCnt = 0;
@@ -149,7 +262,7 @@ void Controller::BlinkSessionLed()
     case 2:
         // TODO led on
         sessionLed = 255;
-        taskSessionCnt = 20;
+        taskSessionCnt = 2;
         break;
     default: // keep LED on/off, do nothing
         break;
@@ -349,7 +462,7 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
         {
             return APP::ERROR::UndefinedDeviceNumber;
         }
-        if(p[1]>1)
+        if (p[1] > 1)
         {
             return APP::ERROR::SyntaxError;
         }

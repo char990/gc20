@@ -5,7 +5,7 @@
 #include <module/Debounce.h>
 #include <sign/DeviceError.h>
 #include <module/BootTimer.h>
-
+#include <tsisp003/TsiSp003Const.h>
 /*
     Sign is fit to TSI-SP-003
     For VMS, it is a combination of slaves.
@@ -20,10 +20,10 @@ public:
     Sign(uint8_t id);
     virtual ~Sign();
 
-    void AddSlave(Slave * slave);
+    void AddSlave(Slave *slave);
 
     uint8_t SignId() { return signId; };
-    void Reset();
+    void ClearFaults();
 
     uint8_t *GetStatus(uint8_t *p);
     virtual uint8_t *GetExtStatus(uint8_t *p) = 0;
@@ -36,10 +36,10 @@ public:
     void Device(uint8_t v) { device = v; };
 
     // get
-    SignError & SignErr() { return signErr; };
-    uint8_t SignTiles() { return vsSlaves.size()*Slave::numberOfTiles; };
+    SignError &SignErr() { return signErr; };
+    uint8_t SignTiles() { return vsSlaves.size() * Slave::numberOfTiles; };
 
-    uint8_t * LedStatus(uint8_t * p);
+    uint8_t *LedStatus(uint8_t *p);
 
     // set current display
     void SetReportDisp(uint8_t f, uint8_t m, uint8_t p)
@@ -49,22 +49,24 @@ public:
         reportFrm = f;
     };
 
-    void RefreshSlaveStatus();
-    void RefreshSlaveExtSt();
-    
-    bool LightSnsrFailed(){return lightSnsrFailed;};
+    void RefreshSlaveStatusAtExtSt();
 
-    Debounce dbcLightSnsr;
-    Debounce dbcLux;
+    // Fatal Error
     Debounce dbcChain;
     Debounce dbcMultiLed;
-    Debounce dbcSingleLed;
-    Debounce dbcLantern;
-    Debounce dbcOverTemp;
     Debounce dbcSelftest;
-    Debounce dbcFan;
     Debounce dbcVoltage;
+    Utils::STATE3 OverTemp() { return overTempFault;};
 
+    // Normal Error
+    Utils::STATE3 LightSnsr() { return lightSnsrFault;};
+    Debounce dbcLantern;
+    Debounce dbcSingleLed;
+    
+    int8_t CurTemp() { return curTemp; };
+    int8_t MaxTemp() { return maxTemp; };
+    uint16_t Voltage() { return voltage; };
+    uint16_t Lux() { return lux; };
 
 protected:
     uint8_t signId;
@@ -82,8 +84,17 @@ protected:
     uint8_t setFrm{0};
     uint8_t dispFrm{0};
 
+    uint8_t tflag{255};
+    uint8_t lasthour{255};
+    Debounce dbncLightSnsr;
+    Debounce dbnc18hours;
+    Debounce dbncMidnight;
+    Debounce dbncMidday;
+    Utils::STATE3 lightSnsrFault{Utils::STATE3::S_NA};
 
-    BootTimer luxTimer;     // set as 60 seconds, so luxDebounce counter would be 15
-    int cnt18hours{0}, cntMidnignt{0}, cntMidday{0};
-    bool lightSnsrFailed{false};
+    int8_t curTemp{0}, maxTemp{0};
+    uint16_t voltage{0}, lux{0};
+    Utils::STATE3 overTempFault{Utils::STATE3::S_NA};
+
+    void DbncFault(Debounce & dbc, DEV::ERROR err, const char * info=nullptr);
 };

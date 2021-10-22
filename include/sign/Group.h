@@ -76,8 +76,8 @@ public:
     /********* command from Tsi-sp-003 ********/
     // if planid==0, disable all plans
     APP::ERROR EnDisPlan(uint8_t id, bool endis);
-    APP::ERROR EnPlan(uint8_t id);
-    APP::ERROR DisPlan(uint8_t id);
+    APP::ERROR EnablePlan(uint8_t id);
+    APP::ERROR DisablePlan(uint8_t id);
 
     APP::ERROR DispFrm(uint8_t id);
     APP::ERROR DispMsg(uint8_t id);
@@ -88,6 +88,9 @@ public:
     APP::ERROR SetDevice(uint8_t v);
 
     APP::ERROR SystemReset(uint8_t v);
+
+    // Called by controller to display External switch
+    void DispExt(uint8_t msgX);
 
     int CmdToSlave(uint8_t id, uint8_t *data, int len); // to slave[id]
     int CmdToSlave(uint8_t *data, int len);             // broadcast
@@ -116,7 +119,7 @@ protected:
     Utils::STATE3 allSlavesCurrent;
 
     void RefreshSignByStatus();
-    void RefreshSignByExtSt();
+    void RefreshSignSt();
 
     // display status
     DispStatus *dsBak;
@@ -125,6 +128,7 @@ protected:
     DispStatus *dsExt;
 
     int taskATFLine{0};
+    
     virtual bool TaskSetATF(int *_ptLine)=0;
 
     virtual void TransFrmToOrBuf(uint8_t frmId)=0;
@@ -149,12 +153,12 @@ private:
     {
         OFF,
         ON,
-        RISING
+        RISING,
+        NA
     };
-    PWR_STATE power{OFF};
-    uint8_t cmdPwr;
-    void GoPowerOn();
-    void GoPowerOff();
+    PWR_STATE cmdPwr/*load in constructor*/, fsPwr{PWR_STATE::NA}, mainPwr{PWR_STATE::NA};
+    bool IsPowerOn() { return cmdPwr == PWR_STATE::ON && fsPwr == PWR_STATE::ON && mainPwr == PWR_STATE::ON; };
+    void PowerFunc();
 
     // for Display command except for ATF
     void DispNext(DISP_STATUS::TYPE type, uint8_t id);
@@ -164,12 +168,10 @@ private:
     BootTimer pwrUpTmr;
 
     FacilitySwitch fcltSw;
-    std::vector<GpioIn*> extInput;
-    uint8_t extInputCnt{0};
+
     BootTimer extDispTmr;
 
     void FcltSwitchFunc();
-    void ExtInputFunc();
 
     std::vector<PlnMinute> plnMin{7 * 24 * 60};
     PlnMinute & GetCurrentMinPln();

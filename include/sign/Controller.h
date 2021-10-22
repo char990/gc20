@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <cstdint>
 #include <string>
 #include <module/BootTimer.h>
@@ -9,6 +8,7 @@
 #include <sign/Sign.h>
 #include <sign/Group.h>
 #include <tsisp003/TsiSp003Const.h>
+#include <gpio/GpioIn.h>
 
 class Controller : public IPeriodicRun
 {
@@ -36,7 +36,7 @@ public:
     uint8_t CtrllerErr();
 
     uint8_t GroupCnt() { return groupCnt; };
-    Group *GetGroup(uint8_t id) { return (id==0 || id>groupCnt) ? nullptr : groups[id - 1]; };
+    Group *GetGroup(uint8_t id) { return (id == 0 || id > groupCnt) ? nullptr : groups[id - 1]; };
 
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
@@ -47,7 +47,7 @@ public:
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
 
-    int CmdRequestEnabledPlans(uint8_t * buf);
+    int CmdRequestEnabledPlans(uint8_t *buf);
     APP::ERROR CmdEnDisPlan(uint8_t *cmd);
 
     APP::ERROR CmdSetDimmingLevel(uint8_t *cmd);
@@ -59,6 +59,9 @@ public:
     CtrllerError ctrllerError;
     /// \brief Session timeout timer
     BootTimer sessionTimeout;
+
+    int8_t CurTemp() { return curTemp;};
+    int8_t MaxTemp() { return maxTemp;};
 
 private:
     Controller();
@@ -74,7 +77,19 @@ private:
     uint8_t groupCnt{0};
 
     void BlinkSessionLed();
-    uint8_t sessionLed{0};      // 0:Off, 1:Blink, 2:On, default:Keep On/Off
+    uint8_t sessionLed{0}; // 0:Off, 1:Blink, 2:On, default:Keep On/Off
     uint8_t taskSessionCnt{0};
 
+    void PowerMonitor();
+    GpioIn *pMainPwr;
+    GpioIn *pBatLow;
+    GpioIn *pBatOpen;
+    uint8_t cnt10ms{0};
+
+    GpioIn * extInput[4];
+    void ExtInputFunc();
+
+    int8_t curTemp{0};
+    int8_t maxTemp{0};
+    uint16_t msTemp{60*100}; 
 };

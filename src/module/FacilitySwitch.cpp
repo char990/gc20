@@ -78,19 +78,9 @@ void FacilitySwitch::PeriodicRun()
         }
         if (lastState != fsState)
         {
-            #if 1
-            char buf[64];
-            ToStr(buf);
-            PrintDbg("%s\n", buf);
-            #endif
+            sprintf(buf, "FacilitySwitch:%s->%s", FS_STR[lastState], FS_STR[fsState]);
             isChanged = true;
             lastState = fsState;
         }
     }
-}
-
-char *FacilitySwitch::ToStr(char *buf)
-{
-    int len = sprintf(buf, "FacilitySwitch:%s->%s", FS_STR[lastState], FS_STR[fsState]);
-    return buf + len;
 }

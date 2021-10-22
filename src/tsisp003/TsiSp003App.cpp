@@ -2,7 +2,6 @@
 #include <sign/Controller.h>
 #include <module/DS3231.h>
 
-extern DS3231 * pDS3231;
 using namespace Utils;
 
 TsiSp003App::TsiSp003App()

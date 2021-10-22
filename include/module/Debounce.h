@@ -36,8 +36,8 @@ public:
     }
 
     /// \breif Reset debounce state
-    /// true    : valid & changed, value = false
-    /// false   : valid & changed, value = true
+    /// true    : valid & changed, value = true
+    /// false   : valid & changed, value = false
     void SetState(bool v)
     {
         if (v)
@@ -128,6 +128,6 @@ private:
     Utils::STATE3 value{Utils::STATE3::S_NA};
     int CNT1{1};
     int CNT0{1};
-    int cnt1;
-    int cnt0;
+    int cnt1{0};
+    int cnt0{0};
 };

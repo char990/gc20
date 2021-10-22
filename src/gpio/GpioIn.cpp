@@ -10,10 +10,6 @@
 #include "module/MyDbg.h"
 
 
-GpioIn *pMainPwr=nullptr;
-GpioIn *pBatLow=nullptr;
-GpioIn *pBatOpen=nullptr;
-
 GpioIn::GpioIn(int true_cnt, int false_cnt, unsigned int pin)
     : dbnc(true_cnt, false_cnt), gpioex(pin, GpioEx::DIR::INPUT), pin(pin)
 {
@@ -21,6 +17,18 @@ GpioIn::GpioIn(int true_cnt, int false_cnt, unsigned int pin)
 
 GpioIn::~GpioIn()
 {
+}
+
+void GpioIn::Init(Utils::STATE3 s)
+{
+    if(s==Utils::STATE3::S_NA)
+    {
+        dbnc.Reset();
+    }
+    else
+    {
+        dbnc.SetState(s==Utils::STATE3::S_1);
+    }
 }
 
 bool GpioIn::IsValid()

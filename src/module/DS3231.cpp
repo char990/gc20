@@ -9,6 +9,8 @@
 #include "3rdparty/i2clib/i2clib.h"
 #include "module/DS3231.h"
 
+DS3231 *pDS3231;
+
 /****************************************
  The time in DS3231 registers is UTC time
  ****************************************/

@@ -12,6 +12,7 @@ class GpioIn : public IPeriodicRun
 public:
     GpioIn(int true_cnt,  int false_cnt, unsigned int pin);
     ~GpioIn(void);
+    void Init(Utils::STATE3 s);
     bool IsValid(void);
  	Utils::STATE3 Value(void);
 	bool IsChanged(void);
@@ -25,7 +26,3 @@ private:
     unsigned int pin;
 };
 
-
-extern GpioIn *pMainPwr;
-extern GpioIn *pBatLow;
-extern GpioIn *pBatOpen;

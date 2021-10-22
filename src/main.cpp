@@ -30,9 +30,6 @@
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
 
-DS3231 *pDS3231;
-
-
 using namespace std;
 
 void PrintVersion()
@@ -54,15 +51,20 @@ class TickTock : public IPeriodicRun
 public:
     virtual void PeriodicRun() override
     {
-        _r_need_n = 0;
         putchar('\r');
+        _r_need_n = 0;
         PrintDbg("");
-        fflush(stdout);
         _r_need_n = 1;
+        cnt++;
+        putchar(s[cnt&0x03]);
+        fflush(stdout);
         time_t alarm_t = time(NULL);
         pDS3231->WriteTimeAlarm(alarm_t);
         pPinHeartbeatLed->Toggle();
     };
+private:
+    uint8_t cnt{0};
+    char s[4]{'-','\\','|','/'};
 };
 
 /*
@@ -88,10 +90,6 @@ void LogResetTime()
 
 void GpioInit()
 {
-    pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
-    pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
-    pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
-
     pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1); // heartbeat led, yellow
 
     pPinStatusLed = new GpioOut(PIN_ST_LED, 1); // status led, green
@@ -216,6 +214,8 @@ int main(int argc, char *argv[])
             tcppool[i].Init("Tcp" + std::to_string(i), "NTS", (user.SessionTimeout() + 60) * 1000);
         }
         TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
+
+        PrintDbg("\n>>> START >>>\n");
 
         /*************** Start ****************/
         while (1)

@@ -13,13 +13,8 @@ using namespace Utils;
 
 Group::Group(uint8_t groupId)
     : groupId(groupId), db(DbHelper::Instance()),
-      fcltSw(PIN_AUTO, PIN_MSG1, PIN_MSG2)
+      fcltSw(PIN_G1_AUTO, PIN_G1_MSG1, PIN_G1_MSG2)
 {
-    pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 0);
-    extInput.push_back(new GpioIn(2, 2, PIN_CN7_7_MSG3));
-    extInput.push_back(new GpioIn(2, 2, PIN_CN7_8_MSG4));
-    extInput.push_back(new GpioIn(2, 2, PIN_CN7_9_MSG5));
-
     busLockTmr.Setms(0);
     dimmingAdjTimer.Setms(0);
     UciProd &prod = db.GetUciProd();
@@ -103,15 +98,36 @@ Group::Group(uint8_t groupId)
     }
     currentDimmingLvl = proc.GetDimming(groupId);
     targetDimmingLvl = currentDimmingLvl | 0x80;
-    cmdPwr = proc.GetPower(groupId);
+    for (auto &sign : vSigns)
+    {
+        sign->DimmingSet(currentDimmingLvl);
+        sign->DimmingV(currentDimmingLvl);
+    }
+
+    if (proc.GetPower(groupId) == 0)
+    { // PowerOff
+        pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 0);
+        //PinCmdPowerOff();
+        for (auto &sign : vSigns)
+        {
+            sign->SignErr(DEV::ERROR::PoweredOffByCommand, 1);
+        }
+        cmdPwr = PWR_STATE::OFF;
+    }
+    else
+    { // PowerOn
+        pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, 1);
+        //PinCmdPowerOn();
+        for (auto &sign : vSigns)
+        {
+            sign->SignErr(DEV::ERROR::PoweredOffByCommand, 0);
+        }
+        cmdPwr = PWR_STATE::RISING;
+    }
 }
 
 Group::~Group()
 {
-    for (auto& s : extInput)
-    {
-        delete s;
-    }
     delete pPinCmdPower;
     delete[] orBuf;
     delete txBuf;
@@ -131,14 +147,10 @@ Group::~Group()
 
 void Group::PeriodicRun()
 {
-
-    // components PeriodicRun
     FcltSwitchFunc();
-#if 0
-    ExtInputFunc();
-#endif
+    PowerFunc();
 
-    if (power != PWR_STATE::ON || !IsBusFree())
+    if (!IsPowerOn() || !IsBusFree())
     {
         return;
     }
@@ -160,7 +172,7 @@ void Group::PeriodicRun()
             }
         }
         newCurrent = 0;
-        if(dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
+        if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
         {
             extDispTmr.Clear();
             DispBackup();
@@ -177,111 +189,102 @@ void Group::PeriodicRun()
     PeriodicHook();
 }
 
+void Group::PowerFunc()
+{
+    if (Controller::Instance().ctrllerError.IsSet(DEV::ERROR::PowerFailure))
+    { // main power failed
+        if (mainPwr != PWR_STATE::OFF)
+        {
+            mainPwr = PWR_STATE::OFF;
+        }
+    }
+    else
+    { // main power ok
+        if (mainPwr == PWR_STATE::OFF || mainPwr == PWR_STATE::NA)
+        {
+            mainPwr = PWR_STATE::RISING;
+        }
+    }
+
+    // combine mainPwr,cmdPwr,fsPwr
+    if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF || fsPwr == PWR_STATE::OFF)
+    { // any one is OFF
+        pwrUpTmr.Clear();
+        GroupSetReportDisp(0,0,0);
+    }
+    else
+    { // rising/on
+        if (mainPwr == PWR_STATE::RISING || cmdPwr == PWR_STATE::RISING || fsPwr == PWR_STATE::RISING)
+        { // any one is rising
+            if (pwrUpTmr.IsClear())
+            { // start power-up
+                pwrUpTmr.Setms(db.GetUciProd().SlavePowerUpDelay() * 1000);
+            }
+            else if (pwrUpTmr.IsExpired())
+            {
+                if (fsPwr == PWR_STATE::RISING)
+                { // from OFF switch to AUTO/MSG1/MSG2
+                    auto fs = fcltSw.Get();
+                    if (fs == FacilitySwitch::FS_STATE::AUTO)
+                    { // from OFF switch to AUTO
+                        DispNext(DISP_STATUS::TYPE::FRM, 0);
+                    }
+                    else
+                    { // from OFF switch to MSG1/MSG2
+                        uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                        DispNext(DISP_STATUS::TYPE::FSW, msg);
+                    }
+                }
+                // power-up done
+                pwrUpTmr.Clear();
+                extDispTmr.Clear();
+                mainPwr = PWR_STATE::ON;
+                cmdPwr = PWR_STATE::ON;
+                fsPwr = PWR_STATE::ON;
+                readyToLoad=1;
+            }
+        }
+    }
+}
+
 void Group::FcltSwitchFunc()
 {
     fcltSw.PeriodicRun();
-    FacilitySwitch::FS_STATE fs = fcltSw.Get();
+    auto fs = fcltSw.Get();
     if (fcltSw.IsChanged())
     {
         fcltSw.ClearChanged();
         Controller::Instance().ctrllerError.Push(
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[64];
-        int len = sprintf(buf, "Group%d:", groupId);
-        fcltSw.ToStr(buf + len);
+        sprintf(buf, "Group%d:%s", groupId, fcltSw.ToStr());
         db.GetUciEvent().Push(0, buf);
-        if (cmdPwr)
+        if (fs == FacilitySwitch::FS_STATE::OFF)
         {
-            if (fs == FacilitySwitch::FS_STATE::OFF)
+            fsPwr = PWR_STATE::OFF;
+        }
+        else
+        { // not OFF
+            if (fsPwr == PWR_STATE::OFF)
             {
-                if (power != PWR_STATE::OFF)
-                {
-                    GoPowerOff();
-                }
+                fsPwr = PWR_STATE::RISING;
             }
             else
             {
-                if (power != PWR_STATE::ON)
-                {
-                    GoPowerOn();
-                }
-                if (fs == FacilitySwitch::FS_STATE::AUTO)
-                {
-                    DispNext(DISP_STATUS::TYPE::FRM, 0);
-                }
-                else
-                {
-                    uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                    DispNext(DISP_STATUS::TYPE::FSW, msg);
-                }
-            }
-        }
-    }
-    else
-    {
-        if (FacilitySwitch::FS_STATE::OFF != fs)
-        {
-            if (power == PWR_STATE::RISING)
-            {
-                if (pwrUpTmr.IsExpired())
-                {
-                    power = PWR_STATE::ON;
-                    // TODO reset sign
-                    // reload
-                }
-            }
-        }
-    }
-}
-
-void Group::ExtInputFunc()
-{
-    if (power == PWR_STATE::ON && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
-    {
-        if (++extInputCnt >= 10)
-        {
-            extInputCnt = 0;
-            for (int i = 0; i < extInput.size(); i++)
-            {
-                auto gin = extInput[i];
-                gin->PeriodicRun();
-                if (gin->IsChanged() && gin->Value() == Utils::STATE3::S_1)
-                {
-                    gin->ClearChanged();
-                    uint8_t msg = i + 3;
-                    if (dsExt->dispType != DISP_STATUS::TYPE::EXT)
+                if (IsPowerOn())
+                { // power is ok, this means fsState is turning: AUTO<->MSG1<->MSG2
+                    if (fs == FacilitySwitch::FS_STATE::AUTO)
                     {
-                        DispNext(DISP_STATUS::TYPE::EXT, msg);
+                        DispNext(DISP_STATUS::TYPE::FRM, 0);
                     }
                     else
                     {
-                        if (msg < dsExt->fmpid[0])
-                        {
-                            DispNext(DISP_STATUS::TYPE::EXT, msg);
-                        }
-                        else if (msg == dsExt->fmpid[0])
-                        {
-                            auto time = db.GetUciUser().ExtSwCfgX(msg)->dispTime;
-                            if (time != 0)
-                            {
-                                extDispTmr.Setms(time * 1000);
-                            }
-                        }
+                        uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                        DispNext(DISP_STATUS::TYPE::FSW, msg);
                     }
-                    while(++i < extInput.size())
-                    {// clear others changed flag
-                        auto gin = extInput[i];
-                        gin->PeriodicRun();
-                        gin->ClearChanged();
-                    }
-                    return;
                 }
             }
         }
-    }
-    else
-    {
-        extInputCnt = 0;
     }
 }
 
@@ -302,7 +305,7 @@ bool Group::TaskPln(int *_ptLine)
     {
         {
             auto &plnmin = GetCurrentMinPln();
-            if (plnmin.plnId == 0)
+            if (plnmin.plnId == 0 || !db.GetUciPln().IsPlnDefined(plnmin.plnId))
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
@@ -322,17 +325,11 @@ bool Group::TaskPln(int *_ptLine)
             else
             {
                 if (onDispPlnId != plnmin.plnId)
-                {
+                {// reset active frm/msg
                     PrintDbg("Load Plan:%d\n", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                     auto pln = db.GetUciPln().GetPln(plnmin.plnId);
-                    if (pln == nullptr)
-                    {
-                        readyToLoad = 0;
-                        // TODO log: start plan but undefined
-                        return false;
-                    }
                     for (int i = 0; i < pln->entries; i++)
                     {
                         if (pln->plnEntries[i].fmType == PLN_ENTRY_FRM)
@@ -896,11 +893,11 @@ Slave *Group::GetSlave(uint8_t id)
     return nullptr;
 }
 
-void Group::GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t onDispPlnId)
+void Group::GroupSetReportDisp(uint8_t frmId, uint8_t msgId, uint8_t plnId)
 {
     for (auto &s : vSigns)
     {
-        s->SetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+        s->SetReportDisp(frmId, msgId, plnId);
     }
 }
 
@@ -980,7 +977,8 @@ void Group::LoadPlanToPlnMin(uint8_t id)
     Plan *pln = db.GetUciPln().GetPln(id);
     if (pln == nullptr)
     {
-        // Log
+        // TODO Log error
+        
         return;
     }
     uint8_t week = 0x01;
@@ -1034,7 +1032,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
-        APP::ERROR r = endis ? EnPlan(id) : DisPlan(id);
+        APP::ERROR r = endis ? EnablePlan(id) : DisablePlan(id);
         if (r != APP::ERROR::AppNoError)
         {
             return r;
@@ -1045,7 +1043,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::EnPlan(uint8_t id)
+APP::ERROR Group::EnablePlan(uint8_t id)
 {
     if (IsPlanEnabled(id))
     {
@@ -1059,7 +1057,7 @@ APP::ERROR Group::EnPlan(uint8_t id)
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DisPlan(uint8_t id)
+APP::ERROR Group::DisablePlan(uint8_t id)
 {
     if (!IsPlanEnabled(id))
     {
@@ -1111,6 +1109,19 @@ bool Group::IsFrmActive(uint8_t p)
     return activeFrm.Get(p);
 }
 
+void Group::DispExt(uint8_t msgX)
+{
+    if (IsPowerOn() && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get() && msgX >= 3 && msgX <= 6)
+    {
+        if ((dsCurrent->dispType == DISP_STATUS::TYPE::EXT && dsCurrent->fmpid[0] < msgX) ||
+            (dsExt->dispType == DISP_STATUS::TYPE::EXT && dsExt->fmpid[0] < msgX))
+        { // if there is a higher priority External input, ignore new input
+            return;
+        }
+        DispNext(DISP_STATUS::TYPE::EXT, msgX);
+    }
+}
+
 void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
 {
     if (type == DISP_STATUS::TYPE::EXT)
@@ -1119,13 +1130,17 @@ void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
         auto time = cfg->dispTime;
         if (time != 0)
         {
-            if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A ||
-                dsCurrent->dispType == DISP_STATUS::TYPE::BLK ||
-                (onDispMsgId == 0 && onDispFrmId == 0) ||
-                cfg->flashingOv == 0 ||
-                (cfg->flashingOv != 0 &&
-                 ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
-                  onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && dsCurrent->fmpid[0] == id)
+            {
+                extDispTmr.Setms(time * 1000);
+            }
+            else if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A ||
+                     dsCurrent->dispType == DISP_STATUS::TYPE::BLK ||
+                     (onDispMsgId == 0 && onDispFrmId == 0) ||
+                     cfg->flashingOv == 0 ||
+                     (cfg->flashingOv != 0 &&
+                      ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
+                       onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
             {
                 extDispTmr.Setms(time * 1000);
                 dsExt->dispType = type;
@@ -1148,32 +1163,48 @@ void Group::DispBackup()
 
 APP::ERROR Group::DispFrm(uint8_t id)
 {
-    if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
+    if (mainPwr == PWR_STATE::OFF)
     {
-        uint8_t buf[3];
-        buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
-        buf[1] = groupId;
-        buf[2] = id;
-        db.GetUciProcess().SetDisp(groupId, buf, 3);
-        DispNext(DISP_STATUS::TYPE::FRM, id);
-        return APP::ERROR::AppNoError;
+        return APP::ERROR::PowerIsOff;
     }
-    return APP::ERROR::FacilitySwitchOverride;
+    if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+    {
+        return APP::ERROR::FacilitySwitchOverride;
+    }
+    if (cmdPwr == PWR_STATE::OFF)
+    {
+        return APP::ERROR::PowerIsOff;
+    }
+    uint8_t buf[3];
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+    buf[1] = groupId;
+    buf[2] = id;
+    db.GetUciProcess().SetDisp(groupId, buf, 3);
+    DispNext(DISP_STATUS::TYPE::FRM, id);
+    return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Group::DispMsg(uint8_t id)
 {
-    if (FacilitySwitch::FS_STATE::AUTO == fcltSw.Get())
+    if (mainPwr == PWR_STATE::OFF)
     {
-        uint8_t buf[3];
-        buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
-        buf[1] = groupId;
-        buf[2] = id;
-        db.GetUciProcess().SetDisp(groupId, buf, 3);
-        DispNext(DISP_STATUS::TYPE::MSG, id);
-        return APP::ERROR::AppNoError;
+        return APP::ERROR::PowerIsOff;
     }
-    return APP::ERROR::FacilitySwitchOverride;
+    if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+    {
+        return APP::ERROR::FacilitySwitchOverride;
+    }
+    if (cmdPwr == PWR_STATE::OFF)
+    {
+        return APP::ERROR::PowerIsOff;
+    }
+    uint8_t buf[3];
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
+    buf[1] = groupId;
+    buf[2] = id;
+    db.GetUciProcess().SetDisp(groupId, buf, 3);
+    DispNext(DISP_STATUS::TYPE::MSG, id);
+    return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Group::SetDimming(uint8_t dimming)
@@ -1185,50 +1216,33 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
 
 APP::ERROR Group::SetPower(uint8_t v)
 {
-    if (cmdPwr != v)
-    {
-        if (FacilitySwitch::FS_STATE::OFF != fcltSw.Get())
+    if (v == 0)
+    { // PowerOff
+        if (cmdPwr != PWR_STATE::OFF)
         {
-            if (v == 1)
+            PinCmdPowerOff();
+            db.GetUciProcess().SetPower(groupId, 0);
+            for (auto &sign : vSigns)
             {
-                GoPowerOn();
-                // TODO load ds
+                sign->SignErr(DEV::ERROR::PoweredOffByCommand, 1);
             }
-            else
-            {
-                GoPowerOff();
-                // TODO backup ds
-            }
+            cmdPwr = PWR_STATE::OFF;
         }
-        cmdPwr = v;
-        db.GetUciProcess().SetPower(groupId, v);
-        for (auto &sign : vSigns)
+    }
+    else
+    { // PowerOn
+        if (cmdPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::NA)
         {
-            sign->SignErr(DEV::ERROR::PoweredOffByCommand, v == 0);
+            PinCmdPowerOn();
+            db.GetUciProcess().SetPower(groupId, 1);
+            for (auto &sign : vSigns)
+            {
+                sign->SignErr(DEV::ERROR::PoweredOffByCommand, 0);
+            }
+            cmdPwr = PWR_STATE::RISING;
         }
     }
     return APP::ERROR::AppNoError;
-}
-
-void Group::GoPowerOff()
-{
-    PinCmdPowerOff();
-    power = PWR_STATE::OFF;
-    //    dsBak->Clone(dsCurrent);
-    //   dsCurrent->Frm0();
-    //    dsNext->Frm0();
-    //    dsExt->N_A();
-    for (auto &sign : vSigns)
-    {
-        sign->Reset();
-    }
-}
-
-void Group::GoPowerOn()
-{
-    PinCmdPowerOn();
-    pwrUpTmr.Setms(db.GetUciProd().SlavePowerUpDelay() * 1000);
-    power = PWR_STATE::RISING;
 }
 
 APP::ERROR Group::SetDevice(uint8_t endis)
@@ -1294,18 +1308,6 @@ bool Group::LoadDsNext()
     return r;
 }
 
-/*
-    uint8_t signId, power;
-    uint8_t dimmingSet, dimmingV;
-    uint8_t deviceSet, deviceV;
-
-    DispStatus dsBak;
-    DispStatus dsCurrent;
-    DispStatus dsNext;
-    DispStatus dsExt;
-        uint8_t reportPln, reportMsg, reportFrm;
-*/
-
 int Group::Rx(uint8_t *data, int len)
 {
     switch (data[1])
@@ -1340,13 +1342,7 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
         auto &s = vSlaves[i];
         if (s->SlaveId() == *data)
         {
-            if (s->DecodeStRpl(data, len) == 0)
-            {
-                if (i == vSlaves.size() - 1)
-                { // last slave of sign, make sign status
-                    RefreshSignByStatus();
-                }
-            }
+            s->DecodeStRpl(data, len);
         }
     }
 }
@@ -1364,26 +1360,18 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
             {
                 if (i == vSlaves.size() - 1)
                 { // last slave of sign, make sign ext status
-                    RefreshSignByExtSt();
+                    RefreshSignSt();
                 }
             }
         }
     }
 }
 
-void Group::RefreshSignByStatus()
+void Group::RefreshSignSt()
 {
     for (auto &s : vSigns)
     {
-        s->RefreshSlaveStatus();
-    }
-}
-
-void Group::RefreshSignByExtSt()
-{
-    for (auto &s : vSigns)
-    {
-        s->RefreshSlaveExtSt();
+        s->RefreshSlaveStatusAtExtSt();
     }
 }
 

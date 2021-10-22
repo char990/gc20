@@ -62,7 +62,9 @@ bool DeviceError::IsSet(DEV::ERROR code)
 }
 
 /***************** SignError *****************/
-const DEV::ERROR SignError::SIGNERROR[9] = {
+#define SIGNERROR_SIZE 10
+const DEV::ERROR SignError::SIGNERROR[SIGNERROR_SIZE] = {
+    DEV::ERROR::UnderLocalControl,
     DEV::ERROR::PoweredOffByCommand,
     DEV::ERROR::SignSingleLedFailure,
     DEV::ERROR::SignLuminanceControllerFailure,
@@ -74,7 +76,7 @@ const DEV::ERROR SignError::SIGNERROR[9] = {
     DEV::ERROR::InternalCommunicationsFailure};
 
 SignError::SignError()
-    : DeviceError(10)
+    : DeviceError(SIGNERROR_SIZE)
 {
     devErr = SIGNERROR;
 }
@@ -95,7 +97,8 @@ bool SignError::Push(uint8_t sid, DEV::ERROR code, bool v)
 }
 
 /***************** CtrllerError *****************/
-const DEV::ERROR CtrllerError::CTRLERROR[9] = {
+#define CTRLERROR_SIZE 9
+const DEV::ERROR CtrllerError::CTRLERROR[CTRLERROR_SIZE] = {
     DEV::ERROR::CommunicationsTimeoutError,
     DEV::ERROR::DisplayTimeoutError,
     DEV::ERROR::EquipmentOverTemperature,
@@ -107,7 +110,7 @@ const DEV::ERROR CtrllerError::CTRLERROR[9] = {
     DEV::ERROR::PowerFailure};
 
 CtrllerError::CtrllerError()
-    : DeviceError(10)
+    : DeviceError(CTRLERROR_SIZE)
 {
     devErr = CTRLERROR;
 }

@@ -104,7 +104,7 @@ int Slave::DecodeExtStRpl(uint8_t * buf, int len)
     hours = Cnvt::GetU16(buf); buf+=2;
     temperature = Cnvt::GetU16(buf); buf+=2;
     humidity=*buf++;
-    lux=Cnvt::GetU16(buf+18);  buf+=4;
+    lux=Cnvt::GetU16(buf);  buf+=4;
     memcpy(numberOfFaultyLed, buf, numberOfTiles*numberOfColours);
     return 0;
 }
