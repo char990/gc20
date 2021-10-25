@@ -113,10 +113,11 @@ protected:
     bool AllSlavesGotExtSt();
     void ClrAllSlavesRxExtSt();
 
-    Utils::STATE3 CheckAllSlavesNext();
-    Utils::STATE3 allSlavesNext;
-    Utils::STATE3 CheckAllSlavesCurrent();
-    Utils::STATE3 allSlavesCurrent;
+    int CheckAllSlavesNext();
+    int allSlavesNext;
+    int CheckAllSlavesCurrent();
+    int allSlavesCurrent;
+    void AllSlavesUpdateCurrentBak();
 
     void RefreshSignByStatus();
     void RefreshSignSt();
@@ -146,7 +147,7 @@ private:
 
     uint8_t readyToLoad{1}, newCurrent{0};
 
-    uint8_t devSet, devCur;
+    uint8_t deviceEnDisSet, deviceEnDisCur;
 
     // group status
     enum PWR_STATE

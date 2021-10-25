@@ -35,16 +35,16 @@ public:
     
     uint8_t lightSensorFault;
 
+    uint8_t currentFrmIdBak{0};    // last display frame command
     uint8_t currentFrmId;       // display frame command
     uint16_t currentFrmCrc;
-    Utils::STATE3 IsCurrentMatched();
+    int CheckCurrent();
 
     uint8_t nextFrmId;          // set frame command
     uint16_t nextFrmCrc;
-    Utils::STATE3 IsNextMatched();
+    int CheckNext();
 
     int DecodeStRpl(uint8_t * buf, int len);
-
 
     // -------------------------- ext-status reply
     uint8_t rxExtSt{0};
@@ -61,15 +61,9 @@ public:
 
     // --------------------------- settings
 
-    enum FRM_ST {MATCH_NA, MATCH_OK, MATCH_NG};
-
     uint16_t frmCrc[7]; // 0-6, keep [0] as 0
     uint8_t expectCurrentFrmId{0};       // display frame command
     uint8_t expectNextFrmId{0};       // set frame command
-
-    // ----------------------------- result
-    FRM_ST currentState{FRM_ST::MATCH_NA};
-    FRM_ST nextState{FRM_ST::MATCH_NA};
 
 private:
     uint8_t slaveId;

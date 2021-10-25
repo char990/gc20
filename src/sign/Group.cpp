@@ -81,8 +81,8 @@ Group::Group(uint8_t groupId)
 
     // load process
     auto &proc = db.GetUciProcess();
-    devSet = proc.GetDevice(groupId);
-    devCur = !devSet;
+    deviceEnDisSet = proc.GetDevice(groupId);
+    deviceEnDisCur = !deviceEnDisSet;
 
     for (int i = 1; i <= 255; i++)
     {
@@ -161,14 +161,14 @@ void Group::PeriodicRun()
     }
     if (readyToLoad)
     {
-        if (devSet != devCur)
+        if (deviceEnDisSet != deviceEnDisCur)
         {
             TaskMsgReset();
             TaskFrmReset();
-            devCur = devSet;
+            deviceEnDisCur = deviceEnDisSet;
             for (auto &s : vSigns)
             {
-                s->Device(devCur);
+                s->Device(deviceEnDisCur);
             }
         }
         newCurrent = 0;
@@ -210,7 +210,7 @@ void Group::PowerFunc()
     if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF || fsPwr == PWR_STATE::OFF)
     { // any one is OFF
         pwrUpTmr.Clear();
-        GroupSetReportDisp(0,0,0);
+        GroupSetReportDisp(0, 0, 0);
     }
     else
     { // rising/on
@@ -241,7 +241,7 @@ void Group::PowerFunc()
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
                 fsPwr = PWR_STATE::ON;
-                readyToLoad=1;
+                readyToLoad = 1;
             }
         }
     }
@@ -309,7 +309,8 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    PrintDbg("Plan:BLANK\n");
+                    PrintDbg("Display:BLANK\n");
+                    db.GetUciEvent().Push(0, "Display:BLANK");
                     TaskFrmReset();
                     TaskMsgReset();
                     onDispPlnId = 0;
@@ -325,8 +326,11 @@ bool Group::TaskPln(int *_ptLine)
             else
             {
                 if (onDispPlnId != plnmin.plnId)
-                {// reset active frm/msg
-                    PrintDbg("Load Plan:%d\n", plnmin.plnId);
+                { // reset active frm/msg
+                    char buf[64];
+                    sprintf(buf, "Plan%d start", plnmin.plnId);
+                    PrintDbg("%s\n", buf);
+                    db.GetUciEvent().Push(0, buf);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                     auto pln = db.GetUciPln().GetPln(plnmin.plnId);
@@ -440,27 +444,24 @@ bool Group::TaskMsg(int *_ptLine)
                 TaskMsgReset();
                 return false;
             }
-            //for FSW/EXT, if msg undefined, show BLANK and report msgX+frm0
-            ClrOrBuf();
-            while (true)
+            else
             {
-                do
+                //for FSW/EXT, if msg undefined, show BLANK and report msgX+frm0
+                ClrOrBuf();
+                onDispFrmId = 0;
+                GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+                while (true)
                 {
                     SlaveSetStoredFrame(0xFF, 0);
-                    onDispFrmId = 0;
-                    GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                     ClrAllSlavesRxStatus();
                     do
                     {
-                        // step3: check current & next
+                        // step3: check current
                         taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
-                        PT_WAIT_UNTIL(AllSlavesGotStatus() && taskFrmTmr.IsExpired());
-                        CheckAllSlavesCurrent();
-                        CheckAllSlavesNext();
-                    } while (allSlavesCurrent == STATE3::S_1 && allSlavesNext == STATE3::S_1); // all good
-                } while (allSlavesNext == STATE3::S_1);                                        // Current is NOT matched but Next is matched, re-issue SlaveSetStoredFrame
-                // Next is NOT matched, restart from SlaveSetFrame
-            }; // end of null msg task
+                        PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
+                    } while (allSlavesCurrent == 0); // all good
+                };                                   // end of null msg task
+            }
         }
         else
         {
@@ -483,14 +484,14 @@ bool Group::TaskMsg(int *_ptLine)
                 {
                     SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
                     ClrAllSlavesRxStatus();
-                    PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
-                } while (allSlavesNext == STATE3::S_0);
+                    PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
+                } while (allSlavesNext == 1);
                 msgSetEntry++;
                 // +++++++++ after first round & first frame
                 // msg loop begin
                 do
                 {
-                    if (devCur)
+                    if (deviceEnDisCur)
                     {
                         readyToLoad = 0; // when a msg begin, clear readyToLoad
                     }
@@ -499,28 +500,30 @@ bool Group::TaskMsg(int *_ptLine)
                     { // overlay frame do not need to run DispFrm
                         onDispFrmId = pMsg->msgEntries[msgEntryCnt].frmId;
                         GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+                        (pMsg->msgEntries[msgEntryCnt].onTime == 0) ? taskMsgTmr.Clear() // last entry && onTIme is 0, display forever
+                                                                    : taskMsgTmr.Setms(pMsg->msgEntries[msgEntryCnt].onTime * 100 - 1);
+                        if (msgEntryCnt == pMsg->entries - 1)
+                        {
+                            long lastFrmOn = db.GetUciUser().LastFrmOn();
+                            (lastFrmOn == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmOn * 1000);
+                        }
+                        else
+                        {
+                            taskMsgLastFrmTmr.Clear();
+                        }
                         do // +++++++++ DispFrm X
                         {
                             SlaveSetStoredFrame(0xFF, msgEntryCnt + 1);
-                            (pMsg->msgEntries[msgEntryCnt].onTime == 0) ? taskMsgTmr.Clear() : taskMsgTmr.Setms(pMsg->msgEntries[msgEntryCnt].onTime * 100 - 1);
-                            if (msgEntryCnt == pMsg->entries - 1)
-                            {
-                                long lastFrmOn = db.GetUciUser().LastFrmOn();
-                                (lastFrmOn == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmOn * 1000);
-                            }
-                            else
-                            {
-                                taskMsgLastFrmTmr.Clear();
-                            }
                             ClrAllSlavesRxStatus();
-                            PT_WAIT_UNTIL(AllSlavesGotStatus());
-                            CheckAllSlavesCurrent();
-                            CheckAllSlavesNext();
-                        } while (allSlavesCurrent == STATE3::S_0 && allSlavesNext == STATE3::S_1);
-                        // Current is NOT matched but Next is matched, re-issue SlaveSetStoredFrame
-                        if (allSlavesNext != STATE3::S_1)
-                        { // Next is NOT matched, this is a fatal error, restart
-                            PrintDbg("Current&Next NOT matched, RESTART\n");
+                            PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0);
+                            if (allSlavesCurrent == 0)
+                            {
+                                AllSlavesUpdateCurrentBak();
+                            }
+                        } while (allSlavesCurrent == 1); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
+                        if (allSlavesCurrent == 2)
+                        { // this is a fatal error, restart
+                            PrintDbg("Msg-Frm-Disp: Current NOT matched, RESTART\n");
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -542,17 +545,15 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 SlaveSetFrame(0xFF, nextEntry + 1, pMsg->msgEntries[nextEntry].frmId);
                                 ClrAllSlavesRxStatus();
-                                PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
-                            } while (allSlavesNext == STATE3::S_0);
+                                PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
+                            } while (allSlavesNext == 1);
                         }
                         msgSetEntry++;
                     }
                     do // +++++++++ OnTime
                     {
                         taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
-                        PT_WAIT_UNTIL(AllSlavesGotStatus() && taskFrmTmr.IsExpired());
-                        CheckAllSlavesCurrent();
-                        CheckAllSlavesNext();
+                        PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                         if (msgEntryCnt == pMsg->entries - 1)
                         {
                             if (taskMsgLastFrmTmr.IsExpired())
@@ -561,12 +562,13 @@ bool Group::TaskMsg(int *_ptLine)
                                 readyToLoad = 1; // last frame on expired
                             }
                         }
-                    } while (allSlavesCurrent == STATE3::S_1 && allSlavesNext == STATE3::S_1 && !taskMsgTmr.IsExpired());
+                    } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                     if (!taskMsgTmr.IsExpired())
-                    { // Currnet/Next is NOT matched, this is a fatal error, restart
-                        PrintDbg("Current&Next NOT matched, RESTART\n");
+                    { // Currnet is NOT matched, fatal error
+                        PrintDbg("Msg-Frm-onTime: Current NOT matched, RESTART\n");
                         goto NORMAL_MSG_TASK_START;
                     }
+
                     // ++++++++++ OnTime finish
                     if (pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run transition
@@ -576,7 +578,8 @@ bool Group::TaskMsg(int *_ptLine)
                             SlaveDisplayFrame(0xFF, 0);
                             taskMsgTmr.Setms(pMsg->transTime * 10 - 1);
                             PT_WAIT_UNTIL(taskMsgTmr.IsExpired());
-                            // because transition time is generally short, don have enough time to check, so just wait for expired
+                            AllSlavesUpdateCurrentBak();
+                            // because transition time is generally short, don't have enough time to reload if there is an error, so just wait for expired
                         }
                         // +++++++++++ transition time end
                     }
@@ -662,6 +665,8 @@ bool Group::TaskFrm(int *_ptLine)
         {
             onDispPlnId = 0;
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
+            activeMsg.ClrAll();
+            activeFrm.Set(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
             PrintDbg("Display ATF\n");
         }
@@ -671,7 +676,7 @@ bool Group::TaskFrm(int *_ptLine)
             { // from CmdDispFrm
                 onDispPlnId = 0;
                 onDispFrmId = dsCurrent->fmpid[0];
-                activeFrm.ClrAll();
+                activeMsg.ClrAll();
                 activeFrm.Set(onDispFrmId);
             }
             else
@@ -686,8 +691,8 @@ bool Group::TaskFrm(int *_ptLine)
                 {
                     SlaveSetFrame(0xFF, (onDispFrmId == 0) ? 0 : 1, onDispFrmId);
                     ClrAllSlavesRxStatus();
-                    PT_WAIT_UNTIL(CheckAllSlavesNext() != STATE3::S_NA);
-                } while (allSlavesNext == STATE3::S_0);
+                    PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
+                } while (allSlavesNext == 1);
             }
             GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
         }
@@ -700,12 +705,13 @@ bool Group::TaskFrm(int *_ptLine)
             {
                 // step3: check current & next
                 taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
-                PT_WAIT_UNTIL(AllSlavesGotStatus() && taskFrmTmr.IsExpired());
-                CheckAllSlavesCurrent();
-                CheckAllSlavesNext();
-            } while (allSlavesCurrent == STATE3::S_1 && allSlavesNext == STATE3::S_1); // all good
-        } while (allSlavesNext == STATE3::S_1);                                        // Current is NOT matched but Next is matched, re-issue SlaveSetStoredFrame
-        // Next is NOT matched, restart from SlaveSetFrame
+                PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
+                if (allSlavesCurrent == 0)
+                {
+                    AllSlavesUpdateCurrentBak();
+                }
+            } while (allSlavesCurrent == 0); // all good
+        } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
     };
     PT_END();
 }
@@ -789,29 +795,33 @@ bool Group::TaskRqstSlave(int *_ptLine)
     PT_END();
 }
 
-Utils::STATE3 Group::CheckAllSlavesNext()
+int Group::CheckAllSlavesNext()
 {
     for (auto &s : vSlaves)
     {
-        allSlavesNext = s->IsNextMatched();
-        if (allSlavesNext != Utils::STATE3::S_1)
+        int x = s->CheckNext();
+        if (x != 0)
         {
-            break;
+            allSlavesNext = x;
+            return x;
         }
     }
+    allSlavesNext = 0;
     return allSlavesNext;
 }
 
-Utils::STATE3 Group::CheckAllSlavesCurrent()
+int Group::CheckAllSlavesCurrent()
 {
     for (auto &s : vSlaves)
     {
-        allSlavesCurrent = s->IsCurrentMatched();
-        if (allSlavesCurrent != Utils::STATE3::S_1)
+        int x = s->CheckCurrent();
+        if (x != 0)
         {
-            break;
+            allSlavesCurrent = x;
+            return x;
         }
     }
+    allSlavesCurrent = 0;
     return allSlavesCurrent;
 }
 
@@ -978,7 +988,7 @@ void Group::LoadPlanToPlnMin(uint8_t id)
     if (pln == nullptr)
     {
         // TODO Log error
-        
+
         return;
     }
     uint8_t week = 0x01;
@@ -1247,8 +1257,8 @@ APP::ERROR Group::SetPower(uint8_t v)
 
 APP::ERROR Group::SetDevice(uint8_t endis)
 {
-    devSet = (endis == 0) ? 0 : 1;
-    db.GetUciProcess().SetDevice(groupId, devSet);
+    deviceEnDisSet = (endis == 0) ? 0 : 1;
+    db.GetUciProcess().SetDevice(groupId, deviceEnDisSet);
     return APP::ERROR::AppNoError;
 }
 
@@ -1425,7 +1435,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
                 slvindex, slvFrmId, uciFrmId);
     }
     int ms = 10;
-    if (devCur)
+    if (deviceEnDisCur)
     {
         //PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
         MakeFrameForSlave(uciFrmId);
@@ -1444,7 +1454,6 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
             {
                 s->expectNextFrmId = slvFrmId;
                 s->frmCrc[slvFrmId] = crc;
-                s->nextState = Slave::FRM_ST::MATCH_NA;
             }
         }
         else
@@ -1452,7 +1461,6 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
             auto &s = vSlaves[slvindex];
             s->expectNextFrmId = slvFrmId;
             s->frmCrc[slvFrmId] = crc;
-            s->nextState = Slave::FRM_ST::MATCH_NA;
         }
         ms = Tx();
         auto dly = db.GetUciProd().SlaveSetStFrmDly();
@@ -1488,7 +1496,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
 // this function is actually for transistion time
 int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    if (devCur == 0)
+    if (deviceEnDisCur == 0)
     {
         slvFrmId = 0;
     }
@@ -1499,9 +1507,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
         for (auto &s : vSlaves)
         {
             s->expectCurrentFrmId = slvFrmId;
-            s->currentState = Slave::FRM_ST::MATCH_NA;
             s->expectNextFrmId = slvFrmId;
-            s->nextState = Slave::FRM_ST::MATCH_NA;
         }
     }
     else
@@ -1509,9 +1515,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
         auto &s = vSlaves[slvindex];
         txBuf[0] = s->SlaveId();
         s->expectCurrentFrmId = slvFrmId;
-        s->currentState = Slave::FRM_ST::MATCH_NA;
         s->expectNextFrmId = slvFrmId;
-        s->nextState = Slave::FRM_ST::MATCH_NA;
     }
     txBuf[1] = SLVCMD::DISPLAY_FRM;
     txBuf[2] = slvFrmId;
@@ -1524,7 +1528,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
 
 int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
 {
-    if (devCur == 0)
+    if (deviceEnDisCur == 0)
     {
         slvFrmId = 0;
     }
@@ -1535,9 +1539,7 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
         for (auto &s : vSlaves)
         {
             s->expectCurrentFrmId = slvFrmId;
-            s->currentState = Slave::FRM_ST::MATCH_NA;
             s->expectNextFrmId = slvFrmId;
-            s->nextState = Slave::FRM_ST::MATCH_NA;
         }
     }
     else
@@ -1545,9 +1547,7 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
         auto &s = vSlaves[slvindex];
         txBuf[0] = s->SlaveId();
         s->expectCurrentFrmId = slvFrmId;
-        s->currentState = Slave::FRM_ST::MATCH_NA;
         s->expectNextFrmId = slvFrmId;
-        s->nextState = Slave::FRM_ST::MATCH_NA;
     }
     txBuf[1] = SLVCMD::SET_STD_FRM;
     txBuf[2] = slvFrmId;
@@ -1556,6 +1556,14 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
     int ms = db.GetUciProd().SlaveDispDly();
     LockBus(ms);
     return ms;
+}
+
+void Group::AllSlavesUpdateCurrentBak()
+{
+    for (auto &s : vSlaves)
+    {
+        s->currentFrmIdBak = s->expectCurrentFrmId;
+    }
 }
 
 bool Group::IsBusFree()

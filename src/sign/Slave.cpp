@@ -109,33 +109,45 @@ int Slave::DecodeExtStRpl(uint8_t * buf, int len)
     return 0;
 }
 
-Utils::STATE3 Slave::IsCurrentMatched()
+int Slave::CheckCurrent()
 {
     if(rxStatus==0)
     {
-        return Utils::STATE3::S_NA;
+        return -1;
     }
     if(expectCurrentFrmId == currentFrmId && frmCrc[expectCurrentFrmId] == currentFrmCrc)
     {
-        return Utils::STATE3::S_1;
+        return 0;
     }
-    PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)\n",
-        currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
-    return Utils::STATE3::S_0;
+    else
+    {
+        PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)\n",
+            currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+        if(expectCurrentFrmId != currentFrmId)
+        {
+            if(currentFrmIdBak == currentFrmId && currentFrmId !=0 && frmCrc[currentFrmId] == currentFrmCrc)
+            {
+                return 1;   // lastFrm matched. Re-send Setstored/Display frame
+            }
+        }
+        return 2;   // fatal error, frames in slave lost. Should re-SetFrame
+    }
 }
 
-Utils::STATE3 Slave::IsNextMatched()
+int Slave::CheckNext()
 {
     if(rxStatus==0)
     {
-        return Utils::STATE3::S_NA;
+        return -1;
     }
     if(expectNextFrmId == nextFrmId && frmCrc[expectNextFrmId] == nextFrmCrc)
     {
-        return Utils::STATE3::S_1;
+        return 0;
     }
-    PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)\n",
-        nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
-    return Utils::STATE3::S_0;
+    else
+    {
+        PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)\n",
+            nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+        return 1;   // NOT matched
+    }
 }
-
