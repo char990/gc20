@@ -23,6 +23,7 @@ public:
     void AddSlave(Slave *slave);
 
     uint8_t SignId() { return signId; };
+
     void ClearFaults();
 
     uint8_t *GetStatus(uint8_t *p);
@@ -51,17 +52,22 @@ public:
 
     void RefreshSlaveStatusAtExtSt();
 
+    // Init Debounce-Fault/Fault-flag from signErr
+    void InitFaults();
+
     // Fatal Error
-    Debounce dbcChain;
-    Debounce dbcMultiLed;
-    Debounce dbcSelftest;
-    Debounce dbcVoltage;
-    Utils::STATE3 OverTemp() { return overTempFault;};
+    Debounce chainFault;
+    Debounce multiLedFault;
+    Debounce selftestFault;
+    Debounce voltageFault;
+    Utils::State5 overTempFault;
+
+    Utils::State5 fatalError;   // combine chain, multiLed, selftest, voltage and overtemp
 
     // Normal Error
-    Utils::STATE3 LightSnsr() { return lightSnsrFault;};
-    Debounce dbcLantern;
-    Debounce dbcSingleLed;
+    Utils::State5 luminanceFault;
+    Debounce lanternFault;
+    Debounce singleLedFault;
     
     int8_t CurTemp() { return curTemp; };
     int8_t MaxTemp() { return maxTemp; };
@@ -86,15 +92,14 @@ protected:
 
     uint8_t tflag{255};
     uint8_t lasthour{255};
-    Debounce dbncLightSnsr;
-    Debounce dbnc18hours;
-    Debounce dbncMidnight;
-    Debounce dbncMidday;
-    Utils::STATE3 lightSnsrFault{Utils::STATE3::S_NA};
+    Debounce lsConnectionFault;
+    Debounce ls18hoursFault;
+    Debounce lsMidnightFault;
+    Debounce lsMiddayFault;
 
     int8_t curTemp{0}, maxTemp{0};
+    
     uint16_t voltage{0}, lux{0};
-    Utils::STATE3 overTempFault{Utils::STATE3::S_NA};
 
     void DbncFault(Debounce & dbc, DEV::ERROR err, const char * info=nullptr);
 };

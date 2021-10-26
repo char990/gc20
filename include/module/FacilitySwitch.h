@@ -24,7 +24,6 @@ private:
     GpioIn *pFsAuto;
     GpioIn *pFsM1;
     GpioIn *pFsM2;
-    uint8_t cnt;
     FS_STATE lastState{FS_STATE::NA};
     const char * FS_STR[5]{"N/A", "OFF", "AUTO", "MSG1", "MSG2"};
     uint8_t lastkey{0};

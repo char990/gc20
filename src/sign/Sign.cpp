@@ -10,26 +10,17 @@ Sign::Sign(uint8_t id)
     : signId(id)
 {
     UciProd &prod = DbHelper::Instance().GetUciProd();
-    dbcChain.SetCNT(prod.DriverFaultDebounce());
-    dbcMultiLed.SetCNT(prod.LedFaultDebounce());
-    dbcSingleLed.SetCNT(prod.LedFaultDebounce());
-    dbcSelftest.SetCNT(prod.SelftestDebounce());
-    dbcVoltage.SetCNT(prod.SlaveVoltageDebounce());
-    dbcLantern.SetCNT(prod.LanternFaultDebounce());
+    chainFault.SetCNT(prod.DriverFaultDebounce());
+    multiLedFault.SetCNT(prod.LedFaultDebounce());
+    singleLedFault.SetCNT(prod.LedFaultDebounce());
+    selftestFault.SetCNT(prod.SelftestDebounce());
+    voltageFault.SetCNT(prod.SlaveVoltageDebounce());
+    lanternFault.SetCNT(prod.LanternFaultDebounce());
 
-    dbncLightSnsr.SetCNT(2 * 60, 2 * 60);
-
-    dbnc18hours.SetCNT(18 * 60 * 60, 15 * 60);
-    dbnc18hours.SetState(false);
-    dbnc18hours.changed = false;
-
-    dbncMidnight.SetCNT(15 * 60);
-    dbncMidnight.SetState(false);
-    dbncMidnight.changed = false;
-
-    dbncMidday.SetCNT(15 * 60);
-    dbncMidday.SetState(false);
-    dbncMidday.changed = false;
+    lsConnectionFault.SetCNT(2 * 60, 2 * 60);
+    ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
+    lsMidnightFault.SetCNT(15 * 60);
+    lsMiddayFault.SetCNT(15 * 60);
 }
 
 Sign::~Sign()
@@ -39,22 +30,54 @@ Sign::~Sign()
 void Sign::AddSlave(Slave *slave)
 {
     vsSlaves.push_back(slave);
+    slave->sign = this;
+}
+
+void Sign::InitFaults()
+{
+    overTempFault.Init(signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) ? STATE5::S5_1 : STATE5::S5_0);
+    luminanceFault.Init(signErr.IsSet(DEV::ERROR::SignLuminanceControllerFailure) ? STATE5::S5_1 : STATE5::S5_0);
+    selftestFault.SetState(signErr.IsSet(DEV::ERROR::UnderLocalControl));
+    singleLedFault.SetState(signErr.IsSet(DEV::ERROR::SignSingleLedFailure));
+    lanternFault.SetState(signErr.IsSet(DEV::ERROR::ConspicuityDeviceFailure));
+    voltageFault.SetState(signErr.IsSet(DEV::ERROR::InternalPowerSupplyFault));
+    multiLedFault.SetState(signErr.IsSet(DEV::ERROR::SignMultiLedFailure));
+    chainFault.SetState(signErr.IsSet(DEV::ERROR::SignDisplayDriverFailure));
+    lsConnectionFault.SetState(false);
+    ls18hoursFault.SetState(false);
+    lsMidnightFault.SetState(false);
+    lsMiddayFault.SetState(false);
+    if (chainFault.Value() == STATE3::S3_1 ||
+        multiLedFault.Value() == STATE3::S3_1 ||
+        selftestFault.Value() == STATE3::S3_1 ||
+        voltageFault.Value() == STATE3::S3_1 ||
+        overTempFault.IsHigh())
+    {
+        fatalError.Set();
+    }
+    else
+    {
+        fatalError.Clr();
+    }
 }
 
 void Sign::ClearFaults()
 {
-    signErr.Reset();
-    dbcChain.Reset();
-    dbcMultiLed.Reset();
-    dbcSingleLed.Reset();
-    dbcSelftest.Reset();
-    dbcVoltage.Reset();
-    dbcLantern.Reset();
-    dbnc18hours.Reset();
-    dbncMidnight.Reset();
-    dbncMidday.Reset();
+    signErr.Clear();
+    chainFault.SetState(false);
+    multiLedFault.SetState(false);
+    singleLedFault.SetState(false);
+    selftestFault.SetState(false);
+    voltageFault.SetState(false);
+    lanternFault.SetState(false);
+    lsConnectionFault.SetState(false);
+    ls18hoursFault.SetState(false);
+    lsMidnightFault.SetState(false);
+    lsMiddayFault.SetState(false);
     tflag = 255;
-    lightSnsrFault = STATE3::S_NA;
+    luminanceFault.Init(STATE5::S5_0);
+    overTempFault.Init(STATE5::S5_0);
+    fatalError.Init(STATE5::S5_0);
 }
 
 uint8_t *Sign::GetStatus(uint8_t *p)
@@ -74,6 +97,14 @@ uint8_t *Sign::GetStatus(uint8_t *p)
 
 void Sign::RefreshSlaveStatusAtExtSt()
 {
+    for (auto &s : vsSlaves)
+    {
+        if (s->rxExtSt == 0)
+        {
+            return;
+        }
+    }
+
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
@@ -90,15 +121,15 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // light sensor installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
-    dbcChain.Check(check_chain_fault > 0);
-    DbncFault(dbcChain, DEV::ERROR::SignDisplayDriverFailure);
+    chainFault.Check(check_chain_fault > 0);
+    DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure);
 
-    dbcSelftest.Check(check_selftest > 0);
-    DbncFault(dbcSelftest, DEV::ERROR::UnderLocalControl);
+    selftestFault.Check(check_selftest > 0);
+    DbncFault(selftestFault, DEV::ERROR::UnderLocalControl);
 
-    dbcLantern.Check(check_lantern > 0);
+    lanternFault.Check(check_lantern > 0);
     sprintf(buf, "LanternFault=0x%02X", check_lantern);
-    DbncFault(dbcLantern, DEV::ERROR::ConspicuityDeviceFailure, buf);
+    DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
 
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
@@ -135,21 +166,21 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // *** voltage
     if (minvoltage < prod.SlaveVoltageLow())
     {
-        dbcVoltage.Check(true);
+        voltageFault.Check(true);
         voltage = minvoltage;
     }
     else if (maxvoltage > prod.SlaveVoltageHigh())
     {
-        dbcVoltage.Check(true);
+        voltageFault.Check(true);
         voltage = maxvoltage;
     }
     else
     {
-        dbcVoltage.Check(false);
+        voltageFault.Check(false);
         voltage = v / vsSlaves.size();
     }
     sprintf(buf, "%dmv", voltage);
-    DbncFault(dbcVoltage, DEV::ERROR::InternalPowerSupplyFault, buf);
+    DbncFault(voltageFault, DEV::ERROR::InternalPowerSupplyFault, buf);
 
     // *** temperature
     curTemp = temperature / 10;
@@ -165,7 +196,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
             sprintf(buf, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
             DbHelper::Instance().GetUciAlarm().Push(signId, buf);
-            overTempFault = Utils::STATE3::S_1;
+            overTempFault.Set();
         }
     }
     else if (curTemp < (ot - prod.OverTempDebounce()))
@@ -175,35 +206,35 @@ void Sign::RefreshSlaveStatusAtExtSt()
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
             sprintf(buf, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
             DbHelper::Instance().GetUciAlarm().Push(signId, buf);
-            overTempFault = Utils::STATE3::S_0;
+            overTempFault.Clr();
         }
     }
 
     // *** single/multi led
     if (faultLedCnt == 0)
     {
-        dbcSingleLed.Check(0);
-        dbcMultiLed.Check(0);
+        singleLedFault.Check(0);
+        multiLedFault.Check(0);
     }
     else if (faultLedCnt == 1)
     {
-        dbcSingleLed.Check(1);
-        dbcMultiLed.Check(0);
+        singleLedFault.Check(1);
+        multiLedFault.Check(0);
     }
     else
     {
-        dbcSingleLed.Check(1);
-        dbcMultiLed.Check(faultLedCnt > user.MultiLedFaultThreshold());
+        singleLedFault.Check(1);
+        multiLedFault.Check(faultLedCnt > user.MultiLedFaultThreshold());
     }
     sprintf(buf, "%d LEDs", faultLedCnt);
-    DbncFault(dbcMultiLed, DEV::ERROR::SignMultiLedFailure, buf);
-    if (dbcMultiLed.Value() == STATE3::S_0)
+    DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
+    if (multiLedFault.Value() == STATE3::S3_0)
     {
-        DbncFault(dbcSingleLed, DEV::ERROR::SignSingleLedFailure, buf);
+        DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
     }
     else
     {
-        dbcSingleLed.changed = false; // When multi, ignore single. So clear changed
+        singleLedFault.changed = false; // When multi, ignore single. So clear changed
     }
 
     // *** light sensor
@@ -214,81 +245,82 @@ void Sign::RefreshSlaveStatusAtExtSt()
         tflag = tf;
         // light sensor installed at first slave
         lux = vsSlaves[0]->lux;
-        auto lastLs = dbncLightSnsr.Value();
+        auto lastLs = lsConnectionFault.Value();
         if ((vsSlaves[0]->lightSensorFault & 1) == 0 && lux > 0)
         {
-            if (dbncLightSnsr.Value() != STATE3::S_0)
+            if (lsConnectionFault.Value() != STATE3::S3_0)
             {
-                dbncLightSnsr.SetState(false);
+                lsConnectionFault.SetState(false);
+                lsConnectionFault.changed = true;
             }
         }
         else
         {
-            dbncLightSnsr.Check(vsSlaves[0]->lightSensorFault & 1);
+            lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1);
         }
-        if (dbncLightSnsr.changed)
+        if (lsConnectionFault.changed)
         {
-            dbncLightSnsr.changed = false;
-            if (dbncLightSnsr.Value() == STATE3::S_1)
+            lsConnectionFault.changed = false;
+            if (lsConnectionFault.Value() == STATE3::S3_1)
             {
-                lightSnsrFault = STATE3::S_1;
+                luminanceFault.Set();
                 signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
                 db.GetUciAlarm().Push(signId, "Light sensor DISCONNECTED");
             }
-            else if (dbncLightSnsr.Value() == STATE3::S_0 && lastLs == STATE3::S_1)
+            else if (lsConnectionFault.Value() == STATE3::S3_0 && lastLs == STATE3::S3_1)
             {
                 db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
             }
         }
 
-        if (dbncLightSnsr.Value() == STATE3::S_0)
+        if (lsConnectionFault.Value() == STATE3::S3_0)
         {
             auto &prod = DbHelper::Instance().GetUciProd();
-            dbnc18hours.Check(lux < prod.LightSensor18Hours());
+            ls18hoursFault.Check(lux < prod.LightSensor18Hours());
             struct tm stm;
             localtime_r(&t, &stm);
             if (stm.tm_hour >= 11 && stm.tm_hour < 15)
             { // mid-day
                 if (lasthour != stm.tm_hour && (lasthour < 11 || lasthour > 15))
                 {
-                    dbncMidday.ResetCnt();
+                    lsMiddayFault.ResetCnt();
                 }
-                dbncMidday.Check(lux < prod.LightSensorMidday());
+                lsMiddayFault.Check(lux < prod.LightSensorMidday());
             }
             if (stm.tm_hour < 3 || stm.tm_hour >= 23)
             { // mid-night
                 if (lasthour != stm.tm_hour && (lasthour < 23 || lasthour > 3))
                 {
-                    dbncMidnight.ResetCnt();
+                    lsMidnightFault.ResetCnt();
                 }
-                dbncMidnight.Check(lux > prod.LightSensorMidnight());
+                lsMidnightFault.Check(lux > prod.LightSensorMidnight());
             }
             lasthour = stm.tm_hour;
-            if (dbnc18hours.Value() == STATE3::S_1 ||
-                dbncMidday.Value() == STATE3::S_1 ||
-                dbncMidnight.Value() == STATE3::S_1)
+            if (ls18hoursFault.Value() == STATE3::S3_1 ||
+                lsMiddayFault.Value() == STATE3::S3_1 ||
+                lsMidnightFault.Value() == STATE3::S3_1)
             { // any failed
-                if (lightSnsrFault != STATE3::S_1)
+                if (!luminanceFault.IsHigh())
                 {
                     signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
-                    lightSnsrFault = STATE3::S_1;
+                    luminanceFault.Set();
                 }
             }
-            else if (dbnc18hours.Value() == STATE3::S_0 &&
-                     dbncMidday.Value() == STATE3::S_0 &&
-                     dbncMidnight.Value() == STATE3::S_0)
+            else if (ls18hoursFault.Value() == STATE3::S3_0 &&
+                     lsMiddayFault.Value() == STATE3::S3_0 &&
+                     lsMidnightFault.Value() == STATE3::S3_0)
             { // all good
-                if (lightSnsrFault != STATE3::S_0)
+                if (!luminanceFault.IsLow())
                 {
                     signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, false);
-                    lightSnsrFault = STATE3::S_0;
+                    luminanceFault.Clr();
                 }
             }
             char buf[64];
-            if (dbnc18hours.changed)
+            if (ls18hoursFault.changed)
             {
-                dbnc18hours.changed = false;
-                if (dbnc18hours.Value() == STATE3::S_1)
+                ls18hoursFault.changed = false;
+                if (ls18hoursFault.Value() == STATE3::S3_1)
                 {
                     sprintf(buf, "Lux < %d for 18 hours: 18-Hour Fault ONSET", prod.LightSensor18Hours());
                 }
@@ -298,10 +330,10 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
-            if (dbncMidday.changed)
+            if (lsMiddayFault.changed)
             {
-                dbncMidday.changed = false;
-                if (dbncMidday.Value() == STATE3::S_1)
+                lsMiddayFault.changed = false;
+                if (lsMiddayFault.Value() == STATE3::S3_1)
                 {
                     sprintf(buf, "In 11:00-15:00, Lux < %d for 15 minutes: Midday Fault ONSET", prod.LightSensorMidday());
                 }
@@ -311,10 +343,10 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
-            if (dbncMidnight.changed)
+            if (lsMidnightFault.changed)
             {
-                dbncMidnight.changed = false;
-                if (dbncMidnight.Value() == STATE3::S_1)
+                lsMidnightFault.changed = false;
+                if (lsMidnightFault.Value() == STATE3::S3_1)
                 {
                     sprintf(buf, "In 23:00-3:00, Lux >= %d for 15 minutes: Midnight Fault ONSET", prod.LightSensorMidnight());
                 }
@@ -325,6 +357,18 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 db.GetUciAlarm().Push(signId, buf);
             }
         }
+    }
+    if (chainFault.Value() == STATE3::S3_1 ||
+        multiLedFault.Value() == STATE3::S3_1 ||
+        selftestFault.Value() == STATE3::S3_1 ||
+        voltageFault.Value() == STATE3::S3_1 ||
+        overTempFault.IsHigh())
+    {
+        fatalError.Set();
+    }
+    else
+    {
+        fatalError.Clr();
     }
 }
 
@@ -364,7 +408,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         dbc.changed = false;
         char buf[64];
         int len = 0;
-        if (dbc.Value() == STATE3::S_1)
+        if (dbc.Value() == STATE3::S3_1)
         {
             if (!signErr.IsSet(err))
             {

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <module/Utils.h>
 
+class Sign;
 class Slave
 {
 public:
@@ -13,6 +14,8 @@ public:
     void Reset();
 
     uint8_t SlaveId() {return slaveId; };
+
+    Sign * sign;
 
     // static for all slaves
     static uint8_t numberOfTiles;
@@ -65,6 +68,8 @@ public:
     uint8_t expectCurrentFrmId{0};       // display frame command
     uint8_t expectNextFrmId{0};       // set frame command
 
+
+    void ReportOffline(bool v);
 private:
     uint8_t slaveId;
 };

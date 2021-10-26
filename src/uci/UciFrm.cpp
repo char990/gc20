@@ -67,7 +67,7 @@ void UciFrm::LoadConfig()
 	}
 	delete[] v;
 	delete[] b;
-	Dump();
+	//Dump();
 }
 
 void UciFrm::Dump()

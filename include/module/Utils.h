@@ -9,11 +9,58 @@ namespace Utils
 {
     enum STATE3
     {
-        S_NA    = -1,
-        S_0     = 0,
-        S_1     = 1
+        S3_NA    = -1,
+        S3_0     = 0,
+        S3_1     = 1
     };
 
+    enum STATE5:int8_t
+    {
+        S5_NA    = -1,
+        S5_0     = 0,   // logic 0
+        S5_1     = 1,   // logic 1
+        S5_F     = 2,   // Falling edge
+        S5_R     = 3    // Rising edge
+    };
+    class State5
+    {
+    public:
+        State5(){v=STATE5::S5_NA;};
+        State5(STATE5 _v):v(_v){};
+        void Init(STATE5 _v){v=_v;};
+        void Set()
+        {
+            if(v==STATE5::S5_NA || v==STATE5::S5_0 || v==STATE5::S5_F)
+            {
+                v=S5_R;
+            }
+        };
+        void Clr()
+        {
+            if(v==STATE5::S5_NA || v==STATE5::S5_1 || v==STATE5::S5_R)
+            {
+                v=S5_F;
+            }
+        };
+        void ClearEdge()
+        {
+            if(v==STATE5::S5_R)
+            {
+                v=STATE5::S5_1;
+            }
+            else if(v==STATE5::S5_F)
+            {
+                v=STATE5::S5_0;
+            }
+        };
+        bool IsRising() { return v==STATE5::S5_R; };
+        bool IsHigh() { return v==STATE5::S5_R || v==STATE5::S5_1; };
+        bool IsFalling() { return v==STATE5::S5_F; };
+        bool IsLow() { return v==STATE5::S5_F||v==STATE5::S5_0; };
+        STATE5 Value() { return v; };
+    private:
+        STATE5 v;
+    };
     extern const uint32_t MASK_BIT[32];
 
     class Check

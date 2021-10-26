@@ -51,7 +51,7 @@ void UciMsg::LoadConfig()
 		}
 	}
 	Close();
-	Dump();
+	//Dump();
 }
 
 void UciMsg::Dump()

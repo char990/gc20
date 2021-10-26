@@ -144,14 +144,14 @@ int main(int argc, char *argv[])
 #define LINKS_WEB 2 // from web
         // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
         Epoll::Instance().Init(32);
-        TimerEvent timerEvt10ms{10, "[tmrEvt10ms:10ms]"};
-        TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
-        TimerEvent timerEvt1s{1000, "[tmrEvt1sec:1sec]"};
-        timerEvt1s.Add(new TickTock{});
+        TimerEvent ctrllerTmrEvt{CTRLLER_TICK, "[ctrllerTmrEvt]"};
+        //TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
+        TimerEvent tmrEvt1Sec{1000, "[tmrEvt1Sec]"};
+        tmrEvt1Sec.Add(new TickTock{});
 
         DbHelper::Instance().Init(argv[1]);
         GpioInit();
-        Controller::Instance().Init(&timerEvt10ms);
+        Controller::Instance().Init(&ctrllerTmrEvt);
 
         LogResetTime();
         //AllGroupPowerOn();
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
         {
             webpool[i].Init("Tcp" + std::to_string(i), "WEB", 300 * 1000);
         }
-        TcpServer tcpServerWeb{user.WebPort(), webPool, &timerEvt1s};
+        TcpServer tcpServerWeb{user.WebPort(), webPool, &tmrEvt1Sec};
 
         // TSI-SP-003 Tcp
         ObjectPool<OprTcp> ntsPool{LINKS_NTS};
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         {
             tcppool[i].Init("Tcp" + std::to_string(i), "NTS", (user.SessionTimeout() + 60) * 1000);
         }
-        TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &timerEvt1s};
+        TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &tmrEvt1Sec};
 
         PrintDbg("\n>>> START >>>\n");
 

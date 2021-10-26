@@ -119,9 +119,6 @@ protected:
     int allSlavesCurrent;
     void AllSlavesUpdateCurrentBak();
 
-    void RefreshSignByStatus();
-    void RefreshSignSt();
-
     // display status
     DispStatus *dsBak;
     DispStatus *dsCurrent;
@@ -144,10 +141,12 @@ protected:
     }
 
 private:
+    uint8_t grpTick{0};
 
     uint8_t readyToLoad{1}, newCurrent{0};
 
     uint8_t deviceEnDisSet, deviceEnDisCur;
+    void EnDisDevice();
 
     // group status
     enum PWR_STATE

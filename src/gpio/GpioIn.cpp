@@ -21,13 +21,13 @@ GpioIn::~GpioIn()
 
 void GpioIn::Init(Utils::STATE3 s)
 {
-    if(s==Utils::STATE3::S_NA)
+    if(s==Utils::STATE3::S3_NA)
     {
         dbnc.Reset();
     }
     else
     {
-        dbnc.SetState(s==Utils::STATE3::S_1);
+        dbnc.SetState(s==Utils::STATE3::S3_1);
     }
 }
 

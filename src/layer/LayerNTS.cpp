@@ -188,6 +188,7 @@ void LayerNTS::Session(enum ISession::SESSION v)
     if (v == ISession::SESSION::OFF_LINE)
     {
         sessionTimeout.Clear();
+        Controller::Instance().SessionLed(0);
     }
 }
 

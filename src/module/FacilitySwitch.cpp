@@ -1,13 +1,13 @@
 #include <module/FacilitySwitch.h>
 #include <gpio/GpioIn.h>
 #include <module/MyDbg.h>
+#include <tsisp003/TsiSp003Const.h>
 
 FacilitySwitch::FacilitySwitch(uint32_t pinAuto, uint32_t pinM1, uint32_t pinM2)
-    : cnt{0}
 {
-    pFsAuto = new GpioIn(2, 2, pinAuto);
-    pFsM1 = new GpioIn(2, 2, pinM1);
-    pFsM2 = new GpioIn(2, 2, pinM2);
+    pFsAuto = new GpioIn(CTRLLER_MS(200), CTRLLER_MS(200), pinAuto);
+    pFsM1 = new GpioIn(CTRLLER_MS(200), CTRLLER_MS(200), pinM1);
+    pFsM2 = new GpioIn(CTRLLER_MS(200), CTRLLER_MS(200), pinM2);
 }
 
 FacilitySwitch::~FacilitySwitch()
@@ -19,11 +19,6 @@ FacilitySwitch::~FacilitySwitch()
 
 void FacilitySwitch::PeriodicRun()
 {
-    if (++cnt < 10) // every 10*10ms
-    {
-        return;
-    }
-    cnt = 0;
     pFsAuto->PeriodicRun();
     pFsM1->PeriodicRun();
     pFsM2->PeriodicRun();
@@ -31,17 +26,17 @@ void FacilitySwitch::PeriodicRun()
     auto fsauto = pFsAuto->Value();
     auto fsm1 = pFsM1->Value();
     auto fsm2 = pFsM2->Value();
-    if (fsauto != Utils::STATE3::S_NA && fsm1 != Utils::STATE3::S_NA && fsm2 != Utils::STATE3::S_NA)
+    if (fsauto != Utils::STATE3::S3_NA && fsm1 != Utils::STATE3::S3_NA && fsm2 != Utils::STATE3::S3_NA)
     {
-        if (fsauto == Utils::STATE3::S_1)
+        if (fsauto == Utils::STATE3::S3_1)
         {
             key |= 1;
         }
-        if (fsm1 == Utils::STATE3::S_1)
+        if (fsm1 == Utils::STATE3::S3_1)
         {
             key |= 2;
         }
-        if (fsm2 == Utils::STATE3::S_1)
+        if (fsm2 == Utils::STATE3::S3_1)
         {
             key |= 4;
         }

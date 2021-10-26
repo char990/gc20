@@ -9,6 +9,8 @@
 #include <gpio/GpioOut.h>
 #include <sign/Controller.h>
 
+#define MS_SHIFT 5
+
 using namespace Utils;
 
 Group::Group(uint8_t groupId)
@@ -95,6 +97,7 @@ Group::Group(uint8_t groupId)
     for (auto &s : vSigns)
     {
         s->SignErr(proc.SignErr(s->SignId())->Get());
+        s->InitFaults();
     }
     currentDimmingLvl = proc.GetDimming(groupId);
     targetDimmingLvl = currentDimmingLvl | 0x80;
@@ -147,43 +150,78 @@ Group::~Group()
 
 void Group::PeriodicRun()
 {
-    FcltSwitchFunc();
-    PowerFunc();
+    if (++grpTick >= CTRLLER_MS(100)) // every 10*10ms
+    {
+        grpTick = 0;
+        FcltSwitchFunc();
+        PowerFunc();
+    }
 
     if (!IsPowerOn() || !IsBusFree())
     {
         return;
     }
 
-    if (IsDsNextEmergency())
+    // fatal error
+    bool rising = false;
+    bool falling = false;
+    bool fatal = false;
+    for (auto &s : vSigns)
     {
-        readyToLoad = 1;
+        if (s->fatalError.IsRising())
+        {
+            rising = true;
+            s->fatalError.ClearEdge();
+        }
+        else if (s->fatalError.IsFalling())
+        {
+            falling = true;
+            s->fatalError.ClearEdge();
+        }
+        fatal |= s->fatalError.IsHigh();
     }
-    if (readyToLoad)
+    if (rising)
     {
-        if (deviceEnDisSet != deviceEnDisCur)
+        newCurrent = 1;
+        if (dsCurrent->dispType != DISP_STATUS::TYPE::EXT)
         {
-            TaskMsgReset();
-            TaskFrmReset();
-            deviceEnDisCur = deviceEnDisSet;
-            for (auto &s : vSigns)
+            dsBak->Clone(dsCurrent);
+        }
+        dsCurrent->BLK();
+        dsNext->N_A();
+    }
+    else if (falling)
+    {
+        DispBackup();
+    }
+
+    if (!fatal)
+    {
+        if (IsDsNextEmergency())
+        {
+            readyToLoad = 1;
+        }
+        if (readyToLoad)
+        {
+            EnDisDevice();
+            newCurrent = 0;
+            if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
             {
-                s->Device(deviceEnDisCur);
+                extDispTmr.Clear();
+                DispBackup();
             }
+            newCurrent |= LoadDsNext(); // current->bak and next/fs/ext->current
         }
-        newCurrent = 0;
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
-        {
-            extDispTmr.Clear();
-            DispBackup();
-            newCurrent = 1;
-        }
-        newCurrent |= LoadDsNext(); // current->bak and next/fs/ext->current
+    }
+    else
+    {// if there is fatal, refresh en/dis at anytime
+        EnDisDevice();
     }
 
     TaskPln(&taskPlnLine);
     TaskMsg(&taskMsgLine);
     TaskFrm(&taskFrmLine);
+
     TaskRqstSlave(&taskRqstSlaveLine);
 
     PeriodicHook();
@@ -375,7 +413,7 @@ bool Group::TaskPln(int *_ptLine)
             }
         }
         // task sleep 1 second
-        taskPlnTmr.Setms(1000);
+        taskPlnTmr.Setms(1000 - MS_SHIFT);
         PT_WAIT_UNTIL(taskPlnTmr.IsExpired());
     };
     PT_END();
@@ -457,7 +495,7 @@ bool Group::TaskMsg(int *_ptLine)
                     do
                     {
                         // step3: check current
-                        taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+                        taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                         PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                     } while (allSlavesCurrent == 0); // all good
                 };                                   // end of null msg task
@@ -552,7 +590,7 @@ bool Group::TaskMsg(int *_ptLine)
                     }
                     do // +++++++++ OnTime
                     {
-                        taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+                        taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                         PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                         if (msgEntryCnt == pMsg->entries - 1)
                         {
@@ -576,7 +614,7 @@ bool Group::TaskMsg(int *_ptLine)
                         if (pMsg->transTime != 0)
                         {
                             SlaveDisplayFrame(0xFF, 0);
-                            taskMsgTmr.Setms(pMsg->transTime * 10 - 1);
+                            taskMsgTmr.Setms(pMsg->transTime * 10 - MS_SHIFT);
                             PT_WAIT_UNTIL(taskMsgTmr.IsExpired());
                             AllSlavesUpdateCurrentBak();
                             // because transition time is generally short, don't have enough time to reload if there is an error, so just wait for expired
@@ -639,6 +677,7 @@ bool Group::TaskFrm(int *_ptLine)
 {
     if (!IsBusFree() ||
         (dsCurrent->dispType != DISP_STATUS::TYPE::FRM &&
+         dsCurrent->dispType != DISP_STATUS::TYPE::BLK &&
          dsCurrent->dispType != DISP_STATUS::TYPE::ATF &&
          !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_FRM)))
     {
@@ -679,6 +718,11 @@ bool Group::TaskFrm(int *_ptLine)
                 activeMsg.ClrAll();
                 activeFrm.Set(onDispFrmId);
             }
+            else if (dsCurrent->dispType == DISP_STATUS::TYPE::BLK)
+            {
+                onDispPlnId = 0;
+                onDispFrmId = 0;
+            }
             else
             { // from plan
                 onDispFrmId = onDispPlnEntryId;
@@ -704,7 +748,7 @@ bool Group::TaskFrm(int *_ptLine)
             do
             {
                 // step3: check current & next
-                taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+                taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                 PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                 if (allSlavesCurrent == 0)
                 {
@@ -735,49 +779,80 @@ bool Group::TaskRqstSlave(int *_ptLine)
     PT_BEGIN();
     while (true)
     {
-        rqstNoRplCnt = 0;
+        // Request status 1-n
+        rqstStCnt = 0;
         do
         {
-            RqstStatus(rqstStCnt);
-            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
-            PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
-            if (vSlaves[rqstStCnt]->rxStatus == 0)
+            rqstNoRplCnt = 0;
+            do
             {
-                if (++rqstNoRplCnt >= db.GetUciProd().OfflineDebounce())
-                { // offline
-                    rqstNoRplCnt = 0;
-                    PrintDbg("vSlaves[%d] RqstStatus offline\n", rqstStCnt);
-                    //PT_EXIT();
+                taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
+                RqstStatus(rqstStCnt);
+                vSlaves[rqstStCnt]->rxStatus = 0;
+                //PrintDbg("vSlaves[%d] RqstStatus\n", rqstStCnt);
+                PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
+                {
+                    auto &s = vSlaves[rqstStCnt];
+                    if (s->rxStatus == 0)
+                    {
+                        if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
+                        {
+                            rqstNoRplCnt++;
+                        }
+                        else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
+                        { // offline
+                            rqstNoRplCnt++;
+                            s->ReportOffline(true);
+                        }
+                    }
+                    else
+                    {
+                        rqstNoRplCnt = 0;
+                        if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
+                        {
+                            s->ReportOffline(false);
+                        }
+                    }
                 }
-            }
-            else
+            } while (rqstNoRplCnt > 0);
+            if (++rqstStCnt == vSlaves.size())
             {
-                rqstNoRplCnt = 0;
+                rqstStCnt = 0;
             }
-        } while (rqstNoRplCnt > 0);
-        if (++rqstStCnt == vSlaves.size())
-        {
-            rqstStCnt = 0;
-        }
+        } while (rqstStCnt != 0);
 
+        // Request Ext-status x
         rqstNoRplCnt = 0;
         do
         {
+            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
             RqstExtStatus(rqstExtStCnt);
-            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
-            PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
-            if (vSlaves[rqstExtStCnt]->rxExtSt == 0)
+            vSlaves[rqstExtStCnt]->rxExtSt = 0;
+            //PrintDbg("vSlaves[%d] RqstExtStatus\n", rqstExtStCnt);
+            PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
             {
-                if (++rqstNoRplCnt >= db.GetUciProd().OfflineDebounce())
-                { // offline
-                    rqstNoRplCnt = 0;
-                    PrintDbg("vSlaves[%d] RqstExtStatus offline\n", rqstExtStCnt);
+                auto &s = vSlaves[rqstExtStCnt];
+                if (s->rxExtSt == 0)
+                {
+                    if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
+                    {
+                        rqstNoRplCnt++;
+                    }
+                    else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
+                    { // offline
+                        rqstNoRplCnt++;
+                        s->ReportOffline(true);
+                    }
                     //PT_EXIT();
                 }
-            }
-            else
-            {
-                rqstNoRplCnt = 0;
+                else
+                {
+                    rqstNoRplCnt = 0;
+                    if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
+                    {
+                        s->ReportOffline(false);
+                    }
+                }
             }
         } while (rqstNoRplCnt > 0);
         if (++rqstExtStCnt == vSlaves.size())
@@ -788,7 +863,8 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // dimming adjusting
         if (DimmingAdjust())
         {
-            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - 1);
+            //PrintDbg("DimmingAdjust\n");
+            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
             PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
         }
     };
@@ -987,8 +1063,6 @@ void Group::LoadPlanToPlnMin(uint8_t id)
     Plan *pln = db.GetUciPln().GetPln(id);
     if (pln == nullptr)
     {
-        // TODO Log error
-
         return;
     }
     uint8_t week = 0x01;
@@ -1169,6 +1243,7 @@ void Group::DispBackup()
 {
     dsCurrent->Clone(dsBak);
     dsBak->N_A();
+    newCurrent = 1;
 }
 
 APP::ERROR Group::DispFrm(uint8_t id)
@@ -1262,6 +1337,20 @@ APP::ERROR Group::SetDevice(uint8_t endis)
     return APP::ERROR::AppNoError;
 }
 
+void Group::EnDisDevice()
+{
+    if (deviceEnDisSet != deviceEnDisCur)
+    {
+        TaskMsgReset();
+        TaskFrmReset();
+        deviceEnDisCur = deviceEnDisSet;
+        for (auto &s : vSigns)
+        {
+            s->Device(deviceEnDisSet);
+        }
+    }
+}
+
 bool Group::IsDsNextEmergency()
 {
     bool r = false;
@@ -1347,13 +1436,9 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
 {
     if (len != 14)
         return;
-    for (int i = 0; i < vSlaves.size(); i++)
+    for (auto &s : vSlaves)
     {
-        auto &s = vSlaves[i];
-        if (s->SlaveId() == *data)
-        {
-            s->DecodeStRpl(data, len);
-        }
+        s->DecodeStRpl(data, len);
     }
 }
 
@@ -1363,25 +1448,11 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
         return;
     for (int i = 0; i < vSlaves.size(); i++)
     {
-        auto &s = vSlaves[i];
-        if (s->SlaveId() == *data)
+        if (vSlaves[i]->DecodeExtStRpl(data, len) == 0)
         {
-            if (s->DecodeExtStRpl(data, len) == 0)
-            {
-                if (i == vSlaves.size() - 1)
-                { // last slave of sign, make sign ext status
-                    RefreshSignSt();
-                }
-            }
+            vSlaves[i]->sign->RefreshSlaveStatusAtExtSt();
+            return;
         }
-    }
-}
-
-void Group::RefreshSignSt()
-{
-    for (auto &s : vSigns)
-    {
-        s->RefreshSlaveStatusAtExtSt();
     }
 }
 
@@ -1677,7 +1748,7 @@ bool Group::DimmingAdjust()
                 r = true;
             }
         }
-        dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16);
+        dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16 - MS_SHIFT);
     }
     return r;
 }

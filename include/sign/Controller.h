@@ -10,6 +10,7 @@
 #include <tsisp003/TsiSp003Const.h>
 #include <gpio/GpioIn.h>
 
+
 class Controller : public IPeriodicRun
 {
 public:
@@ -76,15 +77,11 @@ private:
 
     uint8_t groupCnt{0};
 
-    void BlinkSessionLed();
-    uint8_t sessionLed{0}; // 0:Off, 1:Blink, 2:On, default:Keep On/Off
-    uint8_t taskSessionCnt{0};
-
     void PowerMonitor();
     GpioIn *pMainPwr;
     GpioIn *pBatLow;
     GpioIn *pBatOpen;
-    uint8_t cnt10ms{0};
+    uint8_t cnt100ms{0};
 
     GpioIn * extInput[4];
     void ExtInputFunc();

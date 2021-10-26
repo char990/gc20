@@ -32,27 +32,27 @@ public:
         cnt0 = 0;
         cnt1 = 0;
         changed = false;
-        value = Utils::STATE3::S_NA;
+        value = Utils::STATE3::S3_NA;
     }
 
     /// \breif Reset debounce state
-    /// true    : valid & changed, value = true
-    /// false   : valid & changed, value = false
+    /// true    : valid=true, changed=false, value = true
+    /// false   : valid=true, changed=false, value = false
     void SetState(bool v)
     {
         if (v)
         {
             cnt0 = 0;
             cnt1 = CNT1;
-            changed = true;
-            value = Utils::STATE3::S_1;
+            changed = false;
+            value = Utils::STATE3::S3_1;
         }
         else
         {
             cnt0 = CNT0;
             cnt1 = 0;
-            changed = true;
-            value = Utils::STATE3::S_0;
+            changed = false;
+            value = Utils::STATE3::S3_0;
         }
     }
 
@@ -82,10 +82,10 @@ public:
             {
                 cnt0 = 0;
                 cnt1 = CNT1;
-                if (value != Utils::STATE3::S_1)
+                if (value != Utils::STATE3::S3_1)
                 {
                     changed = true;
-                    value = Utils::STATE3::S_1;
+                    value = Utils::STATE3::S3_1;
                     //PrintDbg("changed v=1\n");
                 }
             }
@@ -100,10 +100,10 @@ public:
             {
                 cnt1 = 0;
                 cnt0 = CNT0;
-                if (value != Utils::STATE3::S_0)
+                if (value != Utils::STATE3::S3_0)
                 {
                     changed = true;
-                    value = Utils::STATE3::S_0;
+                    value = Utils::STATE3::S3_0;
                     //PrintDbg("changed v=0\n");
                 }
             }
@@ -117,7 +117,7 @@ public:
     }
 
     bool changed = false;
-    bool IsValid() { return value != Utils::STATE3::S_NA; };
+    bool IsValid() { return value != Utils::STATE3::S3_NA; };
 
     Utils::STATE3 Value(void)
     {
@@ -125,7 +125,7 @@ public:
     };
 
 private:
-    Utils::STATE3 value{Utils::STATE3::S_NA};
+    Utils::STATE3 value{Utils::STATE3::S3_NA};
     int CNT1{1};
     int CNT0{1};
     int cnt1{0};

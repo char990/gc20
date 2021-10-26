@@ -50,7 +50,7 @@ void UciPln::LoadConfig()
         }
     }
     Close();
-    Dump();
+    //Dump();
 }
 
 void UciPln::Dump()

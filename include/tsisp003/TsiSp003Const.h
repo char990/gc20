@@ -163,7 +163,7 @@ public:
         SignMovedFromSetLocation,
         CabinetDoorOpen,
         SignTilted,
-        SignorientationChanged,
+        SignOrientationChanged,
         BatteryChargerRegulatorFault,
         InternalPowerSupplyFault,
         VibrationAlarm,
@@ -358,3 +358,6 @@ namespace CTRLLER_STATE
     enum DISPSTATE:uint8_t {DISP_NONE, DISP_FRM, DISP_MSG, DISP_PLN, DISP_FCLTSW, DISP_EXTSW, DISP_PWR_OFF, DISP_DISABLED};
 }
 
+#define CTRLLER_TICK 10        // ms 
+
+#define CTRLLER_MS(x) (x/CTRLLER_TICK)

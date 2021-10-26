@@ -40,6 +40,12 @@ public:
         fmpid[0] = 0;
     };
     
+    void BLK()
+    {
+        dispType = DISP_STATUS::TYPE::BLK;
+        fmpid[0] = 0;
+    };
+    
     void N_A()
     {
         dispType = DISP_STATUS::TYPE::N_A;

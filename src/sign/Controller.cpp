@@ -19,7 +19,7 @@ Controller::Controller()
     for (int i = 0; i < 4; i++)
     {
         extInput[i] = new GpioIn(2, 2, pins[i]);
-        extInput[i]->Init(Utils::STATE3::S_1);
+        extInput[i]->Init(Utils::STATE3::S3_1);
         extInput[i]->ClearChanged();
     }
 }
@@ -90,21 +90,17 @@ void Controller::Init(TimerEvent *tmrEvt_)
 
 void Controller::PeriodicRun()
 {
-    // run every 10ms
+    // run every CTRLLER_TICK
     for (int i = 0; i < groupCnt; i++)
     {
         groups[i]->PeriodicRun();
     }
 
-    if (++cnt10ms >= 10)
+    if (++cnt100ms >= CTRLLER_MS(100))
     { // 100ms
-        cnt10ms = 0;
-#if 0
-    ExtInputFunc();
-#endif
-
+        cnt100ms = 0;
+        //ExtInputFunc();
         PowerMonitor();
-        BlinkSessionLed();
         if (displayTimeout.IsExpired())
         {
             if (!IsPlnActive(0))
@@ -125,7 +121,7 @@ void Controller::PeriodicRun()
         }
     }
 
-    if (++msTemp >= 60 * 100)
+    if (++msTemp >= CTRLLER_MS(60 * 1000))
     {
         msTemp = 0;
         int t;
@@ -157,7 +153,7 @@ void Controller::PowerMonitor()
     if (pMainPwr->IsChanged())
     {
         pMainPwr->ClearChanged();
-        if (pMainPwr->Value() == Utils::STATE3::S_1)
+        if (pMainPwr->Value() == Utils::STATE3::S3_1)
         {
             ctrllerError.Push(DEV::ERROR::PowerFailure, 0);
         }
@@ -169,7 +165,7 @@ void Controller::PowerMonitor()
     if (pBatOpen->IsChanged())
     {
         pBatOpen->ClearChanged();
-        if (pBatOpen->Value() == Utils::STATE3::S_1)
+        if (pBatOpen->Value() == Utils::STATE3::S3_1)
         {
             ctrllerError.Push(DEV::ERROR::BatteryFailure, 0);
         }
@@ -184,7 +180,7 @@ void Controller::PowerMonitor()
     if (pBatLow->IsChanged())
     {
         pBatLow->ClearChanged();
-        ctrllerError.Push(DEV::ERROR::BatteryLow, (pBatLow->Value() == Utils::STATE3::S_0));
+        ctrllerError.Push(DEV::ERROR::BatteryLow, (pBatLow->Value() == Utils::STATE3::S3_0));
     }
 }
 
@@ -194,7 +190,7 @@ void Controller::ExtInputFunc()
     {
         auto gin = extInput[i];
         gin->PeriodicRun();
-        if (gin->IsChanged() && gin->Value() == Utils::STATE3::S_1)
+        if (gin->IsChanged() && gin->Value() == Utils::STATE3::S3_1)
         {
             gin->ClearChanged();
             uint8_t msg = i + 3;
@@ -234,39 +230,7 @@ void Controller::RefreshSessionTime()
 
 void Controller::SessionLed(uint8_t v)
 {
-    sessionLed = v;
-}
-
-void Controller::BlinkSessionLed()
-{ // 100ms periodic
-    switch (sessionLed)
-    {
-    case 0:
-        pPinStatusLed->SetPinHigh();
-        sessionLed = 255;
-        taskSessionCnt = 0;
-        break;
-    case 1:
-        ++taskSessionCnt;
-        if (taskSessionCnt == 1)
-        {
-            pPinStatusLed->SetPinLow();
-        }
-        else if (taskSessionCnt > 2)
-        {
-            pPinStatusLed->SetPinHigh();
-            taskSessionCnt = 0;
-            sessionLed = 255;
-        }
-        break;
-    case 2:
-        // TODO led on
-        sessionLed = 255;
-        taskSessionCnt = 2;
-        break;
-    default: // keep LED on/off, do nothing
-        break;
-    }
+    v ? pPinStatusLed->SetPinLow():pPinStatusLed->SetPinHigh();
 }
 
 bool Controller::IsFrmActive(uint8_t id)
