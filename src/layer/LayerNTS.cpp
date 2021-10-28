@@ -7,23 +7,23 @@
 
 using namespace Utils;
 
-const uint8_t LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
-    MI::CODE::SystemReset,
-    MI::CODE::UpdateTime,
-    MI::CODE::EndSession,
-    MI::CODE::SignSetTextFrame,
-    MI::CODE::SignSetGraphicsFrame,
-    MI::CODE::SignSetMessage,
-    MI::CODE::SignSetPlan,
-    MI::CODE::SignDisplayFrame,
-    MI::CODE::SignDisplayMessage,
-    MI::CODE::EnablePlan,
-    MI::CODE::DisablePlan,
-    MI::CODE::SignSetDimmingLevel,
-    MI::CODE::PowerOnOff,
-    MI::CODE::ResetFaultLog,
-    MI::CODE::SignSetHighResolutionGraphicsFrame,
-    MI::CODE::SignDisplayAtomicFrames};
+const MI_CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
+    MI_CODE::SystemReset,
+    MI_CODE::UpdateTime,
+    MI_CODE::EndSession,
+    MI_CODE::SignSetTextFrame,
+    MI_CODE::SignSetGraphicsFrame,
+    MI_CODE::SignSetMessage,
+    MI_CODE::SignSetPlan,
+    MI_CODE::SignDisplayFrame,
+    MI_CODE::SignDisplayMessage,
+    MI_CODE::EnablePlan,
+    MI_CODE::DisablePlan,
+    MI_CODE::SignSetDimmingLevel,
+    MI_CODE::PowerOnOff,
+    MI_CODE::ResetFaultLog,
+    MI_CODE::SignSetHighResolutionGraphicsFrame,
+    MI_CODE::SignDisplayAtomicFrames};
 
 LayerNTS::LayerNTS(std::string name_)
 {
@@ -36,7 +36,7 @@ LayerNTS::~LayerNTS()
 
 int LayerNTS::Rx(uint8_t *data, int len)
 {
-    if (len < 15 || (len & 1) == 0 || data[7] != DATALINK::CTRL_CHAR::STX)
+    if (len < 15 || (len & 1) == 0 || data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
     {
         return 0;
     }
@@ -54,7 +54,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     _addr = addr;
     int mi = Cnvt::ParseToU8((char *)data + 8);
-    if ((mi == MI::CODE::StartSession && len == 15 && addr == user.DeviceId()) ||
+    if ((mi == static_cast<uint8_t>(MI_CODE::StartSession) && len == 15 && addr == user.DeviceId()) ||
         (sessionTimeout.IsExpired() && session == ISession::SESSION::ON_LINE))
     {
         session = ISession::SESSION::OFF_LINE;
@@ -79,7 +79,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 }
                 else
                 { // ns nr not matched
-                    MakeNondata(DATALINK::CTRL_CHAR::NAK);
+                    MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
                     lowerLayer->Tx(txbuf, 10);
                     return 0;
                 }
@@ -89,7 +89,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
         {
             for (int i = 0; i < BROADCAST_MI_SIZE; i++)
             { // check allowed broadcast mi
-                if (broadcastMi[i] == mi)
+                if (static_cast<uint8_t>(broadcastMi[i]) == mi)
                 {
                     break;
                 }
@@ -134,9 +134,9 @@ int LayerNTS::Tx(uint8_t *data, int len)
     { // no reply for broadcast
         return 0;
     }
-    MakeNondata(DATALINK::CTRL_CHAR::ACK);
+    MakeNondata(static_cast<uint8_t>(CTRL_CHAR::ACK));
     char *p = (char *)txbuf + NON_DATA_PACKET_SIZE;
-    *p = DATALINK::CTRL_CHAR::SOH;
+    *p = static_cast<char>(CTRL_CHAR::SOH);
     p++;
     Cnvt::ParseToAsc(_ns, p);
     p += 2;
@@ -144,7 +144,7 @@ int LayerNTS::Tx(uint8_t *data, int len)
     p += 2;
     Cnvt::ParseToAsc(user.DeviceId(), p);
     p += 2;
-    *p = DATALINK::CTRL_CHAR::STX;
+    *p = static_cast<char>(CTRL_CHAR::STX);
     p++;
     memcpy(p, data, len);
     EndOfBlock(txbuf + NON_DATA_PACKET_SIZE, len + DATA_PACKET_HEADER_SIZE);
@@ -211,5 +211,5 @@ void LayerNTS::EndOfBlock(uint8_t *p, int len)
 {
     uint16_t crc = Crc::Crc16_1021(p, len);
     Cnvt::ParseU16ToAsc(crc, (char *)p + len);
-    *(p + len + 4) = DATALINK::CTRL_CHAR::ETX;
+    *(p + len + 4) = static_cast<uint8_t>(CTRL_CHAR::ETX);
 }

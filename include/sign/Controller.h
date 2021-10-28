@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include <module/BootTimer.h>
 #include <module/IPeriodicRun.h>
 #include <module/TimerEvent.h>
@@ -36,26 +37,27 @@ public:
 
     uint8_t CtrllerErr();
 
-    uint8_t GroupCnt() { return groupCnt; };
-    Group *GetGroup(uint8_t id) { return (id == 0 || id > groupCnt) ? nullptr : groups[id - 1]; };
+    uint8_t GroupCnt() { return groups.size(); };
+    Group *GetGroup(uint8_t id) { return (id == 0 || id > groups.size()) ? nullptr : groups.at(id - 1); };
+    std::vector<Group *> & GetGroups() { return groups;};
 
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
     bool IsPlnActive(uint8_t i);
 
     // cmaand from TSI-SP-003
-    APP::ERROR CmdDispFrm(uint8_t *cmd);
-    APP::ERROR CmdDispMsg(uint8_t *cmd);
-    APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
+    APP_ERROR CmdDispFrm(uint8_t *cmd);
+    APP_ERROR CmdDispMsg(uint8_t *cmd);
+    APP_ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
 
     int CmdRequestEnabledPlans(uint8_t *buf);
-    APP::ERROR CmdEnDisPlan(uint8_t *cmd);
+    APP_ERROR CmdEnDisPlan(uint8_t *cmd);
 
-    APP::ERROR CmdSetDimmingLevel(uint8_t *cmd);
-    APP::ERROR CmdPowerOnOff(uint8_t *cmd, int len);
-    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
+    APP_ERROR CmdSetDimmingLevel(uint8_t *cmd);
+    APP_ERROR CmdPowerOnOff(uint8_t *cmd, int len);
+    APP_ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
 
-    APP::ERROR CmdSystemReset(uint8_t *cmd);
+    APP_ERROR CmdSystemReset(uint8_t *cmd);
 
     CtrllerError ctrllerError;
     /// \brief Session timeout timer
@@ -68,14 +70,12 @@ private:
     Controller();
     ~Controller();
 
-    Group **groups{nullptr};
+    std::vector<Group *> groups;
 
     TimerEvent *tmrEvt{nullptr};
 
     /// \brief Display timeout timer
     BootTimer displayTimeout;
-
-    uint8_t groupCnt{0};
 
     void PowerMonitor();
     GpioIn *pMainPwr;

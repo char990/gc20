@@ -9,20 +9,18 @@
 /// start at invalid
 /// if true over true_cnt, valid, value=true
 /// if false over false_cnt, valid, value=false
-class Debounce
+class Debounce : public Utils::State5
 {
 public:
     Debounce(){};
     Debounce(int cnt)
     {
         SetCNT(cnt);
-        Reset();
     }
 
     Debounce(int true_cnt, int false_cnt)
     {
         SetCNT(true_cnt, false_cnt);
-        Reset();
     }
 
     /// \breif Reset debounce state
@@ -31,28 +29,25 @@ public:
     {
         cnt0 = 0;
         cnt1 = 0;
-        changed = false;
-        value = Utils::STATE3::S3_NA;
+        v = Utils::STATE5::S5_NA;
     }
 
     /// \breif Reset debounce state
-    /// true    : valid=true, changed=false, value = true
-    /// false   : valid=true, changed=false, value = false
-    void SetState(bool v)
+    /// true    : valid=true, no edge, value = true
+    /// false   : valid=true, no edge, value = false
+    void SetState(bool s)
     {
-        if (v)
+        if (s)
         {
             cnt0 = 0;
             cnt1 = CNT1;
-            changed = false;
-            value = Utils::STATE3::S3_1;
+            v = Utils::STATE5::S5_1;
         }
         else
         {
             cnt0 = CNT0;
             cnt1 = 0;
-            changed = false;
-            value = Utils::STATE3::S3_0;
+            v = Utils::STATE5::S5_0;
         }
     }
 
@@ -82,12 +77,7 @@ public:
             {
                 cnt0 = 0;
                 cnt1 = CNT1;
-                if (value != Utils::STATE3::S3_1)
-                {
-                    changed = true;
-                    value = Utils::STATE3::S3_1;
-                    //PrintDbg("changed v=1\n");
-                }
+                Set();
             }
         }
         else
@@ -100,12 +90,7 @@ public:
             {
                 cnt1 = 0;
                 cnt0 = CNT0;
-                if (value != Utils::STATE3::S3_0)
-                {
-                    changed = true;
-                    value = Utils::STATE3::S3_0;
-                    //PrintDbg("changed v=0\n");
-                }
+                Clr();
             }
         }
     }
@@ -116,16 +101,8 @@ public:
         cnt1 = 0;
     }
 
-    bool changed = false;
-    bool IsValid() { return value != Utils::STATE3::S3_NA; };
-
-    Utils::STATE3 Value(void)
-    {
-        return value;
-    };
-
 private:
-    Utils::STATE3 value{Utils::STATE3::S3_NA};
+
     int CNT1{1};
     int CNT0{1};
     int cnt1{0};

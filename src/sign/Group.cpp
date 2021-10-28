@@ -23,7 +23,7 @@ Group::Group(uint8_t groupId)
     int signCnt = prod.NumberOfSigns();
     switch (prod.ExtStsRplSignType())
     {
-    case SESR::SIGN_TYPE::TEXT:
+    case SESR_SIGN_TYPE::TEXT:
         for (int i = 1; i <= signCnt; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
@@ -32,7 +32,7 @@ Group::Group(uint8_t groupId)
             }
         }
         break;
-    case SESR::SIGN_TYPE::GFX:
+    case SESR_SIGN_TYPE::GFX:
         for (int i = 1; i <= signCnt; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
@@ -41,7 +41,7 @@ Group::Group(uint8_t groupId)
             }
         }
         break;
-    case SESR::SIGN_TYPE::ADVGFX:
+    case SESR_SIGN_TYPE::ADVGFX:
         for (int i = 1; i <= signCnt; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
@@ -60,7 +60,7 @@ Group::Group(uint8_t groupId)
     dsNext = new DispStatus(vSigns.size());
     dsExt = new DispStatus(vSigns.size());
     // defult dsNext is BLANK
-    dsNext->dispType = DISP_STATUS::TYPE::BLK;
+    dsNext->dispType = DISP_TYPE::BLK;
     dsNext->fmpid[0] = 0;
 
     maxTxSize = 1 + 9 + prod.MaxFrmLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
@@ -183,7 +183,7 @@ void Group::PeriodicRun()
     if (rising)
     {
         newCurrent = 1;
-        if (dsCurrent->dispType != DISP_STATUS::TYPE::EXT)
+        if (dsCurrent->dispType != DISP_TYPE::EXT)
         {
             dsBak->Clone(dsCurrent);
         }
@@ -205,7 +205,7 @@ void Group::PeriodicRun()
         {
             EnDisDevice();
             newCurrent = 0;
-            if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && extDispTmr.IsExpired())
+            if (dsCurrent->dispType == DISP_TYPE::EXT && extDispTmr.IsExpired())
             {
                 extDispTmr.Clear();
                 DispBackup();
@@ -214,7 +214,7 @@ void Group::PeriodicRun()
         }
     }
     else
-    {// if there is fatal, refresh en/dis at anytime
+    { // if there is fatal, refresh en/dis at anytime
         EnDisDevice();
     }
 
@@ -265,12 +265,12 @@ void Group::PowerFunc()
                     auto fs = fcltSw.Get();
                     if (fs == FacilitySwitch::FS_STATE::AUTO)
                     { // from OFF switch to AUTO
-                        DispNext(DISP_STATUS::TYPE::FRM, 0);
+                        DispNext(DISP_TYPE::FRM, 0);
                     }
                     else
                     { // from OFF switch to MSG1/MSG2
                         uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                        DispNext(DISP_STATUS::TYPE::FSW, msg);
+                        DispNext(DISP_TYPE::FSW, msg);
                     }
                 }
                 // power-up done
@@ -313,12 +313,12 @@ void Group::FcltSwitchFunc()
                 { // power is ok, this means fsState is turning: AUTO<->MSG1<->MSG2
                     if (fs == FacilitySwitch::FS_STATE::AUTO)
                     {
-                        DispNext(DISP_STATUS::TYPE::FRM, 0);
+                        DispNext(DISP_TYPE::FRM, 0);
                     }
                     else
                     {
                         uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                        DispNext(DISP_STATUS::TYPE::FSW, msg);
+                        DispNext(DISP_TYPE::FSW, msg);
                     }
                 }
             }
@@ -328,7 +328,7 @@ void Group::FcltSwitchFunc()
 
 bool Group::TaskPln(int *_ptLine)
 {
-    if (!IsBusFree() || dsCurrent->dispType != DISP_STATUS::TYPE::PLN || !readyToLoad)
+    if (!IsBusFree() || dsCurrent->dispType != DISP_TYPE::PLN || !readyToLoad)
     {
         return PT_RUNNING;
     }
@@ -431,10 +431,10 @@ bool Group::TaskMsg(int *_ptLine)
 {
     uint8_t nextEntry; // temp using
     if (!IsBusFree() ||
-        (dsCurrent->dispType != DISP_STATUS::TYPE::MSG &&
-         dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
-         dsCurrent->dispType != DISP_STATUS::TYPE::EXT &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)))
+        (dsCurrent->dispType != DISP_TYPE::MSG &&
+         dsCurrent->dispType != DISP_TYPE::FSW &&
+         dsCurrent->dispType != DISP_TYPE::EXT &&
+         !(dsCurrent->dispType == DISP_TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)))
     {
         return PT_RUNNING;
     }
@@ -448,7 +448,7 @@ bool Group::TaskMsg(int *_ptLine)
     {
         TaskMsgReset();
         onDispNewMsg = 0;
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)
+        if (dsCurrent->dispType == DISP_TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)
         {
             onDispMsgId = onDispPlnEntryId;
             // No need to set active msg, 'cause set in TaskPln
@@ -457,7 +457,7 @@ bool Group::TaskMsg(int *_ptLine)
         {
             onDispPlnId = 0;
             onDispMsgId = dsCurrent->fmpid[0];
-            if (dsCurrent->dispType == DISP_STATUS::TYPE::MSG)
+            if (dsCurrent->dispType == DISP_TYPE::MSG)
             {
                 activeMsg.ClrAll(); // this is CmdDisplayMsg, Clear all previouse active msg
                 // But for FSW/EXT, do not clear previouse
@@ -471,9 +471,9 @@ bool Group::TaskMsg(int *_ptLine)
     {
         pMsg = db.GetUciMsg().GetMsg(onDispMsgId);
         if (pMsg == nullptr)
-        { // null msg task, only for DISP_STATUS::TYPE::FSW/EXT
-            if (dsCurrent->dispType != DISP_STATUS::TYPE::FSW &&
-                dsCurrent->dispType != DISP_STATUS::TYPE::EXT)
+        { // null msg task, only for DISP_TYPE::FSW/EXT
+            if (dsCurrent->dispType != DISP_TYPE::FSW &&
+                dsCurrent->dispType != DISP_TYPE::EXT)
             {
                 // Something wrong, Load pln0 to run plan
                 newCurrent = 1;
@@ -676,10 +676,10 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
 bool Group::TaskFrm(int *_ptLine)
 {
     if (!IsBusFree() ||
-        (dsCurrent->dispType != DISP_STATUS::TYPE::FRM &&
-         dsCurrent->dispType != DISP_STATUS::TYPE::BLK &&
-         dsCurrent->dispType != DISP_STATUS::TYPE::ATF &&
-         !(dsCurrent->dispType == DISP_STATUS::TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_FRM)))
+        (dsCurrent->dispType != DISP_TYPE::FRM &&
+         dsCurrent->dispType != DISP_TYPE::BLK &&
+         dsCurrent->dispType != DISP_TYPE::ATF &&
+         !(dsCurrent->dispType == DISP_TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_FRM)))
     {
         return PT_RUNNING;
     }
@@ -700,7 +700,7 @@ bool Group::TaskFrm(int *_ptLine)
     while (true)
     {
         // step1: set frame
-        if (dsCurrent->dispType == DISP_STATUS::TYPE::ATF)
+        if (dsCurrent->dispType == DISP_TYPE::ATF)
         {
             onDispPlnId = 0;
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
@@ -711,14 +711,14 @@ bool Group::TaskFrm(int *_ptLine)
         }
         else
         {
-            if (dsCurrent->dispType == DISP_STATUS::TYPE::FRM)
+            if (dsCurrent->dispType == DISP_TYPE::FRM)
             { // from CmdDispFrm
                 onDispPlnId = 0;
                 onDispFrmId = dsCurrent->fmpid[0];
                 activeMsg.ClrAll();
                 activeFrm.Set(onDispFrmId);
             }
-            else if (dsCurrent->dispType == DISP_STATUS::TYPE::BLK)
+            else if (dsCurrent->dispType == DISP_TYPE::BLK)
             {
                 onDispPlnId = 0;
                 onDispFrmId = 0;
@@ -1100,11 +1100,11 @@ void Group::LoadPlanToPlnMin(uint8_t id)
     }
 }
 
-APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
+APP_ERROR Group::EnDisPlan(uint8_t id, bool endis)
 {
     if (IsPlanActive(id))
     {
-        return APP::ERROR::FrmMsgPlnActive;
+        return APP_ERROR::FrmMsgPlnActive;
     }
     if (id == 0)
     {
@@ -1114,38 +1114,38 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     {
         if (!db.GetUciPln().IsPlnDefined(id))
         {
-            return APP::ERROR::FrmMsgPlnUndefined;
+            return APP_ERROR::FrmMsgPlnUndefined;
         }
-        APP::ERROR r = endis ? EnablePlan(id) : DisablePlan(id);
-        if (r != APP::ERROR::AppNoError)
+        APP_ERROR r = endis ? EnablePlan(id) : DisablePlan(id);
+        if (r != APP_ERROR::AppNoError)
         {
             return r;
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
     //PrintPlnMin();
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::EnablePlan(uint8_t id)
+APP_ERROR Group::EnablePlan(uint8_t id)
 {
     if (IsPlanEnabled(id))
     {
-        return APP::ERROR::PlanEnabled;
+        return APP_ERROR::PlanEnabled;
     }
     if (IsEnPlanOverlap(id))
     {
-        return APP::ERROR::OverlaysNotSupported;
+        return APP_ERROR::OverlaysNotSupported;
     }
     LoadPlanToPlnMin(id);
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::DisablePlan(uint8_t id)
+APP_ERROR Group::DisablePlan(uint8_t id)
 {
     if (!IsPlanEnabled(id))
     {
-        return APP::ERROR::PlanNotEnabled;
+        return APP_ERROR::PlanNotEnabled;
     }
     db.GetUciProcess().EnDisPlan(groupId, id, false);
     Plan *pln = db.GetUciPln().GetPln(id);
@@ -1180,7 +1180,7 @@ APP::ERROR Group::DisablePlan(uint8_t id)
         }
         week <<= 1;
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
 bool Group::IsMsgActive(uint8_t p)
@@ -1193,33 +1193,33 @@ bool Group::IsFrmActive(uint8_t p)
     return activeFrm.Get(p);
 }
 
-void Group::DispExt(uint8_t msgX)
+bool Group::DispExt(uint8_t msgX)
 {
-    if (IsPowerOn() && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get() && msgX >= 3 && msgX <= 6)
+    if (IsPowerOn() && FacilitySwitch::FS_STATE::AUTO == fcltSw.Get() && msgX >= 3 && msgX <= 6 &&
+        // if there is a higher priority External input, ignore new input
+        !((dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] < msgX) ||
+          (dsExt->dispType == DISP_TYPE::EXT && dsExt->fmpid[0] < msgX)))
     {
-        if ((dsCurrent->dispType == DISP_STATUS::TYPE::EXT && dsCurrent->fmpid[0] < msgX) ||
-            (dsExt->dispType == DISP_STATUS::TYPE::EXT && dsExt->fmpid[0] < msgX))
-        { // if there is a higher priority External input, ignore new input
-            return;
-        }
-        DispNext(DISP_STATUS::TYPE::EXT, msgX);
+        DispNext(DISP_TYPE::EXT, msgX);
+        return true;
     }
+    return false;
 }
 
-void Group::DispNext(DISP_STATUS::TYPE type, uint8_t id)
+void Group::DispNext(DISP_TYPE type, uint8_t id)
 {
-    if (type == DISP_STATUS::TYPE::EXT)
+    if (type == DISP_TYPE::EXT)
     {
         auto cfg = db.GetUciUser().ExtSwCfgX(id);
         auto time = cfg->dispTime;
         if (time != 0)
         {
-            if (dsCurrent->dispType == DISP_STATUS::TYPE::EXT && dsCurrent->fmpid[0] == id)
+            if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
             {
                 extDispTmr.Setms(time * 1000);
             }
-            else if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A ||
-                     dsCurrent->dispType == DISP_STATUS::TYPE::BLK ||
+            else if (dsCurrent->dispType == DISP_TYPE::N_A ||
+                     dsCurrent->dispType == DISP_TYPE::BLK ||
                      (onDispMsgId == 0 && onDispFrmId == 0) ||
                      cfg->flashingOv == 0 ||
                      (cfg->flashingOv != 0 &&
@@ -1246,60 +1246,60 @@ void Group::DispBackup()
     newCurrent = 1;
 }
 
-APP::ERROR Group::DispFrm(uint8_t id)
+APP_ERROR Group::DispFrm(uint8_t id)
 {
     if (mainPwr == PWR_STATE::OFF)
     {
-        return APP::ERROR::PowerIsOff;
+        return APP_ERROR::PowerIsOff;
     }
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
-        return APP::ERROR::FacilitySwitchOverride;
+        return APP_ERROR::FacilitySwitchOverride;
     }
     if (cmdPwr == PWR_STATE::OFF)
     {
-        return APP::ERROR::PowerIsOff;
+        return APP_ERROR::PowerIsOff;
     }
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = id;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
-    DispNext(DISP_STATUS::TYPE::FRM, id);
-    return APP::ERROR::AppNoError;
+    DispNext(DISP_TYPE::FRM, id);
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::DispMsg(uint8_t id)
+APP_ERROR Group::DispMsg(uint8_t id)
 {
     if (mainPwr == PWR_STATE::OFF)
     {
-        return APP::ERROR::PowerIsOff;
+        return APP_ERROR::PowerIsOff;
     }
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
-        return APP::ERROR::FacilitySwitchOverride;
+        return APP_ERROR::FacilitySwitchOverride;
     }
     if (cmdPwr == PWR_STATE::OFF)
     {
-        return APP::ERROR::PowerIsOff;
+        return APP_ERROR::PowerIsOff;
     }
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
+    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayMessage);
     buf[1] = groupId;
     buf[2] = id;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
-    DispNext(DISP_STATUS::TYPE::MSG, id);
-    return APP::ERROR::AppNoError;
+    DispNext(DISP_TYPE::MSG, id);
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::SetDimming(uint8_t dimming)
+APP_ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
     targetDimmingLvl = 0x80 | dimming;
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::SetPower(uint8_t v)
+APP_ERROR Group::SetPower(uint8_t v)
 {
     if (v == 0)
     { // PowerOff
@@ -1327,14 +1327,14 @@ APP::ERROR Group::SetPower(uint8_t v)
             cmdPwr = PWR_STATE::RISING;
         }
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Group::SetDevice(uint8_t endis)
+APP_ERROR Group::SetDevice(uint8_t endis)
 {
     deviceEnDisSet = (endis == 0) ? 0 : 1;
     db.GetUciProcess().SetDevice(groupId, deviceEnDisSet);
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
 void Group::EnDisDevice()
@@ -1354,7 +1354,7 @@ void Group::EnDisDevice()
 bool Group::IsDsNextEmergency()
 {
     bool r = false;
-    if (dsExt->dispType == DISP_STATUS::TYPE::EXT)
+    if (dsExt->dispType == DISP_TYPE::EXT)
     { // external input
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 5)
@@ -1371,37 +1371,37 @@ bool Group::IsDsNextEmergency()
 bool Group::LoadDsNext()
 {
     bool r = false;
-    if (dsNext->dispType == DISP_STATUS::TYPE::FSW)
+    if (dsNext->dispType == DISP_TYPE::FSW)
     { // facility switch
         dsBak->Frm0();
         dsCurrent->Clone(dsNext);
         dsNext->N_A();
         r = true;
     }
-    else if (dsExt->dispType == DISP_STATUS::TYPE::EXT)
+    else if (dsExt->dispType == DISP_TYPE::EXT)
     { // external input
         dsBak->Clone(dsCurrent);
         dsCurrent->Clone(dsExt);
         dsExt->N_A();
         r = true;
     }
-    else if (dsNext->dispType != DISP_STATUS::TYPE::N_A)
+    else if (dsNext->dispType != DISP_TYPE::N_A)
     { // display command
         dsBak->Clone(dsCurrent);
         dsCurrent->Clone(dsNext);
         dsNext->N_A();
         r = true;
     }
-    if (dsCurrent->dispType == DISP_STATUS::TYPE::N_A)
+    if (dsCurrent->dispType == DISP_TYPE::N_A)
     { // if current == N/A, load frm[0] to activate plan
         dsBak->Frm0();
         dsCurrent->Frm0();
         r = true;
     }
     if (dsCurrent->fmpid[0] == 0 &&
-        (dsCurrent->dispType == DISP_STATUS::TYPE::FRM || dsCurrent->dispType == DISP_STATUS::TYPE::MSG))
+        (dsCurrent->dispType == DISP_TYPE::FRM || dsCurrent->dispType == DISP_TYPE::MSG))
     { //frm[0] or msg[0], activate plan
-        dsCurrent->dispType = DISP_STATUS::TYPE::PLN;
+        dsCurrent->dispType = DISP_TYPE::PLN;
         r = true;
     }
     return r;
@@ -1689,15 +1689,7 @@ bool Group::DimmingAdjust()
     if (targetDimmingLvl & 0x80)
     {
         targetDimmingLvl &= 0x7F;
-        if (targetDimmingLvl == 0)
-        {
-            for (auto &sign : vSigns)
-            {
-                sign->DimmingSet(targetDimmingLvl);
-                sign->DimmingV(currentDimmingLvl);
-            }
-        }
-        else
+        if (targetDimmingLvl != 0)
         {
             for (auto &sign : vSigns)
             {
@@ -1711,11 +1703,31 @@ bool Group::DimmingAdjust()
     if (dimmingAdjTimer.IsExpired())
     {
         // TODO auto dimming
-        int tgt = (targetDimmingLvl == 0) ? 15 : targetDimmingLvl - 1; // 0-15
-        int cur = (currentDimmingLvl - 1);                             // 0-15
+        int tgt;
+        if (targetDimmingLvl == 0)
+        {
+            int lux = 0;
+            int luxCnt = 0;
+            for (auto &s : vSigns)
+            {
+                if (s->luminanceFault.IsLow())
+                {
+                    lux += s->Lux();
+                    luxCnt++;
+                }
+            }
+            lux = (luxCnt == 0) ? -1 /*all lightsensors are faulty*/ : lux / luxCnt /*average*/;
+            tgt = db.GetUciUser().GetLuxLevel(lux)-1; // 0-15
+        }
+        else
+        {
+            tgt = targetDimmingLvl - 1; // 0-15
+        }
+        int cur = (currentDimmingLvl - 1); // 0-15
         UciProd &prod = db.GetUciProd();
         if (tgt != cur)
         {
+            int tgtLevel=tgt+1;
             uint8_t *p = prod.Dimming();
             uint8_t newdim;
             if (++adjDimmingSteps < 16)
@@ -1741,11 +1753,19 @@ bool Group::DimmingAdjust()
             {
                 setDimming = newdim;
                 /*
-                PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d, setDimming=%d\n",
-                        currentDimmingLvl, targetDimmingLvl, setDimming);
-                */
+                PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d\n",
+                         currentDimmingLvl, targetDimmingLvl, tgtLevel, setDimming);
+                         */
                 RqstExtStatus(0xFF);
                 r = true;
+                if (targetDimmingLvl == 0)
+                {
+                    for (auto &sign : vSigns)
+                    {
+                        sign->DimmingSet(targetDimmingLvl);
+                        sign->DimmingV(currentDimmingLvl);
+                    }
+                }
             }
         }
         dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16 - MS_SHIFT);
@@ -1753,31 +1773,31 @@ bool Group::DimmingAdjust()
     return r;
 }
 
-APP::ERROR Group::SystemReset(uint8_t v)
+APP_ERROR Group::SystemReset(uint8_t v)
 {
-    if (v >= 0)
+    switch(v)
     {
-        SystemReset0();
+        case 0:
+            SystemReset0();
+        break;
+        case 1:
+            SystemReset1();
+        break;
+        case 2:
+            SystemReset2();
+        break;
     }
-    if (v >= 1)
-    {
-        SystemReset1();
-    }
-    if (v >= 2)
-    {
-        SystemReset2();
-    }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
 void Group::SystemReset0()
 {
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = 0;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
-    DispNext(DISP_STATUS::TYPE::FRM, 0);
+    DispNext(DISP_TYPE::FRM, 0);
     readyToLoad = 1;
     SetDimming(0);
     SetDevice(1);
@@ -1787,6 +1807,7 @@ void Group::SystemReset0()
 
 void Group::SystemReset1()
 {
+    SystemReset0();
     onDispPlnId = 0;
     onDispFrmId = 1; // force to issue a BLANK cmd to slaves
     EnDisPlan(0, false);
@@ -1794,7 +1815,12 @@ void Group::SystemReset1()
 
 void Group::SystemReset2()
 {
-    // TODO reset all faults
-
-    // TODO uciprocess
+    SystemReset1();
+    auto & proc = db.GetUciProcess();
+    // clear all faults
+    for(auto &s : vSigns)
+    {
+        s->ClearFaults();
+        proc.SaveSignErr(s->SignId(), 0);
+    }
 }

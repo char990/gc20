@@ -61,6 +61,9 @@ public:
     int SlaveCnt() { return vSlaves.size(); };
     Slave *GetSlave(uint8_t id);
 
+    std::vector<Sign *> & GetSigns() {return vSigns;};
+    std::vector<Slave *> & GetSlaves() {return vSlaves;};
+
     // signs in group
     bool IsSignInGroup(uint8_t id);
 
@@ -75,22 +78,22 @@ public:
 
     /********* command from Tsi-sp-003 ********/
     // if planid==0, disable all plans
-    APP::ERROR EnDisPlan(uint8_t id, bool endis);
-    APP::ERROR EnablePlan(uint8_t id);
-    APP::ERROR DisablePlan(uint8_t id);
+    APP_ERROR EnDisPlan(uint8_t id, bool endis);
+    APP_ERROR EnablePlan(uint8_t id);
+    APP_ERROR DisablePlan(uint8_t id);
 
-    APP::ERROR DispFrm(uint8_t id);
-    APP::ERROR DispMsg(uint8_t id);
-    virtual APP::ERROR DispAtomicFrm(uint8_t *id) = 0;
+    APP_ERROR DispFrm(uint8_t id);
+    APP_ERROR DispMsg(uint8_t id);
+    virtual APP_ERROR DispAtomicFrm(uint8_t *id) = 0;
 
-    APP::ERROR SetDimming(uint8_t v);
-    APP::ERROR SetPower(uint8_t v);
-    APP::ERROR SetDevice(uint8_t v);
+    APP_ERROR SetDimming(uint8_t v);
+    APP_ERROR SetPower(uint8_t v);
+    APP_ERROR SetDevice(uint8_t v);
 
-    APP::ERROR SystemReset(uint8_t v);
+    APP_ERROR SystemReset(uint8_t v);
 
     // Called by controller to display External switch
-    void DispExt(uint8_t msgX);
+    bool DispExt(uint8_t msgX);
 
     int CmdToSlave(uint8_t id, uint8_t *data, int len); // to slave[id]
     int CmdToSlave(uint8_t *data, int len);             // broadcast
@@ -161,7 +164,7 @@ private:
     void PowerFunc();
 
     // for Display command except for ATF
-    void DispNext(DISP_STATUS::TYPE type, uint8_t id);
+    void DispNext(DISP_TYPE type, uint8_t id);
 
     void DispBackup();
 
@@ -309,7 +312,6 @@ private:
     void SystemReset0();
     void SystemReset1();
     void SystemReset2();
-
-
-
+    void SystemReset3();
+    void SystemReset255();
 };

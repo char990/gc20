@@ -8,24 +8,24 @@
 
 using namespace Utils;
 
-APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
+APP_ERROR Message::Init(uint8_t *xmsg, int xlen)
 {
     micode = 0;
     msgId = xmsg[1];
     msgRev = xmsg[2];
     transTime = xmsg[3];
     crc = Cnvt::GetU16(xmsg + xlen - MSG_TAIL);
-    if (xmsg[0] != MI::CODE::SignSetMessage)
+    if (xmsg[0] != static_cast<uint8_t>(MI_CODE::SignSetMessage))
     {
-        return APP::ERROR::UnknownMi;
+        return APP_ERROR::UnknownMi;
     }
     if (xlen < (MSG_LEN_MIN + MSG_TAIL) || xlen > (MSG_LEN_MAX + MSG_TAIL)) // with crc
     {
-        return APP::ERROR::LengthError;
+        return APP_ERROR::LengthError;
     }
     if (msgId == 0)
     {
-        return APP::ERROR::SyntaxError;
+        return APP_ERROR::SyntaxError;
     }
     uint8_t *p = xmsg + 4;
     entries = 0;
@@ -36,7 +36,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
         {
             if (i == 0)
             {
-                return APP::ERROR::SyntaxError;
+                return APP_ERROR::SyntaxError;
             }
             break;
         }
@@ -45,14 +45,14 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     }
     if (p != (xmsg + xlen - MSG_TAIL))
     {
-        return APP::ERROR::SyntaxError;
+        return APP_ERROR::SyntaxError;
     }
     if (0 != CheckEntries())
     {
-        return APP::ERROR::FrmMsgPlnUndefined;
+        return APP_ERROR::FrmMsgPlnUndefined;
     }
-    micode = MI::CODE::SignSetMessage;
-    return APP::ERROR::AppNoError;
+    micode = static_cast<uint8_t>(MI_CODE::SignSetMessage);
+    return APP_ERROR::AppNoError;
 }
 
 int Message::ToArray(uint8_t *pbuf)

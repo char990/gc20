@@ -11,6 +11,7 @@
 #include <module/DS3231.h>
 
 Controller::Controller()
+    : groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
 {
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
@@ -19,9 +20,9 @@ Controller::Controller()
     for (int i = 0; i < 4; i++)
     {
         extInput[i] = new GpioIn(2, 2, pins[i]);
-        extInput[i]->Init(Utils::STATE3::S3_1);
-        extInput[i]->ClearChanged();
+        extInput[i]->Init(Utils::STATE5::S5_1);
     }
+    groups.assign(DbHelper::Instance().GetUciProd().NumberOfGroups(), nullptr);
 }
 
 Controller::~Controller()
@@ -33,13 +34,12 @@ Controller::~Controller()
     delete pBatOpen;
     delete pBatLow;
     delete pMainPwr;
-    if (groups != nullptr)
+    for (auto &g : groups)
     {
-        for (int i = 0; i < groupCnt; i++)
+        if (g != nullptr)
         {
-            delete groups[i];
+            delete g;
         }
-        delete[] groups;
     }
     if (tmrEvt != nullptr)
     {
@@ -69,18 +69,16 @@ void Controller::Init(TimerEvent *tmrEvt_)
     }
 
     UciProd &prod = DbHelper::Instance().GetUciProd();
-    groupCnt = prod.NumberOfGroups();
-    groups = new Group *[groupCnt];
     switch (prod.ProdType())
     {
     case 0: // vms
-        for (int i = 0; i < groupCnt; i++)
+        for (int i = 0; i < groups.size(); i++)
         {
             groups[i] = new GroupVms(i + 1);
         }
         break;
     case 1: // islus
-        for (int i = 0; i < groupCnt; i++)
+        for (int i = 0; i < groups.size(); i++)
         {
             groups[i] = new GroupIslus(i + 1);
         }
@@ -91,9 +89,9 @@ void Controller::Init(TimerEvent *tmrEvt_)
 void Controller::PeriodicRun()
 {
     // run every CTRLLER_TICK
-    for (int i = 0; i < groupCnt; i++)
+    for (auto &g : groups)
     {
-        groups[i]->PeriodicRun();
+        g->PeriodicRun();
     }
 
     if (++cnt100ms >= CTRLLER_MS(100))
@@ -107,9 +105,9 @@ void Controller::PeriodicRun()
             {
                 //PrintDbg("displayTimeout!!!\n");
                 ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
-                for (int i = 0; i < groupCnt; i++)
+                for (auto &g : groups)
                 {
-                    groups[i]->DispFrm(0);
+                    g->DispFrm(0);
                 }
             }
             displayTimeout.Clear();
@@ -150,37 +148,24 @@ void Controller::PowerMonitor()
     pMainPwr->PeriodicRun();
     pBatLow->PeriodicRun();
     pBatOpen->PeriodicRun();
-    if (pMainPwr->IsChanged())
+    if (pMainPwr->HasEdge())
     {
-        pMainPwr->ClearChanged();
-        if (pMainPwr->Value() == Utils::STATE3::S3_1)
-        {
-            ctrllerError.Push(DEV::ERROR::PowerFailure, 0);
-        }
-        else
-        {
-            ctrllerError.Push(DEV::ERROR::PowerFailure, 1);
-        }
+        pMainPwr->ClearEdge();
+        ctrllerError.Push(DEV::ERROR::PowerFailure, pMainPwr->IsLow());
     }
-    if (pBatOpen->IsChanged())
+    if (pBatOpen->HasEdge())
     {
-        pBatOpen->ClearChanged();
-        if (pBatOpen->Value() == Utils::STATE3::S3_1)
+        pBatOpen->ClearEdge();
+        ctrllerError.Push(DEV::ERROR::BatteryFailure, pBatOpen->IsLow());
+        if (pBatOpen->IsLow()) // if there is BatOpen, don not check BatLow
         {
-            ctrllerError.Push(DEV::ERROR::BatteryFailure, 0);
-        }
-        else
-        {
-            ctrllerError.Push(DEV::ERROR::BatteryFailure, 1);
-            // if there is BatOpen, don not check BatLow
-            pBatLow->ClearChanged();
             return;
         }
     }
-    if (pBatLow->IsChanged())
+    if (pBatLow->HasEdge())
     {
-        pBatLow->ClearChanged();
-        ctrllerError.Push(DEV::ERROR::BatteryLow, (pBatLow->Value() == Utils::STATE3::S3_0));
+        pBatLow->ClearEdge();
+        ctrllerError.Push(DEV::ERROR::BatteryLow, pBatLow->IsLow());
     }
 }
 
@@ -190,20 +175,23 @@ void Controller::ExtInputFunc()
     {
         auto gin = extInput[i];
         gin->PeriodicRun();
-        if (gin->IsChanged() && gin->Value() == Utils::STATE3::S3_1)
+        if (gin->IsRising())
         {
-            gin->ClearChanged();
+            gin->ClearRising();
             uint8_t msg = i + 3;
-            for (int g = 0; g < groupCnt; g++)
+            char buf[64];
+            sprintf(buf, "Leading edge of external input[%d]", i + 1);
+            DbHelper::Instance().GetUciEvent().Push(0, buf);
+            for (auto &g : groups)
             {
-                groups[g]->DispExt(i + 3);
+                g->DispExt(msg);
             }
             // only the highest priority will be triggered, ignore others
             while (++i < 4)
             { // clear others changed flag
                 auto gin = extInput[i];
                 gin->PeriodicRun();
-                gin->ClearChanged();
+                gin->ClearRising();
             };
             return;
         }
@@ -230,16 +218,16 @@ void Controller::RefreshSessionTime()
 
 void Controller::SessionLed(uint8_t v)
 {
-    v ? pPinStatusLed->SetPinLow():pPinStatusLed->SetPinHigh();
+    v ? pPinStatusLed->SetPinLow() : pPinStatusLed->SetPinHigh();
 }
 
 bool Controller::IsFrmActive(uint8_t id)
 {
     if (id > 0)
     {
-        for (int i = 0; i < groupCnt; i++)
+        for (auto &g : groups)
         {
-            if (groups[i]->IsFrmActive(id))
+            if (g->IsFrmActive(id))
             {
                 return true;
             }
@@ -252,9 +240,9 @@ bool Controller::IsMsgActive(uint8_t id)
 {
     if (id > 0)
     {
-        for (int i = 0; i < groupCnt; i++)
+        for (auto &g : groups)
         {
-            if (groups[i]->IsMsgActive(id))
+            if (g->IsMsgActive(id))
             {
                 return true;
             }
@@ -265,9 +253,9 @@ bool Controller::IsMsgActive(uint8_t id)
 
 bool Controller::IsPlnActive(uint8_t id)
 {
-    for (int i = 0; i < groupCnt; i++)
+    for (auto &g : groups)
     {
-        if (groups[i]->IsPlanActive(id))
+        if (g->IsPlanActive(id))
         {
             return true;
         }
@@ -275,13 +263,13 @@ bool Controller::IsPlnActive(uint8_t id)
     return false;
 }
 
-APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
+APP_ERROR Controller::CmdSystemReset(uint8_t *cmd)
 {
     auto grpId = cmd[1];
     auto lvl = cmd[2];
-    if (grpId > groupCnt)
+    if (grpId > groups.size())
     {
-        return APP::ERROR::UndefinedDeviceNumber;
+        return APP_ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
     {
@@ -289,14 +277,15 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
     }
     else
     {
-        for (int i = 1; i <= groupCnt; i++)
+        for (auto &g : groups)
         {
-            GetGroup(i)->SystemReset(lvl);
+            g->SystemReset(lvl);
         }
         auto &db = DbHelper::Instance();
         if (lvl >= 2)
         {
             db.GetUciFault().Reset();
+            db.GetUciProcess().SaveCtrllerErr(0);
         }
         if (lvl >= 3)
         {
@@ -306,92 +295,93 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         }
         if (lvl == 255)
         {
+            db.GetUciUser().LoadFactoryDefault();
         }
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
+APP_ERROR Controller::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t frmId = cmd[2];
-    if (grpId == 0 || grpId > groupCnt)
+    if (grpId == 0 || grpId > groups.size())
     {
-        return APP::ERROR::UndefinedDeviceNumber;
+        return APP_ERROR::UndefinedDeviceNumber;
     }
     if (frmId != 0)
     {
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))
         {
-            return APP::ERROR::FrmMsgPlnUndefined;
+            return APP_ERROR::FrmMsgPlnUndefined;
         }
     }
     return GetGroup(grpId)->DispFrm(frmId);
 }
 
-APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
+APP_ERROR Controller::CmdDispMsg(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t msgId = cmd[2];
     if (grpId == 0 || grpId > Controller::Instance().GroupCnt())
     {
-        return APP::ERROR::UndefinedDeviceNumber;
+        return APP_ERROR::UndefinedDeviceNumber;
     }
     Message *msg;
     if (msgId != 0)
     {
         if (!DbHelper::Instance().GetUciMsg().IsMsgDefined(msgId))
         {
-            return APP::ERROR::FrmMsgPlnUndefined;
+            return APP_ERROR::FrmMsgPlnUndefined;
         }
     }
     return GetGroup(grpId)->DispMsg(msgId);
 }
 
-APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
+APP_ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
     uint8_t grpId = cmd[1];
-    if (grpId == 0 || grpId > groupCnt)
+    if (grpId == 0 || grpId > groups.size())
     {
-        return APP::ERROR::UndefinedDeviceNumber;
+        return APP_ERROR::UndefinedDeviceNumber;
     }
     return GetGroup(grpId)->DispAtomicFrm(cmd);
 }
 
-APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
+APP_ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
-    APP::ERROR r = APP::ERROR::AppNoError;
-    if (grpId > groupCnt || grpId == 0)
+    APP_ERROR r = APP_ERROR::AppNoError;
+    if (grpId > groups.size() || grpId == 0)
     {
-        r = APP::ERROR::UndefinedDeviceNumber;
+        r = APP_ERROR::UndefinedDeviceNumber;
     }
     else if (plnId != 0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP_ERROR::FrmMsgPlnUndefined;
     }
     else
     {
-        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == MI::CODE::EnablePlan);
+        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == static_cast<uint8_t>(MI_CODE::EnablePlan));
     }
     return r;
 }
 
-APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
+APP_ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
-        if (p[0] > groupCnt)
+        if (p[0] > groups.size())
         {
-            return APP::ERROR::UndefinedDeviceNumber;
+            return APP_ERROR::UndefinedDeviceNumber;
         }
         if (p[1] != 0 && (p[2] == 0 || p[2] > 16))
         {
-            return APP::ERROR::DimmingLevelNotSupported;
+            return APP_ERROR::DimmingLevelNotSupported;
         }
         p += 3;
     }
@@ -401,9 +391,9 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
         uint8_t dimming = (p[1] == 0) ? 0 : p[2];
         if (p[0] == 0)
         {
-            for (int i = 1; i <= groupCnt; i++)
+            for (auto &g : groups)
             {
-                GetGroup(i)->SetDimming(dimming);
+                g->SetDimming(dimming);
             }
         }
         else
@@ -412,23 +402,23 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
         }
         p += 3;
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
+APP_ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
-        if (p[0] > groupCnt)
+        if (p[0] > groups.size())
         {
-            return APP::ERROR::UndefinedDeviceNumber;
+            return APP_ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
-            return APP::ERROR::SyntaxError;
+            return APP_ERROR::SyntaxError;
         }
         p += 2;
     }
@@ -437,9 +427,9 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
     {
         if (p[0] == 0)
         {
-            for (int i = 1; i <= groupCnt; i++)
+            for (auto &g : groups)
             {
-                GetGroup(i)->SetPower(p[1]);
+                g->SetPower(p[1]);
             }
         }
         else
@@ -448,23 +438,23 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
         }
         p += 2;
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
-APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
+APP_ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
-        if (p[0] > groupCnt)
+        if (p[0] > groups.size())
         {
-            return APP::ERROR::UndefinedDeviceNumber;
+            return APP_ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
-            return APP::ERROR::SyntaxError;
+            return APP_ERROR::SyntaxError;
         }
         p += 2;
     }
@@ -473,9 +463,9 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
     {
         if (p[0] == 0)
         {
-            for (int i = 1; i <= groupCnt; i++)
+            for (auto &g : groups)
             {
-                GetGroup(i)->SetDevice(p[1]);
+                g->SetDevice(p[1]);
             }
         }
         else
@@ -484,14 +474,14 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
         }
         p += 2;
     }
-    return APP::ERROR::AppNoError;
+    return APP_ERROR::AppNoError;
 }
 
 int Controller::CmdRequestEnabledPlans(uint8_t *txbuf)
 {
-    txbuf[0] = MI::CODE::ReportEnabledPlans;
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::ReportEnabledPlans);
     uint8_t *p = &txbuf[2];
-    for (int i = 1; i <= groupCnt; i++)
+    for (int i = 1; i <= groups.size(); i++)
     {
         Group *grp = GetGroup(i);
         for (int j = 1; j <= 255; j++)

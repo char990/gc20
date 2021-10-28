@@ -3,14 +3,14 @@
 class DispStatus
 {
 public:
-    DISP_STATUS::TYPE dispType;
+    DISP_TYPE dispType;
     uint8_t *fmpid;
     uint8_t signCnt;
 
     DispStatus(uint8_t signCnt)
     :signCnt(signCnt)
     {
-        dispType = DISP_STATUS::TYPE::N_A;
+        dispType = DISP_TYPE::N_A;
         fmpid = new uint8_t[signCnt];
     };
 
@@ -30,25 +30,25 @@ public:
     
     void Frm0()
     {
-        dispType = DISP_STATUS::TYPE::FRM;
+        dispType = DISP_TYPE::FRM;
         fmpid[0] = 0;
     };
     
     void Pln0()
     {
-        dispType = DISP_STATUS::TYPE::PLN;
+        dispType = DISP_TYPE::PLN;
         fmpid[0] = 0;
     };
     
     void BLK()
     {
-        dispType = DISP_STATUS::TYPE::BLK;
+        dispType = DISP_TYPE::BLK;
         fmpid[0] = 0;
     };
     
     void N_A()
     {
-        dispType = DISP_STATUS::TYPE::N_A;
+        dispType = DISP_TYPE::N_A;
         fmpid[0] = 0;
     };
     
@@ -56,7 +56,7 @@ public:
     {
         if(dispType == dst->dispType && signCnt == dst->signCnt)
         {
-            if(dispType == DISP_STATUS::TYPE::ATF)
+            if(dispType == DISP_TYPE::ATF)
             {
                 for(int i=0;i<signCnt;i++)
                 {
@@ -67,7 +67,7 @@ public:
                 }
                 return true;
             }
-            else if(dispType == DISP_STATUS::TYPE::N_A || dispType == DISP_STATUS::TYPE::BLK)
+            else if(dispType == DISP_TYPE::N_A || dispType == DISP_TYPE::BLK)
             {
                 return true;
             }

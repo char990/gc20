@@ -17,10 +17,10 @@ Sign::Sign(uint8_t id)
     voltageFault.SetCNT(prod.SlaveVoltageDebounce());
     lanternFault.SetCNT(prod.LanternFaultDebounce());
 
-    lsConnectionFault.SetCNT(2 * 60, 2 * 60);
-    ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
-    lsMidnightFault.SetCNT(15 * 60);
-    lsMiddayFault.SetCNT(15 * 60);
+    lsConnectionFault.SetCNT(2 * 60, 3 * 60);       // fault debounce 1 minute in slave, so set true_cnt as 2*60
+    ls18hoursFault.SetCNT(8 * 60 , 5 * 60);
+    lsMidnightFault.SetCNT(5 * 60);
+    lsMiddayFault.SetCNT(5 * 60);
 }
 
 Sign::~Sign()
@@ -43,14 +43,14 @@ void Sign::InitFaults()
     voltageFault.SetState(signErr.IsSet(DEV::ERROR::InternalPowerSupplyFault));
     multiLedFault.SetState(signErr.IsSet(DEV::ERROR::SignMultiLedFailure));
     chainFault.SetState(signErr.IsSet(DEV::ERROR::SignDisplayDriverFailure));
-    lsConnectionFault.SetState(false);
+    lsConnectionFault.Reset();
     ls18hoursFault.SetState(false);
     lsMidnightFault.SetState(false);
     lsMiddayFault.SetState(false);
-    if (chainFault.Value() == STATE3::S3_1 ||
-        multiLedFault.Value() == STATE3::S3_1 ||
-        selftestFault.Value() == STATE3::S3_1 ||
-        voltageFault.Value() == STATE3::S3_1 ||
+    if (chainFault.IsHigh() ||
+        multiLedFault.IsHigh() ||
+        selftestFault.IsHigh() ||
+        voltageFault.IsHigh() ||
         overTempFault.IsHigh())
     {
         fatalError.Set();
@@ -78,6 +78,7 @@ void Sign::ClearFaults()
     luminanceFault.Init(STATE5::S5_0);
     overTempFault.Init(STATE5::S5_0);
     fatalError.Init(STATE5::S5_0);
+    signErr.Clear();
 }
 
 uint8_t *Sign::GetStatus(uint8_t *p)
@@ -228,13 +229,13 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
     sprintf(buf, "%d LEDs", faultLedCnt);
     DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
-    if (multiLedFault.Value() == STATE3::S3_0)
+    if (multiLedFault.IsLow())
     {
         DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
     }
     else
     {
-        singleLedFault.changed = false; // When multi, ignore single. So clear changed
+        singleLedFault.ClearEdge();
     }
 
     // *** light sensor
@@ -245,35 +246,28 @@ void Sign::RefreshSlaveStatusAtExtSt()
         tflag = tf;
         // light sensor installed at first slave
         lux = vsSlaves[0]->lux;
-        auto lastLs = lsConnectionFault.Value();
         if ((vsSlaves[0]->lightSensorFault & 1) == 0 && lux > 0)
         {
-            if (lsConnectionFault.Value() != STATE3::S3_0)
-            {
-                lsConnectionFault.SetState(false);
-                lsConnectionFault.changed = true;
-            }
+            lsConnectionFault.Clr();
         }
         else
         {
             lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1);
         }
-        if (lsConnectionFault.changed)
+        if (lsConnectionFault.IsRising())
         {
-            lsConnectionFault.changed = false;
-            if (lsConnectionFault.Value() == STATE3::S3_1)
-            {
-                luminanceFault.Set();
-                signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
-                db.GetUciAlarm().Push(signId, "Light sensor DISCONNECTED");
-            }
-            else if (lsConnectionFault.Value() == STATE3::S3_0 && lastLs == STATE3::S3_1)
-            {
-                db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
-            }
+            lsConnectionFault.ClearRising();
+            luminanceFault.Set();
+            signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
+            db.GetUciAlarm().Push(signId, "Light sensor DISCONNECTED");
+        }
+        else if (lsConnectionFault.IsFalling())
+        {
+            lsConnectionFault.ClearFalling();
+            db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
         }
 
-        if (lsConnectionFault.Value() == STATE3::S3_0)
+        if (lsConnectionFault.IsLow())
         {
             auto &prod = DbHelper::Instance().GetUciProd();
             ls18hoursFault.Check(lux < prod.LightSensor18Hours());
@@ -296,9 +290,9 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 lsMidnightFault.Check(lux > prod.LightSensorMidnight());
             }
             lasthour = stm.tm_hour;
-            if (ls18hoursFault.Value() == STATE3::S3_1 ||
-                lsMiddayFault.Value() == STATE3::S3_1 ||
-                lsMidnightFault.Value() == STATE3::S3_1)
+            if (ls18hoursFault.IsHigh() ||
+                lsMiddayFault.IsHigh() ||
+                lsMidnightFault.IsHigh())
             { // any failed
                 if (!luminanceFault.IsHigh())
                 {
@@ -306,9 +300,9 @@ void Sign::RefreshSlaveStatusAtExtSt()
                     luminanceFault.Set();
                 }
             }
-            else if (ls18hoursFault.Value() == STATE3::S3_0 &&
-                     lsMiddayFault.Value() == STATE3::S3_0 &&
-                     lsMidnightFault.Value() == STATE3::S3_0)
+            else if (ls18hoursFault.IsLow() &&
+                     lsMiddayFault.IsLow() &&
+                     lsMidnightFault.IsLow())
             { // all good
                 if (!luminanceFault.IsLow())
                 {
@@ -317,51 +311,51 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 }
             }
             char buf[64];
-            if (ls18hoursFault.changed)
+            if (ls18hoursFault.HasEdge())
             {
-                ls18hoursFault.changed = false;
-                if (ls18hoursFault.Value() == STATE3::S3_1)
+                ls18hoursFault.ClearEdge();
+                if (ls18hoursFault.IsHigh())
                 {
-                    sprintf(buf, "Lux < %d for 18 hours: 18-Hour Fault ONSET", prod.LightSensor18Hours());
+                    sprintf(buf, "Lux(%d)<%d for 18 hours: 18-Hour Fault ONSET", lux, prod.LightSensor18Hours());
                 }
                 else
                 {
-                    sprintf(buf, "Lux >= %d for 15 minutes: 18-Hour Fault CLEAR", prod.LightSensor18Hours());
+                    sprintf(buf, "Lux(%d)>=%d for 15 minutes: 18-Hour Fault CLEAR", lux, prod.LightSensor18Hours());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
-            if (lsMiddayFault.changed)
+            if (lsMiddayFault.HasEdge())
             {
-                lsMiddayFault.changed = false;
-                if (lsMiddayFault.Value() == STATE3::S3_1)
+                lsMiddayFault.ClearEdge();
+                if (lsMiddayFault.IsHigh())
                 {
-                    sprintf(buf, "In 11:00-15:00, Lux < %d for 15 minutes: Midday Fault ONSET", prod.LightSensorMidday());
+                    sprintf(buf, "In 11:00-15:00, Lux(%d)<%d for 15 minutes: Midday Fault ONSET", lux, prod.LightSensorMidday());
                 }
                 else
                 {
-                    sprintf(buf, "In 11:00-15:00, Lux >= %d for 15 minutes: MiddayFault CLEAR", prod.LightSensorMidday());
+                    sprintf(buf, "In 11:00-15:00, Lux(%d)>=%d for 15 minutes: MiddayFault CLEAR", lux, prod.LightSensorMidday());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
-            if (lsMidnightFault.changed)
+            if (lsMidnightFault.HasEdge())
             {
-                lsMidnightFault.changed = false;
-                if (lsMidnightFault.Value() == STATE3::S3_1)
+                lsMidnightFault.ClearEdge();
+                if (lsMidnightFault.IsHigh())
                 {
-                    sprintf(buf, "In 23:00-3:00, Lux >= %d for 15 minutes: Midnight Fault ONSET", prod.LightSensorMidnight());
+                    sprintf(buf, "In 23:00-3:00, Lux(%d)>=%d for 15 minutes: Midnight Fault ONSET", lux, prod.LightSensorMidnight());
                 }
                 else
                 {
-                    sprintf(buf, "In 23:00-3:00, Lux < %d for 15 minutes: Midnight Fault CLEAR", prod.LightSensorMidnight());
+                    sprintf(buf, "In 23:00-3:00, Lux(%d)<%d for 15 minutes: Midnight Fault CLEAR", lux, prod.LightSensorMidnight());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
         }
     }
-    if (chainFault.Value() == STATE3::S3_1 ||
-        multiLedFault.Value() == STATE3::S3_1 ||
-        selftestFault.Value() == STATE3::S3_1 ||
-        voltageFault.Value() == STATE3::S3_1 ||
+    if (chainFault.IsHigh() ||
+        multiLedFault.IsHigh() ||
+        selftestFault.IsHigh() ||
+        voltageFault.IsHigh() ||
         overTempFault.IsHigh())
     {
         fatalError.Set();
@@ -403,34 +397,31 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
 
 void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
 {
-    if (dbc.changed)
+    char buf[64];
+    int len = 0;
+    if (dbc.IsRising())
     {
-        dbc.changed = false;
-        char buf[64];
-        int len = 0;
-        if (dbc.Value() == STATE3::S3_1)
+        if (!signErr.IsSet(err))
         {
-            if (!signErr.IsSet(err))
-            {
-                signErr.Push(signId, err, true);
-                len = sprintf(buf, "Sign%d %s ONSET", signId, DEV::GetStr(err));
-            }
+            signErr.Push(signId, err, true);
+            len = sprintf(buf, "Sign%d %s ONSET", signId, DEV::GetStr(err));
         }
-        else
+    }
+    else if (dbc.IsFalling())
+    {
+        if (signErr.IsSet(err))
         {
-            if (signErr.IsSet(err))
-            {
-                signErr.Push(signId, err, false);
-                len = sprintf(buf, "Sign%d %s CLEAR", signId, DEV::GetStr(err));
-            }
+            signErr.Push(signId, err, false);
+            len = sprintf(buf, "Sign%d %s CLEAR", signId, DEV::GetStr(err));
         }
-        if (len > 0)
+    }
+    dbc.ClearEdge();
+    if (len > 0)
+    {
+        if (info != nullptr)
         {
-            if (info != nullptr)
-            {
-                snprintf(buf + len, 63 - len, ": %s", info);
-            }
-            DbHelper::Instance().GetUciAlarm().Push(signId, buf);
+            snprintf(buf + len, 63 - len, ": %s", info);
         }
+        DbHelper::Instance().GetUciAlarm().Push(signId, buf);
     }
 }

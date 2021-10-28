@@ -21,17 +21,17 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     crc = Crc::Crc16_1021(frm, len - 2);
     if (crc != Cnvt::GetU16(frm + len - 2))
     {
-        appErr = APP::ERROR::DataChksumError;
+        appErr = APP_ERROR::DataChksumError;
         return 1;
     }
     if (frmId == 0)
     {
-        appErr = APP::ERROR::SyntaxError;
+        appErr = APP_ERROR::SyntaxError;
         return 1;
     }
     if (len != (frmOffset + 2 + frmBytes))
     {
-        appErr = APP::ERROR::LengthError;
+        appErr = APP_ERROR::LengthError;
         return 1;
     }
     if (CheckLength(len) != 0)
@@ -44,7 +44,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     }
     if (CheckColour() != 0)
     {
-        appErr = APP::ERROR::ColourNotSupported;
+        appErr = APP_ERROR::ColourNotSupported;
         return 1;
     }
     // int CheckConspicuity();
@@ -53,10 +53,10 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         !prod.IsConspicuity(conspicuity & 0x07) ||
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
-        appErr = APP::ERROR::ConspicuityNotSupported;
+        appErr = APP_ERROR::ConspicuityNotSupported;
         return 1;
     }
-    appErr = APP::ERROR::AppNoError;
+    appErr = APP_ERROR::AppNoError;
     return 0;
 }
 
@@ -81,12 +81,12 @@ int FrmTxt::CheckLength(int len)
 {
     if (len > (255 + frmOffset + 2) || 0 /* TODO if text could fit in the sign: X chars * Y chars*/)
     {
-        appErr = APP::ERROR::FrameTooLarge;
+        appErr = APP_ERROR::FrameTooLarge;
         return 1;
     }
     else if (len < (frmOffset + 2 + 1))
     {
-        appErr = APP::ERROR::FrameTooSmall;
+        appErr = APP_ERROR::FrameTooSmall;
         return 1;
     }
     return 0;
@@ -94,19 +94,19 @@ int FrmTxt::CheckLength(int len)
 
 int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
-    if (micode != MI::CODE::SignSetTextFrame)
+    if (micode != static_cast<uint8_t>(MI_CODE::SignSetTextFrame))
     {
-        appErr = APP::ERROR::UnknownMi;
+        appErr = APP_ERROR::UnknownMi;
         return 1;
     }
     else if (Check::Text(frm + frmOffset, frmBytes) != 0)
     {
-        appErr = APP::ERROR::TextNonASC;
+        appErr = APP_ERROR::TextNonASC;
         return 1;
     }
     else if (!DbHelper::Instance().GetUciProd().IsFont(font))
     {
-        appErr = APP::ERROR::FontNotSupported;
+        appErr = APP_ERROR::FontNotSupported;
         return 1;
     }
     return 0;
@@ -146,9 +146,9 @@ FrmGfx::FrmGfx(uint8_t *frm, int len)
 
 int FrmGfx::CheckSub(uint8_t *frm, int len) // TODO
 {
-    if (micode != MI::CODE::SignSetGraphicsFrame)
+    if (micode != static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame))
     {
-        appErr = APP::ERROR::UnknownMi;
+        appErr = APP_ERROR::UnknownMi;
         return 1;
     }
     return 0;
@@ -160,24 +160,24 @@ int FrmGfx::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
-        appErr = APP::ERROR::LengthError;
+        appErr = APP_ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
-        appErr = APP::ERROR::SizeMismatch;
+        appErr = APP_ERROR::SizeMismatch;
     }
     else
     {
         int x = 0;
-        if (colour < FRM::COLOUR::MonoFinished)
+        if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         {
             x = prod.Gfx1FrmLen();
         }
-        else if (colour == FRM::COLOUR::MultipleColours)
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
         {
             x = prod.Gfx4FrmLen();
         }
-        else if (colour == FRM::COLOUR::RGB24)
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
         {
             x = prod.Gfx24FrmLen();
         }
@@ -185,19 +185,19 @@ int FrmGfx::CheckLength(int len)
         {
             if (frmBytes > x)
             {
-                appErr = APP::ERROR::FrameTooLarge;
+                appErr = APP_ERROR::FrameTooLarge;
             }
             else if (frmBytes < x)
             {
-                appErr = APP::ERROR::FrameTooSmall;
+                appErr = APP_ERROR::FrameTooSmall;
             }
         }
         else
         {
-            appErr = APP::ERROR::ColourNotSupported;
+            appErr = APP_ERROR::ColourNotSupported;
         }
     }
-    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
+    return (appErr == APP_ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmGfx::CheckColour()
@@ -234,9 +234,9 @@ FrmHrg::FrmHrg(uint8_t *frm, int len)
 
 int FrmHrg::CheckSub(uint8_t *frm, int len) // TODO
 {
-    if (micode != MI::CODE::SignSetHighResolutionGraphicsFrame)
+    if (micode != static_cast<uint8_t>(MI_CODE::SignSetHighResolutionGraphicsFrame))
     {
-        appErr = APP::ERROR::UnknownMi;
+        appErr = APP_ERROR::UnknownMi;
         return 1;
     }
     return 0;
@@ -248,24 +248,24 @@ int FrmHrg::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
-        appErr = APP::ERROR::LengthError;
+        appErr = APP_ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
-        appErr = APP::ERROR::SizeMismatch;
+        appErr = APP_ERROR::SizeMismatch;
     }
     else
     {
         int x = 0;
-        if (colour < FRM::COLOUR::MonoFinished)
+        if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         {
             x = prod.Gfx1FrmLen();
         }
-        else if (colour == FRM::COLOUR::MultipleColours)
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
         {
             x = prod.Gfx4FrmLen();
         }
-        else if (colour == FRM::COLOUR::RGB24)
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
         {
             x = prod.Gfx24FrmLen();
         }
@@ -273,19 +273,19 @@ int FrmHrg::CheckLength(int len)
         {
             if (frmBytes > x)
             {
-                appErr = APP::ERROR::FrameTooLarge;
+                appErr = APP_ERROR::FrameTooLarge;
             }
             else if (frmBytes < x)
             {
-                appErr = APP::ERROR::FrameTooSmall;
+                appErr = APP_ERROR::FrameTooSmall;
             }
         }
         else
         {
-            appErr = APP::ERROR::ColourNotSupported;
+            appErr = APP_ERROR::ColourNotSupported;
         }
     }
-    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
+    return (appErr == APP_ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmHrg::CheckColour()

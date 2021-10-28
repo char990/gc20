@@ -22,12 +22,12 @@ int LayerDL::Rx(uint8_t *data, int len)
     for (int i = 0; i < len; i++)
     {
         uint8_t c = *p++;
-        if (c == DATALINK::CTRL_CHAR::SOH)
+        if (c == static_cast<uint8_t>(CTRL_CHAR::SOH))
         {// packet start, clear buffer
             buf[0] = c;
             length = 1;
         }
-        else if(c == DATALINK::CTRL_CHAR::NAK)
+        else if(c == static_cast<uint8_t>(CTRL_CHAR::NAK))
         {}  // todo:
         else
         {
@@ -36,7 +36,7 @@ int LayerDL::Rx(uint8_t *data, int len)
                 if (length < maxPktSize)
                 {
                     buf[length++] = c;
-                    if (c == DATALINK::CTRL_CHAR::ETX)
+                    if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
                         upperLayer->Rx(buf, length);
                         length = 0;

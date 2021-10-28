@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <cstring>
+#include <ctime>
+#include <stdlib.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
-#include <module/Tz_AU.h>
 #include <module/SerialPort.h>
 #include <uci/DbHelper.h>
 
@@ -10,11 +11,15 @@ using namespace Utils;
 
 UciUser::UciUser()
 {
+
 }
 
 UciUser::~UciUser()
 {
-
+    if(tz_AU != nullptr)
+    {
+        delete tz_AU;
+    }
 }
 
 void UciUser::LoadConfig()
@@ -156,6 +161,17 @@ void UciUser::LoadConfig()
     {
         MyThrow("UciUser::DawnDusk Error: cnt!=16");
     }
+    if(tz_AU!=nullptr)
+    {
+        tz_AU->Init_Tz(tz, str);
+    }
+    else
+    {
+        tz_AU = new Tz_AU(tz, str);
+    }
+
+	setenv("TZ", tz_AU->GetTz(),1);
+	tzset();
 
     str = GetStr(uciSec, _Luminance);
     cnt=Cnvt::GetIntArray(str, 16, ibuf, 1, 65535);
@@ -210,6 +226,7 @@ void UciUser::LoadFactoryDefault()
     OptionSave(_DeviceId, DeviceId());
     OptionSave(_BroadcastId, BroadcastId());
 	UserClose();
+    LoadConfig();
 }
 
 void UciUser::UserOpen()
@@ -285,15 +302,40 @@ void UciUser::PrintDawnDusk(char *buf)
 
 void UciUser::PrintLuminance(char *buf)
 {
-    uint16_t * lum=Luminance();
-	int len=sprintf (buf, "'%u", *lum);
+	int len=sprintf (buf, "'%u", luminance[0]);
     for(int i=1;i<16;i++)
 	{
-        len+=sprintf (buf+len, ",%u", *(lum+i));
+        len+=sprintf (buf+len, ",%u", luminance[i]);
     }
     sprintf (buf+len, "'");
 }
 
+uint8_t UciUser::GetLuxLevel(int lux)
+{
+    if(lux<0)
+    {
+        switch(tz_AU->GetTwilightStatus(time(nullptr)))
+        {
+            case Tz_AU::TwilightStatus::TW_ST_NIGHT:
+                return 1;
+            case Tz_AU::TwilightStatus::TW_ST_DAY:
+                return 16;
+            default:
+                return 8;
+        }
+    }
+    else
+    {
+        for(int i=0;i<16;i++)
+        {
+            if(lux<=luminance[i])
+            {
+                return i+1;
+            }
+        }
+        return 16;
+    }
+}
 
     /// --------setter--------
 

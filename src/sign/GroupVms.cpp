@@ -7,7 +7,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
- 
+
 GroupVms::GroupVms(uint8_t id)
     : Group(id)
 {
@@ -28,12 +28,12 @@ GroupVms::GroupVms(uint8_t id)
     {
         switch (disp[1])
         {
-        case MI::CODE::SignDisplayFrame:
-            dsNext->dispType = DISP_STATUS::TYPE::FRM;
+        case static_cast<uint8_t>(MI_CODE::SignDisplayFrame):
+            dsNext->dispType = DISP_TYPE::FRM;
             dsNext->fmpid[0] = disp[3];
             break;
-        case MI::CODE::SignDisplayMessage:
-            dsNext->dispType = DISP_STATUS::TYPE::MSG;
+        case static_cast<uint8_t>(MI_CODE::SignDisplayMessage):
+            dsNext->dispType = DISP_TYPE::MSG;
             dsNext->fmpid[0] = disp[3];
             break;
         default:
@@ -49,12 +49,11 @@ GroupVms::~GroupVms()
 
 void GroupVms::PeriodicHook()
 {
-
 }
 
-APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
+APP_ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
 {
-    return APP::ERROR::MiNotSupported;
+    return APP_ERROR::MiNotSupported;
 }
 
 bool GroupVms::TaskSetATF(int *_ptLine)
@@ -63,10 +62,10 @@ bool GroupVms::TaskSetATF(int *_ptLine)
     return true;
 }
 
-    // TODO ToSlaveFormat with orBuf
+// TODO ToSlaveFormat with orBuf
 void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
 {
-    uint8_t *p = txBuf+1;
+    uint8_t *p = txBuf + 1;
     auto &prod = db.GetUciProd();
     auto &user = db.GetUciUser();
     auto xfrm = db.GetUciFrm().GetFrm(uciFrmId);
@@ -74,9 +73,9 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
     }
-    if(xfrm->micode == MI::CODE::SignSetTextFrame)
+    if (xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetTextFrame))
     {
-        FrmTxt * frm = dynamic_cast<FrmTxt *>(xfrm);
+        FrmTxt *frm = dynamic_cast<FrmTxt *>(xfrm);
         if (msgOverlay == 0)
         {
             *p++ = 0x0A; // Text frame
@@ -102,7 +101,8 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
         {
         }
     }
-    else if(xfrm->micode == MI::CODE::SignSetGraphicsFrame || xfrm->micode == MI::CODE::SignSetHighResolutionGraphicsFrame)
+    else if (xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame) ||
+             xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetHighResolutionGraphicsFrame))
     {
         auto frm = xfrm;
         if (msgOverlay == 0)
@@ -134,8 +134,6 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
     txLen = p - txBuf;
 }
 
-
 void GroupVms::TransFrmToOrBuf(uint8_t frmId)
 {
-
 }

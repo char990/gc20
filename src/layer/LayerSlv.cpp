@@ -27,7 +27,7 @@ int LayerSlv::Rx(uint8_t * data, int len)
     for (int i = 0; i < len; i++)
     {
         uint8_t c = *p++;
-        if (c == DATALINK::CTRL_CHAR::STX)
+        if (c == static_cast<uint8_t>(CTRL_CHAR::STX))
         {// packet start, clear buffer
             buf[0] = c;
             length = 1;
@@ -39,7 +39,7 @@ int LayerSlv::Rx(uint8_t * data, int len)
                 if (length < maxPktSize)
                 {
                     buf[length++] = c;
-                    if (c == DATALINK::CTRL_CHAR::ETX)
+                    if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
                         if(len>=34 && (len&1)==0)
                         {
@@ -71,13 +71,13 @@ bool LayerSlv::IsTxReady()
 
 int LayerSlv::Tx(uint8_t * data, int len)
 {
-    buf[0]=DATALINK::CTRL_CHAR::STX;
+    buf[0]=static_cast<uint8_t>(CTRL_CHAR::STX);
     memcpy(buf+1, data, len);
     len++;
     uint16_t crc = Crc::Crc16_8005(buf,len);
     Cnvt::ParseU16ToAsc(crc, (char *)buf+len);
     len+=4;
-    *(buf+len)=DATALINK::CTRL_CHAR::ETX;
+    *(buf+len)=static_cast<uint8_t>(CTRL_CHAR::ETX);
     len++;
     return lowerLayer->Tx(buf, len);
 }

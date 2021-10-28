@@ -11,7 +11,7 @@
 
 
 GpioIn::GpioIn(int true_cnt, int false_cnt, unsigned int pin)
-    : dbnc(true_cnt, false_cnt), gpioex(pin, GpioEx::DIR::INPUT), pin(pin)
+    : Debounce(true_cnt, false_cnt), gpioex(pin, GpioEx::DIR::INPUT), pin(pin)
 {
 }
 
@@ -19,41 +19,12 @@ GpioIn::~GpioIn()
 {
 }
 
-void GpioIn::Init(Utils::STATE3 s)
-{
-    if(s==Utils::STATE3::S3_NA)
-    {
-        dbnc.Reset();
-    }
-    else
-    {
-        dbnc.SetState(s==Utils::STATE3::S3_1);
-    }
-}
-
-bool GpioIn::IsValid()
-{
-    return dbnc.IsValid();
-}
-Utils::STATE3 GpioIn::Value()
-{
-    return dbnc.Value();
-}
-bool GpioIn::IsChanged()
-{
-    return dbnc.changed;
-}
-void GpioIn::ClearChanged()
-{
-    dbnc.changed=false;
-}
-
 void GpioIn::PeriodicRun()
 {
     int v = gpioex.GetValue();
     if (v != -1)
     {
-        dbnc.Check(v!=0);
+        Check(v!=0);
     }
     else
     {

@@ -23,20 +23,17 @@ void FacilitySwitch::PeriodicRun()
     pFsM1->PeriodicRun();
     pFsM2->PeriodicRun();
     uint8_t key = 0;
-    auto fsauto = pFsAuto->Value();
-    auto fsm1 = pFsM1->Value();
-    auto fsm2 = pFsM2->Value();
-    if (fsauto != Utils::STATE3::S3_NA && fsm1 != Utils::STATE3::S3_NA && fsm2 != Utils::STATE3::S3_NA)
+    if (pFsAuto->IsValid() && pFsM1->IsValid() && pFsM2->IsValid())
     {
-        if (fsauto == Utils::STATE3::S3_1)
+        if (pFsAuto->IsHigh())
         {
             key |= 1;
         }
-        if (fsm1 == Utils::STATE3::S3_1)
+        if (pFsM1->IsHigh())
         {
             key |= 2;
         }
-        if (fsm2 == Utils::STATE3::S3_1)
+        if (pFsM2->IsHigh())
         {
             key |= 4;
         }

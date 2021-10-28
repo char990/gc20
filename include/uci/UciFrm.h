@@ -47,8 +47,8 @@ public:
     ///         frame will be stored in stFrms[] (but not saved in "UciFrm")
     /// \param  buf: hex array
     /// \param  len: array length
-    /// \return APP::ERROR
-    APP::ERROR SetFrm(uint8_t * buf, int len);
+    /// \return APP_ERROR
+    APP_ERROR SetFrm(uint8_t * buf, int len);
 
     /// \brief  Save stFrms[i-1] to "UciFrm"
     ///         When TsiSp003 set a frame, call SetFrm then SaveFrm

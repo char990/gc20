@@ -13,15 +13,16 @@ TsiSp003AppVer50::~TsiSp003AppVer50()
 int TsiSp003AppVer50::Rx(uint8_t *data, int len)
 {
     micode = *data;
-    switch (micode)
+    auto mi = static_cast<MI_CODE>(micode);
+    switch (mi)
     {
-    case MI::CODE::SignSetHighResolutionGraphicsFrame:
+    case MI_CODE::SignSetHighResolutionGraphicsFrame:
         SignSetHighResolutionGraphicsFrame(data, len);
         break;
-    case MI::CODE::SignConfigurationRequest:
+    case MI_CODE::SignConfigurationRequest:
         SignConfigurationRequest(data, len);
         break;
-    case MI::CODE::SignDisplayAtomicFrames:
+    case MI_CODE::SignDisplayAtomicFrames:
         SignDisplayAtomicFrames(data, len);
         break;
     default:
@@ -29,7 +30,7 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
         {
             // if there is a new version TsiSp003, return -1
             //return -1;
-            Reject(APP::ERROR::UnknownMi);
+            Reject(APP_ERROR::UnknownMi);
             return 0;
         }
     }
@@ -50,14 +51,30 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
     {
         return;
     }
-    Reject(APP::ERROR::MiNotSupported);
-    return;
+    auto & prod = db.GetUciProd();
+    uint8_t * p = txbuf;
+    *p++ = static_cast<uint8_t>(MI_CODE::SignConfigurationReply);
+    memcpy(p, prod.MfcCode(), 10); p+=10;
+    auto & groups = Controller::Instance().GetGroups();
+    *p++ = groups.size();
+    for(auto & g : groups)
+    {
+        auto & signs = g->GetSigns();
+        *p++ = signs.size();
+        for(auto &s : signs)
+        {
+            *p++ = s->SignId();
+            p = s->GetConfig(p);
+        }
+        *p++=0; // signature data bytes
+    }
+    Tx(txbuf, p-txbuf);
 }
 
 // todo: not tested
 void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
 {
-    Reject(APP::ERROR::MiNotSupported);
+    Reject(APP_ERROR::MiNotSupported);
     return;
     if (!CheckOlineReject() || !ChkLen(len, data[2] * 2 + 3))
     {
@@ -65,10 +82,10 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     }
     if (data[2] != 0)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     auto r = ctrller.CmdDispAtomicFrm(data, len);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         int len = sprintf(buf, "DisplayAtomic:Grp%d", data[1]);

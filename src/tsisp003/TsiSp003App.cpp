@@ -17,18 +17,19 @@ TsiSp003App::~TsiSp003App()
 int TsiSp003App::Rx(uint8_t *data, int len)
 {
     micode = *data;
-    switch (micode)
+    auto mi = static_cast<MI_CODE>(micode);
+    switch (mi)
     {
-    case MI::CODE::StartSession:
+    case MI_CODE::StartSession:
         StartSession(data, len);
         break;
-    case MI::CODE::Password:
+    case MI_CODE::Password:
         Password(data, len);
         break;
-    case MI::CODE::EndSession:
+    case MI_CODE::EndSession:
         EndSession(data, len);
         break;
-    case MI::CODE::UpdateTime:
+    case MI_CODE::UpdateTime:
         UpdateTime(data, len);
         break;
     default:
@@ -39,15 +40,15 @@ int TsiSp003App::Rx(uint8_t *data, int len)
 
 void TsiSp003App::ClrRx()
 {
-    appErr = APP::ERROR::AppNoError;
+    appErr = APP_ERROR::AppNoError;
 }
 
-void TsiSp003App::Reject(APP::ERROR error)
+void TsiSp003App::Reject(APP_ERROR error)
 {
     uint8_t buf[3];
-    buf[0] = MI::CODE::Reject;
+    buf[0] = static_cast<uint8_t>(MI_CODE::Reject);
     buf[1] = micode;
-    buf[2] = error;
+    buf[2] = static_cast<uint8_t>(error);
     Tx(buf, 3);
     /*
     ACE_DEBUG((LM_DEBUG, "%s!!! cmd_Reject - error code %d : %s", LocaltimeStr(), apperror, apperrtomsg(apperror)));
@@ -70,7 +71,7 @@ void TsiSp003App::Reject(APP::ERROR error)
 void TsiSp003App::Ack()
 {
     uint8_t buf[2];
-    buf[0] = MI::CODE::ACK;
+    buf[0] = static_cast<uint8_t>(MI_CODE::ACK);
     buf[1] = micode;
     Tx(buf, 2);
 }
@@ -83,7 +84,7 @@ void TsiSp003App::StartSession(uint8_t *data, int len)
     session->Session(ISession::SESSION::START);
     session->Seed(seed);
     uint8_t buf[2];
-    buf[0] = MI::CODE::PasswordSeed;
+    buf[0] = static_cast<uint8_t>(MI_CODE::PasswordSeed);
     buf[1] = seed;
     Tx(buf, 2);
 }
@@ -94,7 +95,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
         return;
     if (session->Session() != ISession::SESSION::START)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
         return;
     }
     uint16_t pass = data[1] * 0x100 + data[2];
@@ -109,7 +110,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
     else
     {
         session->Session(ISession::SESSION::OFF_LINE);
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
         //_Session_END();
         /*	Session_StartCount(INT_MAX-1);
 	SetStatusLed(0);
@@ -136,7 +137,7 @@ bool TsiSp003App::CheckOlineReject()
 {
     if (!IsOnline())
     {
-        Reject(APP::ERROR::DeviceControllerOffline);
+        Reject(APP_ERROR::DeviceControllerOffline);
         return false;
     }
     return true;
@@ -194,7 +195,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
 	}
 	else
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
 }
 
@@ -222,6 +223,6 @@ bool TsiSp003App::ChkLen(int len1, int len2)
     {
         return true;
     }
-    Reject(APP::ERROR::LengthError);
+    Reject(APP_ERROR::LengthError);
     return false;
 }

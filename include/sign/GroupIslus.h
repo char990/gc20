@@ -10,7 +10,7 @@ public:
 
     virtual void PeriodicHook() override;
 
-    virtual APP::ERROR DispAtomicFrm(uint8_t *id) override;
+    virtual APP_ERROR DispAtomicFrm(uint8_t *id) override;
 
     bool TaskSetATF(int *_ptLine) override;
 

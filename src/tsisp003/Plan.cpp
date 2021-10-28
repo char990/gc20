@@ -12,24 +12,24 @@
 
 using namespace Utils;
 
-APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
+APP_ERROR Plan::Init(uint8_t *xpln, int xlen)
 {
     micode = 0;
     plnId = xpln[1];
     plnRev = xpln[2];
     weekdays = xpln[3];
     crc = Cnvt::GetU16(xpln + xlen - PLN_TAIL);
-    if (xpln[0] != MI::CODE::SignSetPlan)
+    if (xpln[0] != static_cast<uint8_t>(MI_CODE::SignSetPlan))
     {
-        return APP::ERROR::UnknownMi;
+        return APP_ERROR::UnknownMi;
     }
     if (xlen < (PLN_LEN_MIN + PLN_TAIL) || xlen > (PLN_LEN_MAX + PLN_TAIL)) // with crc & enable flag
     {
-        return APP::ERROR::LengthError;
+        return APP_ERROR::LengthError;
     }
     if (plnId == 0 || (weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
     {
-        return APP::ERROR::SyntaxError;
+        return APP_ERROR::SyntaxError;
     }
     uint8_t *p = xpln + 4;
     entries=0;
@@ -40,7 +40,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
         {
             if (i == 0)
             {
-                return APP::ERROR::SyntaxError;
+                return APP_ERROR::SyntaxError;
             }
             break;
         }
@@ -53,14 +53,14 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if( p != (xpln+xlen-PLN_TAIL) )
     {
-        return APP::ERROR::SyntaxError;
+        return APP_ERROR::SyntaxError;
     }
     if(0!=CheckEntries())
     {
-        return APP::ERROR::FrmMsgPlnUndefined;
+        return APP_ERROR::FrmMsgPlnUndefined;
     }
-    micode = MI::CODE::SignSetPlan;
-    return APP::ERROR::AppNoError;
+    micode = static_cast<uint8_t>(MI_CODE::SignSetPlan);
+    return APP_ERROR::AppNoError;
 }
 
 int Plan::ToArray(uint8_t *pbuf)

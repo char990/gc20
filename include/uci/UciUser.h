@@ -4,6 +4,7 @@
 
 #include <uci/UciCfg.h>
 #include <uci/UciProd.h>
+#include <module/Tz_AU.h>
 
 typedef struct ExtSw {
 	uint16_t dispTime{0};   // 0:disabled
@@ -54,6 +55,7 @@ public:
     uint8_t ComPort() { return comPort;};
     uint8_t Tz() { return tz;};
     const char * TZ();
+    Tz_AU *tz_AU{nullptr};
     uint16_t PasswordOffset() { return passwordOffset;};
     uint16_t SessionTimeout() { return sessionTimeout;};
     uint16_t DisplayTimeout() { return displayTimeout;};
@@ -62,6 +64,7 @@ public:
     uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold;};
     int Baudrate() { return baudrate;};
     uint16_t *Luminance(){ return luminance; };
+    uint8_t GetLuxLevel(int lux);   // level:1-16
     uint8_t *DawnDusk(){ return dawnDusk; };
 
     ExtSw *ExtSwCfgX(int i)

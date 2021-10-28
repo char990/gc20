@@ -34,58 +34,59 @@ void TsiSp003AppVer21::Time2Buf(uint8_t *p)
 int TsiSp003AppVer21::Rx(uint8_t *data, int len)
 {
     micode = *data;
-    switch (micode)
+    auto mi = static_cast<MI_CODE>(micode);
+    switch (mi)
     {
-    case MI::CODE::HeartbeatPoll:
+    case MI_CODE::HeartbeatPoll:
         HeartbeatPoll(data, len);
         break;
-    case MI::CODE::SystemReset:
+    case MI_CODE::SystemReset:
         SystemReset(data, len);
         break;
-    case MI::CODE::SignSetTextFrame:
+    case MI_CODE::SignSetTextFrame:
         SignSetTextFrame(data, len);
         break;
-    case MI::CODE::SignSetGraphicsFrame:
+    case MI_CODE::SignSetGraphicsFrame:
         SignSetGraphicsFrame(data, len);
         break;
-    case MI::CODE::SignSetMessage:
+    case MI_CODE::SignSetMessage:
         SignSetMessage(data, len);
         break;
-    case MI::CODE::SignSetPlan:
+    case MI_CODE::SignSetPlan:
         SignSetPlan(data, len);
         break;
-    case MI::CODE::SignDisplayFrame:
+    case MI_CODE::SignDisplayFrame:
         SignDisplayFrame(data, len);
         break;
-    case MI::CODE::SignDisplayMessage:
+    case MI_CODE::SignDisplayMessage:
         SignDisplayMessage(data, len);
         break;
-    case MI::CODE::EnablePlan:
-    case MI::CODE::DisablePlan:
+    case MI_CODE::EnablePlan:
+    case MI_CODE::DisablePlan:
         EnDisPlan(data, len);
         break;
-    case MI::CODE::RequestEnabledPlans:
+    case MI_CODE::RequestEnabledPlans:
         RequestEnabledPlans(data, len);
         break;
-    case MI::CODE::SignSetDimmingLevel:
+    case MI_CODE::SignSetDimmingLevel:
         SignSetDimmingLevel(data, len);
         break;
-    case MI::CODE::PowerOnOff:
+    case MI_CODE::PowerOnOff:
         PowerOnOff(data, len);
         break;
-    case MI::CODE::DisableEnableDevice:
+    case MI_CODE::DisableEnableDevice:
         DisableEnableDevice(data, len);
         break;
-    case MI::CODE::SignRequestStoredFMP:
+    case MI_CODE::SignRequestStoredFMP:
         SignRequestStoredFMP(data, len);
         break;
-    case MI::CODE::RetrieveFaultLog:
+    case MI_CODE::RetrieveFaultLog:
         RetrieveFaultLog(data, len);
         break;
-    case MI::CODE::ResetFaultLog:
+    case MI_CODE::ResetFaultLog:
         ResetFaultLog(data, len);
         break;
-    case MI::CODE::SignExtendedStatusRequest:
+    case MI_CODE::SignExtendedStatusRequest:
         SignExtendedStatusRequest(data, len);
         break;
     default:
@@ -103,9 +104,9 @@ void TsiSp003AppVer21::HeartbeatPoll(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignStatusReply()
 {
-    txbuf[0] = MI::CODE::SignStatusReply;
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::SignStatusReply);
     txbuf[1] = IsOnline() ? 1 : 0;
-    txbuf[2] = appErr;
+    txbuf[2] = static_cast<uint8_t>(appErr);
     Time2Buf(txbuf + 3);
     uint16_t i16 = db.HdrChksum();
     txbuf[10] = i16 >> 8;
@@ -137,14 +138,14 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     }
     uint8_t gid = data[1];
     uint8_t level = data[2];
-    if((level>3 && level<255) ||
-        (level>1 && gid!=0))
+    if ((level > 3 && level < 255) ||
+        (level > 1 && gid != 0))
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
         return;
     }
     auto r = ctrller.CmdSystemReset(data);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         sprintf(buf, "SystemReset: Group%d, Level%d", gid, level);
@@ -159,34 +160,35 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
 {
-    auto r = APP::ERROR::AppNoError;
+    auto r = APP_ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
     {
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP_ERROR::FrmMsgPlnUndefined;
     }
     else if (ctrller.IsFrmActive(id))
     {
-        r = APP::ERROR::FrmMsgPlnActive;
+        r = APP_ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
-        r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
+        r = APP_ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
     {
         UciFrm &frm = db.GetUciFrm();
         r = frm.SetFrm(data, len);
-        if (r == APP::ERROR::AppNoError)
+        if (r == APP_ERROR::AppNoError)
         {
             frm.SaveFrm(id);
             char buf[64];
             sprintf(buf, "%s: Frame%d",
-                   (*data == MI::CODE::SignSetTextFrame) ? "SignSetTextFrame" : ((*data == MI::CODE::SignSetGraphicsFrame) ? "SignSetGraphicsFrame" : "SignSetHighResolutionGraphicsFrame"), id);
+                    (*data == static_cast<uint8_t>(MI_CODE::SignSetTextFrame)) ? "SignSetTextFrame" : ((*data == static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame)) ? "SignSetGraphicsFrame" : "SignSetHighResolutionGraphicsFrame"),
+                    id);
             db.GetUciEvent().Push(0, buf);
         }
     }
-    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
+    (r == APP_ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
@@ -214,7 +216,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdDispFrm(data);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         sprintf(buf, "SignDisplayFrame: Group%d, Frame%d", data[1], data[2]);
@@ -233,23 +235,23 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     {
         return;
     }
-    auto r = APP::ERROR::AppNoError;
+    auto r = APP_ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_MSG_ID);
     if (id == 0)
     {
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP_ERROR::FrmMsgPlnUndefined;
     }
     else if (len > MSG_LEN_MAX)
     {
-        r = APP::ERROR::LengthError;
+        r = APP_ERROR::LengthError;
     }
     else if (ctrller.IsMsgActive(id))
     {
-        r = APP::ERROR::FrmMsgPlnActive;
+        r = APP_ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUser().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
-        r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
+        r = APP_ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
     {
@@ -266,19 +268,19 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
                 {
                     if (i < 5 && *(fid + 2) != 0)
                     {
-                        r = APP::ERROR::OverlaysNotSupported;
+                        r = APP_ERROR::OverlaysNotSupported;
                         break;
                     }
                 }
             }
             fid += 2;
         }
-        if (r == APP::ERROR::AppNoError)
+        if (r == APP_ERROR::AppNoError)
         {
             Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
             UciMsg &msg = db.GetUciMsg();
             r = msg.SetMsg(data, len + 2);
-            if (r == APP::ERROR::AppNoError)
+            if (r == APP_ERROR::AppNoError)
             {
                 msg.SaveMsg(id);
                 char buf[64];
@@ -287,7 +289,7 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
             }
         }
     }
-    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
+    (r == APP_ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
@@ -297,7 +299,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdDispMsg(data);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         sprintf(buf, "SignDisplayMessage: Group%d, Msg%d", data[1], data[2]);
@@ -316,26 +318,26 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     {
         return;
     }
-    auto r = APP::ERROR::AppNoError;
+    auto r = APP_ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_PLN_ID);
     if (id == 0)
     {
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP_ERROR::FrmMsgPlnUndefined;
     }
     else if (len > PLN_LEN_MAX)
     {
-        r = APP::ERROR::LengthError;
+        r = APP_ERROR::LengthError;
     }
     else if (ctrller.IsPlnActive(id))
     {
-        r = APP::ERROR::FrmMsgPlnActive;
+        r = APP_ERROR::FrmMsgPlnActive;
     }
     else
     {
         Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
         UciPln &pln = db.GetUciPln();
         r = pln.SetPln(data, len + PLN_TAIL);
-        if (r == APP::ERROR::AppNoError)
+        if (r == APP_ERROR::AppNoError)
         {
             pln.SavePln(id);
             char buf[64];
@@ -343,7 +345,7 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
             db.GetUciEvent().Push(0, buf);
         }
     }
-    (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
+    (r == APP_ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
 void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
@@ -353,11 +355,11 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdEnDisPlan(data);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         sprintf(buf, "%sablePlan: Group%d, Plan%d",
-            (data[0]==MI::CODE::EnablePlan) ? "En" : "Dis", data[1], data[2]);
+                (data[0] == static_cast<uint8_t>(MI_CODE::EnablePlan)) ? "En" : "Dis", data[1], data[2]);
         db.GetUciEvent().Push(0, buf);
         Ack();
     }
@@ -381,22 +383,22 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 3))
     {
         return;
     }
     auto r = ctrller.CmdSetDimmingLevel(data);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[256];
         int len = sprintf(buf, "SignSetDimming");
-        uint8_t *p=data+2;
-        for(int i=0;i<data[1]&&i<4;i++)
+        uint8_t *p = data + 2;
+        for (int i = 0; i < data[1] && i < 4; i++)
         {
-            len+=snprintf(buf+len, 255-len ,":Group%d(%d,%d)", p[0], p[1], p[2]);
-            p+=3;
+            len += snprintf(buf + len, 255 - len, ":Group%d(%d,%d)", p[0], p[1], p[2]);
+            p += 3;
         }
         db.GetUciEvent().Push(0, buf);
         Ack();
@@ -411,22 +413,22 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
     auto r = ctrller.CmdPowerOnOff(data, len);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         int len = sprintf(buf, "Power");
-        uint8_t *p=data+2;
-        for(int i=0;i<data[1];i++)
+        uint8_t *p = data + 2;
+        for (int i = 0; i < data[1]; i++)
         {
-            len+=snprintf(buf+len, 63-len ,":Group%d,%d", p[0], p[1]);
-            p+=2;
+            len += snprintf(buf + len, 63 - len, ":Group%d,%d", p[0], p[1]);
+            p += 2;
         }
         db.GetUciEvent().Push(0, buf);
         Ack();
@@ -441,22 +443,22 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     else if (!CheckOlineReject() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
     auto r = ctrller.CmdDisableEnableDevice(data, len);
-    if (r == APP::ERROR::AppNoError)
+    if (r == APP_ERROR::AppNoError)
     {
         char buf[64];
         int len = sprintf(buf, "Dis/EnableDevice");
-        uint8_t *p=data+2;
-        for(int i=0;i<data[1];i++)
+        uint8_t *p = data + 2;
+        for (int i = 0; i < data[1]; i++)
         {
-            len+=snprintf(buf+len, 63-len ,":Group%d,%d", p[0], p[1]);
-            p+=2;
+            len += snprintf(buf + len, 63 - len, ":Group%d,%d", p[0], p[1]);
+            p += 2;
         }
         db.GetUciEvent().Push(0, buf);
         Ack();
@@ -475,7 +477,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     }
     if (data[1] > 3 || data[2] == 0)
     {
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     switch (data[1])
     {
@@ -484,7 +486,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto frm = db.GetUciFrm().GetStFrm(data[2]);
         if (frm == nullptr)
         {
-            Reject(APP::ERROR::FrmMsgPlnUndefined);
+            Reject(APP_ERROR::FrmMsgPlnUndefined);
         }
         else
         {
@@ -497,7 +499,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto msg = db.GetUciMsg().GetMsg(data[2]);
         if (msg == nullptr)
         {
-            Reject(APP::ERROR::FrmMsgPlnUndefined);
+            Reject(APP_ERROR::FrmMsgPlnUndefined);
         }
         else
         {
@@ -512,7 +514,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto pln = db.GetUciPln().GetPln(data[2]);
         if (pln == nullptr)
         {
-            Reject(APP::ERROR::FrmMsgPlnUndefined);
+            Reject(APP_ERROR::FrmMsgPlnUndefined);
         }
         else
         {
@@ -531,9 +533,9 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     {
         return;
     }
-    txbuf[0] = MI::CODE::SignExtendedStatusReply;
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::SignExtendedStatusReply);
     txbuf[1] = IsOnline() ? 1 : 0;
-    txbuf[2] = appErr;
+    txbuf[2] = static_cast<uint8_t>(appErr);
     UciProd &prod = db.GetUciProd();
     memcpy(txbuf + 3, prod.MfcCode(), 10);
     Time2Buf(txbuf + 13);
@@ -567,7 +569,7 @@ void TsiSp003AppVer21::RetrieveFaultLog(uint8_t *data, int len)
         return;
     }
     int applen = db.GetUciFault().GetFaultLog20(txbuf + 1);
-    txbuf[0] = static_cast<uint8_t>(MI::CODE::FaultLogReply);
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::FaultLogReply);
     Tx(txbuf, applen + 1);
 }
 

@@ -28,6 +28,7 @@ public:
 
     uint8_t *GetStatus(uint8_t *p);
     virtual uint8_t *GetExtStatus(uint8_t *p) = 0;
+    virtual uint8_t *GetConfig(uint8_t *p) = 0;
 
     // set
     void SignErr(DEV::ERROR err, bool v) { signErr.Push(signId, err, v); };
@@ -62,17 +63,17 @@ public:
     Debounce voltageFault;
     Utils::State5 overTempFault;
 
-    Utils::State5 fatalError;   // combine chain, multiLed, selftest, voltage and overtemp
+    Utils::State5 fatalError; // combine chain, multiLed, selftest, voltage and overtemp
 
     // Normal Error
     Utils::State5 luminanceFault;
     Debounce lanternFault;
     Debounce singleLedFault;
-    
+
     int8_t CurTemp() { return curTemp; };
     int8_t MaxTemp() { return maxTemp; };
     uint16_t Voltage() { return voltage; };
-    uint16_t Lux() { return lux; };
+    uint16_t Lux() { return luminanceFault.IsLow() ? lux : 65535; };
 
 protected:
     uint8_t signId;
@@ -98,8 +99,8 @@ protected:
     Debounce lsMiddayFault;
 
     int8_t curTemp{0}, maxTemp{0};
-    
+
     uint16_t voltage{0}, lux{0};
 
-    void DbncFault(Debounce & dbc, DEV::ERROR err, const char * info=nullptr);
+    void DbncFault(Debounce &dbc, DEV::ERROR err, const char *info = nullptr);
 };

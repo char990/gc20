@@ -48,8 +48,8 @@ public:
     ///         frame will be stored in msgs[] (but not saved in "UciMsg")
     /// \param  buf: hex array
     /// \param  len: array length
-    /// \return APP::ERROR
-    APP::ERROR SetMsg(uint8_t * buf, int len);
+    /// \return APP_ERROR
+    APP_ERROR SetMsg(uint8_t * buf, int len);
 
     /// \brief  Save msgs[i-1] to "UciMsg", with CRC attached
     ///         When TsiSp003 set a msg, call SetMsg then SaveMsg

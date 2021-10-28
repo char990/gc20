@@ -2,9 +2,10 @@
 
 int TsiSp003App::UserDefinedCmd(uint8_t *data, int len)
 {
-    switch (*data)
+    auto mi = static_cast<MI_CODE>(*data);
+    switch (mi)
     {
-    case MI::CODE::UserDefinedCmdFA:
+    case MI_CODE::UserDefinedCmdFA:
         UserDefinedCmdFA(data, len);
         break;
     default:
@@ -27,7 +28,7 @@ int TsiSp003App::UserDefinedCmdFA(uint8_t *data, int len)
         FA22_RqstUserExt(data, len);
         break;
     default:
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
     }
     return 0;
 }
@@ -58,10 +59,10 @@ int TsiSp003App::FA0A_RetrieveLogs(uint8_t *data, int len)
     }
     break;
     default:
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
         return 0;
     }
-    txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::UserDefinedCmdFA);
     txbuf[1] = subcmd;
     Tx(txbuf, applen + 2);
     return 0;
@@ -95,7 +96,7 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
     }
     break;
     default:
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP_ERROR::SyntaxError);
         return 0;
     }
     Ack();
@@ -107,24 +108,24 @@ extern const char *FirmwareMinorVer;
 
 int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
 {
-    txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
+    txbuf[0] = static_cast<uint8_t>(MI_CODE::UserDefinedCmdFA);
     txbuf[1] = FACMD_RPL_USER_EXT;
-	auto pt = txbuf+2;
-    auto & ctrl = Controller::Instance();
+    auto pt = txbuf + 2;
+    auto &ctrl = Controller::Instance();
     auto sign = ctrl.GetGroup(1)->GetSign(1);
-	*pt++ = sign->MaxTemp();
-	*pt++ = sign->CurTemp();
-	*pt++ = ctrl.MaxTemp();
-	*pt++ = ctrl.CurTemp();
-    pt=Utils::Cnvt::PutU16(sign->Voltage(), pt);
-    pt=Utils::Cnvt::PutU16(sign->Lux(), pt);
-	char * v = DbHelper::Instance().GetUciProd().MfcCode()+4;
-	*pt++ = *v; // Get PCB revision from MANUFACTURER_CODE
-	*pt++ = *(v+1); // Get Sign type from MANUFACTURER_CODE
-	*pt++ = *FirmwareMajorVer;
-	*pt++ = *(FirmwareMajorVer+1);
-	*pt++ = *FirmwareMinorVer;
-	*pt++ = *(FirmwareMinorVer+1);
-    Tx(txbuf, pt-txbuf);
+    *pt++ = sign->MaxTemp();
+    *pt++ = sign->CurTemp();
+    *pt++ = ctrl.MaxTemp();
+    *pt++ = ctrl.CurTemp();
+    pt = Utils::Cnvt::PutU16(sign->Voltage(), pt);
+    pt = Utils::Cnvt::PutU16(sign->Lux(), pt);
+    char *v = DbHelper::Instance().GetUciProd().MfcCode() + 4;
+    *pt++ = *v;       // Get PCB revision from MANUFACTURER_CODE
+    *pt++ = *(v + 1); // Get Sign type from MANUFACTURER_CODE
+    *pt++ = *FirmwareMajorVer;
+    *pt++ = *(FirmwareMajorVer + 1);
+    *pt++ = *FirmwareMinorVer;
+    *pt++ = *(FirmwareMinorVer + 1);
+    Tx(txbuf, pt - txbuf);
     return 0;
 }

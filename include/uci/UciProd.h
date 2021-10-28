@@ -89,8 +89,8 @@ public:
     uint16_t PixelRows() {return pixelRows;};
     uint16_t PixelColumns() {return pixelColumns;};
     uint32_t Pixels() {return pixels;};
-    SESR::SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
-    SCR::SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
+    SESR_SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
+    SCR_SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
     int MaxFrmLen() {return maxFrmLen;};
 
     int MinTxtFrmLen() { return 1; };
@@ -234,8 +234,8 @@ private:
     uint16_t pixelRows;
     uint16_t pixelColumns;
     uint32_t pixels;
-    SESR::SIGN_TYPE extStsRplSignType;
-    SCR::SIGN_TYPE configRplSignType;
+    SESR_SIGN_TYPE extStsRplSignType;
+    SCR_SIGN_TYPE configRplSignType;
     int maxFrmLen;
     int gfx1FrmLen;
     int gfx4FrmLen;

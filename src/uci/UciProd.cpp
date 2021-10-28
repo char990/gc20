@@ -387,28 +387,28 @@ void UciProd::LoadConfig()
     int sesrtype = mfcCode[5] - '0';
     if (sesrtype == 0)
     {
-        extStsRplSignType = SESR::SIGN_TYPE::TEXT;
-        configRplSignType = SCR::SIGN_TYPE::TEXT;
+        extStsRplSignType = SESR_SIGN_TYPE::TEXT;
+        configRplSignType = SCR_SIGN_TYPE::TEXT;
         maxFrmLen = 255;
     }
     else if (sesrtype == 1 || sesrtype == 2)
     {
-        extStsRplSignType = (sesrtype == 1) ? SESR::SIGN_TYPE::GFX : SESR::SIGN_TYPE::ADVGFX;
+        extStsRplSignType = (sesrtype == 1) ? SESR_SIGN_TYPE::GFX : SESR_SIGN_TYPE::ADVGFX;
         switch (colourBits)
         {
         case 1:
-            configRplSignType = SCR::SIGN_TYPE::GFXMONO;
+            configRplSignType = SCR_SIGN_TYPE::GFXMONO;
             maxFrmLen = (pixels + 7) / 8;
             gfx1FrmLen = maxFrmLen;
             break;
         case 4:
-            configRplSignType = SCR::SIGN_TYPE::GFXMULTI;
+            configRplSignType = SCR_SIGN_TYPE::GFXMULTI;
             maxFrmLen = (pixels + 1) / 2;
             gfx1FrmLen = (pixels + 7) / 8;
             gfx4FrmLen = maxFrmLen;
             break;
         case 24:
-            configRplSignType = SCR::SIGN_TYPE::GFXRGB24;
+            configRplSignType = SCR_SIGN_TYPE::GFXRGB24;
             maxFrmLen = pixels * 3;
             gfx1FrmLen = (pixels + 7) / 8;
             gfx4FrmLen = (pixels + 1) / 2;

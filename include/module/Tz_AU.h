@@ -13,12 +13,17 @@
 class Tz_AU
 {
 public:
-    Tz_AU(char *city, char *twilight_string);
-    Tz_AU(char *city);
+    Tz_AU(const char *city, const char *twilight_string);
+    Tz_AU(unsigned char i, const char *twilight_string);
+    Tz_AU(const char *city);
     Tz_AU(unsigned char i);
-    void Init_Tz(char *city, char *twilight_string);
-    void Init_Tz(char *city);
-    void Init_Tz(unsigned char i);
+    int Init_Tz(const char *city, const char *twilight_string);
+    int Init_Tz(unsigned char i, const char *twilight_string);
+    int Init_Tz(const char *city);
+    int Init_Tz(unsigned char i);
+    int InitTwilight(const char *twilight_string);
+    int InitTzIndex(const char *city);
+
     const char *GetTz(void);
     int GetTzIndex(void) { return tz_index; };
     enum TwilightStatus
@@ -45,10 +50,8 @@ public:
     static const timezone_t tz_au[NUMBER_OF_TZ];
 
 private:
-    void InitTwilight(char *twilight_string);
-    void InitTzIndex(char *city);
     int tz_index;
     int twilight_time[2][2][2];
-    int _DecodeTwilightString(char *tt);
+    int _DecodeTwilightString(const char *tt);
 };
 

@@ -84,8 +84,11 @@ void LogResetTime()
 {
     time_t t;
     pDS3231->ReadTimeAlarm(&t);
-    DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
-    DbHelper::Instance().GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
+    auto & db = DbHelper::Instance();
+    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
+    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
+    db.GetUciAlarm().Push(0, "Reset");
+    db.GetUciEvent().Push(0, "Reset");
 }
 
 void GpioInit()

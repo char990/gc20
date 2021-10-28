@@ -162,7 +162,7 @@ int Slave::CheckNext()
 void Slave::ReportOffline(bool v)
 {
     char buf[64];
-    sprintf(buf, "Slave[%d] %s(at SignId[%d])", sign->SignId(), v?"off-line":"on-line", slaveId);
+    sprintf(buf, "Sign[%d].Slave[%d] %s", sign->SignId(), slaveId, v ? "off-line" : "on-line");
     PrintDbg("%s\n", buf);
     DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
     sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);

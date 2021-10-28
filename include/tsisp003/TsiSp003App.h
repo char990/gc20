@@ -31,10 +31,10 @@ public:
     /// TsiSp003App is base of App layer, only implement basic commands
 
     /// \brief  Ack or Reject by r
-    void AckRjct(APP::ERROR r) { (r == APP::ERROR::AppNoError) ? Ack() : Reject(r); };
+    void AckRjct(APP_ERROR r) { (r == APP_ERROR::AppNoError) ? Ack() : Reject(r); };
 
     /// \brief  Reject
-    void Reject(APP::ERROR error);
+    void Reject(APP_ERROR error);
 
     /// \brief  Acknowledge
     void Ack();
@@ -61,7 +61,7 @@ protected:
     ISession *session{nullptr};
 
     uint8_t micode{0};
-    APP::ERROR appErr{APP::ERROR::AppNoError};
+    APP_ERROR appErr{APP_ERROR::AppNoError};
 
     uint8_t txbuf[MAX_APP_PACKET_SIZE];
 
