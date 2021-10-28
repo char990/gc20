@@ -17,10 +17,10 @@ Sign::Sign(uint8_t id)
     voltageFault.SetCNT(prod.SlaveVoltageDebounce());
     lanternFault.SetCNT(prod.LanternFaultDebounce());
 
-    lsConnectionFault.SetCNT(2 * 60, 3 * 60);       // fault debounce 1 minute in slave, so set true_cnt as 2*60
-    ls18hoursFault.SetCNT(8 * 60 , 5 * 60);
-    lsMidnightFault.SetCNT(5 * 60);
-    lsMiddayFault.SetCNT(5 * 60);
+    lsConnectionFault.SetCNT(2 * 60, 3 * 60); // fault debounce 1 minute in slave, so set true_cnt as 2*60
+    ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
+    lsMidnightFault.SetCNT(15 * 60);
+    lsMiddayFault.SetCNT(15 * 60);
 }
 
 Sign::~Sign()
@@ -195,7 +195,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
-            sprintf(buf, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
+            snprintf(buf, 63, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
             DbHelper::Instance().GetUciAlarm().Push(signId, buf);
             overTempFault.Set();
         }
@@ -205,7 +205,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
-            sprintf(buf, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
+            snprintf(buf, 63, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
             DbHelper::Instance().GetUciAlarm().Push(signId, buf);
             overTempFault.Clr();
         }
@@ -316,11 +316,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 ls18hoursFault.ClearEdge();
                 if (ls18hoursFault.IsHigh())
                 {
-                    sprintf(buf, "Lux(%d)<%d for 18 hours: 18-Hour Fault ONSET", lux, prod.LightSensor18Hours());
+                    snprintf(buf, 63, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, prod.LightSensor18Hours());
                 }
                 else
                 {
-                    sprintf(buf, "Lux(%d)>=%d for 15 minutes: 18-Hour Fault CLEAR", lux, prod.LightSensor18Hours());
+                    snprintf(buf, 63, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, prod.LightSensor18Hours());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
@@ -329,11 +329,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 lsMiddayFault.ClearEdge();
                 if (lsMiddayFault.IsHigh())
                 {
-                    sprintf(buf, "In 11:00-15:00, Lux(%d)<%d for 15 minutes: Midday Fault ONSET", lux, prod.LightSensorMidday());
+                    snprintf(buf, 63, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, prod.LightSensorMidday());
                 }
                 else
                 {
-                    sprintf(buf, "In 11:00-15:00, Lux(%d)>=%d for 15 minutes: MiddayFault CLEAR", lux, prod.LightSensorMidday());
+                    snprintf(buf, 63, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, prod.LightSensorMidday());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
@@ -342,28 +342,17 @@ void Sign::RefreshSlaveStatusAtExtSt()
                 lsMidnightFault.ClearEdge();
                 if (lsMidnightFault.IsHigh())
                 {
-                    sprintf(buf, "In 23:00-3:00, Lux(%d)>=%d for 15 minutes: Midnight Fault ONSET", lux, prod.LightSensorMidnight());
+                    snprintf(buf, 63, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, prod.LightSensorMidnight());
                 }
                 else
                 {
-                    sprintf(buf, "In 23:00-3:00, Lux(%d)<%d for 15 minutes: Midnight Fault CLEAR", lux, prod.LightSensorMidnight());
+                    snprintf(buf, 63, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, prod.LightSensorMidnight());
                 }
                 db.GetUciAlarm().Push(signId, buf);
             }
         }
     }
-    if (chainFault.IsHigh() ||
-        multiLedFault.IsHigh() ||
-        selftestFault.IsHigh() ||
-        voltageFault.IsHigh() ||
-        overTempFault.IsHigh())
-    {
-        fatalError.Set();
-    }
-    else
-    {
-        fatalError.Clr();
-    }
+    (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overTempFault.IsHigh()) ? fatalError.Set() : fatalError.Clr();
 }
 
 uint8_t *Sign::LedStatus(uint8_t *buf)
@@ -404,7 +393,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (!signErr.IsSet(err))
         {
             signErr.Push(signId, err, true);
-            len = sprintf(buf, "Sign%d %s ONSET", signId, DEV::GetStr(err));
+            len = snprintf(buf, 63, "Sign%d %s ONSET", signId, DEV::GetStr(err));
         }
     }
     else if (dbc.IsFalling())
@@ -412,7 +401,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (signErr.IsSet(err))
         {
             signErr.Push(signId, err, false);
-            len = sprintf(buf, "Sign%d %s CLEAR", signId, DEV::GetStr(err));
+            len = snprintf(buf, 63, "Sign%d %s CLEAR", signId, DEV::GetStr(err));
         }
     }
     dbc.ClearEdge();

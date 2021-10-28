@@ -73,7 +73,7 @@ public:
     int8_t CurTemp() { return curTemp; };
     int8_t MaxTemp() { return maxTemp; };
     uint16_t Voltage() { return voltage; };
-    uint16_t Lux() { return luminanceFault.IsLow() ? lux : 65535; };
+    uint16_t Lux() { return lsConnectionFault.IsLow() ? lux : 65535; };
 
 protected:
     uint8_t signId;
