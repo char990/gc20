@@ -11,13 +11,13 @@
 #include <layer/ILayer.h>
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
-
+#include <module/OprSp.h>
 class PlnMinute
 {
 public:
-    uint8_t plnId{0};   // 0:Empty, 1-255 pln Id
-    uint8_t fmType{0};    // 1:Frm, 2:Msg
-    uint8_t fmId{0};    // frm/msg Id
+    uint8_t plnId{0};  // 0:Empty, 1-255 pln Id
+    uint8_t fmType{0}; // 1:Frm, 2:Msg
+    uint8_t fmId{0};   // frm/msg Id
 };
 
 class Group : public IUpperLayer
@@ -25,6 +25,8 @@ class Group : public IUpperLayer
 public:
     Group(uint8_t groupId);
     virtual ~Group();
+
+    void SetOprSp(OprSp *oprSp) { this->oprSp = oprSp; }
 
     /*<------------------------------------------------------------------*/
     /// \brief Receiving Handle, called by Lower-Layer
@@ -61,8 +63,8 @@ public:
     int SlaveCnt() { return vSlaves.size(); };
     Slave *GetSlave(uint8_t id);
 
-    std::vector<Sign *> & GetSigns() {return vSigns;};
-    std::vector<Slave *> & GetSlaves() {return vSlaves;};
+    std::vector<Sign *> &GetSigns() { return vSigns; };
+    std::vector<Slave *> &GetSlaves() { return vSlaves; };
 
     // signs in group
     bool IsSignInGroup(uint8_t id);
@@ -78,19 +80,19 @@ public:
 
     /********* command from Tsi-sp-003 ********/
     // if planid==0, disable all plans
-    APP_ERROR EnDisPlan(uint8_t id, bool endis);
-    APP_ERROR EnablePlan(uint8_t id);
-    APP_ERROR DisablePlan(uint8_t id);
+    APP::ERROR EnDisPlan(uint8_t id, bool endis);
+    APP::ERROR EnablePlan(uint8_t id);
+    APP::ERROR DisablePlan(uint8_t id);
 
-    APP_ERROR DispFrm(uint8_t id);
-    APP_ERROR DispMsg(uint8_t id);
-    virtual APP_ERROR DispAtomicFrm(uint8_t *id) = 0;
+    APP::ERROR DispFrm(uint8_t id);
+    APP::ERROR DispMsg(uint8_t id);
+    virtual APP::ERROR DispAtomicFrm(uint8_t *id) = 0;
 
-    APP_ERROR SetDimming(uint8_t v);
-    APP_ERROR SetPower(uint8_t v);
-    APP_ERROR SetDevice(uint8_t v);
+    APP::ERROR SetDimming(uint8_t v);
+    APP::ERROR SetPower(uint8_t v);
+    APP::ERROR SetDevice(uint8_t v);
 
-    APP_ERROR SystemReset(uint8_t v);
+    APP::ERROR SystemReset(uint8_t v);
 
     // Called by controller to display External switch
     bool DispExt(uint8_t msgX);
@@ -101,6 +103,7 @@ public:
 protected:
     DbHelper &db;
     uint8_t groupId;
+    OprSp *oprSp;
     std::vector<Sign *> vSigns;
     std::vector<Slave *> vSlaves;
 
@@ -129,18 +132,18 @@ protected:
     DispStatus *dsExt;
 
     int taskATFLine{0};
-    
-    virtual bool TaskSetATF(int *_ptLine)=0;
 
-    virtual void TransFrmToOrBuf(uint8_t frmId)=0;
-    virtual void MakeFrameForSlave(uint8_t fid)=0;
+    virtual bool TaskSetATF(int *_ptLine) = 0;
+
+    virtual void TransFrmToOrBuf(uint8_t frmId) = 0;
+    virtual void MakeFrameForSlave(uint8_t fid) = 0;
     uint8_t msgOverlay{0}; // 0:No overlay, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
     int orLen;
     uint8_t *orBuf;
     void ClrOrBuf()
     {
-        msgOverlay=0;
-        memset(orBuf,0,orLen);
+        msgOverlay = 0;
+        memset(orBuf, 0, orLen);
     }
 
 private:
@@ -159,7 +162,7 @@ private:
         RISING,
         NA
     };
-    PWR_STATE cmdPwr/*load in constructor*/, fsPwr{PWR_STATE::NA}, mainPwr{PWR_STATE::NA};
+    PWR_STATE cmdPwr /*load in constructor*/, fsPwr{PWR_STATE::NA}, mainPwr{PWR_STATE::NA};
     bool IsPowerOn() { return cmdPwr == PWR_STATE::ON && fsPwr == PWR_STATE::ON && mainPwr == PWR_STATE::ON; };
     void PowerFunc();
 
@@ -177,8 +180,8 @@ private:
     void FcltSwitchFunc();
 
     std::vector<PlnMinute> plnMin{7 * 24 * 60};
-    PlnMinute & GetCurrentMinPln();
-    int GetMinOffset(int day, Hm * t);
+    PlnMinute &GetCurrentMinPln();
+    int GetMinOffset(int day, Hm *t);
     void LoadPlanToPlnMin(uint8_t id);
     void PrintPlnMin();
     bool LoadDsNext();
@@ -187,7 +190,7 @@ private:
 
     /******************** Task Plan ********************/
     uint8_t onDispPlnId;
-    
+
     // these two setting for TaskMsg/TaskFrm
     uint8_t onDispPlnEntryType; // 1:frm, 2:msg
     uint8_t onDispPlnEntryId;
@@ -197,14 +200,14 @@ private:
     bool TaskPln(int *_ptLine);
     void TaskPlnReset()
     {
-        taskPlnLine=0;
+        taskPlnLine = 0;
     }
 
     /******************** Task Message ********************/
     uint8_t
-        onDispNewMsg,         // 0:EMPTY, 1:new msg load
+        onDispNewMsg, // 0:EMPTY, 1:new msg load
         onDispMsgId,
-        msgEntryCnt;   // 0 - (msg->entries-1)
+        msgEntryCnt; // 0 - (msg->entries-1)
     // msgSetEntry/Max depend on frame 'onTime'=0(frame overlay)
     // if there is an entry onTime(!0) following an entry onTime(0), msgSetEntryMax = msg->entries + last onTime(0) entry
     // otherwise, msgSetEntryMax=msg->entries
@@ -229,34 +232,34 @@ private:
     //      [0-1] set in orBUf      :1-2
     //      set [2-3]  with orBuf   :3-4
     uint8_t
-        msgSetEntry,     // entry counter to set frame
-        msgSetEntryMax;  // max netries to set frame
-    Message * pMsg;
+        msgSetEntry,    // entry counter to set frame
+        msgSetEntryMax; // max netries to set frame
+    Message *pMsg;
     int taskMsgLine{0};
     BootTimer taskMsgTmr;
     BootTimer taskMsgLastFrmTmr;
     bool TaskMsg(int *_ptLine);
     void TaskMsgReset()
     {
-        taskMsgLine=0;
-        msgEntryCnt=0;
-        msgSetEntryMax=0;
-        msgSetEntry=0;
+        taskMsgLine = 0;
+        msgEntryCnt = 0;
+        msgSetEntryMax = 0;
+        msgSetEntry = 0;
     }
-    void InitMsgOverlayBuf(Message * pMsg);    
+    void InitMsgOverlayBuf(Message *pMsg);
 
     /******************** Task Frame ********************/
     uint8_t
-        onDispNewFrm,   // 0:EMPTY, 1:new frm load
-        onDispFrmId; // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
+        onDispNewFrm, // 0:EMPTY, 1:new frm load
+        onDispFrmId;  // if frmId is 0, BLANK, this is for dispFrm0 and no valid plan
 
     bool TaskFrm(int *_ptLine);
     int taskFrmLine{0};
     BootTimer taskFrmTmr;
     void TaskFrmReset()
     {
-        taskFrmLine=0;
-        taskATFLine=0;
+        taskFrmLine = 0;
+        taskATFLine = 0;
     }
 
     bool TaskRqstSlave(int *_ptLine);
@@ -267,10 +270,10 @@ private:
     uint8_t rqstNoRplCnt{0};
     void TaskRqstSlaveReset()
     {
-        taskRqstSlaveLine=0;
-        rqstStCnt=0;
-        rqstExtStCnt=0;
-        rqstNoRplCnt=0;
+        taskRqstSlaveLine = 0;
+        rqstStCnt = 0;
+        rqstExtStCnt = 0;
+        rqstNoRplCnt = 0;
         //taskRqstSlaveTmr.Setms(0);
     }
 
@@ -293,7 +296,7 @@ private:
     BootTimer busLockTmr;
     bool IsBusFree();
     void LockBus(int ms);
-    
+
     Utils::Bool256 activeFrm;
 
     Utils::Bool256 activeMsg;
@@ -302,12 +305,11 @@ private:
 
     // dimming value in RqstExtStatus
     uint8_t setDimming{0x10};
-    uint8_t targetDimmingLvl;         // bit[7] is new setting flag
+    uint8_t targetDimmingLvl; // bit[7] is new setting flag
     uint8_t currentDimmingLvl;
     uint8_t adjDimmingSteps;
     bool DimmingAdjust();
     BootTimer dimmingAdjTimer;
-
 
     void SystemReset0();
     void SystemReset1();

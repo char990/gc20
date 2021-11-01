@@ -6,13 +6,26 @@
 
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
+#include <module/ObjectPool.h>
+#include <uci/DbHelper.h>
 
-TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tmr)
+TcpServer::TcpServer(int listenPort, std::string serverType, int poolsize, TimerEvent *tmr)
     : listenPort(listenPort),
-      oPool(oPool),
+      serverType(serverType),
+      poolsize(poolsize),
       tmrEvt(tmr)
 {
-    name = "Tcp port:"+std::to_string(listenPort);
+    name = serverType + " server:" + std::to_string(listenPort);
+
+    objPool = new ObjectPool<OprTcp>(poolsize);
+    auto ipool = objPool->Pool();
+    int idletime = DbHelper::Instance().GetUciUser().SessionTimeout();
+    idletime = idletime + ((idletime == 0) ? 3600 * 1000 : 600 * 1000);
+    for (int i = 0; i < ipool.size(); i++)
+    {
+        ipool[i]->Init(serverType + std::to_string(i), serverType, idletime);
+    }
+
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
         MyThrow("%s:socket() failed", name.c_str());
@@ -24,22 +37,22 @@ TcpServer::TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tm
     myserver.sin_addr.s_addr = htonl(INADDR_ANY);
     myserver.sin_port = htons(listenPort);
 
-    int reuse=1;
-    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+    int reuse = 1;
+    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof(reuse)) < 0)
     {
         MyThrow("%s:setsockopt(SO_REUSEADDR) failed", name.c_str());
     }
-    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0)
+    if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char *)&reuse, sizeof(reuse)) < 0)
     {
         MyThrow("%s:setsockopt(SO_REUSEPORT) failed", name.c_str());
     }
-        
+
     if (bind(eventFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
     {
         MyThrow("%s:bind() failed", name.c_str());
     }
 
-    if (listen(eventFd, oPool.Size()) < 0)
+    if (listen(eventFd, objPool->Size()) < 0)
     {
         MyThrow("%s:listen() failed", name.c_str());
     }
@@ -51,11 +64,12 @@ TcpServer::~TcpServer()
 {
     Epoll::Instance().DeleteEvent(this, events);
     close(eventFd);
+    delete objPool;
 }
 
 void TcpServer::EventsHandle(uint32_t events)
 {
-    if(events & EPOLLIN)
+    if (events & EPOLLIN)
     {
         Accept();
     }
@@ -69,34 +83,24 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    PrintDbg("%s:Incomming...\n",name.c_str());
+    PrintDbg("%s:Incomming...\n", name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
         MyThrow("%s:accept() failed", name.c_str());
     }
-    OprTcp * tcpOperator = oPool.Pop();
-    if(tcpOperator==nullptr)
+    OprTcp *tcpOperator = objPool->Pop();
+    if (tcpOperator == nullptr)
     {
         close(connfd);
-        PrintDbg("%s:Connections full, reject\n",name.c_str());
+        PrintDbg("%s:Connection pool is full, reject\n", name.c_str());
         return;
     }
     SetNonblocking(connfd);
-    tcpOperator->SetServer(this);
-    tcpOperator->Setup(connfd,tmrEvt);
-    PrintDbg("%s:Accept %s:[%d of %d]:%s\n",
-        name.c_str(), inet_ntoa(clientaddr.sin_addr), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
-}
-
-
-// todo: check status before release() and wait if there is sending
-void TcpServer::Release(OprTcp * tcpOperator)
-{
-    close(tcpOperator->GetFd());
-    oPool.Push(tcpOperator);
-    PrintDbg("%s:tcpOperator released:[%d of %d]:%s\n",
-        name.c_str(), oPool.Cnt(), oPool.Size(), tcpOperator->Name().c_str());
+    char ip_port[24];
+    sprintf(ip_port, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
+    tcpOperator->Accept(connfd, tmrEvt, ip_port);
+    PrintDbg("%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
 }
 
 void TcpServer::SetNonblocking(int sock)

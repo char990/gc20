@@ -28,11 +28,11 @@ GroupVms::GroupVms(uint8_t id)
     {
         switch (disp[1])
         {
-        case static_cast<uint8_t>(MI_CODE::SignDisplayFrame):
+        case static_cast<uint8_t>(MI::CODE::SignDisplayFrame):
             dsNext->dispType = DISP_TYPE::FRM;
             dsNext->fmpid[0] = disp[3];
             break;
-        case static_cast<uint8_t>(MI_CODE::SignDisplayMessage):
+        case static_cast<uint8_t>(MI::CODE::SignDisplayMessage):
             dsNext->dispType = DISP_TYPE::MSG;
             dsNext->fmpid[0] = disp[3];
             break;
@@ -51,9 +51,9 @@ void GroupVms::PeriodicHook()
 {
 }
 
-APP_ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
+APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
 {
-    return APP_ERROR::MiNotSupported;
+    return APP::ERROR::MiNotSupported;
 }
 
 bool GroupVms::TaskSetATF(int *_ptLine)
@@ -73,7 +73,7 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
     }
-    if (xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetTextFrame))
+    if (xfrm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
         FrmTxt *frm = dynamic_cast<FrmTxt *>(xfrm);
         if (msgOverlay == 0)
@@ -101,8 +101,8 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
         {
         }
     }
-    else if (xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame) ||
-             xfrm->micode == static_cast<uint8_t>(MI_CODE::SignSetHighResolutionGraphicsFrame))
+    else if (xfrm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
+             xfrm->micode == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
     {
         auto frm = xfrm;
         if (msgOverlay == 0)

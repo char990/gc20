@@ -36,7 +36,7 @@ class Frame
 public:
     Frame();
     virtual ~Frame();
-    APP_ERROR appErr{APP_ERROR::AppNoError};
+    APP::ERROR appErr{APP::ERROR::AppNoError};
     uint8_t micode{0};
     uint8_t frmId;
     uint8_t frmRev;

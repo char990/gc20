@@ -24,13 +24,13 @@ GroupIslus::GroupIslus(uint8_t id)
     {
         switch (disp[1])
         {
-        case static_cast<uint8_t>(MI_CODE::SignDisplayFrame):
+        case static_cast<uint8_t>(MI::CODE::SignDisplayFrame):
             DispFrm(disp[3]);
             break;
-        case static_cast<uint8_t>(MI_CODE::SignDisplayMessage):
+        case static_cast<uint8_t>(MI::CODE::SignDisplayMessage):
             DispMsg(disp[3]);
             break;
-        case static_cast<uint8_t>(MI_CODE::SignDisplayAtomicFrames):
+        case static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames):
             DispAtomicFrm(&disp[1]);
             break;
         default:
@@ -48,16 +48,16 @@ void GroupIslus::PeriodicHook()
 {
 }
 
-APP_ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
+APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
 #if 0
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
-        return APP_ERROR::FacilitySwitchOverride;
+        return APP::ERROR::FacilitySwitchOverride;
     }
     if (cmd[2] != signCnt)
     {
-        return APP_ERROR::SyntaxError;
+        return APP::ERROR::SyntaxError;
     }
     uint8_t *p = cmd + 3;
     for (int i = 0; i < signCnt; i++)
@@ -68,20 +68,20 @@ APP_ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         {
             if (*p == *p2)
             {
-                return APP_ERROR::SyntaxError;
+                return APP::ERROR::SyntaxError;
             }
             p2 += 2;
         }
         // sign is in this group
         if (!IsSignInGroup(*p))
         {
-            return APP_ERROR::UndefinedDeviceNumber;
+            return APP::ERROR::UndefinedDeviceNumber;
         }
         p++;
         // frm is defined or frm0
         if ((*p != 0) && !DbHelper::Instance().GetUciFrm().IsFrmDefined(*p))
         {
-            return APP_ERROR::FrmMsgPlnUndefined;
+            return APP::ERROR::FrmMsgPlnUndefined;
         }
         p++;
     }
@@ -102,7 +102,7 @@ APP_ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         p += 2;
     }
 #endif
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
 // TODO set slave frame, active frm, reprot frm

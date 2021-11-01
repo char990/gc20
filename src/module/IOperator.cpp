@@ -5,7 +5,7 @@
 
 int IOperator::TxBytes(uint8_t * data, int len)
 {
-    if(txsize!=0 || len <=0 || len>MAX_DATA_PACKET_SIZE)
+    if(txsize!=0 || len <=0 || len>MAX_DATA_PACKET_SIZE || eventFd<0)
     {
         return -1;
     }
@@ -18,7 +18,7 @@ int IOperator::TxBytes(uint8_t * data, int len)
     {
         txsize=len-n;
         txcnt=0;
-        memcpy(data+n, txbuf, txsize);
+        memcpy(data+n, optxbuf, txsize);
         events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
         Epoll::Instance().ModifyEvent(this, events);
     }
@@ -43,7 +43,7 @@ int IOperator::TxHandle()
     else
     {
         int len = txsize-txcnt;
-        int n = write(eventFd, txbuf+txcnt, len);
+        int n = write(eventFd, optxbuf+txcnt, len);
         if(n<0)
         {
             ClrTx();

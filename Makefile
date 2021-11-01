@@ -20,7 +20,7 @@
 CFLAGS 	 := -std=c99
 CXXFLAGS := -std=c++11
 #LDFLAGS  := -L/usr/lib -lstdc++ -lm
-LDFLAGS  := -luci
+LDFLAGS  := -luci -lcrypto
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps

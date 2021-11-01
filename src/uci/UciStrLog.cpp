@@ -7,6 +7,7 @@
 #include <module/Utils.h>
 #include <uci/UciStrLog.h>
 #include <module/MyDbg.h>
+#include <cstdarg>
 
 using namespace Utils;
 
@@ -95,6 +96,7 @@ int UciStrLog::GetLog(uint8_t *dst)
     return p - dst;
 }
 
+/*
 void UciStrLog::Push(uint8_t id, const char *pbuf)
 {
     uint16_t entryNo = 0;
@@ -122,6 +124,39 @@ void UciStrLog::Push(uint8_t id, const char *pbuf)
     char v[128];
     v[0] = '[';
     p = Cnvt::ParseTmToLocalStr(t, v + 1);
+    sprintf(p, _Fmt_3, id, entryNo, log.str);
+
+    OpenSaveClose(SECTION, option, v);
+}
+*/
+void UciStrLog::Push(uint8_t id, const char *fmt, ...)
+{
+    uint16_t entryNo = 0;
+    if (lastLog != -1)
+    {
+        entryNo = (pStrLog + lastLog)->entryNo + 1;
+    }
+    lastLog++;
+    if (lastLog >= maxEntries)
+    {
+        lastLog = 0;
+    }
+
+    auto &log = pStrLog[lastLog];
+    time_t t = time(NULL);
+    log.id = id;
+    log.entryNo = entryNo;
+    log.logTime = t;
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(log.str, STR_SIZE-1, fmt, args);
+	va_end(args);
+
+    char option[16];
+    sprintf(option, "%s%d", _Log, lastLog);
+    char v[128];
+    v[0] = '[';
+    char * p = Cnvt::ParseTmToLocalStr(t, v + 1);
     sprintf(p, _Fmt_3, id, entryNo, log.str);
 
     OpenSaveClose(SECTION, option, v);

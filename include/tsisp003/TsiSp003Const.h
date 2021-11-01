@@ -1,123 +1,152 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
-enum class MI_CODE : uint8_t
+class MI
 {
-    Reject = 0x00,
-    ACK,
-    StartSession,
-    PasswordSeed,
-    Password,
-    HeartbeatPoll,
-    SignStatusReply,
-    EndSession,
-    SystemReset,
-    UpdateTime,
-    SignSetTextFrame,
-    SignSetGraphicsFrame,
-    SignSetMessage,
-    SignSetPlan,
-    SignDisplayFrame,
-    SignDisplayMessage,
-    EnablePlan,
-    DisablePlan,
-    RequestEnabledPlans,
-    ReportEnabledPlans,
-    SignSetDimmingLevel,
-    PowerOnOff,
-    DisableEnableDevice,
-    SignRequestStoredFMP,
-    RetrieveFaultLog,
-    FaultLogReply,
-    ResetFaultLog,
-    SignExtendedStatusRequest,
-    SignExtendedStatusReply,
-    SignSetHighResolutionGraphicsFrame,
-    SignConfigurationRequest = 0x21,
-    SignConfigurationReply,
-    SignDisplayAtomicFrames = 0x2B,
-    HARStatusReply = 0x40,
-    HARSetVoiceDataIncomplete,
-    HARSetVoiceDataComplete,
-    HARSetStrategy,
-    HARActivateStrategy,
-    HARSetPlan,
-    HARRequestStoredVSP,
-    HARSetVoiceDataACK,
-    HARSetVoiceDataNAK,
-    EnvironmentalWeatherStatusReply = 0x80,
-    RequestEnvironmentalWeatherValues,
-    EnvironmentalWeatherValues,
-    EnvironmentalWeatherThresholdDefinition,
-    RequestThresholdDefinition,
-    RequestEnvironmentalWeatherEventLog,
-    EnvironmentalWeatherEventLogReply,
-    ResetEnvironmentalWeatherEventLog,
-    UserDefinedCmdF0 = 0xF0,
-    UserDefinedCmdF1,
-    UserDefinedCmdF2,
-    UserDefinedCmdF3,
-    UserDefinedCmdF4,
-    UserDefinedCmdF5,
-    UserDefinedCmdF6,
-    UserDefinedCmdF7,
-    UserDefinedCmdF8,
-    UserDefinedCmdF9,
-    UserDefinedCmdFA,
-    UserDefinedCmdFB,
-    UserDefinedCmdFC,
-    UserDefinedCmdFD,
-    UserDefinedCmdFE,
-    UserDefinedCmdFF
+public:
+    enum class CODE: uint8_t
+    {
+        Reject = 0x00,
+        Ack,
+        StartSession,
+        PasswordSeed,
+        Password,
+        HeartbeatPoll,
+        SignStatusReply,
+        EndSession,
+        SystemReset,
+        UpdateTime,
+        SignSetTextFrame,
+        SignSetGraphicsFrame,
+        SignSetMessage,
+        SignSetPlan,
+        SignDisplayFrame,
+        SignDisplayMessage,
+        EnablePlan,
+        DisablePlan,
+        RequestEnabledPlans,
+        ReportEnabledPlans,
+        SignSetDimmingLevel,
+        PowerOnOff,
+        DisableEnableDevice,
+        SignRequestStoredFMP,
+        RetrieveFaultLog,
+        FaultLogReply,
+        ResetFaultLog,
+        SignExtendedStatusRequest,
+        SignExtendedStatusReply,
+        SignSetHighResolutionGraphicsFrame,
+        SignConfigurationRequest = 0x21,
+        SignConfigurationReply,
+        SignDisplayAtomicFrames = 0x2B,
+        HARStatusReply = 0x40,
+        HARSetVoiceDataIncomplete,
+        HARSetVoiceDataComplete,
+        HARSetStrategy,
+        HARActivateStrategy,
+        HARSetPlan,
+        HARRequestStoredVSP,
+        HARSetVoiceDataACK,
+        HARSetVoiceDataNAK,
+        EnvironmentalWeatherStatusReply = 0x80,
+        RequestEnvironmentalWeatherValues,
+        EnvironmentalWeatherValues,
+        EnvironmentalWeatherThresholdDefinition,
+        RequestThresholdDefinition,
+        RequestEnvironmentalWeatherEventLog,
+        EnvironmentalWeatherEventLogReply,
+        ResetEnvironmentalWeatherEventLog,
+        UserDefinedCmdF0 = 0xF0,
+        UserDefinedCmdF1,
+        UserDefinedCmdF2,
+        UserDefinedCmdF3,
+        UserDefinedCmdF4,
+        UserDefinedCmdF5,
+        UserDefinedCmdF6,
+        UserDefinedCmdF7,
+        UserDefinedCmdF8,
+        UserDefinedCmdF9,
+        UserDefinedCmdFA,
+        UserDefinedCmdFB,
+        UserDefinedCmdFC,
+        UserDefinedCmdFD,
+        UserDefinedCmdFE,
+        UserDefinedCmdFF
+    };
+
+    struct sMiCodeStr
+    {
+        CODE code;
+        const char *str;
+    };
+
+    static std::vector<sMiCodeStr> micode_str;
+
+    static const char *ToStr(uint8_t);
 };
-enum class APP_ERROR : uint8_t
+
+class APP
 {
-    AppNoError = 0,
-    DeviceControllerOffline,
-    SyntaxError,
-    LengthError,
-    DataChksumError,
-    TextNonASC,
-    FrameTooLarge,
-    UnknownMi,
-    MiNotSupported,
-    PowerIsOff,
-    UndefinedDeviceNumber,
-    FontNotSupported,
-    ColourNotSupported,
-    OverlaysNotSupported,
-    DimmingLevelNotSupported,
-    FrmMsgPlnActive,
-    FacilitySwitchOverride,
-    ConspicuityNotSupported,
-    TransitionTimeNotSupported,
-    FrmMsgPlnUndefined,
-    PlanNotEnabled,
-    PlanEnabled,
-    SizeMismatch,
-    FrameTooSmall,
-    HARStrategyStopped,
-    HarStrategyUndefined,
-    HARStrategyError,
-    HARVoiceError,
-    HARVoiceNotSupported,
-    HARHardwareError,
-    TimeExpired,
-    CollourDepthNotSupported,
-    IncompleteColouFrameDefinition,
-    Incorrect_Password,
-    Interlocking_Invalid_Setting,
-    Interlocking_Missing_Signs,
-    Interlocking_Not_Active,
-    Interloccking_Active,
-    UNDEFINED = 0xFF
+public:
+    enum class ERROR: uint8_t
+    {
+        AppNoError = 0,
+        DeviceControllerOffline,
+        SyntaxError,
+        LengthError,
+        DataChksumError,
+        TextNonASC,
+        FrameTooLarge,
+        UnknownMi,
+        MiNotSupported,
+        PowerIsOff,
+        UndefinedDeviceNumber,
+        FontNotSupported,
+        ColourNotSupported,
+        OverlaysNotSupported,
+        DimmingLevelNotSupported,
+        FrmMsgPlnActive,
+        FacilitySwitchOverride,
+        ConspicuityNotSupported,
+        TransitionTimeNotSupported,
+        FrmMsgPlnUndefined,
+        PlanNotEnabled,
+        PlanEnabled,
+        SizeMismatch,
+        FrameTooSmall,
+        HARStrategyStopped,
+        HarStrategyUndefined,
+        HARStrategyError,
+        HARVoiceError,
+        HARVoiceNotSupported,
+        HARHardwareError,
+        TimeExpired,
+        CollourDepthNotSupported,
+        IncompleteColouFrameDefinition,
+        IncorrectPassword,
+        InterlockingInvalidSetting,
+        InterlockingMissingSigns,
+        InterlockingNotActive,
+        InterlocckingActive,
+        UNDEFINED = 0xFF
+    };
+
+    struct sAppErrorStr
+    {
+        ERROR code;
+        const char *str;
+    };
+
+    static std::vector<sAppErrorStr> apperror_str;
+    static const char *ToStr(uint8_t);
 };
 
 class DEV
 {
 public:
-    enum ERROR : uint8_t
+    enum class ERROR : uint8_t
     {
         DevNoError = 0,
         PowerFailure,
@@ -165,7 +194,7 @@ public:
         PreexistingOrReoccurringFaultExists = 0xFF
     };
     static const char *STR[];
-    static const char *GetStr(enum ERROR err);
+    static const char *ToStr(enum ERROR err);
 };
 
 enum class MULTICOLOUR : uint8_t
@@ -183,7 +212,7 @@ enum class MULTICOLOUR : uint8_t
     UNDEFINED = 0xFF
 };
 
-enum FRMCOLOUR : uint8_t
+enum class FRMCOLOUR : uint8_t
 {
     Default = 0,
     Red,

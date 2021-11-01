@@ -49,6 +49,6 @@ private:
     void EndOfBlock(uint8_t *p, int len);
     uint8_t txbuf[MAX_ACK_DATA_PACKET_SIZE];
     #define BROADCAST_MI_SIZE 16
-    static const MI_CODE broadcastMi[BROADCAST_MI_SIZE];
+    static const MI::CODE broadcastMi[BROADCAST_MI_SIZE];
 };
 

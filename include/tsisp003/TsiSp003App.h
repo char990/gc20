@@ -31,10 +31,10 @@ public:
     /// TsiSp003App is base of App layer, only implement basic commands
 
     /// \brief  Ack or Reject by r
-    void AckRjct(APP_ERROR r) { (r == APP_ERROR::AppNoError) ? Ack() : Reject(r); };
+    void AckRjct(APP::ERROR r) { (r == APP::ERROR::AppNoError) ? Ack() : Reject(r); };
 
     /// \brief  Reject
-    void Reject(APP_ERROR error);
+    void Reject(APP::ERROR error);
 
     /// \brief  Acknowledge
     void Ack();
@@ -46,7 +46,7 @@ public:
     bool IsOnline();
 
     /// \brief      Reject if offline
-    bool CheckOlineReject();
+    bool CheckOnline_RejectIfFalse();
 
     /*------------------------------------------------------------------>*/
 
@@ -61,7 +61,7 @@ protected:
     ISession *session{nullptr};
 
     uint8_t micode{0};
-    APP_ERROR appErr{APP_ERROR::AppNoError};
+    APP::ERROR appErr{APP::ERROR::AppNoError};
 
     uint8_t txbuf[MAX_APP_PACKET_SIZE];
 
@@ -79,8 +79,8 @@ private:
     enum FACMD : uint8_t
     {
         FACMD_SET_LUMINANCE = 0x01,
-        FACMD_SET_EXT_SW = 0x02,
-        FACMD_RQST_EXT_SW = 0x03,
+        FACMD_SET_EXT_INPUT = 0x02,
+        FACMD_RQST_EXT_INPUT = 0x03,
         FACMD_RQST_LUMINANCE = 0x04,
 
         FACMD_RTRV_LOGS = 0x0A,
@@ -106,9 +106,24 @@ private:
         FACMD_RESTART = 0xF5,
         FACMD_REBOOT = 0xFA
     };
+
+    int shake_hands_status{0};
+    uint8_t shake_src[26];  // 16-byte salt + 10-byte password 
+
     int UserDefinedCmd(uint8_t *data, int len);
     int UserDefinedCmdFA(uint8_t *data, int len);
+    int FA01_SetLuminance(uint8_t *data, int len);
+    int FA02_SetExtInput(uint8_t *data, int len);
+    int FA03_RqstExtInput(uint8_t *data, int len);
+    int FA04_RqstLuminance(uint8_t *data, int len);
     int FA0A_RetrieveLogs(uint8_t *data, int len);
     int FA0F_ResetLogs(uint8_t *data, int len);
+    int FA20_SetUserCfg(uint8_t *data, int len);
+    int FA21_RqstUserCfg(uint8_t *data, int len);
     int FA22_RqstUserExt(uint8_t *data, int len);
+    int FAF0_ShakehandsRqst(uint8_t *data, int len);
+    int FAF2_ShakehandsPasswd(uint8_t *data, int len);
+
+    void Md5_of_sh(const char *str, unsigned char *md5);
+    APP::ERROR CheckFA20(uint8_t *pd, char * shake);
 };

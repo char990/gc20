@@ -84,7 +84,7 @@ protected:
 	//void OpenSaveClose(const char * section, struct OptChars ** optval, int len);
 
 	/// \brief	save multi option.value
-	///			steps: OpenSectionForSave(), then OptionSave(), ... , then CloseSectionForSave()
+	///			steps: OpenSectionForSave(), then OptionSave(), ... , then CommitCloseSectionForSave()
 	/// \param	option : option
 	/// \param	value : value
 	/// \throw	If can't load path/package
@@ -94,7 +94,7 @@ protected:
 	void OptionSave(const char * option, const char * chars);
 	//void OptionSave(struct OptChars * optval);
 	//void OptionSave(struct OptChars ** optval, int len);
-	void CloseSectionForSave();
+	void CommitCloseSectionForSave();
 
 	void PrintOption_2x(const char * option, int x);
 	void PrintOption_4x(const char * option, int x);

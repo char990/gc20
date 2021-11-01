@@ -13,16 +13,16 @@ TsiSp003AppVer50::~TsiSp003AppVer50()
 int TsiSp003AppVer50::Rx(uint8_t *data, int len)
 {
     micode = *data;
-    auto mi = static_cast<MI_CODE>(micode);
+    auto mi = static_cast<MI::CODE>(micode);
     switch (mi)
     {
-    case MI_CODE::SignSetHighResolutionGraphicsFrame:
+    case MI::CODE::SignSetHighResolutionGraphicsFrame:
         SignSetHighResolutionGraphicsFrame(data, len);
         break;
-    case MI_CODE::SignConfigurationRequest:
+    case MI::CODE::SignConfigurationRequest:
         SignConfigurationRequest(data, len);
         break;
-    case MI_CODE::SignDisplayAtomicFrames:
+    case MI::CODE::SignDisplayAtomicFrames:
         SignDisplayAtomicFrames(data, len);
         break;
     default:
@@ -30,7 +30,7 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
         {
             // if there is a new version TsiSp003, return -1
             //return -1;
-            Reject(APP_ERROR::UnknownMi);
+            Reject(APP::ERROR::UnknownMi);
             return 0;
         }
     }
@@ -39,7 +39,7 @@ int TsiSp003AppVer50::Rx(uint8_t *data, int len)
 
 void TsiSp003AppVer50::SignSetHighResolutionGraphicsFrame(uint8_t *data, int len)
 {
-    if (CheckOlineReject())
+    if (CheckOnline_RejectIfFalse())
     {
         SignSetFrame(data, len);
     }
@@ -47,13 +47,13 @@ void TsiSp003AppVer50::SignSetHighResolutionGraphicsFrame(uint8_t *data, int len
 
 void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
 {
-    if (!CheckOlineReject() || !ChkLen(len, 1))
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 1))
     {
         return;
     }
     auto & prod = db.GetUciProd();
     uint8_t * p = txbuf;
-    *p++ = static_cast<uint8_t>(MI_CODE::SignConfigurationReply);
+    *p++ = static_cast<uint8_t>(MI::CODE::SignConfigurationReply);
     memcpy(p, prod.MfcCode(), 10); p+=10;
     auto & groups = Controller::Instance().GetGroups();
     *p++ = groups.size();
@@ -74,18 +74,18 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
 // todo: not tested
 void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
 {
-    Reject(APP_ERROR::MiNotSupported);
+    Reject(APP::ERROR::MiNotSupported);
     return;
-    if (!CheckOlineReject() || !ChkLen(len, data[2] * 2 + 3))
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, data[2] * 2 + 3))
     {
         return;
     }
     if (data[2] != 0)
     {
-        Reject(APP_ERROR::SyntaxError);
+        Reject(APP::ERROR::SyntaxError);
     }
     auto r = ctrller.CmdDispAtomicFrm(data, len);
-    if (r == APP_ERROR::AppNoError)
+    if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
         int len = sprintf(buf, "DisplayAtomic:Grp%d", data[1]);

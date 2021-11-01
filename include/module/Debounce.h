@@ -29,7 +29,7 @@ public:
     {
         cnt0 = 0;
         cnt1 = 0;
-        v = Utils::STATE5::S5_NA;
+        value = Utils::STATE5::S5_NA;
     }
 
     /// \breif Reset debounce state
@@ -41,13 +41,13 @@ public:
         {
             cnt0 = 0;
             cnt1 = CNT1;
-            v = Utils::STATE5::S5_1;
+            value = Utils::STATE5::S5_1;
         }
         else
         {
             cnt0 = CNT0;
             cnt1 = 0;
-            v = Utils::STATE5::S5_0;
+            value = Utils::STATE5::S5_0;
         }
     }
 
@@ -69,11 +69,7 @@ public:
     {
         if (v)
         {
-            if (cnt1 < CNT1)
-            {
-                cnt1++;
-            }
-            if (cnt1 >= CNT1)
+            if (++cnt1 >= CNT1)
             {
                 cnt0 = 0;
                 cnt1 = CNT1;
@@ -82,11 +78,7 @@ public:
         }
         else
         {
-            if (cnt0 < CNT0)
-            {
-                cnt0++;
-            }
-            if (cnt0 >= CNT0)
+            if (++cnt0 >= CNT0)
             {
                 cnt1 = 0;
                 cnt0 = CNT0;
@@ -99,6 +91,11 @@ public:
     {
         cnt0 = 0;
         cnt1 = 0;
+    }
+
+    void State()
+    {
+        printf("CNT0:%d CNT1:%d cnt0=%d cnt1=%d State=%s\n",CNT0,CNT1,cnt0,cnt1, Utils::State5::State());
     }
 
 private:

@@ -54,8 +54,8 @@ public:
     ///         new plan is at disable state
     /// \param  buf: hex array
     /// \param  len: array length
-    /// \return APP_ERROR
-    APP_ERROR SetPln(uint8_t * buf, int len);
+    /// \return APP::ERROR
+    APP::ERROR SetPln(uint8_t * buf, int len);
 
     /// \brief  Save plns[i-1] to "UciPln", with CRC and en/dis attached
     ///         When TsiSp003 set a plan, call SetMsg then SaveMsg

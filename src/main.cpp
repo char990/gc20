@@ -17,7 +17,6 @@
 #include <module/TcpServer.h>
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
-#include <module/ObjectPool.h>
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
@@ -56,35 +55,63 @@ public:
         PrintDbg("");
         _r_need_n = 1;
         cnt++;
-        putchar(s[cnt&0x03]);
+        putchar(s[cnt & 0x03]);
         fflush(stdout);
         time_t alarm_t = time(NULL);
         pDS3231->WriteTimeAlarm(alarm_t);
         pPinHeartbeatLed->Toggle();
     };
+
 private:
     uint8_t cnt{0};
-    char s[4]{'-','\\','|','/'};
+    char s[4]{'-', '\\', '|', '/'};
 };
 
-/*
+
 void TestCrc8005()
 {
     uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
-    PrintDbg("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
+    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
     uint8_t buf2[] = {
         0x02, 0x30, 0x32, 0x30, 0x36,
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
         0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
-    PrintDbg("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
+    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
 }
-*/
+
+void TestDebounce()
+{
+    Debounce test(5,4);
+    char c;
+    while(1)
+    {
+        test.State();
+        scanf(" %c", &c);
+        switch(c)
+        {
+            case '0':
+            case '1':
+            test.Check(c!='0');
+            break;
+            case 'r':
+            test.ClearRising();
+            break;
+            case 'f':
+            test.ClearFalling();
+            break;
+            default:
+            test.ClearEdge();
+            break;
+        }
+    }
+}
+
 
 void LogResetTime()
 {
     time_t t;
     pDS3231->ReadTimeAlarm(&t);
-    auto & db = DbHelper::Instance();
+    auto &db = DbHelper::Instance();
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
     db.GetUciAlarm().Push(0, "Reset");
@@ -139,6 +166,7 @@ int main(int argc, char *argv[])
 
     try
     {
+
         srand(time(NULL));
 
         pDS3231 = new DS3231{1};
@@ -184,6 +212,7 @@ int main(int argc, char *argv[])
                         {
                             IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn->com_ip].name, Controller::Instance().GetGroup(g));
                             oprSp[cn->com_ip] = new OprSp{(uint8_t)cn->com_ip, cn->bps_port, upperLayer};
+                            Controller::Instance().GetGroup(g)->SetOprSp(oprSp[cn->com_ip]);
                         }
                     }
                 }
@@ -201,22 +230,10 @@ int main(int argc, char *argv[])
         }
 
         // TSI-SP-003 Web
-        ObjectPool<OprTcp> webPool{LINKS_WEB};
-        auto webpool = webPool.Pool();
-        for (int i = 0; i < webPool.Size(); i++)
-        {
-            webpool[i].Init("Tcp" + std::to_string(i), "WEB", 300 * 1000);
-        }
-        TcpServer tcpServerWeb{user.WebPort(), webPool, &tmrEvt1Sec};
+        TcpServer tcpServerWeb{user.WebPort(), "WEB", LINKS_WEB, &tmrEvt1Sec};
 
         // TSI-SP-003 Tcp
-        ObjectPool<OprTcp> ntsPool{LINKS_NTS};
-        auto tcppool = ntsPool.Pool();
-        for (int i = 0; i < ntsPool.Size(); i++)
-        {
-            tcppool[i].Init("Tcp" + std::to_string(i), "NTS", (user.SessionTimeout() + 60) * 1000);
-        }
-        TcpServer tcpServerPhcs{user.SvcPort(), ntsPool, &tmrEvt1Sec};
+        TcpServer tcpServerPhcs{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
 
         PrintDbg("\n>>> START >>>\n");
 

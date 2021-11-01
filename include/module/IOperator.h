@@ -16,7 +16,7 @@ public:
     int TxHandle();
     void ClrTx() override;
 protected:
-    uint8_t txbuf[MAX_DATA_PACKET_SIZE];
+    uint8_t optxbuf[MAX_DATA_PACKET_SIZE];
     int txsize{0};
     int txcnt{0};
 };

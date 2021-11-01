@@ -179,9 +179,7 @@ void Controller::ExtInputFunc()
         {
             gin->ClearRising();
             uint8_t msg = i + 3;
-            char buf[64];
-            sprintf(buf, "Leading edge of external input[%d]", i + 1);
-            DbHelper::Instance().GetUciEvent().Push(0, buf);
+            DbHelper::Instance().GetUciEvent().Push(0, "Leading edge of external input[%d]", i + 1);
             for (auto &g : groups)
             {
                 g->DispExt(msg);
@@ -263,13 +261,13 @@ bool Controller::IsPlnActive(uint8_t id)
     return false;
 }
 
-APP_ERROR Controller::CmdSystemReset(uint8_t *cmd)
+APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
 {
     auto grpId = cmd[1];
     auto lvl = cmd[2];
     if (grpId > groups.size())
     {
-        return APP_ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
     {
@@ -298,77 +296,77 @@ APP_ERROR Controller::CmdSystemReset(uint8_t *cmd)
             db.GetUciUser().LoadFactoryDefault();
         }
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Controller::CmdDispFrm(uint8_t *cmd)
+APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t frmId = cmd[2];
     if (grpId == 0 || grpId > groups.size())
     {
-        return APP_ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::UndefinedDeviceNumber;
     }
     if (frmId != 0)
     {
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))
         {
-            return APP_ERROR::FrmMsgPlnUndefined;
+            return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
     return GetGroup(grpId)->DispFrm(frmId);
 }
 
-APP_ERROR Controller::CmdDispMsg(uint8_t *cmd)
+APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t msgId = cmd[2];
     if (grpId == 0 || grpId > Controller::Instance().GroupCnt())
     {
-        return APP_ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::UndefinedDeviceNumber;
     }
     Message *msg;
     if (msgId != 0)
     {
         if (!DbHelper::Instance().GetUciMsg().IsMsgDefined(msgId))
         {
-            return APP_ERROR::FrmMsgPlnUndefined;
+            return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
     return GetGroup(grpId)->DispMsg(msgId);
 }
 
-APP_ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
     uint8_t grpId = cmd[1];
     if (grpId == 0 || grpId > groups.size())
     {
-        return APP_ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::UndefinedDeviceNumber;
     }
     return GetGroup(grpId)->DispAtomicFrm(cmd);
 }
 
-APP_ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
+APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
-    APP_ERROR r = APP_ERROR::AppNoError;
+    APP::ERROR r = APP::ERROR::AppNoError;
     if (grpId > groups.size() || grpId == 0)
     {
-        r = APP_ERROR::UndefinedDeviceNumber;
+        r = APP::ERROR::UndefinedDeviceNumber;
     }
     else if (plnId != 0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
     {
-        r = APP_ERROR::FrmMsgPlnUndefined;
+        r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else
     {
-        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == static_cast<uint8_t>(MI_CODE::EnablePlan));
+        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == static_cast<uint8_t>(MI::CODE::EnablePlan));
     }
     return r;
 }
 
-APP_ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
+APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -377,11 +375,11 @@ APP_ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
     {
         if (p[0] > groups.size())
         {
-            return APP_ERROR::UndefinedDeviceNumber;
+            return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] != 0 && (p[2] == 0 || p[2] > 16))
         {
-            return APP_ERROR::DimmingLevelNotSupported;
+            return APP::ERROR::DimmingLevelNotSupported;
         }
         p += 3;
     }
@@ -402,10 +400,10 @@ APP_ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
         }
         p += 3;
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -414,11 +412,11 @@ APP_ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
     {
         if (p[0] > groups.size())
         {
-            return APP_ERROR::UndefinedDeviceNumber;
+            return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
-            return APP_ERROR::SyntaxError;
+            return APP::ERROR::SyntaxError;
         }
         p += 2;
     }
@@ -438,10 +436,10 @@ APP_ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
         }
         p += 2;
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
 {
     uint8_t entry = cmd[1];
     uint8_t *p;
@@ -450,11 +448,11 @@ APP_ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
     {
         if (p[0] > groups.size())
         {
-            return APP_ERROR::UndefinedDeviceNumber;
+            return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
-            return APP_ERROR::SyntaxError;
+            return APP::ERROR::SyntaxError;
         }
         p += 2;
     }
@@ -474,12 +472,12 @@ APP_ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
         }
         p += 2;
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
 int Controller::CmdRequestEnabledPlans(uint8_t *txbuf)
 {
-    txbuf[0] = static_cast<uint8_t>(MI_CODE::ReportEnabledPlans);
+    txbuf[0] = static_cast<uint8_t>(MI::CODE::ReportEnabledPlans);
     uint8_t *p = &txbuf[2];
     for (int i = 1; i <= groups.size(); i++)
     {

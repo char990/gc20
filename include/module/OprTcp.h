@@ -6,10 +6,12 @@
 #include <module/IPeriodicRun.h>
 #include <module/TimerEvent.h>
 
+#include <module/ObjectPool.h>
+
 class TcpServer;
 
 /// \brief  Operator from tcp
-class OprTcp : public IOperator, public IPeriodicRun
+class OprTcp : public IOperator, public IPeriodicRun, public Poolable<OprTcp>
 {
 public:
     OprTcp();
@@ -30,20 +32,16 @@ public:
     virtual void PeriodicRun() override;
     /*--------------------------------------------------------->*/
 
+    /*< For ObjectPool Pop/Push --------------------------------*/
+    virtual void PopClean() override;
+    virtual void PushClean() override;
+    /*--------------------------------------------------------->*/
+
     /// \brief  Called only after object was created
     virtual void Init(std::string name_, std::string aType, int idle);
 
     /// \brief  Called when accept
-    virtual void Setup(int fd, TimerEvent * tmr);
-
-    /// \brief      Set Tcpserver for Release()
-    void SetServer(TcpServer * server);
-
-    /// \brief      Set Tcp Idle timeout
-    /// \param      idleTime: seconds
-    void IdleTime(int idleTime);
-
-    void Release();
+    virtual void Accept(int fd, TimerEvent * tmr, const char *ip);
 
     std::string Name() { return name; };
 
@@ -56,6 +54,11 @@ private:
 
     /// \brief  Called in EventsHandle
     int RxHandle();
+
+    void Release();
+
+    char client[24];
+
 };
 
 

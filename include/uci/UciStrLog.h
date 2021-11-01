@@ -20,7 +20,7 @@ public:
     virtual int GetLog(uint8_t *dst);
 
     /// \brief  Push a string log into Log and save to Ucixxx
-    virtual void Push(uint8_t id, const char *str);
+    virtual void Push(uint8_t id, const char *fmt, ...);
 
     void Reset();
 

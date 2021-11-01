@@ -195,8 +195,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
-            snprintf(buf, 63, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
-            DbHelper::Instance().GetUciAlarm().Push(signId, buf);
+            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
             overTempFault.Set();
         }
     }
@@ -205,8 +204,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
-            snprintf(buf, 63, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
-            DbHelper::Instance().GetUciAlarm().Push(signId, buf);
+            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
             overTempFault.Clr();
         }
     }
@@ -310,45 +308,41 @@ void Sign::RefreshSlaveStatusAtExtSt()
                     luminanceFault.Clr();
                 }
             }
-            char buf[64];
             if (ls18hoursFault.HasEdge())
             {
                 ls18hoursFault.ClearEdge();
                 if (ls18hoursFault.IsHigh())
                 {
-                    snprintf(buf, 63, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, prod.LightSensor18Hours());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, prod.LightSensor18Hours());
                 }
                 else
                 {
-                    snprintf(buf, 63, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, prod.LightSensor18Hours());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, prod.LightSensor18Hours());
                 }
-                db.GetUciAlarm().Push(signId, buf);
             }
             if (lsMiddayFault.HasEdge())
             {
                 lsMiddayFault.ClearEdge();
                 if (lsMiddayFault.IsHigh())
                 {
-                    snprintf(buf, 63, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, prod.LightSensorMidday());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, prod.LightSensorMidday());
                 }
                 else
                 {
-                    snprintf(buf, 63, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, prod.LightSensorMidday());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, prod.LightSensorMidday());
                 }
-                db.GetUciAlarm().Push(signId, buf);
             }
             if (lsMidnightFault.HasEdge())
             {
                 lsMidnightFault.ClearEdge();
                 if (lsMidnightFault.IsHigh())
                 {
-                    snprintf(buf, 63, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, prod.LightSensorMidnight());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, prod.LightSensorMidnight());
                 }
                 else
                 {
-                    snprintf(buf, 63, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, prod.LightSensorMidnight());
+                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, prod.LightSensorMidnight());
                 }
-                db.GetUciAlarm().Push(signId, buf);
             }
         }
     }
@@ -393,7 +387,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (!signErr.IsSet(err))
         {
             signErr.Push(signId, err, true);
-            len = snprintf(buf, 63, "Sign%d %s ONSET", signId, DEV::GetStr(err));
+            len = snprintf(buf, 63, "Sign%d %s ONSET", signId, DEV::ToStr(err));
         }
     }
     else if (dbc.IsFalling())
@@ -401,7 +395,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (signErr.IsSet(err))
         {
             signErr.Push(signId, err, false);
-            len = snprintf(buf, 63, "Sign%d %s CLEAR", signId, DEV::GetStr(err));
+            len = snprintf(buf, 63, "Sign%d %s CLEAR", signId, DEV::ToStr(err));
         }
     }
     dbc.ClearEdge();

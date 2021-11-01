@@ -152,14 +152,14 @@ void UciCfg::OpenSaveClose(const char *section, const char *option, int value)
 {
 	OpenSectionForSave(section);
 	OptionSave(option, value);
-	CloseSectionForSave();
+	CommitCloseSectionForSave();
 }
 
 void UciCfg::OpenSaveClose(const char *section, const char *option, const char *value)
 {
 	OpenSectionForSave(section);
 	OptionSave(option, value);
-	CloseSectionForSave();
+	CommitCloseSectionForSave();
 }
 
 void UciCfg::OpenSaveClose(const char *section, struct OptChars *optval)
@@ -178,7 +178,7 @@ void UciCfg::OpenSaveClose(const char *section, struct OptChars **optval, int le
 		SetByPtr();
 		OptionSave(optval[i]->option, optval[i]->chars);
 	}
-	CloseSectionForSave();
+	CommitCloseSectionForSave();
 }
 */
 
@@ -186,14 +186,14 @@ void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Boo
 {
 	OpenSectionForSave(section);
 	OptionSave(option, bo.ToString().c_str());
-	CloseSectionForSave();
+	CommitCloseSectionForSave();
 }
 
 void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bool256 &bo)
 {
 	OpenSectionForSave(section);
 	OptionSave(option, bo.ToString().c_str());
-	CloseSectionForSave();
+	CommitCloseSectionForSave();
 }
 
 void UciCfg::SetByPtr()
@@ -215,7 +215,7 @@ void UciCfg::OpenSectionForSave(const char *section)
 	}
 }
 
-void UciCfg::CloseSectionForSave()
+void UciCfg::CommitCloseSectionForSave()
 {
 	Commit();
 	Close();

@@ -21,17 +21,17 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     crc = Crc::Crc16_1021(frm, len - 2);
     if (crc != Cnvt::GetU16(frm + len - 2))
     {
-        appErr = APP_ERROR::DataChksumError;
+        appErr = APP::ERROR::DataChksumError;
         return 1;
     }
     if (frmId == 0)
     {
-        appErr = APP_ERROR::SyntaxError;
+        appErr = APP::ERROR::SyntaxError;
         return 1;
     }
     if (len != (frmOffset + 2 + frmBytes))
     {
-        appErr = APP_ERROR::LengthError;
+        appErr = APP::ERROR::LengthError;
         return 1;
     }
     if (CheckLength(len) != 0)
@@ -44,7 +44,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     }
     if (CheckColour() != 0)
     {
-        appErr = APP_ERROR::ColourNotSupported;
+        appErr = APP::ERROR::ColourNotSupported;
         return 1;
     }
     // int CheckConspicuity();
@@ -53,10 +53,10 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         !prod.IsConspicuity(conspicuity & 0x07) ||
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
-        appErr = APP_ERROR::ConspicuityNotSupported;
+        appErr = APP::ERROR::ConspicuityNotSupported;
         return 1;
     }
-    appErr = APP_ERROR::AppNoError;
+    appErr = APP::ERROR::AppNoError;
     return 0;
 }
 
@@ -81,12 +81,12 @@ int FrmTxt::CheckLength(int len)
 {
     if (len > (255 + frmOffset + 2) || 0 /* TODO if text could fit in the sign: X chars * Y chars*/)
     {
-        appErr = APP_ERROR::FrameTooLarge;
+        appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
     else if (len < (frmOffset + 2 + 1))
     {
-        appErr = APP_ERROR::FrameTooSmall;
+        appErr = APP::ERROR::FrameTooSmall;
         return 1;
     }
     return 0;
@@ -94,19 +94,19 @@ int FrmTxt::CheckLength(int len)
 
 int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
-    if (micode != static_cast<uint8_t>(MI_CODE::SignSetTextFrame))
+    if (micode != static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
-        appErr = APP_ERROR::UnknownMi;
+        appErr = APP::ERROR::UnknownMi;
         return 1;
     }
     else if (Check::Text(frm + frmOffset, frmBytes) != 0)
     {
-        appErr = APP_ERROR::TextNonASC;
+        appErr = APP::ERROR::TextNonASC;
         return 1;
     }
     else if (!DbHelper::Instance().GetUciProd().IsFont(font))
     {
-        appErr = APP_ERROR::FontNotSupported;
+        appErr = APP::ERROR::FontNotSupported;
         return 1;
     }
     return 0;
@@ -146,9 +146,9 @@ FrmGfx::FrmGfx(uint8_t *frm, int len)
 
 int FrmGfx::CheckSub(uint8_t *frm, int len) // TODO
 {
-    if (micode != static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame))
+    if (micode != static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame))
     {
-        appErr = APP_ERROR::UnknownMi;
+        appErr = APP::ERROR::UnknownMi;
         return 1;
     }
     return 0;
@@ -160,11 +160,11 @@ int FrmGfx::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
-        appErr = APP_ERROR::LengthError;
+        appErr = APP::ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
-        appErr = APP_ERROR::SizeMismatch;
+        appErr = APP::ERROR::SizeMismatch;
     }
     else
     {
@@ -185,19 +185,19 @@ int FrmGfx::CheckLength(int len)
         {
             if (frmBytes > x)
             {
-                appErr = APP_ERROR::FrameTooLarge;
+                appErr = APP::ERROR::FrameTooLarge;
             }
             else if (frmBytes < x)
             {
-                appErr = APP_ERROR::FrameTooSmall;
+                appErr = APP::ERROR::FrameTooSmall;
             }
         }
         else
         {
-            appErr = APP_ERROR::ColourNotSupported;
+            appErr = APP::ERROR::ColourNotSupported;
         }
     }
-    return (appErr == APP_ERROR::AppNoError) ? 0 : -1;
+    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmGfx::CheckColour()
@@ -234,9 +234,9 @@ FrmHrg::FrmHrg(uint8_t *frm, int len)
 
 int FrmHrg::CheckSub(uint8_t *frm, int len) // TODO
 {
-    if (micode != static_cast<uint8_t>(MI_CODE::SignSetHighResolutionGraphicsFrame))
+    if (micode != static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
     {
-        appErr = APP_ERROR::UnknownMi;
+        appErr = APP::ERROR::UnknownMi;
         return 1;
     }
     return 0;
@@ -248,11 +248,11 @@ int FrmHrg::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
-        appErr = APP_ERROR::LengthError;
+        appErr = APP::ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
-        appErr = APP_ERROR::SizeMismatch;
+        appErr = APP::ERROR::SizeMismatch;
     }
     else
     {
@@ -273,19 +273,19 @@ int FrmHrg::CheckLength(int len)
         {
             if (frmBytes > x)
             {
-                appErr = APP_ERROR::FrameTooLarge;
+                appErr = APP::ERROR::FrameTooLarge;
             }
             else if (frmBytes < x)
             {
-                appErr = APP_ERROR::FrameTooSmall;
+                appErr = APP::ERROR::FrameTooSmall;
             }
         }
         else
         {
-            appErr = APP_ERROR::ColourNotSupported;
+            appErr = APP::ERROR::ColourNotSupported;
         }
     }
-    return (appErr == APP_ERROR::AppNoError) ? 0 : -1;
+    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
 int FrmHrg::CheckColour()

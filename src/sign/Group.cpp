@@ -8,6 +8,7 @@
 #include <gpio/GpioIn.h>
 #include <gpio/GpioOut.h>
 #include <sign/Controller.h>
+#include <layer/SLV_LayerManager.h>
 
 #define MS_SHIFT 5
 
@@ -294,9 +295,7 @@ void Group::FcltSwitchFunc()
         fcltSw.ClearChanged();
         Controller::Instance().ctrllerError.Push(
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
-        char buf[64];
-        sprintf(buf, "Group%d:%s", groupId, fcltSw.ToStr());
-        db.GetUciEvent().Push(0, buf);
+        db.GetUciEvent().Push(0, "Group%d:%s", groupId, fcltSw.ToStr());
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
             fsPwr = PWR_STATE::OFF;
@@ -365,10 +364,8 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    char buf[64];
-                    sprintf(buf, "Plan%d start", plnmin.plnId);
-                    PrintDbg("%s\n", buf);
-                    db.GetUciEvent().Push(0, buf);
+                    PrintDbg("Plan%d start\n", plnmin.plnId);
+                    db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                     auto pln = db.GetUciPln().GetPln(plnmin.plnId);
@@ -802,6 +799,15 @@ bool Group::TaskRqstSlave(int *_ptLine)
                         else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
                         { // offline
                             rqstNoRplCnt++;
+                            oprSp->ReOpen();
+                        }
+                        else if (rqstNoRplCnt < (db.GetUciProd().OfflineDebounce() + 3))
+                        {
+                            rqstNoRplCnt++;
+                        }
+                        else if (rqstNoRplCnt == (db.GetUciProd().OfflineDebounce() + 3))
+                        {
+                            rqstNoRplCnt++;
                             s->ReportOffline(true);
                         }
                     }
@@ -840,6 +846,15 @@ bool Group::TaskRqstSlave(int *_ptLine)
                     }
                     else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
                     { // offline
+                        rqstNoRplCnt++;
+                        oprSp->ReOpen();
+                    }
+                    else if (rqstNoRplCnt < (db.GetUciProd().OfflineDebounce() + 3))
+                    {
+                        rqstNoRplCnt++;
+                    }
+                    else if (rqstNoRplCnt == (db.GetUciProd().OfflineDebounce() + 3))
+                    {
                         rqstNoRplCnt++;
                         s->ReportOffline(true);
                     }
@@ -1100,11 +1115,11 @@ void Group::LoadPlanToPlnMin(uint8_t id)
     }
 }
 
-APP_ERROR Group::EnDisPlan(uint8_t id, bool endis)
+APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
 {
     if (IsPlanActive(id))
     {
-        return APP_ERROR::FrmMsgPlnActive;
+        return APP::ERROR::FrmMsgPlnActive;
     }
     if (id == 0)
     {
@@ -1114,38 +1129,38 @@ APP_ERROR Group::EnDisPlan(uint8_t id, bool endis)
     {
         if (!db.GetUciPln().IsPlnDefined(id))
         {
-            return APP_ERROR::FrmMsgPlnUndefined;
+            return APP::ERROR::FrmMsgPlnUndefined;
         }
-        APP_ERROR r = endis ? EnablePlan(id) : DisablePlan(id);
-        if (r != APP_ERROR::AppNoError)
+        APP::ERROR r = endis ? EnablePlan(id) : DisablePlan(id);
+        if (r != APP::ERROR::AppNoError)
         {
             return r;
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
     //PrintPlnMin();
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::EnablePlan(uint8_t id)
+APP::ERROR Group::EnablePlan(uint8_t id)
 {
     if (IsPlanEnabled(id))
     {
-        return APP_ERROR::PlanEnabled;
+        return APP::ERROR::PlanEnabled;
     }
     if (IsEnPlanOverlap(id))
     {
-        return APP_ERROR::OverlaysNotSupported;
+        return APP::ERROR::OverlaysNotSupported;
     }
     LoadPlanToPlnMin(id);
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::DisablePlan(uint8_t id)
+APP::ERROR Group::DisablePlan(uint8_t id)
 {
     if (!IsPlanEnabled(id))
     {
-        return APP_ERROR::PlanNotEnabled;
+        return APP::ERROR::PlanNotEnabled;
     }
     db.GetUciProcess().EnDisPlan(groupId, id, false);
     Plan *pln = db.GetUciPln().GetPln(id);
@@ -1180,7 +1195,7 @@ APP_ERROR Group::DisablePlan(uint8_t id)
         }
         week <<= 1;
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
 bool Group::IsMsgActive(uint8_t p)
@@ -1246,60 +1261,60 @@ void Group::DispBackup()
     newCurrent = 1;
 }
 
-APP_ERROR Group::DispFrm(uint8_t id)
+APP::ERROR Group::DispFrm(uint8_t id)
 {
     if (mainPwr == PWR_STATE::OFF)
     {
-        return APP_ERROR::PowerIsOff;
+        return APP::ERROR::PowerIsOff;
     }
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
-        return APP_ERROR::FacilitySwitchOverride;
+        return APP::ERROR::FacilitySwitchOverride;
     }
     if (cmdPwr == PWR_STATE::OFF)
     {
-        return APP_ERROR::PowerIsOff;
+        return APP::ERROR::PowerIsOff;
     }
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayFrame);
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = id;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
     DispNext(DISP_TYPE::FRM, id);
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::DispMsg(uint8_t id)
+APP::ERROR Group::DispMsg(uint8_t id)
 {
     if (mainPwr == PWR_STATE::OFF)
     {
-        return APP_ERROR::PowerIsOff;
+        return APP::ERROR::PowerIsOff;
     }
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
-        return APP_ERROR::FacilitySwitchOverride;
+        return APP::ERROR::FacilitySwitchOverride;
     }
     if (cmdPwr == PWR_STATE::OFF)
     {
-        return APP_ERROR::PowerIsOff;
+        return APP::ERROR::PowerIsOff;
     }
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayMessage);
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
     buf[1] = groupId;
     buf[2] = id;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
     DispNext(DISP_TYPE::MSG, id);
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::SetDimming(uint8_t dimming)
+APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
     targetDimmingLvl = 0x80 | dimming;
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::SetPower(uint8_t v)
+APP::ERROR Group::SetPower(uint8_t v)
 {
     if (v == 0)
     { // PowerOff
@@ -1327,14 +1342,14 @@ APP_ERROR Group::SetPower(uint8_t v)
             cmdPwr = PWR_STATE::RISING;
         }
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
-APP_ERROR Group::SetDevice(uint8_t endis)
+APP::ERROR Group::SetDevice(uint8_t endis)
 {
     deviceEnDisSet = (endis == 0) ? 0 : 1;
     db.GetUciProcess().SetDevice(groupId, deviceEnDisSet);
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
 void Group::EnDisDevice()
@@ -1717,7 +1732,7 @@ bool Group::DimmingAdjust()
                 }
             }
             lux = (luxCnt == 0) ? -1 /*all lightsensors are faulty*/ : lux / luxCnt /*average*/;
-            tgt = db.GetUciUser().GetLuxLevel(lux)-1; // 0-15
+            tgt = db.GetUciUser().GetLuxLevel(lux) - 1; // 0-15
         }
         else
         {
@@ -1727,7 +1742,7 @@ bool Group::DimmingAdjust()
         UciProd &prod = db.GetUciProd();
         if (tgt != cur)
         {
-            int tgtLevel=tgt+1;
+            int tgtLevel = tgt + 1;
             uint8_t *p = prod.Dimming();
             uint8_t newdim;
             if (++adjDimmingSteps < 16)
@@ -1773,27 +1788,27 @@ bool Group::DimmingAdjust()
     return r;
 }
 
-APP_ERROR Group::SystemReset(uint8_t v)
+APP::ERROR Group::SystemReset(uint8_t v)
 {
-    switch(v)
+    switch (v)
     {
-        case 0:
-            SystemReset0();
+    case 0:
+        SystemReset0();
         break;
-        case 1:
-            SystemReset1();
+    case 1:
+        SystemReset1();
         break;
-        case 2:
-            SystemReset2();
+    case 2:
+        SystemReset2();
         break;
     }
-    return APP_ERROR::AppNoError;
+    return APP::ERROR::AppNoError;
 }
 
 void Group::SystemReset0()
 {
     uint8_t buf[3];
-    buf[0] = static_cast<uint8_t>(MI_CODE::SignDisplayFrame);
+    buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = 0;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
@@ -1816,9 +1831,9 @@ void Group::SystemReset1()
 void Group::SystemReset2()
 {
     SystemReset1();
-    auto & proc = db.GetUciProcess();
+    auto &proc = db.GetUciProcess();
     // clear all faults
-    for(auto &s : vSigns)
+    for (auto &s : vSigns)
     {
         s->ClearFaults();
         proc.SaveSignErr(s->SignId(), 0);

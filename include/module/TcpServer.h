@@ -15,7 +15,7 @@
 class TcpServer : IGcEvent
 {
 public:
-    TcpServer(int listenPort, ObjectPool<OprTcp> & oPool, TimerEvent * tmr);
+    TcpServer(int listenPort, std::string serverType, int poolsize, TimerEvent * tmr);
     ~TcpServer();
 
     /// \brief  Incoming... Accept
@@ -24,13 +24,16 @@ public:
     /// \brief  Event triggered
     void EventsHandle(uint32_t events);
 
-    void Release(OprTcp * tcpOperator);
-
 private:
     int listenPort;
-    std::string name;
-    ObjectPool<OprTcp> & oPool;
+    std::string serverType;
+    int poolsize;
     TimerEvent * tmrEvt;
+
+    std::string name;
+
+    ObjectPool<OprTcp> * objPool;
+
     sockaddr_in myserver;
     void SetNonblocking(int sock);
 };

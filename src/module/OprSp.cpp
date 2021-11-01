@@ -4,6 +4,7 @@
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 #include <module/Epoll.h>
+#include <uci/DbHelper.h>
 
 OprSp::OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer)
 :comX(comX)
@@ -14,7 +15,13 @@ OprSp::OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer)
     this->upperLayer = upperLayer;
     upperLayer->LowerLayer(this);
     upperLayer->ClrRx();
-    sp->Open();
+    if(sp->Open()<0)
+    {
+        char buf[64];
+        snprintf(buf, 63, "Open %s failed", sp->Config().name);
+        DbHelper::Instance().GetUciAlarm().Push(0,buf);
+        MyThrow (buf);
+    }
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = sp->GetFd();
     Epoll::Instance().AddEvent(this, events);
@@ -51,7 +58,10 @@ void OprSp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        MyThrow ("%s closed: events=0x%08X\n", sp->Config().name, events);
+        char buf[64];
+        snprintf(buf, 63, "%s closed: events=0x%08X", sp->Config().name, events);
+        DbHelper::Instance().GetUciAlarm().Push(0,buf);
+        MyThrow (buf);
     }
     else if (events & EPOLLIN)
     {
@@ -88,5 +98,23 @@ int OprSp::RxHandle()
             PrintDbg("ComTx not ready\n");
         }
     }
+    return 0;
+}
+
+int OprSp::ReOpen()
+{
+    DbHelper::Instance().GetUciAlarm().Push(0,"ReOpen %s", sp->Config().name);
+
+    Epoll::Instance().DeleteEvent(this, events);
+    sp->Close();
+    upperLayer->ClrRx();
+    if(sp->Open()<0)
+    {
+        DbHelper::Instance().GetUciAlarm().Push(0,"ReOpen %s failed", sp->Config().name);
+        return -1;
+    }
+    events = EPOLLIN | EPOLLRDHUP;
+    eventFd = sp->GetFd();
+    Epoll::Instance().AddEvent(this, events);
     return 0;
 }

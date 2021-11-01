@@ -4,7 +4,7 @@
 #include <module/Epoll.h>
 #include <layer/UI_LayerManager.h>
 
-#define TCPSPEED 1000000    // 1M bytes per seconds
+#define TCPSPEED 1000000 // 1M bytes per seconds
 
 OprTcp::OprTcp()
 {
@@ -24,7 +24,7 @@ void OprTcp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        PrintDbg("Disconnected:events=0x%08X\n", events);
+        PrintDbg("%s-%s:Disconnected:events=0x%08X\n", name.c_str(), client, events);
         Release();
     }
     else if (events & EPOLLIN)
@@ -51,11 +51,12 @@ void OprTcp::Init(std::string name_, std::string aType, int idle)
 }
 
 /// \brief  Called when a new connection accepted
-void OprTcp::Setup(int fd, TimerEvent *tmr)
+void OprTcp::Accept(int fd, TimerEvent *tmr, const char * client)
 {
+    strcpy(this->client, client);
     upperLayer->ClrRx();
-    events = EPOLLIN | EPOLLRDHUP;
     eventFd = fd;
+    events = EPOLLIN | EPOLLRDHUP;
     Epoll::Instance().AddEvent(this, events);
     tmrEvt = tmr;
     tmrEvt->Add(this);
@@ -68,7 +69,12 @@ int OprTcp::Tx(uint8_t *data, int len)
     int x = TxBytes(data, len);
     if (x > 0)
     {
-        x = len*1000 / TCPSPEED;    // get ms
+        x = len * 1000 / TCPSPEED; // get ms
+    }
+    else if (x < 0)
+    {
+        PrintDbg("%s-%s:Tx failed\n", name.c_str(), client);
+        Release();
     }
     return (x < 10 ? 10 : x);
 }
@@ -78,7 +84,7 @@ void OprTcp::PeriodicRun()
 {
     if (tcpIdleTmr.IsExpired())
     {
-        PrintDbg("Idle timeout. Disconnected\n");
+        PrintDbg("%s-%s:Idle timeout. Disconnected\n", name.c_str(), client);
         Release();
     }
 }
@@ -92,7 +98,7 @@ int OprTcp::RxHandle()
     {
         int n = read(eventFd, buf, 4096);
         if (n <= 0)
-        {
+        {// no data
             return n;
         }
         else
@@ -104,34 +110,38 @@ int OprTcp::RxHandle()
             }
             else
             {
-                PrintDbg("TcpTx not ready\n");
+                PrintDbg("%s-%s:Tx not ready, discard rx\n", name.c_str(), client);
             }
         }
     }
-}
-
-/// --------------------------------------
-void OprTcp::SetServer(TcpServer *svr)
-{
-    server = svr;
 }
 
 /// \brief
 void OprTcp::Release()
 {
     tcpIdleTmr.Clear();
-    if(tmrEvt!=nullptr)
+    if (tmrEvt != nullptr)
     {
         tmrEvt->Remove(this);
+        tmrEvt = nullptr;
     }
     if (events > 0)
     {
         Epoll::Instance().DeleteEvent(this, events);
         events = 0;
     }
-    if(server!=nullptr)
+    if (eventFd > 0)
     {
-        server->Release(this);
+        close(eventFd);
+        eventFd = -1;
+        ParentPool()->Push(this);
     }
-    eventFd = -1;
+}
+
+void OprTcp::PopClean()
+{
+}
+
+void OprTcp::PushClean()
+{
 }

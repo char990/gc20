@@ -26,6 +26,8 @@ public:
     virtual void EventsHandle(uint32_t events) override;
     /*--------------------------------------------------------->*/
 
+    int ReOpen();
+
 private:
     uint8_t comX;
     SerialPort *sp;

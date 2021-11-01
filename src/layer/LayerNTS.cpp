@@ -7,23 +7,23 @@
 
 using namespace Utils;
 
-const MI_CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
-    MI_CODE::SystemReset,
-    MI_CODE::UpdateTime,
-    MI_CODE::EndSession,
-    MI_CODE::SignSetTextFrame,
-    MI_CODE::SignSetGraphicsFrame,
-    MI_CODE::SignSetMessage,
-    MI_CODE::SignSetPlan,
-    MI_CODE::SignDisplayFrame,
-    MI_CODE::SignDisplayMessage,
-    MI_CODE::EnablePlan,
-    MI_CODE::DisablePlan,
-    MI_CODE::SignSetDimmingLevel,
-    MI_CODE::PowerOnOff,
-    MI_CODE::ResetFaultLog,
-    MI_CODE::SignSetHighResolutionGraphicsFrame,
-    MI_CODE::SignDisplayAtomicFrames};
+const MI::CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
+    MI::CODE::SystemReset,
+    MI::CODE::UpdateTime,
+    MI::CODE::EndSession,
+    MI::CODE::SignSetTextFrame,
+    MI::CODE::SignSetGraphicsFrame,
+    MI::CODE::SignSetMessage,
+    MI::CODE::SignSetPlan,
+    MI::CODE::SignDisplayFrame,
+    MI::CODE::SignDisplayMessage,
+    MI::CODE::EnablePlan,
+    MI::CODE::DisablePlan,
+    MI::CODE::SignSetDimmingLevel,
+    MI::CODE::PowerOnOff,
+    MI::CODE::ResetFaultLog,
+    MI::CODE::SignSetHighResolutionGraphicsFrame,
+    MI::CODE::SignDisplayAtomicFrames};
 
 LayerNTS::LayerNTS(std::string name_)
 {
@@ -54,7 +54,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     _addr = addr;
     int mi = Cnvt::ParseToU8((char *)data + 8);
-    if ((mi == static_cast<uint8_t>(MI_CODE::StartSession) && len == 15 && addr == user.DeviceId()) ||
+    if ((mi == static_cast<uint8_t>(MI::CODE::StartSession) && len == 15 && addr == user.DeviceId()) ||
         (sessionTimeout.IsExpired() && session == ISession::SESSION::ON_LINE))
     {
         session = ISession::SESSION::OFF_LINE;

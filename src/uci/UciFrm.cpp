@@ -108,32 +108,32 @@ uint8_t UciFrm::GetFrmRev(uint8_t i)
 	return IsFrmDefined(i) ? frms[i - 1]->frmRev : 0;
 }
 
-APP_ERROR UciFrm::SetFrm(uint8_t *buf, int len)
+APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 {
 	if (len > maxFrmSize)
-		return APP_ERROR::LengthError;
+		return APP::ERROR::LengthError;
 	Frame *pFrm;
-	if (buf[0] == static_cast<uint8_t>(MI_CODE::SignSetTextFrame))
+	if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
 	{
 		pFrm = new FrmTxt(buf, len);
 	}
-	else if (buf[0] == static_cast<uint8_t>(MI_CODE::SignSetGraphicsFrame))
+	else if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame))
 	{
 		pFrm = new FrmGfx(buf, len);
 	}
-	else if (buf[0] == static_cast<uint8_t>(MI_CODE::SignSetHighResolutionGraphicsFrame))
+	else if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
 	{
 		pFrm = new FrmHrg(buf, len);
 	}
 	else if (buf[1] == 0)
 	{
-		return APP_ERROR::FrmMsgPlnUndefined;
+		return APP::ERROR::FrmMsgPlnUndefined;
 	}
 	else
 	{
-		return APP_ERROR::UnknownMi;
+		return APP::ERROR::UnknownMi;
 	}
-	if (pFrm->appErr != APP_ERROR::AppNoError)
+	if (pFrm->appErr != APP::ERROR::AppNoError)
 	{
 		auto r = pFrm->appErr;
 		delete pFrm;
@@ -147,7 +147,7 @@ APP_ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 	}
 	chksum -= pFrm->crc;
 	frms[pFrm->frmId-1]=pFrm;
-	return APP_ERROR::AppNoError;
+	return APP::ERROR::AppNoError;
 }
 
 void UciFrm::SaveFrm(uint8_t i)

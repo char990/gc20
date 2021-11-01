@@ -87,11 +87,11 @@ uint8_t UciMsg::GetMsgRev(uint8_t i)
 	return IsMsgDefined(i) ? msgs[i - 1].msgRev : 0;
 }
 
-APP_ERROR UciMsg::SetMsg(uint8_t *buf, int len)
+APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
 {
 	Message msg;
-	APP_ERROR r = msg.Init(buf, len);
-	if (r == APP_ERROR::AppNoError)
+	APP::ERROR r = msg.Init(buf, len);
+	if (r == APP::ERROR::AppNoError)
 	{
 		int i = msg.msgId - 1;
 		if (msgs[i].micode != 0)

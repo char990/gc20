@@ -37,7 +37,7 @@ public:
     ~Plan(){};
 
     /// \breif  ini plan with hex array, with 2-byte crc
-    APP_ERROR Init(uint8_t * xpln, int xlen);
+    APP::ERROR Init(uint8_t * xpln, int xlen);
     
     uint8_t micode{0};
     uint8_t plnId;

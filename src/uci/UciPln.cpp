@@ -86,11 +86,11 @@ uint8_t UciPln::GetPlnRev(uint8_t i)
     return IsPlnDefined(i) ? plns[i - 1].plnRev : 0;
 }
 
-APP_ERROR UciPln::SetPln(uint8_t *buf, int len)
+APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
 {
     Plan pln;
-    APP_ERROR r = pln.Init(buf, len);
-    if (r == APP_ERROR::AppNoError)
+    APP::ERROR r = pln.Init(buf, len);
+    if (r == APP::ERROR::AppNoError)
     {
         // check plan overlap
         int i = pln.plnId - 1;

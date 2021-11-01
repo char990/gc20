@@ -46,18 +46,18 @@ public:
     bool IsPlnActive(uint8_t i);
 
     // cmaand from TSI-SP-003
-    APP_ERROR CmdDispFrm(uint8_t *cmd);
-    APP_ERROR CmdDispMsg(uint8_t *cmd);
-    APP_ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
+    APP::ERROR CmdDispFrm(uint8_t *cmd);
+    APP::ERROR CmdDispMsg(uint8_t *cmd);
+    APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
 
     int CmdRequestEnabledPlans(uint8_t *buf);
-    APP_ERROR CmdEnDisPlan(uint8_t *cmd);
+    APP::ERROR CmdEnDisPlan(uint8_t *cmd);
 
-    APP_ERROR CmdSetDimmingLevel(uint8_t *cmd);
-    APP_ERROR CmdPowerOnOff(uint8_t *cmd, int len);
-    APP_ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
+    APP::ERROR CmdSetDimmingLevel(uint8_t *cmd);
+    APP::ERROR CmdPowerOnOff(uint8_t *cmd, int len);
+    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
 
-    APP_ERROR CmdSystemReset(uint8_t *cmd);
+    APP::ERROR CmdSystemReset(uint8_t *cmd);
 
     CtrllerError ctrllerError;
     /// \brief Session timeout timer

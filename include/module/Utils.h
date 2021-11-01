@@ -25,60 +25,68 @@ namespace Utils
     class State5
     {
     public:
-        State5() { v = STATE5::S5_NA; };
-        State5(STATE5 _v) : v(_v){};
-        void Init(STATE5 _v) { v = _v; };
+        State5() { value = STATE5::S5_NA; };
+        State5(STATE5 _v) : value(_v){};
+        void Init(STATE5 _v) { value = _v; };
         void Set()
         {
-            if (v == STATE5::S5_NA || v == STATE5::S5_0 || v == STATE5::S5_F)
+            if (value == STATE5::S5_NA || value == STATE5::S5_0 || value == STATE5::S5_F)
             {
-                v = STATE5::S5_R;
+                value = STATE5::S5_R;
             }
         };
         void Clr()
         {
-            if (v == STATE5::S5_NA || v == STATE5::S5_1 || v == STATE5::S5_R)
+            if (value == STATE5::S5_NA || value == STATE5::S5_1 || value == STATE5::S5_R)
             {
-                v = STATE5::S5_F;
+                value = STATE5::S5_F;
             }
         };
         void ClearEdge()
         {
-            if (v == STATE5::S5_R)
+            if (value == STATE5::S5_R)
             {
-                v = STATE5::S5_1;
+                value = STATE5::S5_1;
             }
-            else if (v == STATE5::S5_F)
+            else if (value == STATE5::S5_F)
             {
-                v = STATE5::S5_0;
+                value = STATE5::S5_0;
             }
         };
 
         void ClearRising()
         {
-            if (v == STATE5::S5_R)
+            if (value == STATE5::S5_R)
             {
-                v = STATE5::S5_1;
+                value = STATE5::S5_1;
             }
         };
         void ClearFalling()
         {
-            if (v == STATE5::S5_F)
+            if (value == STATE5::S5_F)
             {
-                v = STATE5::S5_0;
+                value = STATE5::S5_0;
             }
         };
 
-        bool HasEdge() { return v == STATE5::S5_R || v == STATE5::S5_F; };
-        bool IsRising() { return v == STATE5::S5_R; };
-        bool IsHigh() { return v == STATE5::S5_R || v == STATE5::S5_1; };
-        bool IsFalling() { return v == STATE5::S5_F; };
-        bool IsLow() { return v == STATE5::S5_F || v == STATE5::S5_0; };
-        bool IsValid() { return v != Utils::STATE5::S5_NA; };
-        STATE5 Value() { return v; };
+        bool HasEdge() { return value == STATE5::S5_R || value == STATE5::S5_F; };
+        bool IsRising() { return value == STATE5::S5_R; };
+        bool IsHigh() { return value == STATE5::S5_R || value == STATE5::S5_1; };
+        bool IsFalling() { return value == STATE5::S5_F; };
+        bool IsLow() { return value == STATE5::S5_F || value == STATE5::S5_0; };
+        bool IsValid() { return value != STATE5::S5_NA; };
+        STATE5 Value() { return value; };
+        const char * State()
+        {
+            if(value==STATE5::S5_0) return "Low";
+            else if(value==STATE5::S5_1) return "High";
+            else if(value==STATE5::S5_F) return "Falling";
+            else if(value==STATE5::S5_R) return "Rising";
+            return "N/A";
+        }
 
     protected:
-        STATE5 v;
+        STATE5 value;
     };
 
     extern const uint32_t MASK_BIT[32];

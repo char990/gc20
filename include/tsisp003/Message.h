@@ -21,7 +21,7 @@ public:
     ~Message(){};
 
     /// \breif  ini msg with hex array, last 2-byte is CRC (Don't need to check)
-    APP_ERROR Init(uint8_t * msg, int len);
+    APP::ERROR Init(uint8_t * msg, int len);
 
     uint8_t micode{0};
     uint8_t msgId;

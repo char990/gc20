@@ -76,6 +76,7 @@ public:
         }
         return &extSw[i];
     };
+    const char * ShakehandsPassword() {return shakehandsPassword; };
 
     /// --------setter--------
     void BroadcastId(uint8_t);
@@ -103,6 +104,7 @@ public:
     void DawnDusk(uint8_t *);
     void GroupCfg(uint8_t *);
     void ExtSwCfgX(int i, ExtSw *cfg);
+    void ShakehandsPassword(const char * shake);
 
 private:
 

@@ -1,4 +1,5 @@
 #include <tsisp003/TsiSp003Const.h>
+#include <vector>
 
 const char *TSISP003VER[TSISP003VER_SIZE] = {
     "QLD,2.1",
@@ -9,6 +10,139 @@ const char *PRODTYPE[PRODTYPE_SIZE] = {
     "VMS",   // 1 group of VMS at 1 com, 1 group has 1 sign, 1 sign has 1-x slaves, sign id is not equal to slave id
     "ISLUS", //  1 group of ISLUS at 1 com, 1 group has 1-x sign, 1 sign has 1 slave, slave id is same as sign Id
 };
+
+std::vector<MI::sMiCodeStr> MI::micode_str{
+    {MI::CODE::Reject, "Reject"},
+    {MI::CODE::Ack, "Ack"},
+    {MI::CODE::StartSession, "StartSession"},
+    {MI::CODE::PasswordSeed, "PasswordSeed"},
+    {MI::CODE::Password, "Password"},
+    {MI::CODE::HeartbeatPoll, "HeartbeatPoll"},
+    {MI::CODE::SignStatusReply, "SignStatusReply"},
+    {MI::CODE::EndSession, "EndSession"},
+    {MI::CODE::SystemReset, "SystemReset"},
+    {MI::CODE::UpdateTime, "UpdateTime"},
+    {MI::CODE::SignSetTextFrame, "SignSetTextFrame"},
+    {MI::CODE::SignSetGraphicsFrame, "SignSetGraphicsFrame"},
+    {MI::CODE::SignSetMessage, "SignSetMessage"},
+    {MI::CODE::SignSetPlan, "SignSetPlan"},
+    {MI::CODE::SignDisplayFrame, "RejSignDisplayFrameect"},
+    {MI::CODE::SignDisplayMessage, "SignDisplayMessage"},
+    {MI::CODE::EnablePlan, "EnablePlan"},
+    {MI::CODE::DisablePlan, "DisablePlan"},
+    {MI::CODE::RequestEnabledPlans, "RequestEnabledPlans"},
+    {MI::CODE::ReportEnabledPlans, "ReportEnabledPlans"},
+    {MI::CODE::SignSetDimmingLevel, "SignSetDimmingLevel"},
+    {MI::CODE::PowerOnOff, "PowerOnOff"},
+    {MI::CODE::DisableEnableDevice, "DisableEnableDevice"},
+    {MI::CODE::SignRequestStoredFMP, "SignRequestStoredFMP"},
+    {MI::CODE::RetrieveFaultLog, "RetrieveFaultLog"},
+    {MI::CODE::FaultLogReply, "FaultLogReply"},
+    {MI::CODE::ResetFaultLog, "ResetFaultLog"},
+    {MI::CODE::SignExtendedStatusRequest, "SignExtendedStatusRequest"},
+    {MI::CODE::SignExtendedStatusReply, "SignExtendedStatusReply"},
+    {MI::CODE::SignSetHighResolutionGraphicsFrame, "SignSetHighResolutionGraphicsFrame"},
+    {MI::CODE::SignConfigurationRequest, "SignConfigurationRequest"},
+    {MI::CODE::SignConfigurationReply, "SignConfigurationReply"},
+    {MI::CODE::SignDisplayAtomicFrames, "SignDisplayAtomicFrames"},
+    {MI::CODE::HARStatusReply, "HARStatusReply"},
+    {MI::CODE::HARSetVoiceDataIncomplete, "HARSetVoiceDataIncomplete"},
+    {MI::CODE::HARSetVoiceDataComplete, "HARSetVoiceDataComplete"},
+    {MI::CODE::HARSetStrategy, "HARSetStrategy"},
+    {MI::CODE::HARActivateStrategy, "HARActivateStrategy"},
+    {MI::CODE::HARSetPlan, "HARSetPlan"},
+    {MI::CODE::HARRequestStoredVSP, "HARRequestStoredVSP"},
+    {MI::CODE::HARSetVoiceDataACK, "HARSetVoiceDataACK"},
+    {MI::CODE::HARSetVoiceDataNAK, "HARSetVoiceDataNAK"},
+    {MI::CODE::EnvironmentalWeatherStatusReply, "EnvironmentalWeatherStatusReply"},
+    {MI::CODE::RequestEnvironmentalWeatherValues, "RequestEnvironmentalWeatherValues"},
+    {MI::CODE::EnvironmentalWeatherValues, "EnvironmentalWeatherValues"},
+    {MI::CODE::EnvironmentalWeatherThresholdDefinition, "EnvironmentalWeatherThresholdDefinition"},
+    {MI::CODE::RequestThresholdDefinition, "RequestThresholdDefinition"},
+    {MI::CODE::RequestEnvironmentalWeatherEventLog, "RequestEnvironmentalWeatherEventLog"},
+    {MI::CODE::EnvironmentalWeatherEventLogReply, "EnvironmentalWeatherEventLogReply"},
+    {MI::CODE::ResetEnvironmentalWeatherEventLog, "ResetEnvironmentalWeatherEventLog"},
+    {MI::CODE::UserDefinedCmdF0, "UserDefinedCmdF0"},
+    {MI::CODE::UserDefinedCmdF1, "UserDefinedCmdF1"},
+    {MI::CODE::UserDefinedCmdF2, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF3, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF4, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF5, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF6, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF7, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF8, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdF9, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdFA, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdFB, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdFC, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdFD, "UserDefinedCmdF2"},
+    {MI::CODE::UserDefinedCmdFE, "UserDefinedCmdF2"}};
+
+const char *MI::ToStr(uint8_t code)
+{
+    for (auto &s : micode_str)
+    {
+        if(code == static_cast<uint8_t>(s.code))
+        {
+            return s.str;
+        }
+    }
+    return "Unknown Mi code";
+}
+
+std::vector<APP::sAppErrorStr> APP::apperror_str{
+    {APP::ERROR::AppNoError, "AppNoError"},
+    {APP::ERROR::DeviceControllerOffline, "DeviceControllerOffline"},
+    {APP::ERROR::SyntaxError, "SyntaxError"},
+    {APP::ERROR::LengthError, "LengthError"},
+    {APP::ERROR::DataChksumError, "DataChksumError"},
+    {APP::ERROR::TextNonASC, "TextNonASC"},
+    {APP::ERROR::FrameTooLarge, "FrameTooLarge"},
+    {APP::ERROR::UnknownMi, "UnknownMi"},
+    {APP::ERROR::MiNotSupported, "MiNotSupported"},
+    {APP::ERROR::PowerIsOff, "PowerIsOff"},
+    {APP::ERROR::UndefinedDeviceNumber, "UndefinedDeviceNumber"},
+    {APP::ERROR::FontNotSupported, "FontNotSupported"},
+    {APP::ERROR::ColourNotSupported, "ColourNotSupported"},
+    {APP::ERROR::OverlaysNotSupported, "OverlaysNotSupported"},
+    {APP::ERROR::DimmingLevelNotSupported, "DimmingLevelNotSupported"},
+    {APP::ERROR::FrmMsgPlnActive, "FrmMsgPlnActive"},
+    {APP::ERROR::FacilitySwitchOverride, "FacilitySwitchOverride"},
+    {APP::ERROR::ConspicuityNotSupported, "ConspicuityNotSupported"},
+    {APP::ERROR::TransitionTimeNotSupported, "TransitionTimeNotSupported"},
+    {APP::ERROR::FrmMsgPlnUndefined, "FrmMsgPlnUndefined"},
+    {APP::ERROR::PlanNotEnabled, "PlanNotEnabled"},
+    {APP::ERROR::PlanEnabled, "PlanEnabled"},
+    {APP::ERROR::SizeMismatch, "SizeMismatch"},
+    {APP::ERROR::FrameTooSmall, "FrameTooSmall"},
+    {APP::ERROR::HARStrategyStopped, "HARStrategyStopped"},
+    {APP::ERROR::HarStrategyUndefined, "HarStrategyUndefined"},
+    {APP::ERROR::HARStrategyError, "HARStrategyError"},
+    {APP::ERROR::HARVoiceError, "HARVoiceError"},
+    {APP::ERROR::HARVoiceNotSupported, "HARVoiceNotSupported"},
+    {APP::ERROR::HARHardwareError, "HARHardwareError"},
+    {APP::ERROR::TimeExpired, "TimeExpired"},
+    {APP::ERROR::CollourDepthNotSupported, "CollourDepthNotSupported"},
+    {APP::ERROR::IncompleteColouFrameDefinition, "IncompleteColouFrameDefinition"},
+    {APP::ERROR::IncorrectPassword, "IncorrectPassword"},
+    {APP::ERROR::InterlockingInvalidSetting, "InterlockingInvalidSetting"},
+    {APP::ERROR::InterlockingMissingSigns, "InterlockingMissingSigns"},
+    {APP::ERROR::InterlockingNotActive, "InterlockingNotActive"},
+    {APP::ERROR::InterlocckingActive, "InterlocckingActive"},
+    {APP::ERROR::UNDEFINED, "UNDEFINED"},
+};
+
+const char * APP::ToStr(uint8_t code)
+{
+    for (auto &s : apperror_str)
+    {
+        if(code == static_cast<uint8_t>(s.code))
+        {
+            return s.str;
+        }
+    }
+    return "Unknown App Error";
+}
 
 const char *DEV::STR[] = {
     "DevNoError",
@@ -55,7 +189,7 @@ const char *DEV::STR[] = {
     "VibrationAlarm",
     "OperatingOnSecondaryPower"};
 
-const char *DEV::GetStr(DEV::ERROR err)
+const char *DEV::ToStr(DEV::ERROR err)
 {
     if (err == ERROR::PreexistingOrReoccurringFaultExists)
     {
@@ -67,6 +201,6 @@ const char *DEV::GetStr(DEV::ERROR err)
     }
     else
     {
-        return STR[err];
+        return STR[static_cast<uint8_t>(err)];
     }
 };
