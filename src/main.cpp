@@ -233,7 +233,8 @@ int main(int argc, char *argv[])
         TcpServer tcpServerWeb{user.WebPort(), "WEB", LINKS_WEB, &tmrEvt1Sec};
 
         // TSI-SP-003 Tcp
-        TcpServer tcpServerPhcs{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
+        TcpServer tcpServerNts{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
+        Controller::Instance().SetTcpServer(&tcpServerNts);
 
         PrintDbg("\n>>> START >>>\n");
 
@@ -246,7 +247,9 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &e)
     {
+    //muntrace();
         printf("main exception: %s\n", e.what());
+        exit(1);
         // clean
     }
     //muntrace();

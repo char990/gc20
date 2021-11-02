@@ -45,6 +45,8 @@ public:
 
     std::string Name() { return name; };
 
+    void Release();
+
 private:
     std::string name;
     TcpServer * server{nullptr};
@@ -55,10 +57,7 @@ private:
     /// \brief  Called in EventsHandle
     int RxHandle();
 
-    void Release();
-
     char client[24];
-
 };
 
 

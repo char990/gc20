@@ -62,6 +62,12 @@ int TsiSp003App::UserDefinedCmdFA(uint8_t *data, int len)
     case FACMD_SHAKE_PASSWD:
         FAF2_ShakehandsPasswd(data, len);
         break;
+    case FACMD_RESTART:
+        FAF5_Restart(data, len);
+        break;
+    case FACMD_REBOOT:
+        FAFA_Reboot(data, len);
+        break;
     default:
         Reject(APP::ERROR::SyntaxError);
     }
@@ -144,11 +150,11 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
     return 0;
 }
 
-APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char * shakehands_passwd)
+APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
 {
     if (shake_hands_status != 2)
     {
-        return (APP::ERROR::IncorrectPassword);
+        return APP::ERROR::IncorrectPassword;
     }
     // check valid data
     uint32_t v;
@@ -186,11 +192,9 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char * shakehands_passwd)
             shakehands_passwd[i] = pc;
         }
     }
-    return APP::ERROR::AppNoError;
-
-    unsigned char tmp0[4] = {0, 0, 0, 0};
-    unsigned char tmp255[4] = {255, 255, 255, 255};
-    unsigned char *pip = pd + 36;
+    uint8_t tmp0[4] = {0, 0, 0, 0};
+    uint8_t tmp255[4] = {255, 255, 255, 255};
+    uint8_t *pip = pd + 36;
     if (memcmp(pip, tmp0, 4) == 0 || memcmp(pip, tmp255, 4) == 0)
         return APP::ERROR::SyntaxError;
 
@@ -201,6 +205,11 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char * shakehands_passwd)
     unsigned char *pgateway = pd + 47;
     if (memcmp(pgateway, tmp0, 4) == 0 || memcmp(pgateway, tmp255, 4) == 0)
         return APP::ERROR::SyntaxError;
+
+    if (memcmp(pgateway, pip, 4) == 0)
+        return APP::ERROR::SyntaxError;
+
+    return APP::ERROR::AppNoError;
 }
 
 int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
@@ -212,49 +221,41 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
         if (a != APP::ERROR::AppNoError)
         {
             Reject(a);
+            return 0;
         }
         else
         {
             uint8_t *pd = data;
-            auto & user = DbHelper::Instance().GetUciUser();
-            auto & evt =  DbHelper::Instance().GetUciEvent();
-             
+            auto &user = DbHelper::Instance().GetUciUser();
+            auto &evt = DbHelper::Instance().GetUciEvent();
             // restart/reboot flag
-            unsigned char rr_flag{0}, RQST_NEXT_SESSION{1}, RQST_END_SESSION{1}, RQST_RESTART{2};
-            user.UserOpen();
+            unsigned char rr_flag=0;
+            user.OpenSECTION();
             // save config
             uint32_t v;
             v = *(pd + 2);
             if (v != user.SeedOffset())
             {
-                evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X . End current session.",
-                            user.SeedOffset(), v);
+                evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X", user.SeedOffset(), v);
                 user.SeedOffset(v);
-                rr_flag = RQST_NEXT_SESSION;
             }
             v = Cnvt::GetU16(pd + 3);
             if (v != user.PasswordOffset())
             {
-                evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X . End current session.",
-                            user.PasswordOffset(), v);
+                evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X", user.PasswordOffset(), v);
                 user.PasswordOffset(v);
-                rr_flag = RQST_NEXT_SESSION;
             }
-
             v = *(pd + 5);
             if (v != user.DeviceId())
             {
-                evt.Push(0, "User.DeviceID changed: %u->%u . End current session.", user.DeviceId(), v);
+                evt.Push(0, "User.DeviceID changed: %u->%u", user.DeviceId(), v);
                 user.DeviceId(v);
-                rr_flag = RQST_END_SESSION;
             }
-
             v = *(pd + 6);
             if (v != user.BroadcastId())
             {
-                evt.Push(0, "User.BroadcastID changed: %u->%u . End current session.", user.BroadcastId(), v);
+                evt.Push(0, "User.BroadcastID changed: %u->%u", user.BroadcastId(), v);
                 user.BroadcastId(v);
-                rr_flag = RQST_END_SESSION;
             }
 
             /*
@@ -271,25 +272,25 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.Baudrate())
             {
                 evt.Push(0, "User.Baudrate changed: %u->%u . Restart to load new setting",
-                            user.Baudrate(), v);
+                         user.Baudrate(), v);
                 user.Baudrate(v);
-                rr_flag = RQST_RESTART;
+                rr_flag |= RQST_RESTART;
             }
 
             v = Cnvt::GetU16(pd + 12);
             if (v != user.SvcPort())
             {
                 evt.Push(0, "User.SvcPort changed: %u->%u. Restart to load new setting",
-                            user.SvcPort(), v);
+                         user.SvcPort(), v);
                 user.SvcPort(v);
-                rr_flag = RQST_RESTART;
+                rr_flag |= RQST_RESTART;
             }
 
             v = Cnvt::GetU16(pd + 14);
             if (v != user.SessionTimeout())
             {
                 evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                            user.SessionTimeout(), v);
+                         user.SessionTimeout(), v);
                 user.SessionTimeout(v);
             }
 
@@ -297,7 +298,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.DisplayTimeout())
             {
                 evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                            user.DisplayTimeout(), v);
+                         user.DisplayTimeout(), v);
                 user.DisplayTimeout(v);
             }
 
@@ -305,7 +306,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.OverTemp())
             {
                 evt.Push(0, "User.OverTemp changed: %u->%u",
-                            user.OverTemp(), v);
+                         user.OverTemp(), v);
                 user.OverTemp(v);
             }
 
@@ -313,7 +314,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.Fan1OnTemp())
             {
                 evt.Push(0, "User.Fan1OnTemp changed: %u->%u",
-                            user.Fan1OnTemp(), v);
+                         user.Fan1OnTemp(), v);
                 user.Fan1OnTemp(v);
             }
 
@@ -321,7 +322,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.Humidity())
             {
                 evt.Push(0, "User.Humidity changed: %u->%u",
-                            user.Humidity(), v);
+                         user.Humidity(), v);
                 user.Humidity(v);
             }
 
@@ -329,15 +330,16 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.Tz())
             {
                 evt.Push(0, "User.Timezone changed: %u->%u",
-                            user.Tz(), v);
+                         user.Tz(), v);
                 user.Tz(v);
+                rr_flag |= RQST_RESTART;
             }
 
             v = *(pd + 22);
             if (v != user.DefaultFont())
             {
                 evt.Push(0, "User.DefaultFont changed: %u->%u",
-                            user.DefaultFont(), v);
+                         user.DefaultFont(), v);
                 user.DefaultFont(v);
             }
 
@@ -345,7 +347,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.DefaultColour())
             {
                 evt.Push(0, "User.DefaultColour changed: %u->%u",
-                            user.DefaultColour(), v);
+                         user.DefaultColour(), v);
                 user.DefaultColour(v);
             }
 
@@ -353,7 +355,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.MultiLedFaultThreshold())
             {
                 evt.Push(0, "User.MultiLed changed: %u->%u",
-                            user.MultiLedFaultThreshold(), v);
+                         user.MultiLedFaultThreshold(), v);
                 user.MultiLedFaultThreshold(v);
             }
 
@@ -365,8 +367,8 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             v = *(pd + 40);
             if (v != user.LockedMsg())
             {
-                evt.Push(0, "user.LockedMsg changed: %u->%u",
-                            user.LockedMsg(), v);
+                evt.Push(0, "User.LockedMsg changed: %u->%u",
+                         user.LockedMsg(), v);
                 user.LockedMsg(v);
             }
 
@@ -374,7 +376,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.LockedFrm())
             {
                 evt.Push(0, "User.LockedFrm changed: %u->%u",
-                            user.LockedFrm(), v);
+                         user.LockedFrm(), v);
                 user.LockedFrm(v);
             }
 
@@ -382,51 +384,64 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             if (v != user.LastFrmOn())
             {
                 evt.Push(0, "User.LastFrmOn changed: %u->%u",
-                            user.LastFrmOn(), v);
+                         user.LastFrmOn(), v);
                 user.LastFrmOn(v);
             }
-            user.UserClose();
-            #if 0
-            // TODO network settings
-            unsigned char *network;
-            network = user.NetworkIpaddr();
-            if (memcmp(pip, network, 4) != 0)
-            {
-                evt.Push(0, "network.ipaddr changed: %u.%u.%u.%u-> %u.%u.%u.%u. Reboot to load new setting",
-                            *network, *(network + 1), *(network + 2), *(network + 3), *pip, *(pip + 1), *(pip + 2), *(pip + 3));
-                user.NetworkIpaddr(pip);
-                rr_flag = RQST_REBOOT;
-            }
+            user.CommitCloseSECTION();
 
-            network = user.NetworkNetmask();
-            if (memcmp(pnetmask, network, 4) != 0)
+            // network settings
+            auto &net = DbHelper::Instance().GetUciNetwork();
+            uint8_t *pip1 = pd + 36;
+            uint8_t *nip1 = net.Ipaddr();
+            int m1 = memcmp(pip1, nip1, 4);
+            uint8_t *pip2 = pd + 43;
+            uint8_t *nip2 = net.Netmask();
+            int m2 = memcmp(pip2, nip2, 4);
+            uint8_t *pip3 = pd + 47;
+            uint8_t *nip3 = net.Gateway();
+            int m3 = memcmp(pip3, nip3, 4);
+            if (m1 != 0 || m2 != 0 || m3 != 0)
             {
-                evt.Push(0, "network.netmask changed: %u.%u.%u.%u-> %u.%u.%u.%u. Reboot to load new setting",
-                            *network, *(network + 1), *(network + 2), *(network + 3), *pnetmask, *(pnetmask + 1), *(pnetmask + 2), *(pnetmask + 3));
-                user.NetworkNetmask(pnetmask);
-                rr_flag = RQST_REBOOT;
+                net.OpenSECTION();
+                if (m1 != 0)
+                {
+                    evt.Push(0, "network.ipaddr changed: %u.%u.%u.%u-> %u.%u.%u.%u",
+                             nip1[0], nip1[1], nip1[2], nip1[3], pip1[0], pip1[1], pip1[2], pip1[3]);
+                    net.Ipaddr(pip1);
+                }
+                if (m2 != 0)
+                {
+                    evt.Push(0, "network.netmask changed: %u.%u.%u.%u-> %u.%u.%u.%u",
+                             nip2[0], nip2[1], nip2[2], nip2[3], pip2[0], pip2[1], pip2[2], pip2[3]);
+                    net.Netmask(pip2);
+                }
+                if (m3 != 0)
+                {
+                    evt.Push(0, "network.gateway changed: %u.%u.%u.%u-> %u.%u.%u.%u",
+                             nip3[0], nip3[1], nip3[2], nip3[3], pip3[0], pip3[1], pip3[2], pip3[3]);
+                    net.Gateway(pip3);
+                }
+                net.CommitCloseSECTION();
+                rr_flag |= RQST_NETWORK;
             }
-
-            network = user.NetworkGateway();
-            if (memcmp(pgateway, network, 4) != 0)
-            {
-                evt.Push(0, "network.gateway changed: %u.%u.%u.%u-> %u.%u.%u.%u. Reboot to load new setting",
-                            *network, *(network + 1), *(network + 2), *(network + 3), *pgateway, *(pgateway + 1), *(pgateway + 2), *(pgateway + 3));
-                user.NetworkGateway(pgateway);
-                rr_flag = RQST_REBOOT;
-            }
-            if (rr_flag == RQST_END_SESSION)
-            {
-                DisplayTimeout_StartCount(user.DisplayTimeout()); // renew display time
-                processCtrlFaultErrState(DISPLAYTIMEOUT, 0);              // Error = 0x1C
-                // Session_StartCount(user.SessionTimeout()); // renew session time
-                processCtrlFaultErrState(SESSIONTIMEOUT, 0); // Error = 0x02
-                _Session_END();                              // SessionTimeout disabled in _Session_END
-            }
-            #endif
             txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
             txbuf[1] = FACMD_RPL_SET_USER_CFG;
-            txbuf[2] = rr_flag;
+            if (rr_flag == 0)
+            {
+                txbuf[2] = 0;
+            }
+            else
+            {
+                if (rr_flag & RQST_NETWORK)
+                {
+                    Controller::Instance().RR_flag(rr_flag);
+                    txbuf[2] = 5;
+                }
+                if (rr_flag & RQST_RESTART)
+                {
+                    txbuf[2] = 1;
+                }
+            }
             Tx(txbuf, 3);
         }
     }
@@ -459,24 +474,16 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
-        // ip
-        *pt++ = 192;
-        *pt++ = 168;
-        *pt++ = 0;
-        *pt++ = 1;
+        auto &net = DbHelper::Instance().GetUciNetwork();
+        memcpy(pt, net.Ipaddr(), 4);
+        pt += 4;
         *pt++ = user.LockedMsg();
         *pt++ = user.LockedFrm();
         *pt++ = user.LastFrmOn();
-        // netmask
-        *pt++ = 255;
-        *pt++ = 255;
-        *pt++ = 255;
-        *pt++ = 0;
-        // gateway
-        *pt++ = 192;
-        *pt++ = 168;
-        *pt++ = 0;
-        *pt++ = 1;
+        memcpy(pt, net.Netmask(), 4);
+        pt += 4;
+        memcpy(pt, net.Gateway(), 4);
+        pt += 4;
         Tx(txbuf, pt - txbuf);
     }
     return 0;
@@ -548,10 +555,10 @@ int TsiSp003App::FA01_SetLuminance(uint8_t *data, int len)
             pd += 2;
         }
         auto &user = DbHelper::Instance().GetUciUser();
-        user.UserOpen();
+        user.OpenSECTION();
         user.DawnDusk(data + 2);
         user.Luminance(buf2);
-        user.UserClose();
+        user.CommitCloseSECTION();
         Ack();
     }
     return 0;
@@ -614,12 +621,12 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
             extsw[i].flashingOv = k;
         }
         auto &user = DbHelper::Instance().GetUciUser();
-        user.UserOpen();
+        user.OpenSECTION();
         for (int i = 0; i < 3; i++)
         {
             user.ExtSwCfgX(i, &extsw[i]);
         }
-        user.UserClose();
+        user.CommitCloseSECTION();
         Ack();
     }
     return 0;
@@ -707,6 +714,44 @@ int TsiSp003App::FAF2_ShakehandsPasswd(uint8_t *data, int len)
     return 0;
 }
 
+
+int TsiSp003App::FAF5_Restart(uint8_t *data, int len)
+{
+    if (ChkLen(len, 2))
+    {
+        if (shake_hands_status != 2)
+        {
+            Reject(APP::ERROR::IncorrectPassword);
+        }
+        else
+        {
+            Controller::Instance().RR_flag(RQST_RESTART);
+            Ack();
+        }
+    }
+    return 0;
+}
+
+int TsiSp003App::FAFA_Reboot(uint8_t *data, int len)
+{
+    if (ChkLen(len, 2))
+    {
+        if (shake_hands_status != 2)
+        {
+            Reject(APP::ERROR::IncorrectPassword);
+        }
+        else
+        {
+            Controller::Instance().RR_flag(RQST_REBOOT);
+            Ack();
+        }
+    }
+    return 0;
+}
+
+
+
+
 void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
 {
     int len = 16;
@@ -720,3 +765,4 @@ void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
     }
     MD5(shake_src, len, md5);
 }
+

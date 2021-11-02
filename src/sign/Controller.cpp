@@ -86,9 +86,49 @@ void Controller::Init(TimerEvent *tmrEvt_)
     }
 }
 
+void Controller::SetTcpServer(TcpServer * tcpServer)
+{
+    this->tcpServer = tcpServer;
+}
+
 void Controller::PeriodicRun()
 {
     // run every CTRLLER_TICK
+    if (rr_flag != 0)
+    {
+        if (rrTmr.IsExpired())
+        {
+            auto & evt = DbHelper::Instance().GetUciEvent();
+            if (rr_flag & RQST_NETWORK)
+            {
+                tcpServer->Close();
+                evt.Push(0, "ETH1 restart");
+                PrintDbg("ETH1 restart...\n");
+                system("ifdown ETH1");
+                system("ifup ETH1");
+                PrintDbg("Done.\n");
+                tcpServer->Open();
+            }
+            if (rr_flag & RQST_REBOOT)
+            {
+                const char * _re = " -> -> -> reboot";
+                evt.Push(0, _re);
+                PrintDbg("\n%s...\n", _re);
+                MyThrow("\n%s...\n", _re);
+                system("reboot");
+                while(1);
+            }
+            if (rr_flag & RQST_RESTART)
+            {
+                const char * _re = " -> -> -> restart";
+                evt.Push(0, _re);
+                PrintDbg("\n%s...\n", _re);
+                MyThrow("\n%s...\n", _re);
+            }
+            rr_flag = 0;
+        }
+    }
+
     for (auto &g : groups)
     {
         g->PeriodicRun();

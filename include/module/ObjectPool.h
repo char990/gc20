@@ -25,12 +25,13 @@ template <class T>
 class ObjectPool
 {
 public:
-    ObjectPool(int size) : size(size), unusedCnt(size), pool(size), unusedObj(size)
+    ObjectPool(int size) : size(size), freeCnt(size), pool(size), freeObj(size), busyObj(size)
     {
         for (int i = 0; i < size; i++)
         {
             pool[i] = new T;
-            unusedObj[i] = pool[i];
+            freeObj[i] = pool[i];
+            busyObj[i] = nullptr;
             if (std::is_base_of<Poolable<T>, T>::value)
             {
                 ((Poolable<T> *)pool[i])->mOwner = this;
@@ -51,15 +52,23 @@ public:
     T *Pop()
     {
         T *pObj = nullptr;
-        if (unusedCnt > 0)
+        if (freeCnt > 0)
         {
-            unusedCnt--;
+            freeCnt--;
             if (std::is_base_of<Poolable<T>, T>::value)
             {
-                ((Poolable<T> *)unusedObj[unusedCnt])->PopClean();
+                ((Poolable<T> *)freeObj[freeCnt])->PopClean();
             }
             print_status();
-            pObj = unusedObj[unusedCnt];
+            pObj = freeObj[freeCnt];
+            for(int i=0;i<size;i++)
+            {
+                if(busyObj[i]==nullptr)
+                {
+                    busyObj[i]=pObj;
+                    break;
+                }
+            }
         }
         return pObj;
     }
@@ -69,7 +78,7 @@ public:
     /// \return int : valid objects in pool; -1 : failed
     int Push(T *pObj)
     {
-        if (unusedCnt >= size)
+        if (freeCnt >= size)
         {
             MyThrow("Pool is full, can't push a new obj in it");
         }
@@ -81,27 +90,38 @@ public:
         {
             ((Poolable<T> *)pObj)->PushClean();
         }
-        unusedObj[unusedCnt++] = pObj;
+        freeObj[freeCnt++] = pObj;
+        for(int i=0;i<size;i++)
+        {
+            if(busyObj[i]==pObj)
+            {
+                busyObj[i]=nullptr;
+                break;
+            }
+        }
         print_status();
-        return unusedCnt;
+        return freeCnt;
     }
 
     std::vector<T *> &Pool() { return pool; };
+    std::vector<T *> &FreeObj() { return freeObj; };
+    std::vector<T *> &BusyObj() { return busyObj; };
     int Size() { return size; }
-    int Unused() { return unusedCnt; }
-    int Used() { return size - unusedCnt; }
+    int FreeCnt() { return freeCnt; }
+    int BusyCnt() { return size-freeCnt; }
 
 private:
     /// \brief  pool size
     int size;
-    /// \brief  unusedObj object counter
-    int unusedCnt;
+    /// \brief  free objects counter
+    int freeCnt;
 
-    std::vector<T *> pool;      // hold all new object
-    std::vector<T *> unusedObj; // pop/push object pointer
+    std::vector<T *> pool;      // hold all new objects
+    std::vector<T *> freeObj;      // free objects
+    std::vector<T *> busyObj;      // busy objects
 
     void print_status()
     {
-        printf("Pool status: size:%d, used:%d, unused:%d\n", size, size - unusedCnt, unusedCnt);
+        printf("Pool status: size:%d, busy:%d, free:%d\n", size, size-freeCnt, freeCnt);
     }
 };

@@ -10,6 +10,7 @@
 #include <uci/UciAlarm.h>
 #include <uci/UciEvent.h>
 #include <uci/UciProcess.h>
+#include <uci/UciNetwork.h>
 #include <module/BootTimer.h>
 
 
@@ -30,6 +31,7 @@ public:
 
     UciProd & GetUciProd() { return uciProd; };
     UciUser & GetUciUser() { return uciUser; };
+    UciNetwork & GetUciNetwork() {return uciNetwork;};
 
     UciFrm & GetUciFrm() { return  uciFrm; };
     UciMsg & GetUciMsg() { return uciMsg; };
@@ -46,6 +48,7 @@ public:
 protected:
     UciProd uciProd;
     UciUser uciUser;
+    UciNetwork uciNetwork;
 
     UciFrm uciFrm;
     UciMsg uciMsg;

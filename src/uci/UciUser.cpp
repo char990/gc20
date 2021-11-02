@@ -223,22 +223,11 @@ void UciUser::LoadFactoryDefault()
     snprintf(uci, 255, "%s/%s", PATH, PACKAGE);
     snprintf(def, 255, "%s/%s", PATH, DEFAULT_FILE);
     Exec::CopyFile(def, uci);
-    UserOpen();
+    OpenSECTION();
     OptionSave(_DeviceId, DeviceId());
     OptionSave(_BroadcastId, BroadcastId());
-    UserClose();
+    CommitCloseSECTION();
     LoadConfig();
-}
-
-void UciUser::UserOpen()
-{
-    OpenSectionForSave(SECTION);
-}
-
-void UciUser::UserClose()
-{
-    Commit();
-    Close();
 }
 
 void UciUser::Dump()

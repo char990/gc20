@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <stack>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -23,6 +24,10 @@ public:
 
     /// \brief  Event triggered
     void EventsHandle(uint32_t events);
+
+    /// for Re-establishing : Close() - > Open()
+    void Open();
+    void Close();
 
 private:
     int listenPort;

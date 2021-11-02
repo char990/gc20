@@ -31,11 +31,7 @@ public:
     void LoadConfig() override;
 	void Dump() override;
 
-    /// \brief  UserOpen() => Change option value => UserClose()
-    void UserOpen();
-    void UserClose();
-
-    /// \brief  Load factory default. Call UserOpen/UserClose inside
+    /// \brief  Load factory default. Call OpenSECTION/CommitCloseSECTION inside
     ///         Copy 'goblin_user.def' to 'goblin_user.def' and set DeviceId & BroadcastId
     void LoadFactoryDefault();
 

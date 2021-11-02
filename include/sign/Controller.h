@@ -10,7 +10,11 @@
 #include <sign/Group.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <gpio/GpioIn.h>
+#include <module/TcpServer.h>
 
+#define RQST_NETWORK (1 << 0)
+#define RQST_RESTART (1 << 1)
+#define RQST_REBOOT (1 << 2)
 
 class Controller : public IPeriodicRun
 {
@@ -30,6 +34,8 @@ public:
 
     void Init(TimerEvent *tmrEvt);
 
+    void SetTcpServer(TcpServer * tcpServer);
+
     void RefreshDispTime();
 
     void RefreshSessionTime();
@@ -39,7 +45,7 @@ public:
 
     uint8_t GroupCnt() { return groups.size(); };
     Group *GetGroup(uint8_t id) { return (id == 0 || id > groups.size()) ? nullptr : groups.at(id - 1); };
-    std::vector<Group *> & GetGroups() { return groups;};
+    std::vector<Group *> &GetGroups() { return groups; };
 
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
@@ -63,8 +69,17 @@ public:
     /// \brief Session timeout timer
     BootTimer sessionTimeout;
 
-    int8_t CurTemp() { return curTemp;};
-    int8_t MaxTemp() { return maxTemp;};
+    int8_t CurTemp() { return curTemp; };
+    int8_t MaxTemp() { return maxTemp; };
+
+    void RR_flag(uint8_t rr)
+    {
+        rr_flag |= rr;
+        if(rr_flag!=0)
+        {
+            rrTmr.Setms(5000);
+        }
+    };
 
 private:
     Controller();
@@ -83,10 +98,16 @@ private:
     GpioIn *pBatOpen;
     uint8_t cnt100ms{0};
 
-    GpioIn * extInput[4];
+    GpioIn *extInput[4];
     void ExtInputFunc();
 
     int8_t curTemp{0};
     int8_t maxTemp{0};
-    uint16_t msTemp{60*100}; 
+    uint16_t msTemp{60 * 100};
+
+    // restart/reboot/network flag
+    uint8_t rr_flag{0};
+    BootTimer rrTmr;
+
+    TcpServer *tcpServer;
 };

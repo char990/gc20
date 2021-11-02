@@ -123,6 +123,8 @@ private:
     int FA22_RqstUserExt(uint8_t *data, int len);
     int FAF0_ShakehandsRqst(uint8_t *data, int len);
     int FAF2_ShakehandsPasswd(uint8_t *data, int len);
+    int FAF5_Restart(uint8_t *data, int len);
+    int FAFA_Reboot(uint8_t *data, int len);
 
     void Md5_of_sh(const char *str, unsigned char *md5);
     APP::ERROR CheckFA20(uint8_t *pd, char * shake);

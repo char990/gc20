@@ -25,7 +25,22 @@ TcpServer::TcpServer(int listenPort, std::string serverType, int poolsize, Timer
     {
         ipool[i]->Init(serverType + std::to_string(i), serverType, idletime);
     }
+    eventFd=-1;
+    Open();
+}
 
+TcpServer::~TcpServer()
+{
+    Close();
+    delete objPool;
+}
+
+void TcpServer::Open()
+{
+    if(eventFd>0)
+    {
+        return;
+    }
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
         MyThrow("%s:socket() failed", name.c_str());
@@ -60,11 +75,22 @@ TcpServer::TcpServer(int listenPort, std::string serverType, int poolsize, Timer
     Epoll::Instance().AddEvent(this, events);
 }
 
-TcpServer::~TcpServer()
+void TcpServer::Close()
 {
-    Epoll::Instance().DeleteEvent(this, events);
-    close(eventFd);
-    delete objPool;
+    if(eventFd>0)
+    {
+        auto & busy = objPool->BusyObj();
+        for(auto & s : busy)
+        {
+            if(s!=nullptr)
+            {
+                s->Release();
+            }
+        }
+        Epoll::Instance().DeleteEvent(this, events);
+        close(eventFd);
+        eventFd=-1;
+    }
 }
 
 void TcpServer::EventsHandle(uint32_t events)

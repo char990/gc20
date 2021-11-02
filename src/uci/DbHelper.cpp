@@ -8,6 +8,7 @@ void DbHelper::Init(const char * dbPath1)
     dbPath = dbPath1;
     uciProd.LoadConfig();
     uciUser.LoadConfig();
+    uciNetwork.LoadConfig();
     uciFrm.LoadConfig();
     uciMsg.LoadConfig();
     uciPln.LoadConfig();
