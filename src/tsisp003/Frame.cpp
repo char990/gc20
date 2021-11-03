@@ -39,7 +39,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         return 1;
     }
     if (CheckSub(frm, len) != 0)
-    {
+    {// special parameters in Txt/Gfx/Hrg Frame
         return 1;
     }
     if (CheckColour() != 0)

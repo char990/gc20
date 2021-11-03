@@ -128,7 +128,10 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
 {
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 1) || session == nullptr)
         return;
-    Controller::Instance().sessionTimeout.Clear();
+    // EndSession will change the session online state, so force to refresh timeout 
+    // For all other on-line commands, LayerNTS will refresh timeout
+    Controller::Instance().RefreshSessionTime();
+    Controller::Instance().RefreshDispTime();
     Ack();
     // !!! first Ack, then set offline
     // 'cause nr&ns related to SESSION::ON_LINE

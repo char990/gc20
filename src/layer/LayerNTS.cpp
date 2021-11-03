@@ -4,6 +4,7 @@
 #include <layer/LayerNTS.h>
 #include <module/Utils.h>
 #include <sign/Controller.h>
+#include <gpio/GpioOut.h>
 
 using namespace Utils;
 
@@ -25,9 +26,12 @@ const MI::CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
     MI::CODE::SignSetHighResolutionGraphicsFrame,
     MI::CODE::SignDisplayAtomicFrames};
 
+std::vector<LayerNTS *> LayerNTS::storage;
+
 LayerNTS::LayerNTS(std::string name_)
 {
     name = name_ + ":" + "NTS";
+    storage.push_back(this);
 }
 
 LayerNTS::~LayerNTS()
@@ -55,7 +59,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     _addr = addr;
     int mi = Cnvt::ParseToU8((char *)data + 8);
     if ((mi == static_cast<uint8_t>(MI::CODE::StartSession) && len == 15 && addr == user.DeviceId()) ||
-        (sessionTimeout.IsExpired() && session == ISession::SESSION::ON_LINE))
+        (ntsSessionTimeout.IsExpired() && session == ISession::SESSION::ON_LINE))
     {
         session = ISession::SESSION::OFF_LINE;
         _ns = 0;
@@ -91,7 +95,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
             { // check allowed broadcast mi
                 if (static_cast<uint8_t>(broadcastMi[i]) == mi)
                 {
-                    break;
+                    break;  // this is a valid broadcast command
                 }
                 else
                 {
@@ -114,8 +118,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     auto &ctrl = Controller::Instance();
     if (session == ISession::SESSION::ON_LINE)
     {
-        sessionTimeout.Setms(user.SessionTimeout() * 1000);
-        ctrl.SessionLed(1);
+        ntsSessionTimeout.Setms(user.SessionTimeout() * 1000);
         ctrl.RefreshSessionTime();
         ctrl.RefreshDispTime();
     }
@@ -170,13 +173,14 @@ void LayerNTS::ClrTx()
 /// -------------------------------------------------------
 enum ISession::SESSION LayerNTS::Session()
 {
+    /*
     if (session == ISession::SESSION::ON_LINE)
     {
-        if (sessionTimeout.IsExpired())
+        if (ntsSessionTimeout.IsExpired())
         {
             Session(ISession::SESSION::OFF_LINE);
         }
-    }
+    }*/
     return session;
 }
 
@@ -187,8 +191,55 @@ void LayerNTS::Session(enum ISession::SESSION v)
     _ns = 0;
     if (v == ISession::SESSION::OFF_LINE)
     {
-        sessionTimeout.Clear();
-        Controller::Instance().SessionLed(0);
+        ntsSessionTimeout.Clear();
+        if(!pPinStatusLed->GetPin() && !IsAnyOnline())
+        {
+            pPinStatusLed->SetPinHigh();
+        }
+    }
+    else if(v == ISession::SESSION::ON_LINE && pPinStatusLed->GetPin())
+    {
+        pPinStatusLed->SetPinLow();
+    }
+}
+
+bool LayerNTS::IsThisSessionTimeout()
+{
+    return ((session == ISession::SESSION::ON_LINE) && (ntsSessionTimeout.IsExpired()));
+}
+
+bool LayerNTS::IsAnySessionTimeout()
+{
+    for (auto &s : storage)
+    {
+        if (s->IsThisSessionTimeout())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool LayerNTS::IsAnyOnline()
+{
+    for (auto &s : storage)
+    {
+        if (s->Session() == ISession::SESSION::ON_LINE)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void LayerNTS::ClearAllSessionTimeout()
+{
+    for (auto &s : storage)
+    {
+        if(s->Session()!=ISession::SESSION::OFF_LINE)
+        {
+            s->Session(ISession::SESSION::OFF_LINE);
+        }
     }
 }
 

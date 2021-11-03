@@ -177,6 +177,10 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     sprintf(p, _Fmt, id, entryNo, log.errorCode, onset, log.crc);
 
     OpenSaveClose(SECTION, option, v);
+    if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)
+    {
+        PrintDbg("Fault:%s:%s\n", DEV::ToStr(errorCode), onset?"onset":"clear");
+    }
 }
 
 void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset)

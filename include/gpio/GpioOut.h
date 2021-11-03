@@ -27,8 +27,6 @@ inline void PinCmdPowerOff() {pPinCmdPower->SetPinLow();};
 extern GpioOut * pPinHeartbeatLed;
 
 extern GpioOut * pPinStatusLed;
-inline void PinStatusLedOn() {pPinHeartbeatLed->SetPinLow();};
-inline void PinStatusLedOff() {pPinHeartbeatLed->SetPinHigh();};
 
 extern GpioOut * pPinWdt;
 extern GpioOut * pPinRelay;

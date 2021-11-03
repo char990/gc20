@@ -19,6 +19,11 @@ public:
     LayerNTS(std::string name_);
     ~LayerNTS();
     
+    static std::vector<LayerNTS *> storage; 
+    static bool IsAnySessionTimeout();
+    static void ClearAllSessionTimeout();
+    static bool IsAnyOnline();
+
     int Rx(uint8_t * data, int len) override;
 
     bool IsTxReady() override;
@@ -30,6 +35,7 @@ public:
 
     enum ISession::SESSION Session() override;
     void Session(enum ISession::SESSION v) override;
+    bool IsThisSessionTimeout();
 
     uint8_t Seed() override  { return seed;};
     void Seed(uint8_t v) override { seed = v ; };
@@ -39,7 +45,7 @@ private:
 
     enum ISession::SESSION session;
     uint8_t seed;
-    BootTimer sessionTimeout;
+    BootTimer ntsSessionTimeout;
 
     /// \brief protocol fields 
     uint8_t _addr;

@@ -243,6 +243,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     { // a new time
         tflag = tf;
         // light sensor installed at first slave
+        auto lscon = lsConnectionFault.Value();
         lux = vsSlaves[0]->lux;
         if ((vsSlaves[0]->lightSensorFault & 1) == 0 && lux > 0)
         {
@@ -262,7 +263,10 @@ void Sign::RefreshSlaveStatusAtExtSt()
         else if (lsConnectionFault.IsFalling())
         {
             lsConnectionFault.ClearFalling();
-            db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
+            if(lscon!=STATE5::S5_NA)
+            {
+                db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
+            }
         }
 
         if (lsConnectionFault.IsLow())

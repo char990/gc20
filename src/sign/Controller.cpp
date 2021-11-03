@@ -9,6 +9,7 @@
 #include <module/ptcpp.h>
 #include <gpio/GpioOut.h>
 #include <module/DS3231.h>
+#include <layer/LayerNTS.h>
 
 Controller::Controller()
     : groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
@@ -86,7 +87,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
     }
 }
 
-void Controller::SetTcpServer(TcpServer * tcpServer)
+void Controller::SetTcpServer(TcpServer *tcpServer)
 {
     this->tcpServer = tcpServer;
 }
@@ -98,7 +99,7 @@ void Controller::PeriodicRun()
     {
         if (rrTmr.IsExpired())
         {
-            auto & evt = DbHelper::Instance().GetUciEvent();
+            auto &evt = DbHelper::Instance().GetUciEvent();
             if (rr_flag & RQST_NETWORK)
             {
                 tcpServer->Close();
@@ -111,16 +112,17 @@ void Controller::PeriodicRun()
             }
             if (rr_flag & RQST_REBOOT)
             {
-                const char * _re = " -> -> -> reboot";
+                const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
                 PrintDbg("\n%s...\n", _re);
                 MyThrow("\n%s...\n", _re);
                 system("reboot");
-                while(1);
+                while (1)
+                    ;
             }
             if (rr_flag & RQST_RESTART)
             {
-                const char * _re = " -> -> -> restart";
+                const char *_re = " -> -> -> restart";
                 evt.Push(0, _re);
                 PrintDbg("\n%s...\n", _re);
                 MyThrow("\n%s...\n", _re);
@@ -154,7 +156,11 @@ void Controller::PeriodicRun()
         }
         if (sessionTimeout.IsExpired())
         {
-            ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+            if (LayerNTS::IsAnySessionTimeout())
+            {
+                LayerNTS::ClearAllSessionTimeout();
+                ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+            }
             sessionTimeout.Clear();
         }
     }
@@ -252,11 +258,6 @@ void Controller::RefreshSessionTime()
     //PrintDbg("RefreshSessionTime\n");
     sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
     ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
-}
-
-void Controller::SessionLed(uint8_t v)
-{
-    v ? pPinStatusLed->SetPinLow() : pPinStatusLed->SetPinHigh();
 }
 
 bool Controller::IsFrmActive(uint8_t id)

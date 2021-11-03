@@ -39,8 +39,7 @@ public:
     void RefreshDispTime();
 
     void RefreshSessionTime();
-    void SessionLed(uint8_t v);
-
+    
     uint8_t CtrllerErr();
 
     uint8_t GroupCnt() { return groups.size(); };

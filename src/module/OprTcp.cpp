@@ -53,7 +53,7 @@ void OprTcp::Init(std::string name_, std::string aType, int idle)
 /// \brief  Called when a new connection accepted
 void OprTcp::Accept(int fd, TimerEvent *tmr, const char * client)
 {
-    strcpy(this->client, client);
+    strncpy(this->client, client, 23);
     upperLayer->ClrRx();
     eventFd = fd;
     events = EPOLLIN | EPOLLRDHUP;
