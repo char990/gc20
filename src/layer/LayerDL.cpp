@@ -28,7 +28,7 @@ int LayerDL::Rx(uint8_t *data, int len)
             length = 1;
         }
         else if(c == static_cast<uint8_t>(CTRL_CHAR::NAK))
-        {}  // TODO
+        {}  // TODO : CTRL_CHAR::NAK
         else
         {
             if (length > 0)

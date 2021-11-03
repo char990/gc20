@@ -1717,7 +1717,6 @@ bool Group::DimmingAdjust()
     }
     if (dimmingAdjTimer.IsExpired())
     {
-        // TODO auto dimming
         int tgt;
         if (targetDimmingLvl == 0)
         {

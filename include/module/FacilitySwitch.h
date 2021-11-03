@@ -2,6 +2,7 @@
 
 #include <gpio/GpioIn.h>
 
+#define FacilitySwitch_BUF_SIZE 32 
 class FacilitySwitch
 {
 public:
@@ -28,5 +29,5 @@ private:
     const char * FS_STR[5]{"N/A", "OFF", "AUTO", "MSG1", "MSG2"};
     uint8_t lastkey{0};
     uint8_t keyCnt{0};
-    char buf[32];
+    char buf[FacilitySwitch_BUF_SIZE];
 };

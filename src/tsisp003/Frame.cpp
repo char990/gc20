@@ -39,7 +39,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         return 1;
     }
     if (CheckSub(frm, len) != 0)
-    {// special parameters in Txt/Gfx/Hrg Frame
+    { // special parameters in Txt/Gfx/Hrg Frame
         return 1;
     }
     if (CheckColour() != 0)
@@ -79,7 +79,7 @@ FrmTxt::FrmTxt(uint8_t *frm, int len)
 
 int FrmTxt::CheckLength(int len)
 {
-    if (len > (255 + frmOffset + 2) || 0 /* TODO if text could fit in the sign: X chars * Y chars*/)
+    if (len > (255 + frmOffset + 2))
     {
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
@@ -109,6 +109,13 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::FontNotSupported;
         return 1;
     }
+    /* TODO if text could fit in the sign: X chars * Y chars
+    if (???)
+    {
+        appErr = APP::ERROR::FrameTooLarge;
+        return 1;
+    }
+    */
     return 0;
 }
 
@@ -144,7 +151,7 @@ FrmGfx::FrmGfx(uint8_t *frm, int len)
     }
 }
 
-int FrmGfx::CheckSub(uint8_t *frm, int len) // TODO
+int FrmGfx::CheckSub(uint8_t *frm, int len)
 {
     if (micode != static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame))
     {
@@ -232,7 +239,7 @@ FrmHrg::FrmHrg(uint8_t *frm, int len)
     }
 }
 
-int FrmHrg::CheckSub(uint8_t *frm, int len) // TODO
+int FrmHrg::CheckSub(uint8_t *frm, int len)
 {
     if (micode != static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
     {

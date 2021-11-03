@@ -35,7 +35,7 @@ void PrintVersion()
 {
     PrintDbg("\n");
     char sbuf[256];
-    int len = sprintf(sbuf, "* Version %s.%s, Build at UTC: %s %s *",
+    int len = snprintf(sbuf, 255, "* Version %s.%s, Build at UTC: %s %s *",
                       FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
     char buf[256];
     memset(buf, '*', len);

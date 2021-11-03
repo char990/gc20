@@ -157,7 +157,7 @@ void UciStrLog::Push(uint8_t id, const char *fmt, ...)
     char v[128];
     v[0] = '[';
     char * p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    sprintf(p, _Fmt_3, id, entryNo, log.str);
+    snprintf(p, 127-(p-v), _Fmt_3, id, entryNo, log.str);
 
     OpenSaveClose(SECTION, option, v);
 }

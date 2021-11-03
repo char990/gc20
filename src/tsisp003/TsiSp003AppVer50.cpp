@@ -51,24 +51,25 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
     {
         return;
     }
-    auto & prod = db.GetUciProd();
-    uint8_t * p = txbuf;
+    auto &prod = db.GetUciProd();
+    uint8_t *p = txbuf;
     *p++ = static_cast<uint8_t>(MI::CODE::SignConfigurationReply);
-    memcpy(p, prod.MfcCode(), 10); p+=10;
-    auto & groups = Controller::Instance().GetGroups();
+    memcpy(p, prod.MfcCode(), 10);
+    p += 10;
+    auto &groups = Controller::Instance().GetGroups();
     *p++ = groups.size();
-    for(auto & g : groups)
+    for (auto &g : groups)
     {
-        auto & signs = g->GetSigns();
+        auto &signs = g->GetSigns();
         *p++ = signs.size();
-        for(auto &s : signs)
+        for (auto &s : signs)
         {
             *p++ = s->SignId();
             p = s->GetConfig(p);
         }
-        *p++=0; // signature data bytes
+        *p++ = 0; // signature data bytes
     }
-    Tx(txbuf, p-txbuf);
+    Tx(txbuf, p - txbuf);
 }
 
 // todo: not tested
@@ -89,11 +90,11 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     {
         char buf[64];
         int len = sprintf(buf, "DisplayAtomic:Grp%d", data[1]);
-        uint8_t *p=data+3;
-        for(int i=0;i<data[2]&&len<63;i++)
+        uint8_t *p = data + 3;
+        for (int i = 0; i < data[2] && len < 63; i++)
         {
-            len+=snprintf(buf+len, 63-len ,":S%d,F%d", p[0], p[1]);
-            p+=2;
+            len += snprintf(buf + len, 63 - len, ":S%d,F%d", p[0], p[1]);
+            p += 2;
         }
         db.GetUciEvent().Push(0, buf);
         Ack();

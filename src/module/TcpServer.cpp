@@ -84,7 +84,7 @@ void TcpServer::Close()
         {
             if(s!=nullptr)
             {
-                s->Release();
+                s->Release();   // s is OprTcp*
             }
         }
         Epoll::Instance().DeleteEvent(this, events);

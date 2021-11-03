@@ -313,13 +313,13 @@ int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, cons
 void UciCfg::ClrSECTION()
 {
     char dst[256];
-    sprintf(dst, "%s/%s", PATH, PACKAGE);
+    snprintf(dst, 255, "%s/%s", PATH, PACKAGE);
     int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
     if (dstfd < 0)
     {
         MyThrow("Can't open %s to write", dst);
     }
-    int len = sprintf(dst, "config %s '%s'\n", PACKAGE, SECTION);
+    int len = snprintf(dst, 255, "config %s '%s'\n", PACKAGE, SECTION);
     write(dstfd, &dst[0], len);
     fsync(dstfd);
     close(dstfd);

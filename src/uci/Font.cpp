@@ -7,8 +7,13 @@
 
 Font::Font(const char *fontname)
 {
-    strncpy(fontName, fontname, 15);
-    fontName[15]='\0';
+    int fnlen = strlen(fontname);
+    if(fnlen>8)
+    {
+        MyThrow("fontname(%s) too long", fontname);
+    }
+    memcpy(fontName, fontname, fnlen);
+    fontName[fnlen]='\0';
     for (int i = 0x20; i < 0x80; i++)
     {
         cellPtr[i - 0x20] = nullptr;

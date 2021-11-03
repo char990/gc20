@@ -504,9 +504,9 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         *pt++ = ctrl.CurTemp();
         pt = Cnvt::PutU16(sign->Voltage(), pt);
         pt = Cnvt::PutU16(sign->Lux(), pt);
-        char *v = DbHelper::Instance().GetUciProd().MfcCode() + 4;
-        *pt++ = *v;       // Get PCB revision from MANUFACTURER_CODE
-        *pt++ = *(v + 1); // Get Sign type from MANUFACTURER_CODE
+        char * mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
+        *pt++ = mfcCode[4];   // Get PCB revision from MANUFACTURER_CODE
+        *pt++ = mfcCode[5];   // Get Sign type from MANUFACTURER_CODE
         *pt++ = *FirmwareMajorVer;
         *pt++ = *(FirmwareMajorVer + 1);
         *pt++ = *FirmwareMinorVer;

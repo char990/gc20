@@ -426,7 +426,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
         char buf[64];
         int len = sprintf(buf, "Power");
         uint8_t *p = data + 2;
-        for (int i = 0; i < data[1]; i++)
+        for (int i = 0; i < data[1] && len < 63; i++)
         {
             len += snprintf(buf + len, 63 - len, ":Group%d,%d", p[0], p[1]);
             p += 2;
@@ -456,7 +456,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
         char buf[64];
         int len = sprintf(buf, "Dis/EnableDevice");
         uint8_t *p = data + 2;
-        for (int i = 0; i < data[1]; i++)
+        for (int i = 0; i < data[1] && len < 63; i++)
         {
             len += snprintf(buf + len, 63 - len, ":Group%d,%d", p[0], p[1]);
             p += 2;

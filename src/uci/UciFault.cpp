@@ -174,7 +174,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     char v[128];
     v[0] = '[';
     char *p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    sprintf(p, _Fmt, id, entryNo, log.errorCode, onset, log.crc);
+    snprintf(p, 127-(p-v),  _Fmt, id, entryNo, log.errorCode, onset, log.crc);
 
     OpenSaveClose(SECTION, option, v);
     if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)

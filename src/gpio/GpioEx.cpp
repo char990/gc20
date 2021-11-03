@@ -42,7 +42,8 @@
  *****************************************************************/
 
 #define SYSFS_GPIO_DIR "/sys/class/gpio"
-#define MAX_BUF 128
+
+#define GpioEx_BUF_SIZE 256
 
 GpioEx::GpioEx(unsigned int pin, DIR inout)
 	: _fd(-1), _pin(pin)
@@ -75,7 +76,7 @@ GpioEx::~GpioEx()
 void GpioEx::Export()
 {
 	int fd, len;
-	char buf[MAX_BUF];
+	char buf[GpioEx_BUF_SIZE];
 
 	fd = open(SYSFS_GPIO_DIR "/export", O_WRONLY);
 	if (fd < 0)
@@ -94,7 +95,7 @@ void GpioEx::Export()
 void GpioEx::Unexport()
 {
 	int fd, len;
-	char buf[MAX_BUF];
+	char buf[GpioEx_BUF_SIZE];
 
 	fd = open(SYSFS_GPIO_DIR "/unexport", O_WRONLY);
 	if (fd < 0)
@@ -102,7 +103,7 @@ void GpioEx::Unexport()
 		MyThrow("Can't open \"unexport\" for pin %d\n", _pin);
 	}
 
-	len = snprintf(buf, sizeof(buf), "%d\n", _pin);
+	len = snprintf(buf, sizeof(buf)-1, "%d\n", _pin);
 	write(fd, buf, len);
 	close(fd);
 }
@@ -113,7 +114,7 @@ void GpioEx::Unexport()
 void GpioEx::SetDir(DIR inout)
 {
 	int fd;
-	char buf[MAX_BUF];
+	char buf[GpioEx_BUF_SIZE];
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/direction", _pin);
 	fd = open(buf, O_WRONLY);
 	if (fd < 0)
@@ -159,7 +160,7 @@ void GpioEx::SetValue(bool value)
 	else
 	{
 		int fd;
-		char buf[MAX_BUF];
+		char buf[GpioEx_BUF_SIZE];
 		snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
 		fd = open(buf, O_WRONLY);
 		if (fd < 0)
@@ -189,7 +190,7 @@ int GpioEx::GetValue()
 	else
 	{
 		int fd;
-		char buf[MAX_BUF];
+		char buf[GpioEx_BUF_SIZE];
 
 		snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
 
@@ -213,7 +214,7 @@ int GpioEx::GetValue()
 void GpioEx::SetEdge(EDGE edge)
 {
 	int fd;
-	char buf[MAX_BUF];
+	char buf[GpioEx_BUF_SIZE];
 	const char *p = (edge == EDGE::BOTHRF) ? "both" : ((edge == EDGE::RISING) ? "rising" : "falling");
 
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/edge", _pin);
@@ -234,7 +235,7 @@ void GpioEx::SetEdge(EDGE edge)
  ****************************************************************/
 int GpioEx::OpenFd()
 {
-	char buf[MAX_BUF];
+	char buf[GpioEx_BUF_SIZE];
 
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
 	if (_dir == DIR::OUTPUT)

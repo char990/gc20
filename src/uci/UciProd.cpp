@@ -15,10 +15,10 @@ using namespace Utils;
 
 std::string StSignPort::ToString()
 {
-    char buf[32];
+    char buf[64];
     if (com_ip < COMPORT_SIZE)
     {
-        sprintf(buf, "%s:%d", gSpConfig[com_ip].name, bps_port);
+        snprintf(buf, 255, "%s:%d", gSpConfig[com_ip].name, bps_port);
     }
     else
     {
