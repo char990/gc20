@@ -9,12 +9,10 @@ using namespace Utils;
 
 UciMsg::UciMsg()
 {
-	msgs = new Message[255];
 }
 
 UciMsg::~UciMsg()
 {
-	delete[] msgs;
 }
 
 void UciMsg::LoadConfig()
@@ -58,11 +56,11 @@ void UciMsg::Dump()
 {
 	PrintDash();
 	printf("%s/%s\n", PATH, PACKAGE);
-	for (int i = 0; i < 255; i++)
+	for (auto & m : msgs)
 	{
-		if (IsMsgDefined(i))
+		if (m.micode != 0)
 		{
-			printf("\t%s\n", msgs[i].ToString().c_str());
+			printf("\t%s\n", m.ToString().c_str());
 		}
 	}
 }
@@ -74,17 +72,17 @@ uint16_t UciMsg::ChkSum()
 
 bool UciMsg::IsMsgDefined(uint8_t i)
 {
-	return (i != 0 && msgs[i - 1].micode != 0);
+	return (i != 0 && msgs.at(i - 1).micode != 0);
 }
 
 Message *UciMsg::GetMsg(uint8_t i)
 {
-	return IsMsgDefined(i) ? &msgs[i - 1] : nullptr;
+	return IsMsgDefined(i) ? &msgs.at(i - 1) : nullptr;
 }
 
 uint8_t UciMsg::GetMsgRev(uint8_t i)
 {
-	return IsMsgDefined(i) ? msgs[i - 1].msgRev : 0;
+	return IsMsgDefined(i) ? msgs.at(i - 1).msgRev : 0;
 }
 
 APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
@@ -94,11 +92,11 @@ APP::ERROR UciMsg::SetMsg(uint8_t *buf, int len)
 	if (r == APP::ERROR::AppNoError)
 	{
 		int i = msg.msgId - 1;
-		if (msgs[i].micode != 0)
+		if (msgs.at(i).micode != 0)
 		{
-			chksum -= msgs[i].crc;
+			chksum -= msgs.at(i).crc;
 		}
-		msgs[i] = msg;
+		msgs.at(i) = msg;
 		chksum += msg.crc;
 	}
 	return r;
@@ -112,7 +110,7 @@ void UciMsg::SaveMsg(uint8_t i)
 	sprintf(option, _Option, i);
 	i--;
 	uint8_t a[MSG_LEN_MAX + MSG_TAIL];
-	int len = msgs[i].ToArray(a);
+	int len = msgs.at(i).ToArray(a);
 	char v[(MSG_LEN_MAX + MSG_TAIL) * 2 + 1];
 	Cnvt::ParseToStr(a, v, len);
 	OpenSaveClose(SECTION, option, v);
@@ -120,9 +118,9 @@ void UciMsg::SaveMsg(uint8_t i)
 
 void UciMsg::Reset()
 {
-	for (int i = 0; i < 255; i++)
+	for (auto &m:msgs)
 	{
-		msgs[i].micode = 0;
+		m.micode = 0;
 	}
 	UciCfg::ClrSECTION();
 }
@@ -131,7 +129,7 @@ bool UciMsg::IsMsgFlashing(uint8_t i)
 {
 	if (IsMsgDefined(i))
 	{
-		auto & msg = msgs[i - 1];
+		auto & msg = msgs.at(i-1);
 		auto & uciFrm = DbHelper::Instance().GetUciFrm();
 		for (int k = 0; k < msg.entries; k++)
 		{

@@ -20,5 +20,8 @@ void GrpProc::ProcDisp(uint8_t *cmd, int len)
 {
     if(len>255)len=0;
     disp[0]=len;
-    memcpy(disp+1,cmd,len);
+    if(len>0)
+    {
+        memcpy(disp+1,cmd,len);
+    }
 }

@@ -92,11 +92,12 @@ void OprTcp::PeriodicRun()
 /// \brief  Called in EventsHandle
 int OprTcp::RxHandle()
 {
-    uint8_t buf[4096];
+    #define buf_PAGE_SIZE 4096
+    uint8_t buf[buf_PAGE_SIZE];
     tcpIdleTmr.Setms(idleTime);
     while (1)
     {
-        int n = read(eventFd, buf, 4096);
+        int n = read(eventFd, buf, buf_PAGE_SIZE);
         if (n <= 0)
         {// no data
             return n;

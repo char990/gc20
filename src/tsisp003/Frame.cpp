@@ -126,8 +126,8 @@ int FrmTxt::CheckColour()
 
 std::string FrmTxt::ToString()
 {
-    char buf[1024];
-    snprintf(buf, 1023, "MI=0x%02X(Txt), Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+    char buf[256];
+    snprintf(buf, 255, "MI=0x%02X(Txt), Id=%d, Rev=%d, Font=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
              micode, frmId, frmRev, font, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
@@ -214,8 +214,8 @@ int FrmGfx::CheckColour()
 
 std::string FrmGfx::ToString()
 {
-    char buf[1024];
-    snprintf(buf, 1023, "MI=0x%02X(Gfx), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+    char buf[256];
+    snprintf(buf, 255, "MI=0x%02X(Gfx), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
              micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
@@ -302,8 +302,8 @@ int FrmHrg::CheckColour()
 
 std::string FrmHrg::ToString()
 {
-    char buf[1024];
-    snprintf(buf, 1023, "MI=0x%02X(Hrg), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
+    char buf[256];
+    snprintf(buf, 255, "MI=0x%02X(Hrg), Id=%d, Rev=%d, Rows=%d, Columns=%d, Colour=%d, Consp=%d, Len=%d, Crc=0x%04X",
              micode, frmId, frmRev, pixelRows, pixelColumns, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;

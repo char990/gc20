@@ -7,6 +7,7 @@
 
 Font::Font(const char *fontname)
 {
+    cellPtr.fill(nullptr);
     int fnlen = strlen(fontname);
     if(fnlen>8)
     {
@@ -14,11 +15,6 @@ Font::Font(const char *fontname)
     }
     memcpy(fontName, fontname, fnlen);
     fontName[fnlen]='\0';
-    for (int i = 0x20; i < 0x80; i++)
-    {
-        cellPtr[i - 0x20] = nullptr;
-    }
-
     char fn[16];
     sprintf(fn, "font/%s", fontName);
     int fd = open(fn, O_RDONLY);
@@ -55,26 +51,26 @@ Font::Font(const char *fontname)
         close(fd);
         MyThrow("Corrupt data in file %s", fontName);
     }
-    for (int i = 0x20; i < 0x80; i++)
+    for (int i = 0; i < cellPtr.size(); i++)
     {
-        n = read(fd, buf, bytesPerCell);
+        cellPtr.at(i) = new uint8_t[bytesPerCell];
+        n = read(fd, cellPtr.at(i), bytesPerCell);
         if (n != bytesPerCell)
         {
-            break;
+            close(fd);
+            MyThrow("Corrupt data in file %s", fontName);
         }
-        cellPtr[i - 0x20] = new uint8_t[bytesPerCell];
-        memcpy(cellPtr[i - 0x20], buf, bytesPerCell);
     }
     close(fd);
 }
 
 Font::~Font()
 {
-    for (int i = 0x20; i < 0x80; i++)
+    for (auto & c : cellPtr)
     {
-        if (cellPtr[i - 0x20] != nullptr)
+        if (c != nullptr)
         {
-            delete[] cellPtr[i - 0x20];
+            delete[] c;
         }
     }
 }
@@ -85,7 +81,7 @@ uint8_t *Font::GetCell(char c)
     {
         c = 0x20;
     }
-    return cellPtr[c - 0x20];
+    return cellPtr.at(c - 0x20);
 }
 
 uint8_t Font::GetWidth(char c)
@@ -94,7 +90,7 @@ uint8_t Font::GetWidth(char c)
     {
         c = 0x20;
     }
-    uint8_t *cell = cellPtr[c - 0x20];
+    uint8_t *cell = cellPtr.at(c - 0x20);
     return (*cell) & 0x7F;
 }
 

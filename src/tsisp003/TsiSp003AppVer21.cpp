@@ -16,7 +16,7 @@ TsiSp003AppVer21::~TsiSp003AppVer21()
 {
 }
 
-void TsiSp003AppVer21::Time2Buf(uint8_t *p)
+uint8_t * TsiSp003AppVer21::Time2Buf(uint8_t *p)
 {
     struct tm t;
     time_t t_ = time(nullptr);
@@ -29,6 +29,7 @@ void TsiSp003AppVer21::Time2Buf(uint8_t *p)
     *p++ = t.tm_hour;
     *p++ = t.tm_min;
     *p++ = t.tm_sec;
+    return p;
 }
 
 int TsiSp003AppVer21::Rx(uint8_t *data, int len)
@@ -104,17 +105,15 @@ void TsiSp003AppVer21::HeartbeatPoll(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignStatusReply()
 {
-    txbuf[0] = static_cast<uint8_t>(MI::CODE::SignStatusReply);
-    txbuf[1] = IsOnline() ? 1 : 0;
-    txbuf[2] = static_cast<uint8_t>(appErr);
-    Time2Buf(txbuf + 3);
-    uint16_t i16 = db.HdrChksum();
-    txbuf[10] = i16 >> 8;
-    txbuf[11] = i16 & 0xff;
-    txbuf[12] = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
+    uint8_t * p = txbuf;
+    *p++ = static_cast<uint8_t>(MI::CODE::SignStatusReply);
+    *p++ = IsOnline() ? 1 : 0;
+    *p++ = static_cast<uint8_t>(appErr);
+    p = Time2Buf(p);
+    p = Cnvt::PutU16(db.HdrChksum(),p);
+    *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
     int scnt = db.GetUciProd().NumberOfSigns();
-    txbuf[13] = scnt;
-    uint8_t *p = &txbuf[14];
+    *p++ = scnt;
     for (int j = 1; j <= scnt; j++)
     {
         for (int i = 1; i <= ctrller.GroupCnt(); i++)
@@ -534,16 +533,16 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     {
         return;
     }
-    txbuf[0] = static_cast<uint8_t>(MI::CODE::SignExtendedStatusReply);
-    txbuf[1] = IsOnline() ? 1 : 0;
-    txbuf[2] = static_cast<uint8_t>(appErr);
+    uint8_t * p=txbuf;
+    *p++ = static_cast<uint8_t>(MI::CODE::SignExtendedStatusReply);
+    *p++ = IsOnline() ? 1 : 0;
+    *p++ = static_cast<uint8_t>(appErr);
     UciProd &prod = db.GetUciProd();
-    memcpy(txbuf + 3, prod.MfcCode(), 10);
-    Time2Buf(txbuf + 13);
-    txbuf[20] = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
+    memcpy(p, prod.MfcCode(), 10); p+=10;
+    p=Time2Buf(p);
+    *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
     int scnt = prod.NumberOfSigns();
-    txbuf[21] = scnt;
-    uint8_t *p = &txbuf[22];
+    *p++ = scnt;
     for (int j = 1; j <= scnt; j++)
     {
         for (int i = 1; i <= ctrller.GroupCnt(); i++)

@@ -14,7 +14,7 @@ public:
     virtual int Rx(uint8_t * data, int len) override;
 
 protected:
-    void Time2Buf(uint8_t *p);
+    uint8_t * Time2Buf(uint8_t *p);
     void SignSetFrame(uint8_t * data, int len);
 
 private:

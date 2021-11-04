@@ -9,12 +9,10 @@ using namespace Utils;
 
 UciPln::UciPln()
 {
-    plns = new Plan[255];
 }
 
 UciPln::~UciPln()
 {
-    delete[] plns;
 }
 
 void UciPln::LoadConfig()
@@ -57,13 +55,13 @@ void UciPln::Dump()
 {
     PrintDash();
     printf("%s/%s\n", PATH, PACKAGE);
-    for (int i = 1; i <= 255; i++)
-    {
-        if (IsPlnDefined(i))
-        {
-            printf("\t%s\n", plns[i - 1].ToString().c_str());
-        }
-    }
+	for (auto & m : plns)
+	{
+		if (m.micode != 0)
+		{
+			printf("\t%s\n", m.ToString().c_str());
+		}
+	}
 }
 
 uint16_t UciPln::ChkSum()
@@ -73,17 +71,17 @@ uint16_t UciPln::ChkSum()
 
 bool UciPln::IsPlnDefined(uint8_t i)
 {
-    return (i == 0 || plns[i - 1].micode == 0) ? false : true;
+    return (i == 0 || plns.at(i - 1).micode == 0) ? false : true;
 }
 
 Plan *UciPln::GetPln(uint8_t i)
 {
-    return IsPlnDefined(i) ? &plns[i - 1] : nullptr;
+    return IsPlnDefined(i) ? &plns.at(i - 1) : nullptr;
 }
 
 uint8_t UciPln::GetPlnRev(uint8_t i)
 {
-    return IsPlnDefined(i) ? plns[i - 1].plnRev : 0;
+    return IsPlnDefined(i) ? plns.at(i - 1).plnRev : 0;
 }
 
 APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
@@ -92,13 +90,13 @@ APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
     APP::ERROR r = pln.Init(buf, len);
     if (r == APP::ERROR::AppNoError)
     {
-        // check plan overlap
+        // TODO check plan overlap
         int i = pln.plnId - 1;
-        if (plns[i].micode != 0)
+        if (plns.at(i).micode != 0)
         {
-            chksum -= plns[i].crc;
+            chksum -= plns.at(i).crc;
         }
-        plns[i] = pln;
+        plns.at(i) = pln;
         chksum += pln.crc;
     }
     return r;
@@ -113,16 +111,14 @@ void UciPln::SavePln(uint8_t i)
     uint8_t a[PLN_LEN_MAX + PLN_TAIL];
     char v[(PLN_LEN_MAX + PLN_TAIL) * 2 + 1];
     i--;
-    int len = plns[i].ToArray(a);
+    int len = plns.at(i).ToArray(a);
     Cnvt::ParseToStr(a, v, len);
     OpenSaveClose(SECTION, option, v);
 }
 
 void UciPln::Reset()
 {
-    for (int i = 0; i < 255; i++)
-    {
-        plns[i].micode = 0;
-    }
+    Plan p;
+    plns.fill(p);
     UciCfg::ClrSECTION();
 }

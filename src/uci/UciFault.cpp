@@ -12,13 +12,11 @@ using namespace Utils;
 
 UciFault::UciFault()
 {
-    faultLog = new FaultLog[FAULT_LOG_ENTRIES];
     lastLog = -1;
 }
 
 UciFault::~UciFault()
 {
-    delete[] faultLog;
 }
 
 void UciFault::LoadConfig()
@@ -42,27 +40,19 @@ void UciFault::LoadConfig()
         }
         struct uci_option *option = uci_to_option(e);
         int i = atoi(e->name + 4);
-        if (i < 0 || i >= FAULT_LOG_ENTRIES || option->type != uci_option_type::UCI_TYPE_STRING)
+        if (i < 0 || i >= faultLog.size() || option->type != uci_option_type::UCI_TYPE_STRING)
         {
             continue;
         }
-        if ((p = strchr(option->v.string, '[')) == nullptr)
+        if ((p = strchr(option->v.string, ']')) == nullptr)
         {
             continue;
         }
-        if ((t = Cnvt::ParseLocalStrToTm(p + 1)) == -1)
+        if (sscanf(p, _Fmt, &t, &id, &entryNo, &errorCode, &onset, &crc) != 6)
         {
             continue;
         }
-        if ((p = strchr(p, ']')) == nullptr)
-        {
-            continue;
-        }
-        if (sscanf(p, _Fmt, &id, &entryNo, &errorCode, &onset, &crc) != 5)
-        {
-            continue;
-        }
-        auto & log = faultLog[i];
+        auto & log = faultLog.at(i);
         log.id = id;
         log.logTime = t;
         log.entryNo = entryNo;
@@ -92,24 +82,24 @@ int UciFault::GetFaultLog20(uint8_t *dst)
     uint8_t *p = dst + 1;
     int cnt = 0;
     int logi = lastLog;
-    for (int i = 0; i < FAULT_LOG_ENTRIES && cnt < 20; i++)
+    for (int i = 0; i < faultLog.size() && cnt<20; i++)
     {
-        auto &log = faultLog[logi];
+        auto &log = faultLog.at(logi);
         if (log.logTime >= 0)
         {
             *p++ = log.id;
-            *p++ = log.entryNo & 0xFF;
+            *p ++ = log.entryNo;
             p = Cnvt::PutLocalTm(log.logTime, p);
             *p++ = log.errorCode;
             *p++ = log.onset;
             cnt++;
-            if (--logi < 0)
-            {
-                logi = FAULT_LOG_ENTRIES - 1;
-            }
+        }
+        if (--logi < 0)
+        {
+            logi = faultLog.size() - 1;
         }
     }
-    dst[0] = cnt;
+    dst[0]=cnt;
     return p - dst;
 }
 
@@ -124,9 +114,9 @@ int UciFault::GetLog(uint8_t *dst)
     uint8_t *p = dst + 2;
     int cnt = 0;
     int logi = lastLog;
-    for (int i = 0; i < FAULT_LOG_ENTRIES; i++)
+    for (int i = 0; i < faultLog.size(); i++)
     {
-        auto &log = faultLog[logi];
+        auto &log = faultLog.at(logi);
         if (log.logTime >= 0)
         {
             *p++ = log.id;
@@ -135,10 +125,10 @@ int UciFault::GetLog(uint8_t *dst)
             *p++ = log.errorCode;
             *p++ = log.onset;
             cnt++;
-            if (--logi < 0)
-            {
-                logi = FAULT_LOG_ENTRIES - 1;
-            }
+        }
+        if (--logi < 0)
+        {
+            logi = faultLog.size() - 1;
         }
     }
     Cnvt::PutU16(cnt, dst);
@@ -154,13 +144,13 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
-        entryNo = faultLog[lastLog].entryNo + 1;
+        entryNo = faultLog.at(lastLog).entryNo + 1;
     }
-    if (++lastLog >= FAULT_LOG_ENTRIES)
+    if (++lastLog >= faultLog.size())
     {
         lastLog = 0;
     }
-    auto &log = faultLog[lastLog];
+    auto &log = faultLog.at(lastLog);
     log.id = id;
     log.entryNo = entryNo;
     log.logTime = t;
@@ -174,7 +164,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     char v[128];
     v[0] = '[';
     char *p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    snprintf(p, 127-(p-v),  _Fmt, id, entryNo, log.errorCode, onset, log.crc);
+    snprintf(p, 127-(p-v),  _Fmt, t, id, entryNo, log.errorCode, onset, log.crc);
 
     OpenSaveClose(SECTION, option, v);
     if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)
@@ -191,9 +181,9 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset)
 void UciFault::Reset()
 {
     lastLog=-1;
-    for(int i=0;i<FAULT_LOG_ENTRIES;i++)
+    for(int i=0;i<faultLog.size();i++)
     {
-        faultLog[i].logTime=-1;
+        faultLog.at(i).logTime=-1;
     }
     UciCfg::ClrSECTION();
 }

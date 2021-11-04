@@ -193,9 +193,10 @@ namespace Utils
         static char *ParseTmToLocalStr(struct timeval *t, char *p);
 
         /// \brief  Parse localtime string to tm_t
+        /// !!! NOTE !!! When the time is between the override hour of 2:00-3:00, can't get correct time_t, so don not use this function
         ///         string format: d/M/yyyy h:mm:ss
         /// \retunr -1:fail
-        static time_t ParseLocalStrToTm(char *pbuf);
+        // static time_t ParseLocalStrToTm(char *pbuf);
     };
 
     class Crc

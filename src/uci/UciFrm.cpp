@@ -15,22 +15,16 @@ using namespace Utils;
 
 UciFrm::UciFrm()
 {
-	for (int i = 0; i < 255; i++)
-	{
-		frms[i]=nullptr;
-	}
+	frms.fill(nullptr);
 }
 
 UciFrm::~UciFrm()
 {
-	if (maxFrmSize != 0)
+	for (auto & s : frms)
 	{
-		for (int i = 0; i < 255; i++)
+		if(s!=nullptr)
 		{
-			if(frms[i]!=nullptr)
-			{
-				delete frms[i];
-			}
+			delete s;
 		}
 	}
 }
@@ -74,7 +68,7 @@ void UciFrm::Dump()
 {
     PrintDash();
 	printf("%s/frm_xxx\n", PATH);
-	for (int i = 0; i < 255; i++)
+	for (int i=0;i<255;i++)
 	{
 		if (frms[i] != nullptr)
 		{
@@ -95,7 +89,7 @@ bool UciFrm::IsFrmDefined(uint8_t i)
 
 StFrm *UciFrm::GetStFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? &(frms[i - 1]->stFrm) : nullptr;
+	return IsFrmDefined(i) ? &(frms[i- 1]->stFrm) : nullptr;
 }
 
 Frame* UciFrm::GetFrm(uint8_t i)
@@ -146,7 +140,7 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 		delete vFrm;
 	}
 	chksum -= pFrm->crc;
-	frms[pFrm->frmId-1]=pFrm;
+	frms.at(pFrm->frmId-1)=pFrm;
 	return APP::ERROR::AppNoError;
 }
 
@@ -188,14 +182,14 @@ void UciFrm::SaveFrm(uint8_t i)
 
 void UciFrm::Reset()
 {
-	for (int i = 0; i < 255; i++)
+	for (auto & s:frms)
 	{
-		if(frms[i]!=nullptr)
+		if(s!=nullptr)
 		{
-			delete frms[i];
-			frms[i]=nullptr;
+			delete s;
 		}
 	}
+	frms.fill(nullptr);
 	char buf[256];
 	snprintf(buf, 255, "rm %s/frm*", PATH);
 	system(buf);

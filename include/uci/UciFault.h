@@ -3,6 +3,7 @@
 #include <uci/UciLog.h>
 #include <uci/FaultLog.h>
 #include<tsisp003/TsiSp003Const.h>
+#include <array>
 
 
 #define FAULT_LOG_ENTRIES 500
@@ -13,7 +14,7 @@ Format: UCI
 --- Start ---
 config UciFault flt
     # flt_xxx : xxx is fault ID, 0-499
-    option flt_0  "[d/m/yyyy h:mm:ss]ID=%d, EntryNo=%d, Error=%d, Onset=%d, Crc=%d"
+    option flt_0  "[d/m/yyyy h:mm:ss]t=%d, ID=%d, EntryNo=%d, Error=%d, Onset=%d, Crc=%d"
     # If flt CRC is not matched, discard flt
 --- End ---
 */
@@ -43,7 +44,7 @@ public:
     void Reset();
 
 private:
-    FaultLog *faultLog;
+    std::array<FaultLog, FAULT_LOG_ENTRIES> faultLog;
     const char * _Log = "log_";
-    const char * _Fmt = "]ID=%d, EntryNo=%d, Error=%d, Onset=%d, Crc=%d";
+    const char * _Fmt = "]t=%d, ID=%d, EntryNo=%d, Error=%d, Onset=%d, Crc=%d";
 };

@@ -8,13 +8,14 @@
 
 
 using namespace Utils;
+#define MyDbgBuf_SIZE 1024
 
-static char MyDbgBuf[1024];
+static char MyDbgBuf[MyDbgBuf_SIZE];
 void MyThrow(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	int len = vsnprintf(MyDbgBuf, 1024 - 1, fmt, args);
+	int len = vsnprintf(MyDbgBuf, MyDbgBuf_SIZE - 1, fmt, args);
 	va_end(args);
 	throw std::runtime_error(&MyDbgBuf[0]);
 }
@@ -35,7 +36,7 @@ int MyPrintf(const char *fmt, ...)
 	int len = p - MyDbgBuf;
 	va_list args;
 	va_start(args, fmt);
-	len += vsnprintf(p, 1024 - 1 - len, fmt, args);
+	len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
 	va_end(args);
 	printf("%s", MyDbgBuf);
 	return len;

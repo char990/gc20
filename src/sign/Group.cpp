@@ -134,7 +134,7 @@ Group::~Group()
 {
     delete pPinCmdPower;
     delete[] orBuf;
-    delete txBuf;
+    delete[] txBuf;
     delete dsBak;
     delete dsCurrent;
     delete dsNext;

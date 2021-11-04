@@ -2,6 +2,7 @@
 
 
 #include <string>
+#include <array>
 #include <tsisp003/Plan.h>
 #include <uci/UciCfg.h>
 #include <uci/UciFrm.h>
@@ -66,7 +67,7 @@ public:
     void Reset();
 
 private:
-    Plan *plns;  // 255 plans
+    std::array<Plan,255> plns;  // 255 plans
     uint16_t chksum;
     const char * _Option = "pln_%d";
 };

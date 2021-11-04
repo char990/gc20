@@ -2,6 +2,7 @@
 
 #include <uci/UciLog.h>
 #include <uci/StrLog.h>
+#include <vector>
 
 /*
     # log_xxx : xxx is log ID
@@ -13,6 +14,7 @@ class UciStrLog : public UciLog
 {
 public:
     UciStrLog(){};
+    UciStrLog(int max):pStrLog(max){};
     virtual ~UciStrLog(){};
 
     virtual void LoadConfig() override;
@@ -25,10 +27,9 @@ public:
     void Reset();
 
 protected:
-    StrLog *pStrLog;
-    int maxEntries;
+    std::vector<StrLog> pStrLog;
     const char * _Log = "log_";
-    const char * _Fmt_1 =  "]ID=%d, EntryNo=%d, ";
+    const char * _Fmt_1 =  "]t=%d, ID=%d, EntryNo=%d, ";
     const char * _Fmt_2 =  "Str=";
-    const char * _Fmt_3 =  "]ID=%d, EntryNo=%d, Str=%s";
+    const char * _Fmt_3 =  "]t=%d, ID=%d, EntryNo=%d, Str=%s";
 };

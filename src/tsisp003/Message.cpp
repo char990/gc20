@@ -81,15 +81,15 @@ std::string Message::ToString()
     {
         return "Message undefined";
     }
-    char buf[1024];
+    char buf[256];
     int len = 0;
-    len = snprintf(buf, 1023, "msg_%03d: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
+    len = snprintf(buf, 255, "msg_%03d: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
                 msgId, micode, msgId, msgRev, transTime, entries);
     for (int i = 0; i < entries; i++)
     {
-        len += snprintf(buf + len, 1023 - len, "(%d,%d)", msgEntries[i].frmId, msgEntries[i].onTime);
+        len += snprintf(buf + len, 255 - len, "(%d,%d)", msgEntries[i].frmId, msgEntries[i].onTime);
     }
-    snprintf(buf + len, 1023 - len, ", Crc=0x%04X", crc);
+    snprintf(buf + len, 255 - len, ", Crc=0x%04X", crc);
     std::string s(buf);
     return s;
 }

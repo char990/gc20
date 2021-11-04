@@ -15,7 +15,7 @@ uint8_t *SignTxt::GetExtStatus(uint8_t *buf)
     *p++=static_cast<uint8_t>(signErr.GetErrorCode());
     *p++=DimmingMode();
     *p++=DimmingValue();
-    p++;
+    p++; // [7]: led status bytes
     p=LedStatus(p);
     buf[7] = p-buf-8;
     return p;

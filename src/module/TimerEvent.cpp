@@ -59,9 +59,9 @@ void TimerEvent::EventsHandle(uint32_t events)
         }*/
         for(int i=0;i<pEvts.size();i++)
         {
-            if(pEvts[i]!=nullptr)
+            if(pEvts.at(i)!=nullptr)
             {
-                pEvts[i]->PeriodicRun();
+                pEvts.at(i)->PeriodicRun();
             }
         }
     }
@@ -75,16 +75,16 @@ void TimerEvent::Add(IPeriodicRun * evt)
 {
     for(int i=0;i<pEvts.size();i++)
     {
-        if(pEvts[i]==evt)
+        if(pEvts.at(i)==evt)
         {
             return;
         }
     }
     for(int i=0;i<pEvts.size();i++)
     {
-        if(pEvts[i]==nullptr)
+        if(pEvts.at(i)==nullptr)
         {
-            pEvts[i]=evt;
+            pEvts.at(i)=evt;
             return;
         }
     }
@@ -95,9 +95,9 @@ void TimerEvent::Remove(IPeriodicRun * evt)
 {
     for(int i=0;i<pEvts.size();i++)
     {
-        if(pEvts[i]==evt)
+        if(pEvts.at(i)==evt)
         {
-            pEvts[i]=nullptr;
+            pEvts.at(i)=nullptr;
             return;
         }
     }

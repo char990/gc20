@@ -288,6 +288,7 @@ char *Cnvt::ParseTmToLocalStr(time_t t, char *p)
     return p + len;
 }
 
+/*
 time_t Cnvt::ParseLocalStrToTm(char *pbuf)
 {
     struct tm tp;
@@ -299,9 +300,10 @@ time_t Cnvt::ParseLocalStrToTm(char *pbuf)
     }
     tp.tm_mon--;
     tp.tm_year -= 1900;
+    tp.tm_isdst = -1;
     return mktime(&tp);
 }
-
+*/
 const uint8_t Crc::crc8_table[256] =
     {
         0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,

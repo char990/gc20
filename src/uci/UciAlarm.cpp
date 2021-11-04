@@ -2,14 +2,12 @@
 #include <uci/DbHelper.h>
 
 UciAlarm::UciAlarm()
+:UciStrLog(ALARM_LOG_ENTRIES)
 {
-    pStrLog = new StrLog[ALARM_LOG_ENTRIES];
-    maxEntries=ALARM_LOG_ENTRIES;
 }
 
 UciAlarm::~UciAlarm()
 {
-    delete [] pStrLog;
 }
 
 void UciAlarm::LoadConfig()

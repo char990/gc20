@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 #include <tsisp003/Message.h>
 #include <uci/UciCfg.h>
 #include <uci/UciFrm.h>
@@ -61,7 +62,7 @@ public:
     bool IsMsgFlashing(uint8_t i);
     
 private:
-    Message *msgs;  // 255 msgs
+    std::array<Message, 255> msgs;  // 255 msgs
     uint16_t chksum;
     const char * _Option = "msg_%d";
 };

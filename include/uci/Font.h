@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <array>
 
-#define MAX_FONT_DOT (64*64)
+#define MAX_FONT_DOT (64 * 64)
 
 /********* Font definition *********
 1. Font file name looks like P5X7/F12X20
@@ -23,7 +24,7 @@
 9. In each cell, celldata[1-n] are dot matrix
 ***********************************/
 
-    /* cell data is a uint8_t array, length = bytesPerCell
+/* cell data is a uint8_t array, length = bytesPerCell
     [0]: bit7: with decender, bit0-6: dot columns
 
     [1 - (bytesPerCell-1)] : dot data
@@ -124,19 +125,19 @@ public:
     ~Font();
     const char *FontName() { return &fontName[0]; };
 
-    uint16_t BytesPerCell() { return  bytesPerCell; }; 
-    uint8_t ColumnsPerCell() { return  columnsPerCell; }; 
-    uint8_t RowsPerCell() { return  rowsPerCell; }; 
-    uint8_t BytesPerCellRow() { return  bytesPerCellRow; }; 
-    uint8_t CharSpacing() { return  charSpacing; }; 
-    uint8_t LineSpacing() { return  lineSpacing; }; 
-    uint8_t Descender() { return  descender; }; 
+    uint16_t BytesPerCell() { return bytesPerCell; };
+    uint8_t ColumnsPerCell() { return columnsPerCell; };
+    uint8_t RowsPerCell() { return rowsPerCell; };
+    uint8_t BytesPerCellRow() { return bytesPerCellRow; };
+    uint8_t CharSpacing() { return charSpacing; };
+    uint8_t LineSpacing() { return lineSpacing; };
+    uint8_t Descender() { return descender; };
 
     /// \brief Char width with spacing
-    uint8_t CharWidthWS() { return  columnsPerCell+charSpacing; }; 
+    uint8_t CharWidthWS() { return columnsPerCell + charSpacing; };
 
     /// \brief Char height with spacing
-    uint8_t CharHeightWS() { return  rowsPerCell+lineSpacing; }; 
+    uint8_t CharHeightWS() { return rowsPerCell + lineSpacing; };
 
     /// \brief Get cell data
     uint8_t *GetCell(char c);
@@ -157,6 +158,5 @@ private:
     uint8_t charSpacing;
     uint8_t lineSpacing;
 
-    uint8_t * cellPtr[0x80-0x20];  // 0x20 - 0x7F
+    std::array<uint8_t *, (0x7F - 0x20 + 1)> cellPtr; // 0x20 - 0x7F
 };
-

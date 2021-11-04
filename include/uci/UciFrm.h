@@ -2,9 +2,11 @@
 
 
 #include <string>
+#include <array>
 #include <uci/UciProd.h>
 #include <tsisp003/Frame.h>
 #include <module/Utils.h>
+
 
 /*
 Filename: "./config/frm_xxx"
@@ -64,7 +66,7 @@ private:
     const char * PATH;
     int maxFrmSize{0};
     uint16_t chksum{0};
-    Frame *frms[255];
+    std::array<Frame *, 255> frms;
     void Dump();
 };
 

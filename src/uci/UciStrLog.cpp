@@ -28,23 +28,15 @@ void UciStrLog::LoadConfig()
         }
         option = uci_to_option(e);
         int i = atoi(e->name + 4);
-        if (i < 0 || i >= maxEntries || option->type != uci_option_type::UCI_TYPE_STRING)
+        if (i < 0 || i >= pStrLog.size() || option->type != uci_option_type::UCI_TYPE_STRING)
         {
             continue;
         }
-        if ((p = strchr(option->v.string, '[')) == nullptr)
+        if ((p = strchr(option->v.string, ']')) == nullptr)
         {
             continue;
         }
-        if ((t = Cnvt::ParseLocalStrToTm(p + 1)) == -1)
-        {
-            continue;
-        }
-        if ((p = strchr(p, ']')) == nullptr)
-        {
-            continue;
-        }
-        if (sscanf(p, _Fmt_1, &id, &entryNo) != 2)
+        if (sscanf(p, _Fmt_1, &t, &id, &entryNo) != 3)
         {
             continue;
         }
@@ -72,9 +64,9 @@ int UciStrLog::GetLog(uint8_t *dst)
         return 2;
     }
     uint8_t *p = dst + 2;
-    int cnt = 0;
     int logi = lastLog;
-    for (int i = 0; i < maxEntries; i++)
+    int cnt=0;
+    for (int i = 0; i < pStrLog.size(); i++)
     {
         auto &log = pStrLog[logi];
         if (log.logTime >= 0)
@@ -86,58 +78,25 @@ int UciStrLog::GetLog(uint8_t *dst)
             p++;
             *p='\0';
             cnt++;
-            if (--logi < 0)
-            {
-                logi = maxEntries - 1;
-            }
+        }
+        if (--logi < 0)
+        {
+            logi = pStrLog.size() - 1;
         }
     }
     Cnvt::PutU16(cnt, dst);
     return p - dst;
 }
 
-/*
-void UciStrLog::Push(uint8_t id, const char *pbuf)
-{
-    uint16_t entryNo = 0;
-    if (lastLog != -1)
-    {
-        entryNo = (pStrLog + lastLog)->entryNo + 1;
-    }
-    lastLog++;
-    if (lastLog >= maxEntries)
-    {
-        lastLog = 0;
-    }
-
-    char *p;
-    auto &log = pStrLog[lastLog];
-    time_t t = time(NULL);
-    log.id = id;
-    log.entryNo = entryNo;
-    log.logTime = t;
-    p = CharCpy(log.str, pbuf, STR_SIZE - 1);
-
-    char option[16];
-    sprintf(option, "%s%d", _Log, lastLog);
-
-    char v[128];
-    v[0] = '[';
-    p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    sprintf(p, _Fmt_3, id, entryNo, log.str);
-
-    OpenSaveClose(SECTION, option, v);
-}
-*/
 void UciStrLog::Push(uint8_t id, const char *fmt, ...)
 {
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
-        entryNo = (pStrLog + lastLog)->entryNo + 1;
+        entryNo = pStrLog.at(lastLog).entryNo + 1;
     }
     lastLog++;
-    if (lastLog >= maxEntries)
+    if (lastLog >= pStrLog.size())
     {
         lastLog = 0;
     }
@@ -157,7 +116,7 @@ void UciStrLog::Push(uint8_t id, const char *fmt, ...)
     char v[128];
     v[0] = '[';
     char * p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    snprintf(p, 127-(p-v), _Fmt_3, id, entryNo, log.str);
+    snprintf(p, 127-(p-v), _Fmt_3, t, id, entryNo, log.str);
 
     OpenSaveClose(SECTION, option, v);
 }
@@ -165,9 +124,9 @@ void UciStrLog::Push(uint8_t id, const char *fmt, ...)
 void UciStrLog::Reset()
 {
     lastLog=-1;
-    for(int i=0;i<maxEntries;i++)
+    for(auto & s : pStrLog)
     {
-        pStrLog[i].logTime=-1;
+        s.logTime=-1;
     }
     UciCfg::ClrSECTION();
 }
