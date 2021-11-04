@@ -35,12 +35,13 @@ public:
 
     /// \brief  Reject
     void Reject(APP::ERROR error);
+    void SetRejectStr(const char *fmt, ...);
 
     /// \brief  Acknowledge
     void Ack();
 
     /// \brief      Check length, if not matched, Reject
-    bool ChkLen(int len1, int len2);
+    bool ChkLen(int rcvd, int expect);
 
     /// \brief      Check online status
     bool IsOnline();
@@ -74,6 +75,7 @@ protected:
     uint16_t MakePassword();
 
 private:
+    char rejectStr[64];
     // all UserDefinedCmd functions are in UserDefinedCmd.cpp
     // FACMD list
     enum FACMD : uint8_t

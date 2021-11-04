@@ -1,3 +1,5 @@
+#include <cstdarg>
+#include <cstdio>
 #include <tsisp003/TsiSp003App.h>
 #include <sign/Controller.h>
 #include <module/DS3231.h>
@@ -9,6 +11,7 @@ TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
       ctrller(Controller::Instance())
 {
+    rejectStr[0]='\0';
 }
 
 TsiSp003App::~TsiSp003App()
@@ -51,7 +54,17 @@ void TsiSp003App::Reject(APP::ERROR error)
     buf[1] = micode;
     buf[2] = static_cast<uint8_t>(error);
     Tx(buf, 3);
-    PrintDbg("Reject: MI=0x%02X(%s), Error=0x%02X(%s)\n", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]) );
+    char str[64+4];
+    if(rejectStr[0]!='\0')
+    {
+        sprintf(str, " :%s\n", rejectStr);
+        rejectStr[0]='\0';
+    }
+    else
+    {
+        sprintf(str, "\n");
+    }
+    PrintDbg("Reject: MI=0x%02X(%s), Error=0x%02X(%s)%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), str);
     /*
     ACE_DEBUG((LM_DEBUG, "%s!!! cmd_Reject - error code %d : %s", LocaltimeStr(), apperror, apperrtomsg(apperror)));
 	unsigned char logapperror[]={
@@ -68,6 +81,14 @@ void TsiSp003App::Reject(APP::ERROR error)
 	}
 	protocolp->updateApperror(apperror);
     */
+}
+
+void TsiSp003App::SetRejectStr(const char *fmt, ...)
+{
+    va_list args;
+	va_start(args, fmt);
+	vsnprintf(rejectStr, 63, fmt, args);
+	va_end(args);
 }
 
 void TsiSp003App::Ack()
@@ -97,11 +118,13 @@ void TsiSp003App::Password(uint8_t *data, int len)
         return;
     if (session->Session() != ISession::SESSION::START)
     {
+        SetRejectStr("Expect StartSession before Password");
         Reject(APP::ERROR::SyntaxError);
         return;
     }
     uint16_t pass = data[1] * 0x100 + data[2];
-    if (pass == MakePassword())
+    uint16_t expp=MakePassword();
+    if (pass == expp)
     {
         //SetStatusLed(1);
         Ack();
@@ -112,6 +135,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
     else
     {
         session->Session(ISession::SESSION::OFF_LINE);
+        SetRejectStr("Got[%04X]Expect[%04X]",pass,expp);
         Reject(APP::ERROR::SyntaxError);
         //_Session_END();
         /*	Session_StartCount(INT_MAX-1);
@@ -198,6 +222,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
 	}
 	else
     {
+        SetRejectStr("Invalid time");
         Reject(APP::ERROR::SyntaxError);
     }
 }
@@ -220,12 +245,13 @@ uint16_t TsiSp003App::MakePassword()
     return passwd + db.GetUciUser().PasswordOffset();
 }
 
-bool TsiSp003App::ChkLen(int len1, int len2)
+bool TsiSp003App::ChkLen(int rcvd, int expect)
 {
-    if (len1 == len2)
+    if (rcvd == expect)
     {
         return true;
     }
+    SetRejectStr("Got[%d]Expect[%d]",rcvd,expect);
     Reject(APP::ERROR::LengthError);
     return false;
 }

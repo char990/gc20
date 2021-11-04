@@ -346,7 +346,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    PrintDbg("Display:BLANK\n");
+                    PrintDbg("TaskPln:Display:BLANK\n");
                     db.GetUciEvent().Push(0, "Display:BLANK");
                     TaskFrmReset();
                     TaskMsgReset();
@@ -364,7 +364,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    PrintDbg("Plan%d start\n", plnmin.plnId);
+                    PrintDbg("TaskPln:Plan%d start\n", plnmin.plnId);
                     db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -461,7 +461,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        PrintDbg("Display Msg:%d\n", onDispMsgId);
+        PrintDbg("TaskMsg:Display Msg:%d\n", onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -558,7 +558,7 @@ bool Group::TaskMsg(int *_ptLine)
                         } while (allSlavesCurrent == 1); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            PrintDbg("Msg-Frm-Disp: Current NOT matched, RESTART\n");
+                            PrintDbg("TaskMsg:SetStoredFrame: Current NOT matched, RESTART\n");
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -600,7 +600,7 @@ bool Group::TaskMsg(int *_ptLine)
                     } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                     if (!taskMsgTmr.IsExpired())
                     { // Currnet is NOT matched, fatal error
-                        PrintDbg("Msg-Frm-onTime: Current NOT matched, RESTART\n");
+                        PrintDbg("TaskMsg:Frm-onTime: Current NOT matched, RESTART\n");
                         goto NORMAL_MSG_TASK_START;
                     }
 
@@ -704,7 +704,7 @@ bool Group::TaskFrm(int *_ptLine)
             activeMsg.ClrAll();
             activeFrm.Set(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
-            PrintDbg("Display ATF\n");
+            PrintDbg("TaskFrm:Display ATF\n");
         }
         else
         {
@@ -725,7 +725,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            PrintDbg("Display Frm:%d\n", onDispFrmId);
+            PrintDbg("TaskFrm:Display Frm:%d\n", onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do

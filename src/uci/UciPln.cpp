@@ -90,7 +90,6 @@ APP::ERROR UciPln::SetPln(uint8_t *buf, int len)
     APP::ERROR r = pln.Init(buf, len);
     if (r == APP::ERROR::AppNoError)
     {
-        // TODO check plan overlap
         int i = pln.plnId - 1;
         if (plns.at(i).micode != 0)
         {

@@ -33,7 +33,6 @@ using namespace std;
 
 void PrintVersion()
 {
-    PrintDbg("\n");
     char sbuf[256];
     int len = snprintf(sbuf, 255, "* Version %s.%s, Build at UTC: %s %s *",
                       FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
@@ -52,10 +51,9 @@ public:
     {
         putchar('\r');
         _r_need_n = 0;
-        PrintDbg("");
+        PrintDbg("%c",s[cnt & 0x03]);
         _r_need_n = 1;
         cnt++;
-        putchar(s[cnt & 0x03]);
         fflush(stdout);
         time_t alarm_t = time(NULL);
         pDS3231->WriteTimeAlarm(alarm_t);
@@ -167,6 +165,7 @@ int main(int argc, char *argv[])
     try
     {
 
+        PrintDbg(">>> %s start. Initializing... >>>\n",argv[0]);
         srand(time(NULL));
 
         pDS3231 = new DS3231{1};
@@ -236,7 +235,7 @@ int main(int argc, char *argv[])
         TcpServer tcpServerNts{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
-        PrintDbg("\n>>> START >>>\n");
+        PrintDbg(">>> DONE >>>\n");
 
         /*************** Start ****************/
         while (1)

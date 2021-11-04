@@ -6,6 +6,9 @@
 class BootTimer
 {
 public:
+    BootTimer(){};
+    BootTimer(long ms) { Setms(ms); };
+
     /// \brief		Set timer in ms (1/1000 second)
     /// \param		ms (If ms<0, set as LONG_MAX)
     void Setms(long ms);
@@ -20,7 +23,7 @@ public:
     /// \brief		Clear timer, will be never expired
     void Clear();
 
-    /// \brief      Check if timer is clear(unuse) 
+    /// \brief      Check if timer is clear(unuse)
     bool IsClear()
     {
         return ns == 0 && sec == LONG_MAX;

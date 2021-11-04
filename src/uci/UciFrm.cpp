@@ -105,7 +105,9 @@ uint8_t UciFrm::GetFrmRev(uint8_t i)
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 {
 	if (len > maxFrmSize)
+	{
 		return APP::ERROR::LengthError;
+	}
 	Frame *pFrm;
 	if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
 	{

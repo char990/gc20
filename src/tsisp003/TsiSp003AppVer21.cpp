@@ -137,9 +137,15 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     }
     uint8_t gid = data[1];
     uint8_t level = data[2];
-    if ((level > 3 && level < 255) ||
-        (level > 1 && gid != 0))
+    if (level > 3 && level < 255)
     {
+        SetRejectStr("Invalid reset level[%d]",level);
+        Reject(APP::ERROR::SyntaxError);
+        return;
+    }
+    if (level > 1 && gid != 0)
+    {
+        SetRejectStr("GroupID=%d. Level[%d] is only for Group[0])", gid, level);
         Reject(APP::ERROR::SyntaxError);
         return;
     }
@@ -151,6 +157,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     }
     else
     {
+        SetRejectStr("Group[%d]Level[%d])", gid, level);
         Reject(r);
     }
 }
@@ -161,14 +168,17 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
     {
+        SetRejectStr("Frame[0] is not valid");
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else if (ctrller.IsFrmActive(id))
     {
+        SetRejectStr("Frame[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
+        SetRejectStr("Frame[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
@@ -227,6 +237,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     }
     else
     {
+        SetRejectStr("Group[%d]Frame[%d]",data[1],data[2]);
         Reject(r);
     }
 }
@@ -241,18 +252,22 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     uint8_t id = *(data + OFFSET_MSG_ID);
     if (id == 0)
     {
+        SetRejectStr("Msg[0] is not valid");
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else if (len > MSG_LEN_MAX)
     {
+        SetRejectStr("len[%d] > MSG_LEN_MAX[%d]", len, MSG_LEN_MAX);
         r = APP::ERROR::LengthError;
     }
     else if (ctrller.IsMsgActive(id))
     {
+        SetRejectStr("Msg[%d] is active",id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUser().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
+        SetRejectStr("Msg[%d] is locked",id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
@@ -306,6 +321,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     }
     else
     {
+        SetRejectStr("Group[%d]Msg[%d]",data[1],data[2]);
         Reject(r);
     }
 }
@@ -320,14 +336,17 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     uint8_t id = *(data + OFFSET_PLN_ID);
     if (id == 0)
     {
+        SetRejectStr("Plan[0] is not valid");
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else if (len > PLN_LEN_MAX)
     {
+        SetRejectStr("len[%d]>PLN_LEN_MAX[%d]",len, PLN_LEN_MAX);
         r = APP::ERROR::LengthError;
     }
     else if (ctrller.IsPlnActive(id))
     {
+        SetRejectStr("Plan[%d] is active",id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else
@@ -365,6 +384,7 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
     }
     else
     {
+        SetRejectStr("Group[%d]Plan[%d]", data[1], data[2]);
         Reject(r);
     }
 }
@@ -383,6 +403,7 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
+        SetRejectStr("number of entries=0");
         Reject(APP::ERROR::SyntaxError);
     }
     else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 3))
@@ -413,6 +434,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
+        SetRejectStr("number of entries=0");
         Reject(APP::ERROR::SyntaxError);
     }
     else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
@@ -443,6 +465,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
 {
     if (data[1] == 0)
     {
+        SetRejectStr("number of entries=0");
         Reject(APP::ERROR::SyntaxError);
     }
     else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
@@ -475,8 +498,14 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     {
         return;
     }
-    if (data[1] > 3 || data[2] == 0)
+    if (data[1] > 3)
     {
+        SetRejectStr("Unknow type:%d",data[1]);
+        Reject(APP::ERROR::SyntaxError);
+    }
+    if (data[2] == 0)
+    {
+        SetRejectStr("Frame/Message/Plan[0] is not valid");
         Reject(APP::ERROR::SyntaxError);
     }
     switch (data[1])
@@ -486,6 +515,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto frm = db.GetUciFrm().GetStFrm(data[2]);
         if (frm == nullptr)
         {
+            SetRejectStr("Frame[%d] undefined",data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
@@ -499,6 +529,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto msg = db.GetUciMsg().GetMsg(data[2]);
         if (msg == nullptr)
         {
+            SetRejectStr("Msg[%d] undefined",data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
@@ -514,6 +545,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto pln = db.GetUciPln().GetPln(data[2]);
         if (pln == nullptr)
         {
+            SetRejectStr("Plan[%d] undefined",data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
