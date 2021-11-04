@@ -740,6 +740,7 @@ bool Group::TaskFrm(int *_ptLine)
         // step2: display frame
         do
         {
+            taskFrmRefreshTmr.Setms(600*1000);
             SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
             ClrAllSlavesRxStatus();
             do
@@ -751,8 +752,8 @@ bool Group::TaskFrm(int *_ptLine)
                 {
                     AllSlavesUpdateCurrentBak();
                 }
-            } while (allSlavesCurrent == 0); // all good
-        } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
+            } while (allSlavesCurrent == 0 && !taskFrmRefreshTmr.IsExpired()); // all good
+        } while (allSlavesCurrent == 1 && !taskFrmRefreshTmr.IsExpired());     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
     };
     PT_END();
 }

@@ -256,6 +256,7 @@ private:
     bool TaskFrm(int *_ptLine);
     int taskFrmLine{0};
     BootTimer taskFrmTmr;
+    BootTimer taskFrmRefreshTmr;
     void TaskFrmReset()
     {
         taskFrmLine = 0;
