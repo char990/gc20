@@ -1,12 +1,16 @@
 #include <stdexcept>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include <tsisp003/Frame.h>
 #include <module/Utils.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/DbHelper.h>
+#include <module/MyDbg.h>
 
 using namespace Utils;
+using namespace std;
 
 Frame::Frame()
 {
@@ -19,18 +23,22 @@ Frame::~Frame()
 int Frame::FrameCheck(uint8_t *frm, int len)
 {
     crc = Crc::Crc16_1021(frm, len - 2);
-    if (crc != Cnvt::GetU16(frm + len - 2))
+    auto crc2 = Cnvt::GetU16(frm + len - 2);
+    if (crc != crc2)
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:Crc mismatch:%04X:%04X\n", frmId, crc, crc2);
         appErr = APP::ERROR::DataChksumError;
         return 1;
     }
     if (frmId == 0)
     {
+        PrintDbg(DBG_LOG, "Frame Error:FrameID=0\n");
         appErr = APP::ERROR::SyntaxError;
         return 1;
     }
     if (len != (frmOffset + 2 + frmBytes))
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:length mismatch:%d:%d\n", frmId, len, (frmOffset + 2 + frmBytes));
         appErr = APP::ERROR::LengthError;
         return 1;
     }
@@ -53,6 +61,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         !prod.IsConspicuity(conspicuity & 0x07) ||
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:conspicuity=%d;annulus=%d\n", frmId, (conspicuity & 0x07), ((conspicuity >> 3) & 0x03));
         appErr = APP::ERROR::ConspicuityNotSupported;
         return 1;
     }
@@ -81,11 +90,13 @@ int FrmTxt::CheckLength(int len)
 {
     if (len > (255 + frmOffset + 2))
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
     else if (len < (frmOffset + 2 + 1))
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
         appErr = APP::ERROR::FrameTooSmall;
         return 1;
     }
@@ -94,6 +105,7 @@ int FrmTxt::CheckLength(int len)
 
 int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
+    auto &prod = DbHelper::Instance().GetUciProd();
     if (micode != static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
         appErr = APP::ERROR::UnknownMi;
@@ -101,27 +113,50 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     }
     else if (Check::Text(frm + frmOffset, frmBytes) != 0)
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:Non-ASC in TextFrame\n", frmId);
         appErr = APP::ERROR::TextNonASC;
         return 1;
     }
-    else if (!DbHelper::Instance().GetUciProd().IsFont(font))
+    else if (!prod.IsFont(font))
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:font=%d\n", frmId, font);
         appErr = APP::ERROR::FontNotSupported;
         return 1;
     }
-    /* TODO if text could fit in the sign: X chars * Y chars
-    if (???)
+    auto pFont = prod.Fonts(font);
+    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
+    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
+    const char *asc = (char *)frm + frmOffset;
+    string s(asc, frmBytes);
+    vector<string> tokens;
+    Cnvt::split(s, tokens);
+    int lines =tokens.size(); 
+    int chars = 0;
+    for (auto &s : tokens)
     {
+        if (s.size() > chars)
+        {
+            chars = s.size();
+        }
+    }
+    if (lines > rows || (lines > 1 && chars > columns) || (lines == 1 && frmBytes > columns*rows))
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d*%d]\n",
+                 frmId, columns, rows, font, chars, lines);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
-    */
     return 0;
 }
 
 int FrmTxt::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsTxtFrmColour(colour) ? 0 : -1;
+    if (DbHelper::Instance().GetUciProd().IsTxtFrmColourValid(colour))
+    {
+        return 0;
+    }
+    PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
+    return -1;
 }
 
 std::string FrmTxt::ToString()
@@ -167,10 +202,12 @@ int FrmGfx::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
         appErr = APP::ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:pixelRows=%d;pixelColumns=%d\n", frmId, pixelRows, pixelColumns);
         appErr = APP::ERROR::SizeMismatch;
     }
     else
@@ -190,17 +227,15 @@ int FrmGfx::CheckLength(int len)
         }
         if (x != 0)
         {
-            if (frmBytes > x)
+            if (frmBytes != x)
             {
-                appErr = APP::ERROR::FrameTooLarge;
-            }
-            else if (frmBytes < x)
-            {
-                appErr = APP::ERROR::FrameTooSmall;
+                PrintDbg(DBG_LOG, "Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
+                appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
             }
         }
         else
         {
+            PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
             appErr = APP::ERROR::ColourNotSupported;
         }
     }
@@ -209,7 +244,12 @@ int FrmGfx::CheckLength(int len)
 
 int FrmGfx::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsGfxFrmColour(colour) ? 0 : -1;
+    if (DbHelper::Instance().GetUciProd().IsGfxFrmColourValid(colour))
+    {
+        return 0;
+    }
+    PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
+    return -1;
 }
 
 std::string FrmGfx::ToString()
@@ -255,10 +295,12 @@ int FrmHrg::CheckLength(int len)
     if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
         len > frmOffset + 2 + prod.MaxFrmLen())
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
         appErr = APP::ERROR::LengthError;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:pixelRows=%d;pixelColumns=%d\n", frmId, pixelRows, pixelColumns);
         appErr = APP::ERROR::SizeMismatch;
     }
     else
@@ -278,17 +320,15 @@ int FrmHrg::CheckLength(int len)
         }
         if (x != 0)
         {
-            if (frmBytes > x)
+            if (frmBytes != x)
             {
-                appErr = APP::ERROR::FrameTooLarge;
-            }
-            else if (frmBytes < x)
-            {
-                appErr = APP::ERROR::FrameTooSmall;
+                PrintDbg(DBG_LOG, "Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
+                appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
             }
         }
         else
         {
+            PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
             appErr = APP::ERROR::ColourNotSupported;
         }
     }
@@ -297,7 +337,12 @@ int FrmHrg::CheckLength(int len)
 
 int FrmHrg::CheckColour()
 {
-    return DbHelper::Instance().GetUciProd().IsHrgFrmColour(colour) ? 0 : -1;
+    if (DbHelper::Instance().GetUciProd().IsHrgFrmColourValid(colour))
+    {
+        return 0;
+    }
+    PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
+    return -1;
 }
 
 std::string FrmHrg::ToString()

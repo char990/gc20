@@ -128,7 +128,7 @@ int Slave::CheckCurrent()
     }
     else
     {
-        PrintDbg("NOT matched: current(%d:%04X) expect(%d:%04X)\n",
+        PrintDbg(DBG_LOG, "NOT matched: current(%d:%04X) expect(%d:%04X)\n",
                  currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
@@ -153,7 +153,7 @@ int Slave::CheckNext()
     }
     else
     {
-        PrintDbg("NOT matched: next(%d:%04X) expect(%d:%04X)\n",
+        PrintDbg(DBG_LOG, "NOT matched: next(%d:%04X) expect(%d:%04X)\n",
                  nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
@@ -163,7 +163,7 @@ void Slave::ReportOffline(bool v)
 {
     char buf[64];
     sprintf(buf, "Sign[%d].Slave[%d] %s", sign->SignId(), slaveId, v ? "OFF-line" : "On-line");
-    PrintDbg("%s\n", buf);
+    PrintDbg(DBG_LOG, "%s\n", buf);
     DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
     sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);
 }

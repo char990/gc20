@@ -12,6 +12,8 @@
 using namespace Utils;
 #define MyDbgBuf_SIZE 1024
 
+int dbg_level{DBG_LOG};
+
 static char MyDbgBuf[MyDbgBuf_SIZE];
 void MyThrow(const char *fmt, ...)
 {
@@ -24,25 +26,36 @@ void MyThrow(const char *fmt, ...)
 
 void Log(int);
 char _r_need_n = 0;
-int PrintDbg(const char *fmt, ...)
+int PrintDbg(int level, const char *fmt, ...)
 {
-	struct timeval t;
-	if (_r_need_n != 0)
+	int len = 0;
+	if (level == -1)
 	{
-		_r_need_n = 0;
-		putchar('\n');
+		level = dbg_level;
 	}
-	gettimeofday(&t, nullptr);
-	MyDbgBuf[0] = '[';
-	char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
-	*p++ = ']';
-	int len = p - MyDbgBuf;
-	va_list args;
-	va_start(args, fmt);
-	len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
-	va_end(args);
-	printf("%s", MyDbgBuf);
-	Log(len);
+	if (level >= 0)
+	{
+		struct timeval t;
+		if (_r_need_n != 0)
+		{
+			_r_need_n = 0;
+			putchar('\n');
+		}
+		gettimeofday(&t, nullptr);
+		MyDbgBuf[0] = '[';
+		char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
+		*p++ = ']';
+		len = p - MyDbgBuf;
+		va_list args;
+		va_start(args, fmt);
+		len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
+		va_end(args);
+		printf("%s", MyDbgBuf);
+	}
+	if (level >= DBG_LOG)
+	{
+		Log(len);
+	}
 	return len;
 }
 
@@ -50,35 +63,32 @@ int PrintDbg(const char *fmt, ...)
 int days = 0;
 void Log(int len)
 {
-	if (MyDbgBuf[len-1] == '\n')
+	char filename[256];
+	int d, m, y;
+	int today;
+	if (sscanf(MyDbgBuf, "[%d/%d/%d", &d, &m, &y) == 3)
 	{
-		char filename[256];
-		int d,m,y;
-		int today;
-		if(sscanf(MyDbgBuf,"[%d/%d/%d",&d,&m,&y)==3)
-		{
-			snprintf(filename,255,"./log/%d_%02d_%02d",y,m,d);
-			today=((y*0x100)+m)*0x100+d;
-		}
-		else
-		{
-			return;
-		}
-		if(days!=0 && days!=today)
-		{
-			char rm[256];
-			sprintf(rm, "rm ./log/*_%02d",d);
-			system(rm);
-		}
-		days=today;
-		int log_fd=open(filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
-		if(log_fd<0)
-		{
-			MyThrow("Open log file failed:%s",filename);
-		}
-		write(log_fd, MyDbgBuf, len);
-		close(log_fd);
+		snprintf(filename, 255, "./log/%d_%02d_%02d", y, m, d);
+		today = ((y * 0x100) + m) * 0x100 + d;
 	}
+	else
+	{
+		return;
+	}
+	if (days != 0 && days != today)
+	{
+		char rm[256];
+		sprintf(rm, "rm ./log/*_%02d", d);
+		system(rm);
+	}
+	days = today;
+	int log_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+	if (log_fd < 0)
+	{
+		MyThrow("Open log file failed:%s", filename);
+	}
+	write(log_fd, MyDbgBuf, len);
+	close(log_fd);
 }
 
 void PrintDash()

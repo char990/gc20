@@ -13,6 +13,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+using namespace std;
 
 const uint32_t Utils::MASK_BIT[32] = {
     0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
@@ -304,6 +305,19 @@ time_t Cnvt::ParseLocalStrToTm(char *pbuf)
     return mktime(&tp);
 }
 */
+
+void Cnvt::split(const string &s, vector<string> &tokens, const string &delimiters)
+{
+    string::size_type lastPos = s.find_first_not_of(delimiters, 0);
+    string::size_type pos = s.find_first_of(delimiters, lastPos);
+    while (string::npos != pos || string::npos != lastPos)
+    {
+        tokens.push_back(s.substr(lastPos, pos - lastPos));
+        lastPos = s.find_first_not_of(delimiters, pos);
+        pos = s.find_first_of(delimiters, lastPos);
+    }
+}
+
 const uint8_t Crc::crc8_table[256] =
     {
         0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
@@ -665,7 +679,7 @@ long Time::Interval()
     return ms;
 }
 
-time_t Time::GetLocalTime(struct tm * stm)
+time_t Time::GetLocalTime(struct tm *stm)
 {
     time_t t = time(nullptr);
     localtime_r(&t, stm);
@@ -752,4 +766,3 @@ std::string Bool256::ToString()
     }
     return (len == 0) ? " " : std::string{buf};
 }
-

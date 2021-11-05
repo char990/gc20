@@ -17,6 +17,7 @@ UciPln::~UciPln()
 
 void UciPln::LoadConfig()
 {
+    PrintDbg(DBG_LOG, ">>> Loading 'plans'\n");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciPln";
     SECTION = "pln";
@@ -55,13 +56,13 @@ void UciPln::Dump()
 {
     PrintDash();
     printf("%s/%s\n", PATH, PACKAGE);
-	for (auto & m : plns)
-	{
-		if (m.micode != 0)
-		{
-			printf("\t%s\n", m.ToString().c_str());
-		}
-	}
+    for (auto &m : plns)
+    {
+        if (m.micode != 0)
+        {
+            printf("\t%s\n", m.ToString().c_str());
+        }
+    }
 }
 
 uint16_t UciPln::ChkSum()

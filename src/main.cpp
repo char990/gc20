@@ -51,7 +51,7 @@ public:
     {
         putchar('\r');
         _r_need_n = 0;
-        PrintDbg("%c",s[cnt & 0x03]);
+        PrintDbg(DBG_0, "%c",s[cnt & 0x03]);
         _r_need_n = 1;
         cnt++;
         fflush(stdout);
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     try
     {
 
-        PrintDbg(">>> %s start. Initializing... >>>\n",argv[0]);
+        PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n",argv[0]);
         srand(time(NULL));
 
         pDS3231 = new DS3231{1};
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
         TcpServer tcpServerNts{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
-        PrintDbg(">>> DONE >>>\n");
+        PrintDbg(DBG_LOG, "\n>>> DONE >>>\n");
 
         /*************** Start ****************/
         while (1)

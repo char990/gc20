@@ -17,6 +17,7 @@ UciMsg::~UciMsg()
 
 void UciMsg::LoadConfig()
 {
+	PrintDbg(DBG_LOG, ">>> Loading 'messages'\n");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciMsg";
 	SECTION = "msg";
@@ -56,7 +57,7 @@ void UciMsg::Dump()
 {
 	PrintDash();
 	printf("%s/%s\n", PATH, PACKAGE);
-	for (auto & m : msgs)
+	for (auto &m : msgs)
 	{
 		if (m.micode != 0)
 		{
@@ -118,7 +119,7 @@ void UciMsg::SaveMsg(uint8_t i)
 
 void UciMsg::Reset()
 {
-	for (auto &m:msgs)
+	for (auto &m : msgs)
 	{
 		m.micode = 0;
 	}
@@ -129,8 +130,8 @@ bool UciMsg::IsMsgFlashing(uint8_t i)
 {
 	if (IsMsgDefined(i))
 	{
-		auto & msg = msgs.at(i-1);
-		auto & uciFrm = DbHelper::Instance().GetUciFrm();
+		auto &msg = msgs.at(i - 1);
+		auto &uciFrm = DbHelper::Instance().GetUciFrm();
 		for (int k = 0; k < msg.entries; k++)
 		{
 			if (uciFrm.IsFrmFlashing(msg.msgEntries[k].frmId))

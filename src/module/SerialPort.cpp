@@ -191,7 +191,7 @@ void SerialPort::ConfigureTermios()
 	/*
 	if(spConfig.mode!=SpConfig::SpMode::RS232)
 	{
-		PrintDbg("Confirm RS485 mode is %s\n", (rs485conf.flags & SER_RS485_ENABLED) ? "set" : "NOT set");
+		PrintDbg(DBG_LOG, "Confirm RS485 mode is %s\n", (rs485conf.flags & SER_RS485_ENABLED) ? "set" : "NOT set");
 	}
 	*/
 }

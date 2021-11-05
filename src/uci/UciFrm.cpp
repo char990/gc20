@@ -20,9 +20,9 @@ UciFrm::UciFrm()
 
 UciFrm::~UciFrm()
 {
-	for (auto & s : frms)
+	for (auto &s : frms)
 	{
-		if(s!=nullptr)
+		if (s != nullptr)
 		{
 			delete s;
 		}
@@ -31,6 +31,7 @@ UciFrm::~UciFrm()
 
 void UciFrm::LoadConfig()
 {
+	PrintDbg(DBG_LOG, ">>> Loading 'frames'\n");
 	PATH = DbHelper::Instance().Path();
 	// using HRGFRM to allocate the memory
 	maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
@@ -57,7 +58,7 @@ void UciFrm::LoadConfig()
 	}
 	catch (const std::exception &e)
 	{
-		PrintDbg("%s\n",e.what());
+		PrintDbg(DBG_LOG, "%s\n", e.what());
 	}
 	delete[] v;
 	delete[] b;
@@ -66,13 +67,13 @@ void UciFrm::LoadConfig()
 
 void UciFrm::Dump()
 {
-    PrintDash();
+	PrintDash();
 	printf("%s/frm_xxx\n", PATH);
-	for (int i=0;i<255;i++)
+	for (int i = 0; i < 255; i++)
 	{
 		if (frms[i] != nullptr)
 		{
-			printf("\tfrm_%03d: %s\n", i+1,  frms[i]->ToString().c_str());
+			printf("\tfrm_%03d: %s\n", i + 1, frms[i]->ToString().c_str());
 		}
 	}
 }
@@ -89,10 +90,10 @@ bool UciFrm::IsFrmDefined(uint8_t i)
 
 StFrm *UciFrm::GetStFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? &(frms[i- 1]->stFrm) : nullptr;
+	return IsFrmDefined(i) ? &(frms[i - 1]->stFrm) : nullptr;
 }
 
-Frame* UciFrm::GetFrm(uint8_t i)
+Frame *UciFrm::GetFrm(uint8_t i)
 {
 	return (i != 0) ? frms[i - 1] : nullptr;
 }
@@ -135,21 +136,22 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 		delete pFrm;
 		return r;
 	}
+	// refresh all-frame crc
 	auto vFrm = GetFrm(pFrm->frmId);
-	if(vFrm!=nullptr)
+	if (vFrm != nullptr)
 	{
 		chksum -= vFrm->crc;
 		delete vFrm;
 	}
 	chksum -= pFrm->crc;
-	frms.at(pFrm->frmId-1)=pFrm;
+	frms.at(pFrm->frmId - 1) = pFrm;
 	return APP::ERROR::AppNoError;
 }
 
 void UciFrm::SaveFrm(uint8_t i)
 {
 	auto frm = GetStFrm(i);
-	if(frm==nullptr)
+	if (frm == nullptr)
 	{
 		return;
 	}
@@ -161,12 +163,12 @@ void UciFrm::SaveFrm(uint8_t i)
 	v[len++] = '\n';
 	char buf[64];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0770);
-	DbHelper & db = DbHelper::Instance();
+	DbHelper &db = DbHelper::Instance();
 	if (frm_fd < 0)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
 		db.GetUciAlarm().Push(0, buf);
-		PrintDbg("%s\n", buf);
+		PrintDbg(DBG_LOG, "%s\n", buf);
 	}
 	else
 	{
@@ -174,7 +176,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
 			db.GetUciAlarm().Push(0, buf);
-			PrintDbg("%s\n", buf);
+			PrintDbg(DBG_LOG, "%s\n", buf);
 		}
 		fsync(frm_fd);
 		close(frm_fd);
@@ -184,9 +186,9 @@ void UciFrm::SaveFrm(uint8_t i)
 
 void UciFrm::Reset()
 {
-	for (auto & s:frms)
+	for (auto &s : frms)
 	{
-		if(s!=nullptr)
+		if (s != nullptr)
 		{
 			delete s;
 		}
@@ -199,9 +201,9 @@ void UciFrm::Reset()
 
 bool UciFrm::IsFrmFlashing(uint8_t i)
 {
-	if(!IsFrmDefined(i))
+	if (!IsFrmDefined(i))
 	{
 		return false;
 	}
-	return frms[i - 1]->conspicuity !=0;
+	return frms[i - 1]->conspicuity != 0;
 }

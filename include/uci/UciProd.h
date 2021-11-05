@@ -79,9 +79,9 @@ public:
     bool IsFont(int i) { return bFont.GetBit(i); };
     bool IsConspicuity(int i) { return bConspicuity.GetBit(i); };
     bool IsAnnulus(int i) { return bAnnulus.GetBit(i); };
-    bool IsTxtFrmColour(int i) { return bTxtFrmColour.GetBit(i); };
-    bool IsGfxFrmColour(int i) { return bGfxFrmColour.GetBit(i); };
-    bool IsHrgFrmColour(int i) { return bHrgFrmColour.GetBit(i); };
+    bool IsTxtFrmColourValid(int i) { return bTxtFrmColour.GetBit(i); };
+    bool IsGfxFrmColourValid(int i) { return bGfxFrmColour.GetBit(i); };
+    bool IsHrgFrmColourValid(int i) { return bHrgFrmColour.GetBit(i); };
 
     // configurations calculated from other configurations
     uint8_t CharRows(int fontX);

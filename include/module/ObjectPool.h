@@ -122,6 +122,6 @@ private:
 
     void print_status()
     {
-        printf("Pool status: size:%d, busy:%d, free:%d\n", size, size-freeCnt, freeCnt);
+        PrintDbg(DBG_LOG, "Pool status: size:%d, busy:%d, free:%d\n", size, size-freeCnt, freeCnt);
     }
 };

@@ -64,7 +64,7 @@ void TsiSp003App::Reject(APP::ERROR error)
     {
         sprintf(str, "\n");
     }
-    PrintDbg("Reject: MI=0x%02X(%s), Error=0x%02X(%s)%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), str);
+    PrintDbg(DBG_LOG, "Reject: MI=0x%02X(%s), Error=0x%02X(%s)%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), str);
     /*
     ACE_DEBUG((LM_DEBUG, "%s!!! cmd_Reject - error code %d : %s", LocaltimeStr(), apperror, apperrtomsg(apperror)));
 	unsigned char logapperror[]={

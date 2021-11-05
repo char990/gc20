@@ -4,6 +4,7 @@
 #include <ctime>
 #include <string>
 #include <cstring>
+#include <vector>
 
 namespace Utils
 {
@@ -197,6 +198,10 @@ namespace Utils
         ///         string format: d/M/yyyy h:mm:ss
         /// \retunr -1:fail
         // static time_t ParseLocalStrToTm(char *pbuf);
+
+
+        /// \brief  split a string
+        static void split(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ");
     };
 
     class Crc

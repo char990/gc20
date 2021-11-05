@@ -20,6 +20,7 @@ UciNetwork::~UciNetwork()
 
 void UciNetwork::LoadConfig()
 {
+    PrintDbg(DBG_LOG, ">>> Loading 'network'\n");
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     LoadIp(uciSec, _ipaddr, ipaddr);

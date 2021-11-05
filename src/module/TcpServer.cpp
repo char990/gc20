@@ -109,7 +109,7 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    PrintDbg("%s:Incomming...\n", name.c_str());
+    PrintDbg(DBG_LOG, "%s:Incomming...\n", name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
@@ -119,14 +119,14 @@ void TcpServer::Accept()
     if (tcpOperator == nullptr)
     {
         close(connfd);
-        PrintDbg("%s:Connection pool is full, reject\n", name.c_str());
+        PrintDbg(DBG_LOG, "%s:Connection pool is full, reject\n", name.c_str());
         return;
     }
     SetNonblocking(connfd);
     char ip_port[24];
     sprintf(ip_port, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
     tcpOperator->Accept(connfd, tmrEvt, ip_port);
-    PrintDbg("%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
+    PrintDbg(DBG_LOG, "%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
 }
 
 void TcpServer::SetNonblocking(int sock)

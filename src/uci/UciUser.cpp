@@ -23,6 +23,7 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
+    PrintDbg(DBG_LOG, ">>> Loading 'user'\n");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciUser";
     DEFAULT_FILE = "UciUser.def";
@@ -52,15 +53,15 @@ void UciUser::LoadConfig()
         MyThrow("UciUser::DefaultFont(%d) is not valid", defaultFont);
     }
     defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
-    if (!uciProd.IsTxtFrmColour(defaultColour))
+    if (!uciProd.IsTxtFrmColourValid(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in TextFrameColour", defaultColour);
     }
-    if (!uciProd.IsGfxFrmColour(defaultColour))
+    if (!uciProd.IsGfxFrmColourValid(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in GfxFrameColour", defaultColour);
     }
-    if (!uciProd.IsHrgFrmColour(defaultColour))
+    if (!uciProd.IsHrgFrmColourValid(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
     }

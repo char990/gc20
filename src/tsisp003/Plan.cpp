@@ -25,10 +25,17 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (xlen < (PLN_LEN_MIN + PLN_TAIL) || xlen > (PLN_LEN_MAX + PLN_TAIL)) // with crc & enable flag
     {
+        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d\n",plnId, xlen);
         return APP::ERROR::LengthError;
     }
-    if (plnId == 0 || (weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
+    if (plnId == 0)
     {
+        PrintDbg(DBG_LOG, "Plan Error:PlanID=0\n");
+        return APP::ERROR::SyntaxError;
+    }
+    if ((weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
+    {
+        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X\n",plnId, weekdays);
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xpln + 4;
@@ -40,6 +47,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
         {
             if (i == 0)
             {
+                PrintDbg(DBG_LOG, "Plan[%d] Error:type of first entry=0\n", plnId);
                 return APP::ERROR::SyntaxError;
             }
             break;
@@ -53,6 +61,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if( p != (xpln+xlen-PLN_TAIL) )
     {
+        PrintDbg(DBG_LOG, "Plan[%d] Error:invalid entries\n", plnId);
         return APP::ERROR::SyntaxError;
     }
     if(0!=CheckEntries())
@@ -135,9 +144,14 @@ int Plan::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if( (plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId)) ||
-            (plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId)) )
+        if(plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId))
         {
+            PrintDbg(DBG_LOG, "Plan[%d] Error:Frame[%d] undefined\n", plnId, plnEntries[i].fmId);
+            return -1;
+        }
+        else if(plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId))
+        {
+            PrintDbg(DBG_LOG, "Plan[%d] Error:Msg[%d] undefined\n", plnId, plnEntries[i].fmId);
             return -1;
         }
     }

@@ -346,7 +346,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    PrintDbg("TaskPln:Display:BLANK\n");
+                    PrintDbg(DBG_LOG, "TaskPln:Display:BLANK\n");
                     db.GetUciEvent().Push(0, "Display:BLANK");
                     TaskFrmReset();
                     TaskMsgReset();
@@ -364,7 +364,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    PrintDbg("TaskPln:Plan%d start\n", plnmin.plnId);
+                    PrintDbg(DBG_LOG, "TaskPln:Plan%d start\n", plnmin.plnId);
                     db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -461,7 +461,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        PrintDbg("TaskMsg:Display Msg:%d\n", onDispMsgId);
+        PrintDbg(DBG_LOG, "TaskMsg:Display Msg:%d\n", onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -558,7 +558,7 @@ bool Group::TaskMsg(int *_ptLine)
                         } while (allSlavesCurrent == 1); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            PrintDbg("TaskMsg:SetStoredFrame: Current NOT matched, RESTART\n");
+                            PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Current NOT matched, RESTART\n");
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -600,7 +600,7 @@ bool Group::TaskMsg(int *_ptLine)
                     } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                     if (!taskMsgTmr.IsExpired())
                     { // Currnet is NOT matched, fatal error
-                        PrintDbg("TaskMsg:Frm-onTime: Current NOT matched, RESTART\n");
+                        PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART\n");
                         goto NORMAL_MSG_TASK_START;
                     }
 
@@ -704,7 +704,7 @@ bool Group::TaskFrm(int *_ptLine)
             activeMsg.ClrAll();
             activeFrm.Set(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
-            PrintDbg("TaskFrm:Display ATF\n");
+            PrintDbg(DBG_LOG, "TaskFrm:Display ATF\n");
         }
         else
         {
@@ -725,7 +725,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            PrintDbg("TaskFrm:Display Frm:%d\n", onDispFrmId);
+            PrintDbg(DBG_LOG, "TaskFrm:Display Frm:%d\n", onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -787,7 +787,6 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                 RqstStatus(rqstStCnt);
                 vSlaves[rqstStCnt]->rxStatus = 0;
-                //PrintDbg("vSlaves[%d] RqstStatus\n", rqstStCnt);
                 PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
                 {
                     auto &s = vSlaves[rqstStCnt];
@@ -835,7 +834,6 @@ bool Group::TaskRqstSlave(int *_ptLine)
             taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
             RqstExtStatus(rqstExtStCnt);
             vSlaves[rqstExtStCnt]->rxExtSt = 0;
-            //PrintDbg("vSlaves[%d] RqstExtStatus\n", rqstExtStCnt);
             PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
             {
                 auto &s = vSlaves[rqstExtStCnt];
@@ -879,7 +877,6 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // dimming adjusting
         if (DimmingAdjust())
         {
-            //PrintDbg("DimmingAdjust\n");
             taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
             PT_WAIT_UNTIL(taskRqstSlaveTmr.IsExpired());
         }
@@ -1474,7 +1471,6 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 
 int Group::RqstStatus(uint8_t slvindex)
 {
-    //PrintDbg("RqstStatus\n");
     LockBus(db.GetUciProd().SlaveRqstStTo());
     Slave *s = vSlaves[slvindex];
     s->rxStatus = 0;
@@ -1486,7 +1482,6 @@ int Group::RqstStatus(uint8_t slvindex)
 
 int Group::RqstExtStatus(uint8_t slvindex)
 {
-    //PrintDbg("RqstExtSt\n");
     UciProd &prod = db.GetUciProd();
     LockBus(prod.SlaveRqstExtTo());
     if (slvindex == 0xFF)
@@ -1524,7 +1519,6 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
     int ms = 10;
     if (deviceEnDisCur)
     {
-        //PrintDbg("Slv-SetFrame [%X]:%d<-%d\n", slvindex, slvFrmId, uciFrmId);
         MakeFrameForSlave(uciFrmId);
         txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
         txBuf[2] = slvFrmId;
@@ -1587,7 +1581,6 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
     {
         slvFrmId = 0;
     }
-    //PrintDbg("Slv-DisplayFrm [%X]:%d\n", slvindex, slvFrmId);
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1619,7 +1612,6 @@ int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
     {
         slvFrmId = 0;
     }
-    //PrintDbg("Slv-SetStoredFrm [%X]:%d\n", slvindex, slvFrmId);
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1768,7 +1760,7 @@ bool Group::DimmingAdjust()
             {
                 setDimming = newdim;
                 /*
-                PrintDbg("currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d\n",
+                PrintDbg(DBG_LOG, "currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d\n",
                          currentDimmingLvl, targetDimmingLvl, tgtLevel, setDimming);
                          */
                 RqstExtStatus(0xFF);

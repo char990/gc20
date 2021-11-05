@@ -104,17 +104,17 @@ void Controller::PeriodicRun()
             {
                 tcpServer->Close();
                 evt.Push(0, "ETH1 restart");
-                PrintDbg("ETH1 restart...\n");
+                PrintDbg(DBG_LOG, "ETH1 restart...\n");
                 system("ifdown ETH1");
                 system("ifup ETH1");
-                PrintDbg("Done.\n");
+                PrintDbg(DBG_LOG, "Done.\n");
                 tcpServer->Open();
             }
             if (rr_flag & RQST_REBOOT)
             {
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
-                PrintDbg("\n%s...\n", _re);
+                PrintDbg(DBG_LOG, "\n%s...\n", _re);
                 MyThrow("\n%s...\n", _re);
                 system("reboot");
                 while (1)
@@ -125,7 +125,7 @@ void Controller::PeriodicRun()
             {
                 const char *_re = " -> -> -> restart";
                 evt.Push(0, _re);
-                PrintDbg("\n%s...\n", _re);
+                PrintDbg(DBG_LOG, "\n%s...\n", _re);
                 MyThrow("\n%s...\n", _re);
             }
             rr_flag = 0;
@@ -146,7 +146,6 @@ void Controller::PeriodicRun()
         {
             if (!IsPlnActive(0))
             {
-                //PrintDbg("displayTimeout!!!\n");
                 ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
                 for (auto &g : groups)
                 {
@@ -245,7 +244,6 @@ void Controller::ExtInputFunc()
 
 void Controller::RefreshDispTime()
 {
-    //PrintDbg("RefreshDispTime\n");
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     if (ms > 0)
     {
@@ -256,7 +254,6 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    //PrintDbg("RefreshSessionTime\n");
     sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
     ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
 }
