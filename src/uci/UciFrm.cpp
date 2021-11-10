@@ -38,7 +38,7 @@ void UciFrm::LoadConfig()
 	chksum = 0;
 	char filename[256];
 	uint8_t *b = new uint8_t[maxFrmSize];
-	char *v = new char[maxFrmSize * 2 + 1]; // with '\n' at the end
+	char *v = new char[maxFrmSize * 2 + 1]; // with '\n' or '\0' at the end
 	try
 	{
 		for (int i = 1; i <= 255; i++)
@@ -47,12 +47,31 @@ void UciFrm::LoadConfig()
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
 			{
-				int len = read(frm_fd, v, maxFrmSize * 2 + 1) - 1;
+				int len = read(frm_fd, v, maxFrmSize * 2 + 1);
+				close(frm_fd);
+				if (len < 9 * 2)
+				{
+					continue;
+				}
+				if (v[len - 1] == '\n')
+				{
+					len--;
+				}
+				bool fakeCRC = false;
+				if (memcmp(v + len - 4, "!!!!", 4) == 0) // if crc is "!!!!", make crc
+				{
+					memset(v + len - 4, '0', 4);
+					fakeCRC = true;
+				}
 				if (Cnvt::ParseToU8(v, b, len) == 0)
 				{
-					SetFrm(b, len / 2);
+					len /= 2;
+					if (fakeCRC)
+					{
+						Cnvt::PutU16(Crc::Crc16_1021(b, len - 2), b + len - 2);
+					}
+					SetFrm(b, len);
 				}
-				close(frm_fd);
 			}
 		}
 	}
@@ -162,7 +181,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	Cnvt::ParseToStr(frm->rawData, v, frm->dataLen);
 	v[len++] = '\n';
 	char buf[64];
-	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0770);
+	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	DbHelper &db = DbHelper::Instance();
 	if (frm_fd < 0)
 	{
