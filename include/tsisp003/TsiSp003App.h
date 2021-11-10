@@ -6,6 +6,7 @@
 #include <uci/DbHelper.h>
 #include <sign/Controller.h>
 #include <layer/ISession.h>
+#include <tsisp003/Upgrade.h>
 
 /// \brief TSiSp003 Application Layer base
 class TsiSp003App : public IUpperLayer
@@ -120,9 +121,15 @@ private:
     int FA04_RqstLuminance(uint8_t *data, int len);
     int FA0A_RetrieveLogs(uint8_t *data, int len);
     int FA0F_ResetLogs(uint8_t *data, int len);
+    
+    int FA10_SendFileInfo(uint8_t *data, int len);
+    int FA11_SendFilePacket(uint8_t *data, int len);
+    int FA12_StartUpgrading(uint8_t *data, int len);
+
     int FA20_SetUserCfg(uint8_t *data, int len);
     int FA21_RqstUserCfg(uint8_t *data, int len);
     int FA22_RqstUserExt(uint8_t *data, int len);
+
     int FAF0_ShakehandsRqst(uint8_t *data, int len);
     int FAF2_ShakehandsPasswd(uint8_t *data, int len);
     int FAF5_Restart(uint8_t *data, int len);
@@ -130,4 +137,6 @@ private:
 
     void Md5_of_sh(const char *str, unsigned char *md5);
     APP::ERROR CheckFA20(uint8_t *pd, char * shake);
+
+    Upgrade upgrade;
 };

@@ -2,7 +2,6 @@
 #include <openssl/md5.h>
 #include <tsisp003/TsiSp003App.h>
 
-
 extern const char *FirmwareMajorVer;
 extern const char *FirmwareMinorVer;
 
@@ -46,6 +45,15 @@ int TsiSp003App::UserDefinedCmdFA(uint8_t *data, int len)
         break;
     case FACMD_RESET_LOGS:
         FA0F_ResetLogs(data, len);
+        break;
+    case FACMD_SEND_FINFO:
+        FA10_SendFileInfo(data, len);
+        break;
+    case FACMD_SEND_FPKT:
+        FA11_SendFilePacket(data, len);
+        break;
+    case FACMD_START_UPGRD:
+        FA12_StartUpgrading(data, len);
         break;
     case FACMD_SET_USER_CFG:
         FA20_SetUserCfg(data, len);
@@ -150,6 +158,76 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
     return 0;
 }
 
+int TsiSp003App::FA10_SendFileInfo(uint8_t *data, int len)
+{
+    if (ChkLen(len, 9))
+    {
+        if (shake_hands_status != 2)
+        {
+            Reject(APP::ERROR::IncorrectPassword);
+            return 0;
+        }
+        if (db.GetUciProd().IsUpgradeAllowed() == 0)
+        {
+            Reject(APP::ERROR::MiNotSupported); // upgrade not allowed
+            return 0;
+        }
+
+        int x = upgrade.FileInfo(data);
+        if (x == 0)
+        {
+            Ack();
+        }
+        else
+        {
+            db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file info");
+            Reject(APP::ERROR::UserDefinedFE);
+        }
+    }
+    return 0;
+}
+
+int TsiSp003App::FA11_SendFilePacket(uint8_t *data, int len)
+{
+    if (shake_hands_status != 2)
+    {
+        Reject(APP::ERROR::IncorrectPassword);
+        return 0;
+    }
+    int x = upgrade.FilePacket(data, len);
+    if (x == 0)
+    {
+        Ack();
+    }
+    else
+    {
+        db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file packet");
+        Reject(APP::ERROR::UserDefinedFE);
+    }
+    return 0;
+}
+
+int TsiSp003App::FA12_StartUpgrading(uint8_t *data, int len)
+{
+    if (shake_hands_status != 2)
+    {
+        Reject(APP::ERROR::IncorrectPassword);
+        return 0;
+    }
+    int x = upgrade.Start();
+    if (x == 0)
+    {
+        db.GetUciEvent().Push(0, "Upgrading success: MD5=%s", upgrade.MD5());
+        Ack();
+    }
+    else
+    {
+        db.GetUciAlarm().Push(0, "Upgrading failed: zip/md5 error");
+        Reject(APP::ERROR::DataChksumError);
+    }
+    return 0;
+}
+
 APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
 {
     if (shake_hands_status != 2)
@@ -229,7 +307,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             auto &user = DbHelper::Instance().GetUciUser();
             auto &evt = DbHelper::Instance().GetUciEvent();
             // restart/reboot flag
-            unsigned char rr_flag=0;
+            unsigned char rr_flag = 0;
             user.OpenSECTION();
             // save config
             uint32_t v;
@@ -504,9 +582,9 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         *pt++ = ctrl.CurTemp();
         pt = Cnvt::PutU16(sign->Voltage(), pt);
         pt = Cnvt::PutU16(sign->Lux(), pt);
-        char * mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
-        *pt++ = mfcCode[4];   // Get PCB revision from MANUFACTURER_CODE
-        *pt++ = mfcCode[5];   // Get Sign type from MANUFACTURER_CODE
+        char *mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
+        *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
+        *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
         *pt++ = *FirmwareMajorVer;
         *pt++ = *(FirmwareMajorVer + 1);
         *pt++ = *FirmwareMinorVer;
@@ -714,7 +792,6 @@ int TsiSp003App::FAF2_ShakehandsPasswd(uint8_t *data, int len)
     return 0;
 }
 
-
 int TsiSp003App::FAF5_Restart(uint8_t *data, int len)
 {
     if (ChkLen(len, 2))
@@ -749,9 +826,6 @@ int TsiSp003App::FAFA_Reboot(uint8_t *data, int len)
     return 0;
 }
 
-
-
-
 void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
 {
     int len = 16;
@@ -765,4 +839,3 @@ void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
     }
     MD5(shake_src, len, md5);
 }
-

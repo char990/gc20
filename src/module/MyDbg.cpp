@@ -60,6 +60,7 @@ int PrintDbg(int level, const char *fmt, ...)
 }
 
 //BootTimer printTmr;
+extern char *mainpath;
 int days = 0;
 void Log(int len)
 {
@@ -68,7 +69,7 @@ void Log(int len)
 	int today;
 	if (sscanf(MyDbgBuf, "[%d/%d/%d", &d, &m, &y) == 3)
 	{
-		snprintf(filename, 255, "./log/%d_%02d_%02d", y, m, d);
+		snprintf(filename, 255, "%s/log/%d_%02d_%02d", mainpath, y, m, d);
 		today = ((y * 0x100) + m) * 0x100 + d;
 	}
 	else
@@ -78,7 +79,7 @@ void Log(int len)
 	if (days != 0 && days != today)
 	{
 		char rm[256];
-		sprintf(rm, "rm ./log/*_%02d", d);
+		sprintf(rm, "rm %s/log/*_%02d", mainpath, d);
 		system(rm);
 	}
 	days = today;

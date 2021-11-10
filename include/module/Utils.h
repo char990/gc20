@@ -286,11 +286,11 @@ namespace Utils
     class Exec
     {
     public:
-        /// \brief      Run a command and save the output to outbuf
+        /// \brief      Run a command and save the stdout to outbuf
         /// \param      cmd:command
         /// \param      outbuf:output
-        /// \param      len:output buffer size
-        /// \return     -1:failed; >=0:output size(include 0x0a attached)
+        /// \param      len: get first 'len' chars of stdout(output buffer size sould be len+1, a '\0' attched to the end)
+        /// \return     -1:failed; >=0:strlen(tail '\n' was trimmed)
         static int Run(const char *cmd, char *outbuf, int len);
 
         /// \brief      Copy a file

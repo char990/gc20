@@ -44,6 +44,8 @@ public:
     int RqstStatus(uint8_t slvindex);
     int RqstExtStatus(uint8_t slvindex);
 
+    int SlaveSync();
+
     /// \brief      call TranslateFrame and send txBuf by SetTextFrame/SetGfxFrm
     int SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId);
 
@@ -288,6 +290,7 @@ private:
         RPL_STATUS = 0x06,
         RQST_EXT_ST = 0x07,
         RPL_EXT_ST = 0x08,
+        SYNC = 0x09,
         SET_TXT_FRM = 0x0A,
         SET_GFX_FRM = 0x0B,
         DISPLAY_FRM = 0x0E,

@@ -130,6 +130,7 @@ public:
         InterlockingMissingSigns,
         InterlockingNotActive,
         InterlocckingActive,
+        UserDefinedFE=0xFE,
         UNDEFINED = 0xFF
     };
 
@@ -342,12 +343,12 @@ enum class DISP_TYPE : uint8_t
 
 enum class CTRL_CHAR : uint8_t
 {
-    SOH = 1,
-    STX = 2,
-    ETX = 3,
-    EOT = 4,
-    ACK = 6,
-    NAK = 15,
+    SOH = 0x01,
+    STX = 0x02,
+    ETX = 0x03,
+    EOT = 0x04,
+    ACK = 0x06,
+    NAK = 0x15,
     UNDEFINED = 0xFF
 };
 

@@ -28,6 +28,7 @@
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
+char * mainpath;
 
 using namespace std;
 
@@ -133,6 +134,12 @@ int main(int argc, char *argv[])
 {
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
+    mainpath = get_current_dir_name();
+    if (strlen(mainpath)>64)
+    {
+        printf("path is longer than 64 bytes.\n");
+        return -1;
+    }
     PrintVersion();
     if (argc != 2)
     {
@@ -235,7 +242,7 @@ int main(int argc, char *argv[])
         TcpServer tcpServerNts{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
-        PrintDbg(DBG_LOG, "\n>>> DONE >>>\n");
+        PrintDbg(DBG_LOG, ">>> DONE >>>\n");
 
         /*************** Start ****************/
         while (1)

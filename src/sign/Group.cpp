@@ -740,20 +740,26 @@ bool Group::TaskFrm(int *_ptLine)
         // step2: display frame
         do
         {
-            taskFrmRefreshTmr.Setms(600*1000);
             SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
+            taskFrmRefreshTmr.Setms(600 * 1000);
             ClrAllSlavesRxStatus();
             do
             {
                 // step3: check current & next
+                if (taskFrmRefreshTmr.IsExpired())
+                {// sync
+                    taskFrmRefreshTmr.Setms(600 * 1000);
+                    SlaveSync();
+                    PT_YIELD();
+                }
                 taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                 PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                 if (allSlavesCurrent == 0)
                 {
                     AllSlavesUpdateCurrentBak();
                 }
-            } while (allSlavesCurrent == 0 && !taskFrmRefreshTmr.IsExpired()); // all good
-        } while (allSlavesCurrent == 1 && !taskFrmRefreshTmr.IsExpired());     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
+            } while (allSlavesCurrent == 0); // all good
+        } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
     };
     PT_END();
 }
@@ -1507,6 +1513,17 @@ int Group::RqstExtStatus(uint8_t slvindex)
     }
     txLen = 11;
     return Tx();
+}
+
+int Group::SlaveSync()
+{
+    txBuf[0] = 0xFF;
+    txBuf[1] = SLVCMD::SYNC;
+    txLen = 2;
+    Tx();
+    int ms = db.GetUciProd().SlaveDispDly();
+    LockBus(ms);
+    return ms;
 }
 
 int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)

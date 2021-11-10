@@ -546,47 +546,26 @@ uint32_t Crc::Crc32(uint8_t *buf, int len, uint32_t precrc)
     return (crc);
 }
 
-int Exec::Run(const char *cmd, char *outbuf, int buf_len)
+int Exec::Run(const char *cmd, char *outbuf, int len)
 {
     auto pipe = popen(cmd, "r");
     if (!pipe)
     {
         return -1;
     }
-
-    int len = buf_len - 1;
-    int cnt = 0;
-    int pcs = 256;
-    char *p = outbuf;
-    while (1)
-    {
-        int left = len - cnt;
-        if (left <= 0)
-        {
-            break;
-        }
-        if (left < pcs)
-        {
-            pcs = left;
-        }
-        int k = fread(p, 1, pcs, pipe);
-        if (k <= 0)
-        {
-            break;
-        }
-        cnt += k;
-        p += k;
-        *p = '\0';
-    }
-    int r = pclose(pipe);
-    if (r != 0 || cnt < 1)
+    char * f = fgets(outbuf, len+1, pipe);
+    pclose(pipe);
+    if (f==nullptr)
     {
         return -1;
     }
-    // remove tail('\n')
-    cnt--;
-    outbuf[cnt] = '\0';
-    return cnt;
+    int s = strlen(outbuf);
+    if(outbuf[s-1]=='\n')
+    {
+        outbuf[s-1]='\0';
+        s--;
+    }
+    return s;
 }
 
 void Exec::CopyFile(const char *src, const char *dst)
@@ -596,7 +575,7 @@ void Exec::CopyFile(const char *src, const char *dst)
     {
         MyThrow("Can't open %s to read", src);
     }
-    int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
+    int dstfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR|S_IRUSR);
     if (dstfd < 0)
     {
         MyThrow("Can't open %s to write", dst);

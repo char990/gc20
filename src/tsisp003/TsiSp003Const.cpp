@@ -129,6 +129,7 @@ std::vector<APP::sAppErrorStr> APP::apperror_str{
     {APP::ERROR::InterlockingMissingSigns, "InterlockingMissingSigns"},
     {APP::ERROR::InterlockingNotActive, "InterlockingNotActive"},
     {APP::ERROR::InterlocckingActive, "InterlocckingActive"},
+    {APP::ERROR::UserDefinedFE, "UserDefinedFE"},
     {APP::ERROR::UNDEFINED, "UNDEFINED"},
 };
 

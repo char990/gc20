@@ -40,20 +40,29 @@ LayerNTS::~LayerNTS()
 
 int LayerNTS::Rx(uint8_t *data, int len)
 {
-    if (len < 15 || (len & 1) == 0 || data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
+    int addr = Cnvt::ParseToU8((char *)data + 5);
+    UciUser &user = DbHelper::Instance().GetUciUser();
+    if (addr != user.DeviceId() || addr == user.BroadcastId()  || data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
     {
+        return 0;
+    }
+    if (len < 15 || (len & 1) == 0)
+    {
+        uint8_t data[3];
+        data[0]=0;
+        data[1]=Cnvt::ParseToU8((char *)data + 8);
+        data[2]=3;
+        char dst[6];
+        Cnvt::ParseToAsc(data, dst, 3);
+        Tx((uint8_t *)dst,6);
         return 0;
     }
     uint16_t crc1 = Crc::Crc16_1021(data, len - 5);
     uint16_t crc2 = Cnvt::ParseToU16((char *)data + len - 5);
     if (crc1 != crc2)
     {
-        return 0;
-    }
-    int addr = Cnvt::ParseToU8((char *)data + 5);
-    UciUser &user = DbHelper::Instance().GetUciUser();
-    if (addr != user.DeviceId() || addr == user.BroadcastId())
-    {
+        MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
+        lowerLayer->Tx(txbuf, 10);
         return 0;
     }
     _addr = addr;
@@ -95,7 +104,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
             { // check allowed broadcast mi
                 if (static_cast<uint8_t>(broadcastMi[i]) == mi)
                 {
-                    break;  // this is a valid broadcast command
+                    break; // this is a valid broadcast command
                 }
                 else
                 {
@@ -192,12 +201,12 @@ void LayerNTS::Session(enum ISession::SESSION v)
     if (v == ISession::SESSION::OFF_LINE)
     {
         ntsSessionTimeout.Clear();
-        if(!pPinStatusLed->GetPin() && !IsAnyOnline())
+        if (!pPinStatusLed->GetPin() && !IsAnyOnline())
         {
             pPinStatusLed->SetPinHigh();
         }
     }
-    else if(v == ISession::SESSION::ON_LINE && pPinStatusLed->GetPin())
+    else if (v == ISession::SESSION::ON_LINE && pPinStatusLed->GetPin())
     {
         pPinStatusLed->SetPinLow();
     }
@@ -236,7 +245,7 @@ void LayerNTS::ClearAllSessionTimeout()
 {
     for (auto &s : storage)
     {
-        if(s->Session()!=ISession::SESSION::OFF_LINE)
+        if (s->Session() != ISession::SESSION::OFF_LINE)
         {
             s->Session(ISession::SESSION::OFF_LINE);
         }
