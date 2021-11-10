@@ -126,20 +126,30 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     auto pFont = prod.Fonts(font);
     int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
     int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
-    const char *asc = (char *)frm + frmOffset;
-    string s(asc, frmBytes);
-    vector<string> tokens;
-    Cnvt::split(s, tokens);
-    int lines =tokens.size(); 
+    char *p = (char *)frm + frmOffset;
+    int lines = 0;
     int chars = 0;
-    for (auto &s : tokens)
+    for (auto pe = p + frmBytes; p < pe; p++)
     {
-        if (s.size() > chars)
+        if (*p != ' ')
         {
-            chars = s.size();
+            chars++;
+            if (chars == columns)
+            {
+                lines++;
+                chars = 0;
+            }
+        }
+        else
+        {
+            if (chars > 0)
+            {
+                lines++;
+                chars = 0;
+            }
         }
     }
-    if (lines > rows || (lines > 1 && chars > columns) || (lines == 1 && frmBytes > columns*rows))
+    if (lines > rows)
     {
         PrintDbg(DBG_LOG, "Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d*%d]\n",
                  frmId, columns, rows, font, chars, lines);
