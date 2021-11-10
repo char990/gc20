@@ -84,7 +84,7 @@ public:
         }
         if (pObj == nullptr)
         {
-            MyThrow("pObj is nullptr, cna't push it into the pool");
+            MyThrow("pObj is nullptr, can't push it into the pool");
         }
         if (std::is_base_of<Poolable<T>, T>::value)
         {
@@ -122,6 +122,6 @@ private:
 
     void print_status()
     {
-        PrintDbg(DBG_LOG, "Pool status: size:%d, busy:%d, free:%d\n", size, size-freeCnt, freeCnt);
+        PrintDbg(DBG_0, "Pool status: size:%d, busy:%d, free:%d\n", size, size-freeCnt, freeCnt);
     }
 };
