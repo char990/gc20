@@ -553,16 +553,16 @@ int Exec::Run(const char *cmd, char *outbuf, int len)
     {
         return -1;
     }
-    char * f = fgets(outbuf, len+1, pipe);
+    char *f = fgets(outbuf, len + 1, pipe);
     pclose(pipe);
-    if (f==nullptr)
+    if (f == nullptr)
     {
         return -1;
     }
     int s = strlen(outbuf);
-    if(outbuf[s-1]=='\n')
+    if (outbuf[s - 1] == '\n')
     {
-        outbuf[s-1]='\0';
+        outbuf[s - 1] = '\0';
         s--;
     }
     return s;
@@ -575,7 +575,7 @@ void Exec::CopyFile(const char *src, const char *dst)
     {
         MyThrow("Can't open %s to read", src);
     }
-    int dstfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR|S_IRUSR);
+    int dstfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
     if (dstfd < 0)
     {
         MyThrow("Can't open %s to write", dst);
@@ -633,6 +633,8 @@ bool Exec::DirExists(const char *dirname)
     return true;
 }
 
+uint8_t Time::monthday[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
 void Time::PrintBootTime()
 {
     struct timespec _CLOCK_BOOTTIME;
@@ -665,6 +667,25 @@ time_t Time::GetLocalTime(struct tm *stm)
     stm->tm_mon += 1;
     stm->tm_year += 1900;
     return t;
+}
+
+bool Time::IsTmValid(struct tm * stm)
+{
+    if (stm->tm_mday < 1 ||
+        stm->tm_mon < 0 || stm->tm_mon > 11 ||
+        stm->tm_year < 101 || stm->tm_year > 200 ||
+        stm->tm_hour < 0 || stm->tm_hour > 23 ||
+        stm->tm_min < 0 || stm->tm_min > 59 ||
+        stm->tm_sec < 0 || stm->tm_sec > 59)
+    {
+        return false;
+    }
+    uint8_t md = monthday[stm->tm_mon];
+    if (stm->tm_mon == 1 && ((stm->tm_year + 1900) % 4) == 0) // Feb of leap year
+    {
+        md++;
+    }
+    return (stm->tm_mday <= md);
 }
 
 std::string Bool32::ToString()

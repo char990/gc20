@@ -11,7 +11,7 @@ TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
       ctrller(Controller::Instance())
 {
-    rejectStr[0]='\0';
+    rejectStr[0] = '\0';
 }
 
 TsiSp003App::~TsiSp003App()
@@ -36,6 +36,25 @@ int TsiSp003App::Rx(uint8_t *data, int len)
     case MI::CODE::UpdateTime:
         UpdateTime(data, len);
         break;
+    case MI::CODE::HARStatusReply:
+    case MI::CODE::HARSetVoiceDataIncomplete:
+    case MI::CODE::HARSetVoiceDataComplete:
+    case MI::CODE::HARSetStrategy:
+    case MI::CODE::HARActivateStrategy:
+    case MI::CODE::HARSetPlan:
+    case MI::CODE::HARRequestStoredVSP:
+    case MI::CODE::HARSetVoiceDataACK:
+    case MI::CODE::HARSetVoiceDataNAK:
+    case MI::CODE::EnvironmentalWeatherStatusReply:
+    case MI::CODE::RequestEnvironmentalWeatherValues:
+    case MI::CODE::EnvironmentalWeatherValues:
+    case MI::CODE::EnvironmentalWeatherThresholdDefinition:
+    case MI::CODE::RequestThresholdDefinition:
+    case MI::CODE::RequestEnvironmentalWeatherEventLog:
+    case MI::CODE::EnvironmentalWeatherEventLogReply:
+    case MI::CODE::ResetEnvironmentalWeatherEventLog:
+        Reject(APP::ERROR::MiNotSupported);
+        break;
     default:
         return UserDefinedCmd(data, len);
     }
@@ -54,11 +73,11 @@ void TsiSp003App::Reject(APP::ERROR error)
     buf[1] = micode;
     buf[2] = static_cast<uint8_t>(error);
     Tx(buf, 3);
-    char str[64+4];
-    if(rejectStr[0]!='\0')
+    char str[64 + 4];
+    if (rejectStr[0] != '\0')
     {
         sprintf(str, " :%s\n", rejectStr);
-        rejectStr[0]='\0';
+        rejectStr[0] = '\0';
     }
     else
     {
@@ -86,9 +105,9 @@ void TsiSp003App::Reject(APP::ERROR error)
 void TsiSp003App::SetRejectStr(const char *fmt, ...)
 {
     va_list args;
-	va_start(args, fmt);
-	vsnprintf(rejectStr, 63, fmt, args);
-	va_end(args);
+    va_start(args, fmt);
+    vsnprintf(rejectStr, 63, fmt, args);
+    va_end(args);
 }
 
 void TsiSp003App::Ack()
@@ -123,7 +142,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
         return;
     }
     uint16_t pass = data[1] * 0x100 + data[2];
-    uint16_t expp=MakePassword();
+    uint16_t expp = MakePassword();
     if (pass == expp)
     {
         //SetStatusLed(1);
@@ -135,7 +154,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
     else
     {
         session->Session(ISession::SESSION::OFF_LINE);
-        SetRejectStr("Got[%04X]Expect[%04X]",pass,expp);
+        SetRejectStr("Got[%04X]Expect[%04X]", pass, expp);
         Reject(APP::ERROR::SyntaxError);
         //_Session_END();
         /*	Session_StartCount(INT_MAX-1);
@@ -152,7 +171,7 @@ void TsiSp003App::EndSession(uint8_t *data, int len)
 {
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 1) || session == nullptr)
         return;
-    // EndSession will change the session online state, so force to refresh timeout 
+    // EndSession will change the session online state, so force to refresh timeout
     // For all other on-line commands, LayerNTS will refresh timeout
     Controller::Instance().RefreshSessionTime();
     Controller::Instance().RefreshDispTime();
@@ -190,41 +209,44 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     struct tm stm;
     data++;
     stm.tm_mday = *data++;
-    stm.tm_mon = *data - 1; data++;
-    stm.tm_year = Cnvt::GetU16(data) - 1900; data+=2;
+    stm.tm_mon = *data - 1;
+    data++;
+    stm.tm_year = Cnvt::GetU16(data) - 1900;
+    data += 2;
     stm.tm_hour = *data++;
     stm.tm_min = *data++;
     stm.tm_sec = *data;
-	stm.tm_isdst=-1;
-	time_t t = mktime(&stm);
-	if(t>0)
-	{
-        char buf[64];
-        char * p = buf + sprintf(buf, "UpdateTime:");
-        p=Cnvt::ParseTmToLocalStr(cur, p);
-        sprintf(p,"->");
-        Cnvt::ParseTmToLocalStr(t, p+2);
-        db.GetUciEvent().Push(0, buf);
-        if (stime(&t) < 0 )
+    stm.tm_isdst = -1;
+    if (Time::IsTmValid(&stm))
+    {
+        time_t t = mktime(&stm);
+        if (t > 0)
         {
-            db.GetUciAlarm().Push(0, "UpdateTime failed, errno=%d", errno);
-            db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
-        }
-        else
-        {
-            if(pDS3231->SetTimet(t)<0)
+            char buf[64];
+            char *p = buf + sprintf(buf, "UpdateTime:");
+            p = Cnvt::ParseTmToLocalStr(cur, p);
+            sprintf(p, "->");
+            Cnvt::ParseTmToLocalStr(t, p + 2);
+            db.GetUciEvent().Push(0, buf);
+            if (stime(&t) < 0)
             {
-                db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
+                db.GetUciAlarm().Push(0, "UpdateTime failed, errno=%d", errno);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
             }
+            else
+            {
+                if (pDS3231->SetTimet(t) < 0)
+                {
+                    db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
+                    db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
+                }
+            }
+            Ack();
+            return;
         }
-        Ack();
-	}
-	else
-    {
-        SetRejectStr("Invalid time");
-        Reject(APP::ERROR::SyntaxError);
     }
+    SetRejectStr("Invalid time");
+    Reject(APP::ERROR::SyntaxError);
 }
 
 uint16_t TsiSp003App::MakePassword()
@@ -251,7 +273,7 @@ bool TsiSp003App::ChkLen(int rcvd, int expect)
     {
         return true;
     }
-    SetRejectStr("Got[%d]Expect[%d]",rcvd,expect);
+    SetRejectStr("Got[%d]Expect[%d]", rcvd, expect);
     Reject(APP::ERROR::LengthError);
     return false;
 }

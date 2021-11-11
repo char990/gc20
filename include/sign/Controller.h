@@ -49,6 +49,7 @@ public:
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
     bool IsPlnActive(uint8_t i);
+    bool IsPlnEnabled(uint8_t id);
 
     // cmaand from TSI-SP-003
     APP::ERROR CmdDispFrm(uint8_t *cmd);

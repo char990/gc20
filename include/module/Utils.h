@@ -306,6 +306,7 @@ namespace Utils
     class Time
     {
     public:
+        static uint8_t monthday[12];
         /// \brief      Print time
         static void PrintBootTime();
 
@@ -316,6 +317,10 @@ namespace Utils
         /// \brief      get localtime to stm. Note !!! stm->tm_mon(1-12),  stm->year(1970-)
         /// \return     time_t
         static time_t GetLocalTime(struct tm *stm);
+
+        /// \brief      check if a broken time is valid
+        ///             from 1/1/2001 0:00:00
+        static bool IsTmValid(struct tm *stm);
     };
 
     class Bool32

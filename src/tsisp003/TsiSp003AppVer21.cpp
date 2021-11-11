@@ -169,7 +169,7 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     if (id == 0)
     {
         SetRejectStr("Frame[0] is not valid");
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP::ERROR::SyntaxError;
     }
     else if (ctrller.IsFrmActive(id))
     {
@@ -253,7 +253,7 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     if (id == 0)
     {
         SetRejectStr("Msg[0] is not valid");
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP::ERROR::SyntaxError;
     }
     else if (len > MSG_LEN_MAX)
     {
@@ -337,7 +337,7 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     if (id == 0)
     {
         SetRejectStr("Plan[0] is not valid");
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        r = APP::ERROR::SyntaxError;
     }
     else if (len > PLN_LEN_MAX)
     {
@@ -348,6 +348,11 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     {
         SetRejectStr("Plan[%d] is active",id);
         r = APP::ERROR::FrmMsgPlnActive;
+    }
+    else if (ctrller.IsPlnEnabled(id))
+    {
+        SetRejectStr("Plan[%d] is enabled",id);
+        r = APP::ERROR::PlanEnabled;
     }
     else
     {
@@ -536,7 +541,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         {
             uint8_t a[MSG_LEN_MAX + MSG_TAIL];
             int len = msg->ToArray(a);
-            Tx(a, len);
+            Tx(a, len-2);   // do not include crc
         }
     }
     break;
@@ -552,7 +557,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         {
             uint8_t a[PLN_LEN_MAX + PLN_TAIL];
             int len = pln->ToArray(a);
-            Tx(a, len);
+            Tx(a, len-2);   // do not include crc
         }
     }
     break;

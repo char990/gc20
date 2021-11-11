@@ -300,6 +300,18 @@ bool Controller::IsPlnActive(uint8_t id)
     return false;
 }
 
+bool Controller::IsPlnEnabled(uint8_t id)
+{
+    for (auto &g : groups)
+    {
+        if (g->IsPlanEnabled(id))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
 {
     auto grpId = cmd[1];

@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <cstring>
+#include <array>
 
 #include <tsisp003/Plan.h>
 
@@ -8,7 +9,6 @@
 #include <uci/DbHelper.h>
 #include <tsisp003/Frame.h>
 #include <tsisp003/Message.h>
-
 
 using namespace Utils;
 
@@ -25,7 +25,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (xlen < (PLN_LEN_MIN + PLN_TAIL) || xlen > (PLN_LEN_MAX + PLN_TAIL)) // with crc & enable flag
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d\n",plnId, xlen);
+        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d\n", plnId, xlen);
         return APP::ERROR::LengthError;
     }
     if (plnId == 0)
@@ -35,11 +35,11 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if ((weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X\n",plnId, weekdays);
+        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X\n", plnId, weekdays);
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xpln + 4;
-    entries=0;
+    entries = 0;
     for (int i = 0; i < 6; i++)
     {
         plnEntries[i].fmType = *p++;
@@ -48,23 +48,57 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
             if (i == 0)
             {
                 PrintDbg(DBG_LOG, "Plan[%d] Error:type of first entry=0\n", plnId);
-                return APP::ERROR::SyntaxError;
+                return APP::ERROR::LengthError;
             }
             break;
+        }
+        else if (plnEntries[i].fmType > PLN_ENTRY_MSG)
+        {
+            return APP::ERROR::SyntaxError;
         }
         plnEntries[i].fmId = *p++;
         plnEntries[i].start.hour = *p++;
         plnEntries[i].start.min = *p++;
         plnEntries[i].stop.hour = *p++;
         plnEntries[i].stop.min = *p++;
+        if (plnEntries[i].start.hour > 23 ||
+            plnEntries[i].start.min > 59 ||
+            plnEntries[i].stop.hour > 23 ||
+            plnEntries[i].stop.min > 59)
+        {
+            return APP::ERROR::SyntaxError;
+        }
         entries++;
     }
-    if( p != (xpln+xlen-PLN_TAIL) )
+    if (p != (xpln + xlen - PLN_TAIL))
     {
         PrintDbg(DBG_LOG, "Plan[%d] Error:invalid entries\n", plnId);
-        return APP::ERROR::SyntaxError;
+        return APP::ERROR::LengthError;
     }
-    if(0!=CheckEntries())
+    // check time overlap in plan
+    int start[6];
+    int stop[6];
+    for (int i = 0; i < entries; i++)
+    {
+        start[i] = plnEntries[i].start.hour * 60 + plnEntries[i].start.min;
+        stop[i] = plnEntries[i].stop.hour * 60 + plnEntries[i].stop.min;
+        if (start[i] >= stop[i])
+        {
+            stop[i] += 24 * 60;
+        }
+    }
+    for (int i = 0; i < entries - 1; i++)
+    {
+        for (int j = i + 1; j < entries; j++)
+        {
+            if ((start[i] >= start[j] && start[i] < stop[j]) ||
+                (stop[i] > start[j] && stop[i] <= stop[j]))
+            {
+                return APP::ERROR::OverlaysNotSupported;
+            }
+        }
+    }
+    if (0 != CheckEntries())
     {
         return APP::ERROR::FrmMsgPlnUndefined;
     }
@@ -92,7 +126,7 @@ int Plan::ToArray(uint8_t *pbuf)
         *p++ = plnEntries[i].stop.hour;
         *p++ = plnEntries[i].stop.min;
     }
-    p=Cnvt::PutU16(crc,p);
+    p = Cnvt::PutU16(crc, p);
     return p - pbuf;
 }
 
@@ -105,7 +139,7 @@ std::string Plan::ToString()
     char buf[1024];
     int len = 0;
     len = snprintf(buf, 1023, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
-                plnId, micode, plnId, plnRev);
+                   plnId, micode, plnId, plnRev);
     const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
     for (int i = 0, k = 1; i < 7; i++)
@@ -144,12 +178,12 @@ int Plan::CheckEntries()
 {
     for (int i = 0; i < entries; i++)
     {
-        if(plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId))
+        if (plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId))
         {
             PrintDbg(DBG_LOG, "Plan[%d] Error:Frame[%d] undefined\n", plnId, plnEntries[i].fmId);
             return -1;
         }
-        else if(plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId))
+        else if (plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId))
         {
             PrintDbg(DBG_LOG, "Plan[%d] Error:Msg[%d] undefined\n", plnId, plnEntries[i].fmId);
             return -1;

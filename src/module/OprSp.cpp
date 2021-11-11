@@ -61,7 +61,10 @@ void OprSp::EventsHandle(uint32_t events)
         char buf[64];
         snprintf(buf, 63, "%s closed: events=0x%08X", sp->Config().name, events);
         DbHelper::Instance().GetUciAlarm().Push(0,buf);
-        MyThrow (buf);
+        if(ReOpen()==-1)
+        {
+            MyThrow ("%s closed: events=0x%08X and reopen failed", sp->Config().name, events);
+        }
     }
     else if (events & EPOLLIN)
     {
@@ -84,7 +87,10 @@ int OprSp::RxHandle()
     int n = read(eventFd, buf, 4096);
     if (n <= 0)
     {
-        MyThrow ("%s: read error", sp->Config().name);
+        if(ReOpen()==-1)
+        {
+            MyThrow ("%s: read error and reopen failed", sp->Config().name);
+        }
     }
     else
     {

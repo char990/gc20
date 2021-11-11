@@ -1315,6 +1315,10 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
     targetDimmingLvl = 0x80 | dimming;
+    for (auto &sign : vSigns)
+    {
+        sign->DimmingSet(dimming);
+    }    
     return APP::ERROR::AppNoError;
 }
 

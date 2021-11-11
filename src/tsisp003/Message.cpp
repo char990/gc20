@@ -39,7 +39,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
         {
             if (i == 0)
             {
-                return APP::ERROR::SyntaxError;
+                return APP::ERROR::LengthError;
             }
             break;
         }
@@ -49,7 +49,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     if (p != (xmsg + xlen - MSG_TAIL))
     {
         PrintDbg(DBG_LOG, "Msg[%d] Error:Invalid entries\n", msgId);
-        return APP::ERROR::SyntaxError;
+        return APP::ERROR::LengthError;
     }
     if (0 != CheckEntries())
     {

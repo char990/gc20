@@ -124,10 +124,6 @@ uint8_t UciFrm::GetFrmRev(uint8_t i)
 
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 {
-	if (len > maxFrmSize)
-	{
-		return APP::ERROR::LengthError;
-	}
 	Frame *pFrm;
 	if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
 	{
@@ -140,10 +136,6 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 	else if (buf[0] == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
 	{
 		pFrm = new FrmHrg(buf, len);
-	}
-	else if (buf[1] == 0)
-	{
-		return APP::ERROR::FrmMsgPlnUndefined;
 	}
 	else
 	{

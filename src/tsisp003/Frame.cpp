@@ -149,10 +149,14 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
             }
         }
     }
+    if(chars>0)
+    {
+        lines++;
+    }
     if (lines > rows)
     {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d*%d]\n",
-                 frmId, columns, rows, font, chars, lines);
+        PrintDbg(DBG_LOG, "Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d] lines\n",
+                 frmId, columns, rows, font, lines);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
@@ -209,11 +213,15 @@ int FrmGfx::CheckSub(uint8_t *frm, int len)
 int FrmGfx::CheckLength(int len)
 {
     UciProd &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
-        len > frmOffset + 2 + prod.MaxFrmLen())
+    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
     {
         PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::LengthError;
+        appErr = APP::ERROR::FrameTooSmall;
+    }
+    else if (len > frmOffset + 2 + prod.MaxFrmLen())
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
+        appErr = APP::ERROR::FrameTooLarge;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
@@ -302,11 +310,15 @@ int FrmHrg::CheckSub(uint8_t *frm, int len)
 int FrmHrg::CheckLength(int len)
 {
     UciProd &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1FrmLen() ||
-        len > frmOffset + 2 + prod.MaxFrmLen())
+    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
     {
         PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::LengthError;
+        appErr = APP::ERROR::FrameTooSmall;
+    }
+    else if (len > frmOffset + 2 + prod.MaxFrmLen())
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
+        appErr = APP::ERROR::FrameTooLarge;
     }
     else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
     {
