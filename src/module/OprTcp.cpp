@@ -54,13 +54,14 @@ void OprTcp::Init(std::string name_, std::string aType, int idle)
 void OprTcp::Accept(int fd, TimerEvent *tmr, const char * client)
 {
     strncpy(this->client, client, 23);
-    upperLayer->ClrRx();
     eventFd = fd;
     events = EPOLLIN | EPOLLRDHUP;
     Epoll::Instance().AddEvent(this, events);
     tmrEvt = tmr;
     tmrEvt->Add(this);
     tcpIdleTmr.Setms(idleTime);
+    upperLayer->ClrRx();
+    ClrTx();
 }
 
 /// \brief  Called by upperLayer->Tx()

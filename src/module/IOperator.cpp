@@ -18,7 +18,7 @@ int IOperator::TxBytes(uint8_t * data, int len)
     {
         txsize=len-n;
         txcnt=0;
-        memcpy(data+n, optxbuf, txsize);
+        memcpy(optxbuf, data+n, txsize);
         events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
         Epoll::Instance().ModifyEvent(this, events);
     }

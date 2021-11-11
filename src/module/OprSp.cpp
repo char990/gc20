@@ -112,7 +112,6 @@ int OprSp::ReOpen()
 
     Epoll::Instance().DeleteEvent(this, events);
     sp->Close();
-    upperLayer->ClrRx();
     if(sp->Open()<0)
     {
         DbHelper::Instance().GetUciAlarm().Push(0,"ReOpen %s failed", sp->Config().name);
@@ -121,5 +120,7 @@ int OprSp::ReOpen()
     events = EPOLLIN | EPOLLRDHUP;
     eventFd = sp->GetFd();
     Epoll::Instance().AddEvent(this, events);
+    upperLayer->ClrRx();
+    ClrTx();
     return 0;
 }
