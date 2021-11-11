@@ -14,6 +14,8 @@
 Controller::Controller()
     : groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
 {
+    overtempFault.SetCNT(3); // set as 3 minutes
+    overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
     pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
@@ -166,7 +168,7 @@ void Controller::PeriodicRun()
     }
 
     if (++msTemp >= CTRLLER_MS(60 * 1000))
-    {
+    {// every 60s
         msTemp = 0;
         int t;
         if (pDS3231->GetTemp(&t) == 0)
@@ -179,11 +181,23 @@ void Controller::PeriodicRun()
             auto ot = DbHelper::Instance().GetUciUser().OverTemp();
             if (curTemp > ot)
             {
-                ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, true);
+                overtempFault.Check(1);
+                if (!ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature) && overtempFault.IsHigh())
+                {
+                    ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, true);
+                    DbHelper::Instance().GetUciAlarm().Push(0, "Controller OverTemperatureAlarm ONSET: %d'C", curTemp);
+                    overtempFault.ClearEdge();
+                }
             }
             else if (curTemp < (ot - 3))
             {
-                ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, false);
+                overtempFault.Check(0);
+                if (ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature) && overtempFault.IsLow())
+                {
+                    ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, false);
+                    DbHelper::Instance().GetUciAlarm().Push(0, "Controller OverTemperatureAlarm CLEAR: %d'C", curTemp);
+                    overtempFault.ClearEdge();
+                }
             }
         }
     }
@@ -335,6 +349,8 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         {
             db.GetUciFault().Reset();
             db.GetUciProcess().SaveCtrllerErr(0);
+            overtempFault.SetState(false);
+            ctrllerError.SetV(0);
         }
         if (lvl >= 3)
         {

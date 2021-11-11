@@ -11,6 +11,7 @@
 #include <tsisp003/TsiSp003Const.h>
 #include <gpio/GpioIn.h>
 #include <module/TcpServer.h>
+#include <module/Debounce.h>
 
 #define RQST_NETWORK (1 << 0)
 #define RQST_RESTART (1 << 1)
@@ -104,6 +105,7 @@ private:
     int8_t curTemp{0};
     int8_t maxTemp{0};
     uint16_t msTemp{60 * 100};
+    Debounce overtempFault;
 
     // restart/reboot/network flag
     uint8_t rr_flag{0};

@@ -311,8 +311,8 @@ enum class DISP_TYPE : uint8_t
 //#define MIN_TXTFRM_SIZE (TXTFRM_HEADER_SIZE + 1 + 2)
 
 /// \brief App packet size
-/// max size of app packet is Send File Packet ( >1000 entries of event log)
-#define MAX_APP_PACKET_SIZE (64 * 1024 + 4)
+/// max size of app packet is EventLog (1000 entries of event log)
+#define MAX_APP_PACKET_SIZE (4 + (1+2+7+65) * 1000)
 
 /// \brief Data packet Header and End of Block size
 #define DATA_PACKET_HEADER_SIZE 8

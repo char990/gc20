@@ -9,7 +9,7 @@ UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
     {
         appFactory = new AppFactory();
         appLayer = appFactory->GetApp();
-        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
+        prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
         dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
         LayerNTS *layerNTS = new LayerNTS(name_);
         midLayer = layerNTS;
@@ -20,7 +20,7 @@ UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
     {
         appFactory = new AppFactory();
         appLayer = appFactory->GetApp();
-        prstLayer = new LayerPrst(MAX_DATA_PACKET_SIZE);
+        prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
         dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
         midLayer = new LayerWeb(name_);
     }

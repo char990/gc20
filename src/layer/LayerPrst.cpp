@@ -19,7 +19,7 @@ LayerPrst::~LayerPrst()
 
 int LayerPrst::Rx(uint8_t * data, int len)
 {
-    if(len>maxlen)
+    if(len>maxlen*2)
     {
         return -1;
     }
@@ -44,7 +44,7 @@ bool LayerPrst::IsTxReady()
 
 int LayerPrst::Tx(uint8_t * data, int len)
 {
-    if(len<=0 || len>(maxlen/2))
+    if(len<=0 || len>(maxlen))
     {
         return -1;
     }

@@ -6,7 +6,7 @@
 class LayerPrst : public ILayer
 {
 public:
-    LayerPrst(int maxlen);
+    LayerPrst(int maxlen);  // maxlen is the length of Hex packet
     ~LayerPrst();
     
     int Rx(uint8_t * data, int len) override;

@@ -61,7 +61,7 @@ public:
     Debounce multiLedFault;
     Debounce selftestFault;
     Debounce voltageFault;
-    Utils::State5 overTempFault;
+    Debounce overtempFault;
 
     Utils::State5 fatalError; // combine chain, multiLed, selftest, voltage and overtemp
 

@@ -16,6 +16,7 @@ Sign::Sign(uint8_t id)
     selftestFault.SetCNT(prod.SelftestDebounce());
     voltageFault.SetCNT(prod.SlaveVoltageDebounce());
     lanternFault.SetCNT(prod.LanternFaultDebounce());
+    overtempFault.SetCNT(prod.OverTempDebounce());
 
     lsConnectionFault.SetCNT(2 * 60, 3 * 60); // fault debounce 1 minute in slave, so set true_cnt as 2*60
     ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
@@ -35,7 +36,6 @@ void Sign::AddSlave(Slave *slave)
 
 void Sign::InitFaults()
 {
-    overTempFault.Init(signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) ? STATE5::S5_1 : STATE5::S5_0);
     luminanceFault.Init(signErr.IsSet(DEV::ERROR::SignLuminanceControllerFailure) ? STATE5::S5_1 : STATE5::S5_0);
     selftestFault.SetState(signErr.IsSet(DEV::ERROR::UnderLocalControl));
     singleLedFault.SetState(signErr.IsSet(DEV::ERROR::SignSingleLedFailure));
@@ -43,6 +43,7 @@ void Sign::InitFaults()
     voltageFault.SetState(signErr.IsSet(DEV::ERROR::InternalPowerSupplyFault));
     multiLedFault.SetState(signErr.IsSet(DEV::ERROR::SignMultiLedFailure));
     chainFault.SetState(signErr.IsSet(DEV::ERROR::SignDisplayDriverFailure));
+    overtempFault.SetState(signErr.IsSet(DEV::ERROR::OverTemperatureAlarm));
     lsConnectionFault.Reset();
     ls18hoursFault.SetState(false);
     lsMidnightFault.SetState(false);
@@ -51,7 +52,7 @@ void Sign::InitFaults()
         multiLedFault.IsHigh() ||
         selftestFault.IsHigh() ||
         voltageFault.IsHigh() ||
-        overTempFault.IsHigh())
+        overtempFault.IsHigh())
     {
         fatalError.Set();
     }
@@ -69,6 +70,7 @@ void Sign::ClearFaults()
     singleLedFault.SetState(false);
     selftestFault.SetState(false);
     voltageFault.SetState(false);
+    overtempFault.SetState(false);
     lanternFault.SetState(false);
     lsConnectionFault.SetState(false);
     ls18hoursFault.SetState(false);
@@ -76,7 +78,6 @@ void Sign::ClearFaults()
     lsMiddayFault.SetState(false);
     tflag = 255;
     luminanceFault.Init(STATE5::S5_0);
-    overTempFault.Init(STATE5::S5_0);
     fatalError.Init(STATE5::S5_0);
     signErr.Clear();
 }
@@ -192,20 +193,22 @@ void Sign::RefreshSlaveStatusAtExtSt()
     auto ot = user.OverTemp();
     if (curTemp > ot)
     {
-        if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
+        overtempFault.Check(1);
+        if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsHigh())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
             DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
-            overTempFault.Set();
+            overtempFault.ClearEdge();
         }
     }
-    else if (curTemp < (ot - prod.OverTempDebounce()))
+    else if (curTemp < (ot - 3))
     {
-        if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm))
+        overtempFault.Check(0);
+        if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsLow())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
             DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
-            overTempFault.Clr();
+            overtempFault.ClearEdge();
         }
     }
 
@@ -350,7 +353,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             }
         }
     }
-    (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overTempFault.IsHigh()) ? fatalError.Set() : fatalError.Clr();
+    (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overtempFault.IsHigh()) ? fatalError.Set() : fatalError.Clr();
 }
 
 uint8_t *Sign::LedStatus(uint8_t *buf)
