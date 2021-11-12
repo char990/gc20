@@ -58,7 +58,7 @@ public:
         {
             putchar('\r');
             _r_need_n = 0;
-            PrintDbg(DBG_0, "%c",s[cnt & 0x03]);
+            PrintDbg(DBG_0, "%c   \x08\x08\x08",s[cnt & 0x03]);
             _r_need_n = 1;
             cnt++;
             fflush(stdout);
@@ -186,12 +186,13 @@ int main(int argc, char *argv[])
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
-        // 3(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) = 30
+        // 2(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 30
         Epoll::Instance().Init(32);
         TimerEvent ctrllerTmrEvt{CTRLLER_TICK, "[ctrllerTmrEvt]"};
         //TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent tmrEvt1Sec{1000, "[tmrEvt1Sec]"};
         tmrEvt1Sec.Add(new TickTock{});
+        auto console = new DebugConsole();
 
         DbHelper::Instance().Init(argv[1]);
         GpioInit();
@@ -251,7 +252,6 @@ int main(int argc, char *argv[])
 
         PrintDbg(DBG_LOG, ">>> DONE >>>\n");
 
-        auto console = new DebugConsole();
         /*************** Start ****************/
         while (1)
         {

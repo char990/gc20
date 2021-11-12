@@ -42,17 +42,13 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         appErr = APP::ERROR::LengthError;
         return 1;
     }
-    if (CheckLength(len) != 0)
+    if (CheckColour() != 0)
     {
+        appErr = APP::ERROR::ColourNotSupported;
         return 1;
     }
     if (CheckSub(frm, len) != 0)
     { // special parameters in Txt/Gfx/Hrg Frame
-        return 1;
-    }
-    if (CheckColour() != 0)
-    {
-        appErr = APP::ERROR::ColourNotSupported;
         return 1;
     }
     // int CheckConspicuity();
@@ -67,6 +63,56 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     }
     appErr = APP::ERROR::AppNoError;
     return 0;
+}
+
+int Frame::CheckLength(int len)
+{
+    UciProd &prod = DbHelper::Instance().GetUciProd();
+    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
+        appErr = APP::ERROR::FrameTooSmall;
+    }
+    else if (len > frmOffset + 2 + prod.MaxFrmLen())
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
+        appErr = APP::ERROR::FrameTooLarge;
+    }
+    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
+    {
+        PrintDbg(DBG_LOG, "Frame[%d] Error:pixelRows=%d;pixelColumns=%d\n", frmId, pixelRows, pixelColumns);
+        appErr = APP::ERROR::SizeMismatch;
+    }
+    else
+    {
+        int x = 0;
+        if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
+        {
+            x = prod.Gfx1FrmLen();
+        }
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
+        {
+            x = prod.Gfx4FrmLen();
+        }
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
+        {
+            x = prod.Gfx24FrmLen();
+        }
+        if (x != 0)
+        {
+            if (frmBytes != x)
+            {
+                PrintDbg(DBG_LOG, "Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
+                appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
+            }
+        }
+        else
+        {
+            PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
+            appErr = APP::ERROR::ColourNotSupported;
+        }
+    }
+    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
 /*****************************FrmTxt*******************************/
@@ -105,6 +151,10 @@ int FrmTxt::CheckLength(int len)
 
 int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
+    if(CheckLength(len))
+    {
+        return 1;
+    }
     auto &prod = DbHelper::Instance().GetUciProd();
     if (micode != static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
@@ -207,57 +257,7 @@ int FrmGfx::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::UnknownMi;
         return 1;
     }
-    return 0;
-}
-
-int FrmGfx::CheckLength(int len)
-{
-    UciProd &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::FrameTooSmall;
-    }
-    else if (len > frmOffset + 2 + prod.MaxFrmLen())
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::FrameTooLarge;
-    }
-    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:pixelRows=%d;pixelColumns=%d\n", frmId, pixelRows, pixelColumns);
-        appErr = APP::ERROR::SizeMismatch;
-    }
-    else
-    {
-        int x = 0;
-        if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
-        {
-            x = prod.Gfx1FrmLen();
-        }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
-        {
-            x = prod.Gfx4FrmLen();
-        }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
-        {
-            x = prod.Gfx24FrmLen();
-        }
-        if (x != 0)
-        {
-            if (frmBytes != x)
-            {
-                PrintDbg(DBG_LOG, "Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
-                appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
-            }
-        }
-        else
-        {
-            PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
-            appErr = APP::ERROR::ColourNotSupported;
-        }
-    }
-    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
+    return CheckLength(len);
 }
 
 int FrmGfx::CheckColour()
@@ -304,57 +304,7 @@ int FrmHrg::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::UnknownMi;
         return 1;
     }
-    return 0;
-}
-
-int FrmHrg::CheckLength(int len)
-{
-    UciProd &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::FrameTooSmall;
-    }
-    else if (len > frmOffset + 2 + prod.MaxFrmLen())
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:len=%d\n", frmId, len);
-        appErr = APP::ERROR::FrameTooLarge;
-    }
-    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
-    {
-        PrintDbg(DBG_LOG, "Frame[%d] Error:pixelRows=%d;pixelColumns=%d\n", frmId, pixelRows, pixelColumns);
-        appErr = APP::ERROR::SizeMismatch;
-    }
-    else
-    {
-        int x = 0;
-        if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
-        {
-            x = prod.Gfx1FrmLen();
-        }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
-        {
-            x = prod.Gfx4FrmLen();
-        }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
-        {
-            x = prod.Gfx24FrmLen();
-        }
-        if (x != 0)
-        {
-            if (frmBytes != x)
-            {
-                PrintDbg(DBG_LOG, "Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
-                appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
-            }
-        }
-        else
-        {
-            PrintDbg(DBG_LOG, "Frame[%d] Error:colour=%d\n", frmId, colour);
-            appErr = APP::ERROR::ColourNotSupported;
-        }
-    }
-    return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
+    return CheckLength(len);
 }
 
 int FrmHrg::CheckColour()
