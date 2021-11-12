@@ -146,7 +146,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     if (level > 1 && gid != 0)
     {
         SetRejectStr("GroupID=%d. Level[%d] is only for Group[0])", gid, level);
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP::ERROR::UndefinedDeviceNumber);
         return;
     }
     auto r = ctrller.CmdSystemReset(data);

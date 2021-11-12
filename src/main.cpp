@@ -20,11 +20,14 @@
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
+
 #include <sign/Controller.h>
 #include <module/Utils.h>
 #include <module/DS3231.h>
 #include <gpio/GpioIn.h>
 #include <gpio/GpioOut.h>
+
+#include <module/DebugConsole.h>
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
@@ -45,17 +48,21 @@ void PrintVersion()
     printf("%s\n", buf);
 }
 
+bool tiktock=true;
 class TickTock : public IPeriodicRun
 {
 public:
     virtual void PeriodicRun() override
     {
-        putchar('\r');
-        _r_need_n = 0;
-        PrintDbg(DBG_0, "%c",s[cnt & 0x03]);
-        _r_need_n = 1;
-        cnt++;
-        fflush(stdout);
+        if(tiktock)
+        {
+            putchar('\r');
+            _r_need_n = 0;
+            PrintDbg(DBG_0, "%c",s[cnt & 0x03]);
+            _r_need_n = 1;
+            cnt++;
+            fflush(stdout);
+        }
         time_t alarm_t = time(NULL);
         pDS3231->WriteTimeAlarm(alarm_t);
         pPinHeartbeatLed->Toggle();
@@ -244,6 +251,7 @@ int main(int argc, char *argv[])
 
         PrintDbg(DBG_LOG, ">>> DONE >>>\n");
 
+        auto console = new DebugConsole();
         /*************** Start ****************/
         while (1)
         {

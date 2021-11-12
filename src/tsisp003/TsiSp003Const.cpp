@@ -26,7 +26,7 @@ std::vector<MI::sMiCodeStr> MI::micode_str{
     {MI::CODE::SignSetGraphicsFrame, "SignSetGraphicsFrame"},
     {MI::CODE::SignSetMessage, "SignSetMessage"},
     {MI::CODE::SignSetPlan, "SignSetPlan"},
-    {MI::CODE::SignDisplayFrame, "RejSignDisplayFrameect"},
+    {MI::CODE::SignDisplayFrame, "SignDisplayFrame"},
     {MI::CODE::SignDisplayMessage, "SignDisplayMessage"},
     {MI::CODE::EnablePlan, "EnablePlan"},
     {MI::CODE::DisablePlan, "DisablePlan"},

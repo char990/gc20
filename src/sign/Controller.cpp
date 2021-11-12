@@ -118,10 +118,6 @@ void Controller::PeriodicRun()
                 evt.Push(0, _re);
                 PrintDbg(DBG_LOG, "\n%s...\n", _re);
                 MyThrow("\n%s...\n", _re);
-                system("reboot");
-                while (1)
-                {
-                };
             }
             if (rr_flag & RQST_RESTART)
             {
