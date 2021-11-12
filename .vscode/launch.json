@@ -9,7 +9,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/apps/main",
+            "program": "${workspaceFolder}/build/apps/goblin",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

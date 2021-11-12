@@ -1812,6 +1812,8 @@ APP::ERROR Group::SystemReset(uint8_t v)
         SystemReset1();
         break;
     case 2:
+    case 3:
+    case 255:
         SystemReset2();
         break;
     }
