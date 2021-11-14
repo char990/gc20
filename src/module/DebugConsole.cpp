@@ -56,12 +56,12 @@ void DebugConsole::EventsHandle(uint32_t events)
     }
 }
 
-extern bool tiktock;
+extern bool ticktock;
 void DebugConsole::Process()
 {
     printf("Console got '%s'\n", inbuf);
     if(strcmp(inbuf,"t")==0)
     {
-        tiktock=!tiktock;
+        ticktock=!ticktock;
     }
 }

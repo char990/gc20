@@ -31,6 +31,8 @@
 
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
+const char *CONFIG_PATH = "config";
+
 char * mainpath;
 
 using namespace std;
@@ -48,13 +50,13 @@ void PrintVersion()
     printf("%s\n", buf);
 }
 
-bool tiktock=true;
+bool ticktock=true;
 class TickTock : public IPeriodicRun
 {
 public:
     virtual void PeriodicRun() override
     {
-        if(tiktock)
+        if(ticktock)
         {
             putchar('\r');
             _r_need_n = 0;
@@ -148,40 +150,11 @@ int main(int argc, char *argv[])
         return -1;
     }
     PrintVersion();
-    if (argc != 2)
-    {
-        printf("Usage: %s DIRECTORY\n", argv[0]);
-        return 1;
-    }
-    else
-    {
-        int x = strlen(argv[1]);
-        if (argv[1][x - 1] == '/')
-        {
-            argv[1][x - 1] = '\0'; // remove last'/'
-        }
-        struct stat st;
-        if (stat(argv[1], &st) != 0)
-        {
-            printf("'%s' does NOT exist\n", argv[1]);
-            return 2;
-        }
-        else
-        {
-            if (!S_ISDIR(st.st_mode))
-            {
-                printf("'%s' is NOT a directory\n", argv[1]);
-                return 3;
-            }
-        }
-    }
 
     try
     {
-
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n",argv[0]);
         srand(time(NULL));
-
         pDS3231 = new DS3231{1};
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
@@ -194,7 +167,7 @@ int main(int argc, char *argv[])
         tmrEvt1Sec.Add(new TickTock{});
         auto console = new DebugConsole();
 
-        DbHelper::Instance().Init(argv[1]);
+        DbHelper::Instance().Init(CONFIG_PATH);
         GpioInit();
         Controller::Instance().Init(&ctrllerTmrEvt);
 
