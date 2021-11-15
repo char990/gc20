@@ -65,18 +65,19 @@ std::vector<MI::sMiCodeStr> MI::micode_str{
     {MI::CODE::UserDefinedCmdF0, "UserDefinedCmdF0"},
     {MI::CODE::UserDefinedCmdF1, "UserDefinedCmdF1"},
     {MI::CODE::UserDefinedCmdF2, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF3, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF4, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF5, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF6, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF7, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF8, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdF9, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdFA, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdFB, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdFC, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdFD, "UserDefinedCmdF2"},
-    {MI::CODE::UserDefinedCmdFE, "UserDefinedCmdF2"}};
+    {MI::CODE::UserDefinedCmdF3, "UserDefinedCmdF3"},
+    {MI::CODE::UserDefinedCmdF4, "UserDefinedCmdF4"},
+    {MI::CODE::UserDefinedCmdF5, "UserDefinedCmdF5"},
+    {MI::CODE::UserDefinedCmdF6, "UserDefinedCmdF6"},
+    {MI::CODE::UserDefinedCmdF7, "UserDefinedCmdF7"},
+    {MI::CODE::UserDefinedCmdF8, "UserDefinedCmdF8"},
+    {MI::CODE::UserDefinedCmdF9, "UserDefinedCmdF9"},
+    {MI::CODE::UserDefinedCmdFA, "UserDefinedCmdFA"},
+    {MI::CODE::UserDefinedCmdFB, "UserDefinedCmdFB"},
+    {MI::CODE::UserDefinedCmdFC, "UserDefinedCmdFC"},
+    {MI::CODE::UserDefinedCmdFD, "UserDefinedCmdFD"},
+    {MI::CODE::UserDefinedCmdFE, "UserDefinedCmdFE"},
+    {MI::CODE::UserDefinedCmdFF, "UserDefinedCmdFF"}};
 
 const char *MI::ToStr(uint8_t code)
 {

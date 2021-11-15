@@ -29,10 +29,6 @@ public:
 	void ReadBool32(struct uci_section *section, const char *option, Utils::Bool32 &bo);
 	int GetIntFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize);
 
-	/// \brief  OpenSECTION() => Change option value => CommitCloseSECTION()
-	void OpenSECTION() { OpenSectionForSave(SECTION); };
-	void CommitCloseSECTION() { CommitCloseSectionForSave(); };
-
 protected:
 	struct uci_context *ctx;
 	struct uci_package *pkg;

@@ -9,8 +9,8 @@
 typedef struct ExtSw {
 	uint16_t dispTime{0};   // 0:disabled
 	uint8_t reserved;
-	uint8_t emergency;
-	uint8_t flashingOv;
+	uint8_t emergency;      // 0:ON / 1:OFF
+	uint8_t flashingOv;     // 0:ON / 1:OFF
 	bool Equal(struct ExtSw* v)
 	{
 		return (	dispTime==v->dispTime &&
@@ -31,7 +31,7 @@ public:
     void LoadConfig() override;
 	void Dump() override;
 
-    /// \brief  Load factory default. Call OpenSECTION/CommitCloseSECTION inside
+    /// \brief  Load factory default. Call OpenSECTION/CommitCloseSectionForSave inside
     ///         Copy 'goblin_user.def' to 'goblin_user.def' and set DeviceId & BroadcastId
     void LoadFactoryDefault();
 

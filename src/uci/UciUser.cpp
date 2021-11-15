@@ -224,10 +224,8 @@ void UciUser::LoadFactoryDefault()
     snprintf(uci, 255, "%s/%s", PATH, PACKAGE);
     snprintf(def, 255, "%s/%s", PATH, DEFAULT_FILE);
     Exec::CopyFile(def, uci);
-    OpenSECTION();
-    OptionSave(_DeviceId, DeviceId());
-    OptionSave(_BroadcastId, BroadcastId());
-    CommitCloseSECTION();
+    OpenSaveClose(SECTION, _DeviceId, DeviceId());
+    OpenSaveClose(SECTION, _BroadcastId, BroadcastId());
     LoadConfig();
 }
 
@@ -334,7 +332,7 @@ void UciUser::BroadcastId(uint8_t v)
     if (broadcastId != v)
     {
         broadcastId = v;
-        OptionSave(_BroadcastId, v);
+        OpenSaveClose(SECTION, _BroadcastId, v);
     }
 }
 
@@ -343,7 +341,7 @@ void UciUser::DeviceId(uint8_t v)
     if (deviceId != v)
     {
         deviceId = v;
-        OptionSave(_DeviceId, v);
+        OpenSaveClose(SECTION, _DeviceId, v);
     }
 }
 
@@ -352,7 +350,9 @@ void UciUser::SeedOffset(uint8_t v)
     if (seedOffset != v)
     {
         seedOffset = v;
-        OptionSave(_SeedOffset, v);
+        char buf[8];
+        sprintf(buf,"0x%02X",v);
+        OpenSaveClose(SECTION, _SeedOffset, buf);
     }
 }
 
@@ -361,7 +361,7 @@ void UciUser::Fan1OnTemp(uint8_t v)
     if (fan1OnTemp != v)
     {
         fan1OnTemp = v;
-        OptionSave(_Fan1OnTemp, v);
+        OpenSaveClose(SECTION, _Fan1OnTemp, v);
     }
 }
 
@@ -370,7 +370,7 @@ void UciUser::Fan2OnTemp(uint8_t v)
     if (fan2OnTemp != v)
     {
         fan2OnTemp = v;
-        OptionSave(_Fan2OnTemp, v);
+        OpenSaveClose(SECTION, _Fan2OnTemp, v);
     }
 }
 
@@ -379,7 +379,7 @@ void UciUser::OverTemp(uint8_t v)
     if (overTemp != v)
     {
         overTemp = v;
-        OptionSave(_OverTemp, v);
+        OpenSaveClose(SECTION, _OverTemp, v);
     }
 }
 
@@ -388,7 +388,7 @@ void UciUser::Humidity(uint8_t v)
     if (humidity != v)
     {
         humidity = v;
-        OptionSave(_Humidity, v);
+        OpenSaveClose(SECTION, _Humidity, v);
     }
 }
 
@@ -397,7 +397,7 @@ void UciUser::DefaultFont(uint8_t v)
     if (defaultFont != v)
     {
         defaultFont = v;
-        OptionSave(_DefaultFont, v);
+        OpenSaveClose(SECTION, _DefaultFont, v);
     }
 }
 
@@ -406,7 +406,7 @@ void UciUser::DefaultColour(uint8_t v)
     if (defaultColour != v)
     {
         defaultColour = v;
-        OptionSave(_DefaultColour, v);
+        OpenSaveClose(SECTION, _DefaultColour, v);
     }
 }
 
@@ -415,7 +415,7 @@ void UciUser::LockedFrm(uint8_t v)
     if (lockedFrm != v)
     {
         lockedFrm = v;
-        OptionSave(_LockedFrm, v);
+        OpenSaveClose(SECTION, _LockedFrm, v);
     }
 }
 
@@ -424,7 +424,7 @@ void UciUser::LockedMsg(uint8_t v)
     if (lockedMsg != v)
     {
         lockedMsg = v;
-        OptionSave(_LockedMsg, v);
+        OpenSaveClose(SECTION, _LockedMsg, v);
     }
 }
 
@@ -433,7 +433,7 @@ void UciUser::LastFrmOn(uint8_t v)
     if (lastFrmOn != v)
     {
         lastFrmOn = v;
-        OptionSave(_LastFrmOn, v);
+        OpenSaveClose(SECTION, _LastFrmOn, v);
     }
 }
 
@@ -442,7 +442,7 @@ void UciUser::ComPort(uint8_t v)
     if (comPort != v)
     {
         comPort = v;
-        OptionSave(_ComPort, gSpConfig[comPort].name);
+        OpenSaveClose(SECTION, _ComPort, gSpConfig[comPort].name);
     }
 }
 
@@ -451,7 +451,7 @@ void UciUser::MultiLedFaultThreshold(uint16_t v)
     if (multiLedFaultThreshold != v)
     {
         multiLedFaultThreshold = v;
-        OptionSave(_MultiLedFaultThreshold, v);
+        OpenSaveClose(SECTION, _MultiLedFaultThreshold, v);
     }
 }
 
@@ -460,7 +460,9 @@ void UciUser::PasswordOffset(uint16_t v)
     if (passwordOffset != v)
     {
         passwordOffset = v;
-        OptionSave(_PasswordOffset, v);
+        char buf[8];
+        sprintf(buf,"0x%04X",v);
+        OpenSaveClose(SECTION, _PasswordOffset, buf);
     }
 }
 
@@ -469,7 +471,7 @@ void UciUser::SessionTimeout(uint16_t v)
     if (sessionTimeout != v)
     {
         sessionTimeout = v;
-        OptionSave(_SessionTimeout, v);
+        OpenSaveClose(SECTION, _SessionTimeout, v);
     }
 }
 
@@ -478,7 +480,7 @@ void UciUser::DisplayTimeout(uint16_t v)
     if (displayTimeout != v)
     {
         displayTimeout = v;
-        OptionSave(_DisplayTimeout, v);
+        OpenSaveClose(SECTION, _DisplayTimeout, v);
     }
 }
 
@@ -487,7 +489,7 @@ void UciUser::SvcPort(uint16_t v)
     if (svcPort != v)
     {
         svcPort = v;
-        OptionSave(_SvcPort, v);
+        OpenSaveClose(SECTION, _SvcPort, v);
     }
 }
 
@@ -496,7 +498,7 @@ void UciUser::WebPort(uint16_t v)
     if (webPort != v)
     {
         webPort = v;
-        OptionSave(_WebPort, v);
+        OpenSaveClose(SECTION, _WebPort, v);
     }
 }
 
@@ -505,7 +507,7 @@ void UciUser::Baudrate(int v)
     if (baudrate != v)
     {
         baudrate = v;
-        OptionSave(_Baudrate, v);
+        OpenSaveClose(SECTION, _Baudrate, v);
     }
 }
 
@@ -514,7 +516,7 @@ void UciUser::Tz(uint8_t v)
     if (tz != v)
     {
         tz = v;
-        OptionSave(_TZ, Tz_AU::tz_au[tz].city);
+        OpenSaveClose(SECTION, _TZ, Tz_AU::tz_au[tz].city);
     }
 }
 
@@ -530,7 +532,7 @@ void UciUser::DawnDusk(uint8_t *p)
         memcpy(dawnDusk, p, sizeof(dawnDusk));
         char buf[1024];
         PrintDawnDusk(buf);
-        OptionSave(_DawnDusk, buf);
+        OpenSaveClose(SECTION, _DawnDusk, buf);
     }
 }
 
@@ -541,7 +543,7 @@ void UciUser::Luminance(uint16_t *p)
         memcpy(luminance, p, sizeof(luminance));
         char buf[1024];
         PrintLuminance(buf);
-        OptionSave(_Luminance, buf);
+        OpenSaveClose(SECTION, _Luminance, buf);
     }
 }
 
@@ -561,7 +563,7 @@ void UciUser::ExtSwCfgX(int i, ExtSw *cfg)
         op[5] = i + '1';
         char buf[1024];
         PrintExtSw(i, buf);
-        OptionSave(op, buf);
+        OpenSaveClose(SECTION, op, buf);
     }
 }
 

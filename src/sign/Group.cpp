@@ -1240,8 +1240,8 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
             else if (dsCurrent->dispType == DISP_TYPE::N_A ||
                      dsCurrent->dispType == DISP_TYPE::BLK ||
                      (onDispMsgId == 0 && onDispFrmId == 0) ||
-                     cfg->flashingOv == 0 ||
-                     (cfg->flashingOv != 0 &&
+                     cfg->flashingOv != 0 ||    // flash override OFF
+                     (cfg->flashingOv == 0 && // flash override ON
                       ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
                        onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
             {
@@ -1382,7 +1382,7 @@ bool Group::IsDsNextEmergency()
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 5)
         {
-            if (db.GetUciUser().ExtSwCfgX(mid)->emergency)
+            if (db.GetUciUser().ExtSwCfgX(mid)->emergency==0)
             {
                 r = true;
             }

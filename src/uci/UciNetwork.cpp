@@ -68,7 +68,7 @@ void UciNetwork::Set(uint8_t * src, const char * _option, uint8_t * dst)
     memcpy(dst, src, 4);
     char buf[16];
     sprintf(buf, "%d.%d.%d.%d", dst[0], dst[1], dst[2], dst[3]);
-    OptionSave(_option, buf);
+    OpenSaveClose(SECTION, _option, buf);
 }
 
 void UciNetwork::Dump()

@@ -141,5 +141,6 @@ private:
     Upgrade upgrade;
 
 
+    int FE_SetGuiConfig(uint8_t *data, int len);
     int FF_RqstGuiConfig(uint8_t *data, int len);
 };

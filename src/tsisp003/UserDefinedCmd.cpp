@@ -17,6 +17,9 @@ int TsiSp003App::UserDefinedCmd(uint8_t *data, int len)
         case MI::CODE::UserDefinedCmdFA:
             UserDefinedCmdFA(data, len);
             break;
+        case MI::CODE::UserDefinedCmdFE:
+            FE_SetGuiConfig(data, len);
+            break;
         case MI::CODE::UserDefinedCmdFF:
             FF_RqstGuiConfig(data, len);
             break;
@@ -80,7 +83,7 @@ int TsiSp003App::UserDefinedCmdFA(uint8_t *data, int len)
         FAFA_Reboot(data, len);
         break;
     default:
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP::ERROR::UnknownMi);
     }
     return 0;
 }
@@ -311,7 +314,6 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             auto &evt = DbHelper::Instance().GetUciEvent();
             // restart/reboot flag
             unsigned char rr_flag = 0;
-            user.OpenSECTION();
             // save config
             uint32_t v;
             v = *(pd + 2);
@@ -468,7 +470,6 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                          user.LastFrmOn(), v);
                 user.LastFrmOn(v);
             }
-            user.CommitCloseSECTION();
 
             // network settings
             auto &net = DbHelper::Instance().GetUciNetwork();
@@ -483,7 +484,6 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             int m3 = memcmp(pip3, nip3, 4);
             if (m1 != 0 || m2 != 0 || m3 != 0)
             {
-                net.OpenSECTION();
                 if (m1 != 0)
                 {
                     evt.Push(0, "network.ipaddr changed: %u.%u.%u.%u-> %u.%u.%u.%u",
@@ -502,7 +502,6 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                              nip3[0], nip3[1], nip3[2], nip3[3], pip3[0], pip3[1], pip3[2], pip3[3]);
                     net.Gateway(pip3);
                 }
-                net.CommitCloseSECTION();
                 rr_flag |= RQST_NETWORK;
             }
             txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
@@ -636,10 +635,8 @@ int TsiSp003App::FA01_SetLuminance(uint8_t *data, int len)
             pd += 2;
         }
         auto &user = DbHelper::Instance().GetUciUser();
-        user.OpenSECTION();
         user.DawnDusk(data + 2);
         user.Luminance(buf2);
-        user.CommitCloseSECTION();
         Ack();
     }
     return 0;
@@ -702,12 +699,10 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
             extsw[i].flashingOv = k;
         }
         auto &user = DbHelper::Instance().GetUciUser();
-        user.OpenSECTION();
         for (int i = 0; i < 3; i++)
         {
             user.ExtSwCfgX(i, &extsw[i]);
         }
-        user.CommitCloseSECTION();
         Ack();
     }
     return 0;
@@ -843,6 +838,103 @@ void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
     MD5(shake_src, len, md5);
 }
 
+int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
+{
+    if (ChkLen(len, 23))
+    {
+        auto &prod = DbHelper::Instance().GetUciProd();
+        auto &user = DbHelper::Instance().GetUciUser();
+        auto sessiont = Cnvt::GetU16(data + 14);
+        auto displayt = Cnvt::GetU16(data + 17);
+        auto devId = data[4];
+        auto overtemp = data[9];
+        auto fan1temp = data[10];
+        auto fan2temp = data[11];
+        auto humid = data[12];
+        auto broadcastId = data[13];
+        auto defaultFont = data[16];
+        if (sessiont > displayt || devId == broadcastId ||
+            overtemp > 99 || fan1temp > 99 || fan2temp > 99 || humid > 99 ||
+            defaultFont == 0 || prod.IsFont(defaultFont) == false)
+        {
+            Reject(APP::ERROR::SyntaxError);
+        }
+        else
+        {
+            auto &evt = DbHelper::Instance().GetUciEvent();
+            auto passwordOffset = Cnvt::GetU16(data + 1);
+            if (passwordOffset != user.PasswordOffset())
+            {
+                evt.Push(0, "User.PasswordOffset changed: %u->%u",
+                         user.PasswordOffset(), passwordOffset);
+                user.PasswordOffset(passwordOffset);
+            }
+            if (data[3] != user.SeedOffset())
+            {
+                evt.Push(0, "User.SeedOffset changed: %u->%u",
+                         user.SeedOffset(), data[3]);
+                user.SeedOffset(data[3]);
+            }
+            if (devId != user.DeviceId())
+            {
+                evt.Push(0, "User.DeviceId changed: %u->%u",
+                         user.DeviceId(), devId);
+                user.DeviceId(devId);
+            }
+            if (overtemp != user.OverTemp())
+            {
+                evt.Push(0, "User.OverTemp changed: %u->%u",
+                         user.OverTemp(), overtemp);
+                user.OverTemp(overtemp);
+            }
+            if (fan1temp != user.Fan1OnTemp())
+            {
+                evt.Push(0, "User.Fan1OnTemp changed: %u->%u",
+                         user.Fan1OnTemp(), fan1temp);
+                user.Fan1OnTemp(fan1temp);
+            }
+            if (fan2temp != user.Fan2OnTemp())
+            {
+                evt.Push(0, "User.Fan2OnTemp changed: %u->%u",
+                         user.Fan2OnTemp(), fan2temp);
+                user.Fan2OnTemp(fan2temp);
+            }
+            if (humid != user.Humidity())
+            {
+                evt.Push(0, "User.Humidity changed: %u->%u",
+                         user.Humidity(), humid);
+                user.Humidity(humid);
+            }
+            if (broadcastId != user.BroadcastId())
+            {
+                evt.Push(0, "User.BroadcastId changed: %u->%u",
+                         user.BroadcastId(), broadcastId);
+                user.BroadcastId(broadcastId);
+            }
+            if (defaultFont != user.DefaultFont())
+            {
+                evt.Push(0, "User.DefaultFont changed: %u->%u",
+                         user.DefaultFont(), defaultFont);
+                user.DefaultFont(defaultFont);
+            }
+            if (sessiont != user.SessionTimeout())
+            {
+                evt.Push(0, "User.SessionTimeout changed: %u->%u",
+                         user.SessionTimeout(), sessiont);
+                user.SessionTimeout(sessiont);
+            }
+            if (displayt != user.DisplayTimeout())
+            {
+                evt.Push(0, "User.DisplayTimeout changed: %u->%u",
+                         user.DisplayTimeout(), displayt);
+                user.DisplayTimeout(displayt);
+            }
+            Ack();
+        }
+    }
+    return 0;
+}
+
 int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
 {
     if (ChkLen(len, 1))
@@ -851,39 +943,39 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         auto &user = DbHelper::Instance().GetUciUser();
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFF);
         uint8_t *p = txbuf + 1;
-        p = Cnvt::PutU16(Cnvt::SwapU16(user.PasswordOffset()), p); // password offset
-        *p++ = user.SeedOffset();                                  // seed offset
-        *p++ = user.DeviceId();                                    // device id
-        p = Cnvt::PutU16(Cnvt::SwapU16(5), p);                     // conspicuity( flasher ) ON time : 5/10 seconds
-        p = Cnvt::PutU16(Cnvt::SwapU16(5), p);                     // conspicuity( flasher ) OFF time : 5/10 seconds
-        *p++ = user.OverTemp();                                    // over temperature
-        *p++ = user.Fan1OnTemp();                                  // fan 1 on temperature
-        *p++ = user.Fan2OnTemp();                                  // fan 2 on temperature
-        *p++ = user.Humidity();                                    // Humidity
-        *p++ = user.BroadcastId();                                 // broadcast address
-        p = Cnvt::PutU16(Cnvt::SwapU16(user.SessionTimeout()), p); // session time out
+        p = Cnvt::PutU16(user.PasswordOffset(), p); // password offset
+        *p++ = user.SeedOffset();                   // seed offset
+        *p++ = user.DeviceId();                     // device id
+        p = Cnvt::PutU16(5, p);                     // conspicuity( flasher ) ON time : 5/10 seconds
+        p = Cnvt::PutU16(5, p);                     // conspicuity( flasher ) OFF time : 5/10 seconds
+        *p++ = user.OverTemp();                     // over temperature
+        *p++ = user.Fan1OnTemp();                   // fan 1 on temperature
+        *p++ = user.Fan2OnTemp();                   // fan 2 on temperature
+        *p++ = user.Humidity();                     // Humidity
+        *p++ = user.BroadcastId();                  // broadcast address
+        p = Cnvt::PutU16(user.SessionTimeout(), p); // session time out
         auto sign = Controller::Instance().GetGroup(1)->GetSign(1);
         *p++ = sign->CurTemp();           // current temperature
         p = Cnvt::PutU16(sign->Lux(), p); // light sensor 1
         *p++ = sign->MaxTemp();           // max temperature
         uint16_t faultleds = sign->FaultLedCnt();
-        *p++ = (faultleds > 255) ? 255 : faultleds;                // pixel on fault
-        *p++ = user.DefaultFont();                                 //
-        p = Cnvt::PutU16(Cnvt::SwapU16(user.DisplayTimeout()), p); // display time out
-        *p++ = 0;                                                  //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
-        p = Cnvt::PutU16(0, p);                                    // light sensor 2
-        *p++ = 'V';                                                // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
-        *p++ = 'B';                                                //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
-        *p++ = prod.MaxConspicuity();                              // conspicuity
-        *p++ = prod.MaxFont();                                     // max. number of fonts
-        *p++ = user.DefaultColour();                               // 09
-        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.max_template=0;		// 00
-        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.wk1=1;                // 01
-        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.group_offset=0;		// 00
-        *p++ = 'D';                                                //GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
-        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.group_length=0;		// 00
-        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.wk3=1;                // 01
-        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.group_data=1;			// 01
+        *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
+        *p++ = user.DefaultFont();                  //
+        p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
+        *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
+        p = Cnvt::PutU16(0, p);                     // light sensor 2
+        *p++ = 'V';                                 // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
+        *p++ = 'B';                                 //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
+        *p++ = prod.MaxConspicuity();               // conspicuity
+        *p++ = prod.MaxFont();                      // max. number of fonts
+        *p++ = user.DefaultColour();                // 09
+        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.max_template=0;		// 00
+        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk1=1;                // 01
+        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_offset=0;		// 00
+        *p++ = 'D';                                 //GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
+        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_length=0;		// 00
+        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk3=1;                // 01
+        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.group_data=1;			// 01
         Tx(txbuf, 39);
     }
     return 0;
