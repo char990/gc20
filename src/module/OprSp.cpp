@@ -85,14 +85,7 @@ int OprSp::RxHandle()
 {
     uint8_t buf[4096];
     int n = read(eventFd, buf, 4096);
-    if (n <= 0)
-    {
-        if(ReOpen()==-1)
-        {
-            MyThrow ("%s: read error and reopen failed", sp->Config().name);
-        }
-    }
-    else
+    if (n > 0)
     {
         if(IsTxRdy()) // if tx is busy, discard this rx
         {
@@ -100,7 +93,7 @@ int OprSp::RxHandle()
         }
         else
         {
-            PrintDbg(DBG_LOG, "ComTx not ready\n");
+            PrintDbg(DBG_LOG, "%s:ComTx not ready\n", sp->Config().name);
         }
     }
     return 0;
@@ -112,6 +105,7 @@ int OprSp::ReOpen()
 
     Epoll::Instance().DeleteEvent(this, events);
     sp->Close();
+    eventFd = -1;
     if(sp->Open()<0)
     {
         DbHelper::Instance().GetUciAlarm().Push(0,"ReOpen %s failed", sp->Config().name);

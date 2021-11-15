@@ -189,7 +189,7 @@ void UciFrm::SaveFrm(uint8_t i)
 			db.GetUciAlarm().Push(0, buf);
 			PrintDbg(DBG_LOG, "%s\n", buf);
 		}
-		fsync(frm_fd);
+		fdatasync(frm_fd);
 		close(frm_fd);
 	}
 	delete v;

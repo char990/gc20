@@ -600,7 +600,7 @@ void Exec::CopyFile(const char *src, const char *dst)
             MyThrow("Write %s error", dst);
         }
     }
-    fsync(dstfd);
+    fdatasync(dstfd);
     close(srcfd);
     close(dstfd);
 }

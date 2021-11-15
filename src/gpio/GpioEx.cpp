@@ -168,7 +168,7 @@ void GpioEx::SetValue(bool value)
 			MyThrow("Can't set \"value\" for pin %d\n", _pin);
 		}
 		write(fd, value ? "1" : "0", 2);
-		fsync(fd);
+		fdatasync(fd);
 		close(fd);
 	}
 }

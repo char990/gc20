@@ -321,6 +321,6 @@ void UciCfg::ClrSECTION()
     }
     int len = snprintf(dst, 255, "config %s '%s'\n", PACKAGE, SECTION);
     write(dstfd, &dst[0], len);
-    fsync(dstfd);
+    fdatasync(dstfd);
     close(dstfd);
 }

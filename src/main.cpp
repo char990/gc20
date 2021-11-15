@@ -20,7 +20,6 @@
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
-
 #include <sign/Controller.h>
 #include <module/Utils.h>
 #include <module/DS3231.h>
@@ -33,7 +32,7 @@ const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
 const char *CONFIG_PATH = "config";
 
-char * mainpath;
+char *mainpath;
 
 using namespace std;
 
@@ -41,7 +40,7 @@ void PrintVersion()
 {
     char sbuf[256];
     int len = snprintf(sbuf, 255, "* Version %s.%s, Build at UTC: %s %s *",
-                      FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
+                       FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';
@@ -50,17 +49,17 @@ void PrintVersion()
     printf("%s\n", buf);
 }
 
-bool ticktock=true;
+bool ticktock = true;
 class TickTock : public IPeriodicRun
 {
 public:
     virtual void PeriodicRun() override
     {
-        if(ticktock)
+        if (ticktock)
         {
             putchar('\r');
             _r_need_n = 0;
-            PrintDbg(DBG_0, "%c   \x08\x08\x08",s[cnt & 0x03]);
+            PrintDbg(DBG_0, "%c   \x08\x08\x08", s[cnt & 0x03]);
             _r_need_n = 1;
             cnt++;
             fflush(stdout);
@@ -75,7 +74,6 @@ private:
     char s[4]{'-', '\\', '|', '/'};
 };
 
-
 void TestCrc8005()
 {
     uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
@@ -89,41 +87,47 @@ void TestCrc8005()
 
 void TestDebounce()
 {
-    Debounce test(5,4);
+    Debounce test(5, 4);
     char c;
-    while(1)
+    while (1)
     {
         test.State();
         scanf(" %c", &c);
-        switch(c)
+        switch (c)
         {
-            case '0':
-            case '1':
-            test.Check(c!='0');
+        case '0':
+        case '1':
+            test.Check(c != '0');
             break;
-            case 'r':
+        case 'r':
             test.ClearRising();
             break;
-            case 'f':
+        case 'f':
             test.ClearFalling();
             break;
-            default:
+        default:
             test.ClearEdge();
             break;
         }
     }
 }
 
-
 void LogResetTime()
 {
-    time_t t;
-    pDS3231->ReadTimeAlarm(&t);
-    auto &db = DbHelper::Instance();
-    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
-    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
-    db.GetUciAlarm().Push(0, "Reset");
-    db.GetUciEvent().Push(0, "Reset");
+    if (access(".lrt", F_OK)!=0)
+    {// there is no ".lrt"
+        time_t t;
+        pDS3231->ReadTimeAlarm(&t);
+        auto &db = DbHelper::Instance();
+        db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
+        db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
+        db.GetUciAlarm().Push(0, "<--- Reset --->");
+        db.GetUciEvent().Push(0, "<--- Reset --->");
+    }
+    else
+    {// ".lrt" exists
+        remove(".lrt");
+    }
 }
 
 void GpioInit()
@@ -144,7 +148,7 @@ int main(int argc, char *argv[])
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
     mainpath = get_current_dir_name();
-    if (strlen(mainpath)>64)
+    if (strlen(mainpath) > 64)
     {
         printf("path is longer than 64 bytes.\n");
         return -1;
@@ -153,7 +157,7 @@ int main(int argc, char *argv[])
 
     try
     {
-        PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n",argv[0]);
+        PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
         pDS3231 = new DS3231{1};
 
@@ -234,7 +238,7 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &e)
     {
-    //muntrace();
+        //muntrace();
         printf("main exception: %s\n", e.what());
         exit(1);
         // clean
