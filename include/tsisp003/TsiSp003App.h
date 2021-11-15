@@ -139,4 +139,7 @@ private:
     APP::ERROR CheckFA20(uint8_t *pd, char * shake);
 
     Upgrade upgrade;
+
+
+    int FF_RqstGuiConfig(uint8_t *data, int len);
 };

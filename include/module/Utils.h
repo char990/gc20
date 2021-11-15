@@ -77,12 +77,16 @@ namespace Utils
         bool IsLow() { return value == STATE5::S5_F || value == STATE5::S5_0; };
         bool IsValid() { return value != STATE5::S5_NA; };
         STATE5 Value() { return value; };
-        const char * State()
+        const char *State()
         {
-            if(value==STATE5::S5_0) return "Low";
-            else if(value==STATE5::S5_1) return "High";
-            else if(value==STATE5::S5_F) return "Falling";
-            else if(value==STATE5::S5_R) return "Rising";
+            if (value == STATE5::S5_0)
+                return "Low";
+            else if (value == STATE5::S5_1)
+                return "High";
+            else if (value == STATE5::S5_F)
+                return "Falling";
+            else if (value == STATE5::S5_R)
+                return "Rising";
             return "N/A";
         }
 
@@ -199,9 +203,11 @@ namespace Utils
         /// \retunr -1:fail
         // static time_t ParseLocalStrToTm(char *pbuf);
 
-
         /// \brief  split a string
         static void split(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ");
+
+        /// \brief  Swap byte of uint16_t
+        static uint16_t SwapU16(uint16_t v);
     };
 
     class Crc
@@ -347,6 +353,18 @@ namespace Utils
             }
         }
         bool GetBit(int b) { return (b < 32) ? ((bits & MASK_BIT[b]) != 0) : false; }
+        int GetMaxBit()
+        {
+            int max = -1;
+            for (int i = 0; i < 32; i++)
+            {
+                if ((bits & MASK_BIT[i]) != 0)
+                {
+                    max=i;
+                }
+            }
+            return max;
+        }
 
         std::string ToString();
 

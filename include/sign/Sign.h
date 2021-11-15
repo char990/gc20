@@ -74,6 +74,7 @@ public:
     int8_t MaxTemp() { return maxTemp; };
     uint16_t Voltage() { return voltage; };
     uint16_t Lux() { return lsConnectionFault.IsLow() ? lux : 65535; };
+    uint16_t FaultLedCnt() { return faultLedCnt; };
 
 protected:
     uint8_t signId;
@@ -101,6 +102,8 @@ protected:
     int8_t curTemp{0}, maxTemp{0};
 
     uint16_t voltage{0}, lux{0};
+
+    uint16_t faultLedCnt{0};
 
     void DbncFault(Debounce &dbc, DEV::ERROR err, const char *info = nullptr);
 };

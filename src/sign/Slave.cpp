@@ -40,6 +40,7 @@ void Slave::Reset()
     }
     expectCurrentFrmId = 0; // display frame command
     expectNextFrmId = 0;    // set frame command
+    memset(numberOfFaultyLed, 0, numberOfTiles * numberOfColours);
 }
 
 int Slave::DecodeStRpl(uint8_t *buf, int len)

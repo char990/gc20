@@ -318,6 +318,12 @@ void Cnvt::split(const string &s, vector<string> &tokens, const string &delimite
     }
 }
 
+
+uint16_t Cnvt::SwapU16(uint16_t v)
+{
+    return ((v&0xFF)*0x100 + v/0x100);
+}
+
 const uint8_t Crc::crc8_table[256] =
     {
         0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,

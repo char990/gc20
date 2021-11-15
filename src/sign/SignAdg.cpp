@@ -26,6 +26,7 @@ uint8_t *SignAdg::GetExtStatus(uint8_t *buf)
     *p++=font->LineSpacing();
     *p++=strlen(prod.ColourLeds());
     *p++=prod.ColourBits();
+    p=Cnvt::PutU16(faultLedCnt,p);
     p=LedStatus(p);
     buf[7] = p-buf-8;
     return p;

@@ -17,6 +17,9 @@ int TsiSp003App::UserDefinedCmd(uint8_t *data, int len)
         case MI::CODE::UserDefinedCmdFA:
             UserDefinedCmdFA(data, len);
             break;
+        case MI::CODE::UserDefinedCmdFF:
+            FF_RqstGuiConfig(data, len);
+            break;
         default:
             return -1;
         }
@@ -838,4 +841,50 @@ void TsiSp003App::Md5_of_sh(const char *str, unsigned char *md5)
         shake_src[len++] = *str++;
     }
     MD5(shake_src, len, md5);
+}
+
+int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
+{
+    if (ChkLen(len, 1))
+    {
+        auto &prod = DbHelper::Instance().GetUciProd();
+        auto &user = DbHelper::Instance().GetUciUser();
+        txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFF);
+        uint8_t *p = txbuf + 1;
+        p = Cnvt::PutU16(Cnvt::SwapU16(user.PasswordOffset()), p); // password offset
+        *p++ = user.SeedOffset();                                  // seed offset
+        *p++ = user.DeviceId();                                    // device id
+        p = Cnvt::PutU16(Cnvt::SwapU16(5), p);                     // conspicuity( flasher ) ON time : 5/10 seconds
+        p = Cnvt::PutU16(Cnvt::SwapU16(5), p);                     // conspicuity( flasher ) OFF time : 5/10 seconds
+        *p++ = user.OverTemp();                                    // over temperature
+        *p++ = user.Fan1OnTemp();                                  // fan 1 on temperature
+        *p++ = user.Fan2OnTemp();                                  // fan 2 on temperature
+        *p++ = user.Humidity();                                    // Humidity
+        *p++ = user.BroadcastId();                                 // broadcast address
+        p = Cnvt::PutU16(Cnvt::SwapU16(user.SessionTimeout()), p); // session time out
+        auto sign = Controller::Instance().GetGroup(1)->GetSign(1);
+        *p++ = sign->CurTemp();           // current temperature
+        p = Cnvt::PutU16(sign->Lux(), p); // light sensor 1
+        *p++ = sign->MaxTemp();           // max temperature
+        uint16_t faultleds = sign->FaultLedCnt();
+        *p++ = (faultleds > 255) ? 255 : faultleds;                // pixel on fault
+        *p++ = user.DefaultFont();                                 //
+        p = Cnvt::PutU16(Cnvt::SwapU16(user.DisplayTimeout()), p); // display time out
+        *p++ = 0;                                                  //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
+        p = Cnvt::PutU16(0, p);                                    // light sensor 2
+        *p++ = 'V';                                                // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
+        *p++ = 'B';                                                //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
+        *p++ = prod.MaxConspicuity();                              // conspicuity
+        *p++ = prod.MaxFont();                                     // max. number of fonts
+        *p++ = user.DefaultColour();                               // 09
+        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.max_template=0;		// 00
+        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.wk1=1;                // 01
+        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.group_offset=0;		// 00
+        *p++ = 'D';                                                //GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
+        *p++ = 0;                                                  //GUIconfigure.PARA.BYTE.group_length=0;		// 00
+        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.wk3=1;                // 01
+        *p++ = 1;                                                  //GUIconfigure.PARA.BYTE.group_data=1;			// 01
+        Tx(txbuf, 39);
+    }
+    return 0;
 }

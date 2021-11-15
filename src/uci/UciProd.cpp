@@ -240,12 +240,12 @@ void UciProd::LoadConfig()
     driverMode = GetInt(uciSec, _DriverMode, 0, 1);
     dimmingAdjTime = GetInt(uciSec, _DimmingAdjTime, 5, 15);
     str = GetStr(uciSec, _ColourRatio);
-    cnt=Cnvt::GetIntArray(str, 4, ibuf, 1, 255);
-    if(cnt==4)
+    cnt = Cnvt::GetIntArray(str, 4, ibuf, 1, 255);
+    if (cnt == 4)
     {
-        for(cnt=0;cnt<4;cnt++)
+        for (cnt = 0; cnt < 4; cnt++)
         {
-            colourRatio[cnt]=ibuf[cnt];
+            colourRatio[cnt] = ibuf[cnt];
         }
     }
     else
@@ -253,26 +253,25 @@ void UciProd::LoadConfig()
         MyThrow("UciProd::ColourRatio Error: cnt!=4");
     }
     str = GetStr(uciSec, _Dimming);
-    cnt=Cnvt::GetIntArray(str, 16, ibuf, 1, 255);
-    if(cnt==16)
+    cnt = Cnvt::GetIntArray(str, 16, ibuf, 1, 255);
+    if (cnt == 16)
     {
-        for(cnt=0;cnt<15;cnt++)
+        for (cnt = 0; cnt < 15; cnt++)
         {
-            if(ibuf[cnt]>ibuf[cnt+1])
+            if (ibuf[cnt] > ibuf[cnt + 1])
             {
-                MyThrow("UciProd::Dimming Error: Level:[%d]>[%d]", cnt, cnt+1);
+                MyThrow("UciProd::Dimming Error: Level:[%d]>[%d]", cnt, cnt + 1);
             }
         }
-        for(cnt=0;cnt<16;cnt++)
+        for (cnt = 0; cnt < 16; cnt++)
         {
-            dimming[cnt]=ibuf[cnt];
+            dimming[cnt] = ibuf[cnt];
         }
     }
     else
     {
         MyThrow("UciProd::Dimming Error: cnt!=16");
     }
-
 
     str = GetStr(uciSec, _ColourLeds);
     cnt = strlen(str);
@@ -429,7 +428,7 @@ void UciProd::LoadConfig()
 void UciProd::Dump()
 {
     PrintDash();
-	printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
+    printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[ProdType()]);
@@ -479,20 +478,20 @@ void UciProd::Dump()
     PrintOption_d(_SlavePowerUpDelay, SlavePowerUpDelay());
     PrintOption_d(_DriverMode, DriverMode());
     uint8_t *p;
-    p=ColourRatio();
+    p = ColourRatio();
     printf("\t%s\t'%u", _ColourRatio, *p++);
-    for(int i=1;i<4;i++)
-	{
-        printf (",%u", *p++);
+    for (int i = 1; i < 4; i++)
+    {
+        printf(",%u", *p++);
     }
-    printf ("'\n");
-    p=Dimming();
+    printf("'\n");
+    p = Dimming();
     printf("\t%s\t'%u", _Dimming, *p++);
-    for(int i=1;i<16;i++)
-	{
-        printf (",%u", *p++);
+    for (int i = 1; i < 16; i++)
+    {
+        printf(",%u", *p++);
     }
-    printf ("'\n");
+    printf("'\n");
     PrintOption_d(_DimmingAdjTime, DimmingAdjTime());
 
     PrintOption_d(_ColourBits, ColourBits());

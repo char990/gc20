@@ -133,11 +133,14 @@ void Sign::RefreshSlaveStatusAtExtSt()
     sprintf(buf, "LanternFault=0x%02X", check_lantern);
     DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
 
+    DbHelper &db = DbHelper::Instance();
+    UciProd &prod = db.GetUciProd();
+    UciUser &user = db.GetUciUser();
+
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
-    int16_t temperature = 0;                      // 0.1'C
-    uint16_t faultLedCnt = 0;
     uint32_t v = 0;
+    int16_t temperature = 0;                      // 0.1'C
     for (auto &s : vsSlaves)
     {
         v += s->voltage;
@@ -159,11 +162,6 @@ void Sign::RefreshSlaveStatusAtExtSt()
             faultLedCnt += *p++;
         }
     }
-
-    // ------------------ debounce
-    DbHelper &db = DbHelper::Instance();
-    UciProd &prod = db.GetUciProd();
-    UciUser &user = db.GetUciUser();
 
     // *** voltage
     if (minvoltage < prod.SlaveVoltageLow())
