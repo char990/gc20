@@ -517,6 +517,11 @@ void UciUser::Tz(uint8_t v)
     {
         tz = v;
         OpenSaveClose(SECTION, _TZ, Tz_AU::tz_au[tz].city);
+        char buf[1024];
+        PrintDawnDusk(buf);
+        tz_AU->Init_Tz(tz, buf);
+        setenv("TZ", tz_AU->GetTz(), 1);
+        tzset();
     }
 }
 
@@ -533,6 +538,7 @@ void UciUser::DawnDusk(uint8_t *p)
         char buf[1024];
         PrintDawnDusk(buf);
         OpenSaveClose(SECTION, _DawnDusk, buf);
+        tz_AU->Init_Tz(tz, buf);
     }
 }
 
