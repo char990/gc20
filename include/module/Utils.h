@@ -327,6 +327,9 @@ namespace Utils
         /// \brief      check if a broken time is valid
         ///             from 1/1/2001 0:00:00
         static bool IsTmValid(struct tm *stm);
+
+        /// \brief      sleep ms
+        static int SleepMs(long msec);
     };
 
     class Bool32
@@ -360,7 +363,7 @@ namespace Utils
             {
                 if ((bits & MASK_BIT[i]) != 0)
                 {
-                    max=i;
+                    max = i;
                 }
             }
             return max;

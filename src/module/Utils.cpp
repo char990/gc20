@@ -318,10 +318,9 @@ void Cnvt::split(const string &s, vector<string> &tokens, const string &delimite
     }
 }
 
-
 uint16_t Cnvt::SwapU16(uint16_t v)
 {
-    return ((v&0xFF)*0x100 + v/0x100);
+    return ((v & 0xFF) * 0x100 + v / 0x100);
 }
 
 const uint8_t Crc::crc8_table[256] =
@@ -675,7 +674,7 @@ time_t Time::GetLocalTime(struct tm *stm)
     return t;
 }
 
-bool Time::IsTmValid(struct tm * stm)
+bool Time::IsTmValid(struct tm *stm)
 {
     if (stm->tm_mday < 1 ||
         stm->tm_mon < 0 || stm->tm_mon > 11 ||
@@ -692,6 +691,24 @@ bool Time::IsTmValid(struct tm * stm)
         md++;
     }
     return (stm->tm_mday <= md);
+}
+
+int Time::SleepMs(long msec)
+{
+    struct timespec ts;
+    int res;
+    if (msec < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+    do
+    {
+        res = nanosleep(&ts, &ts);
+    } while (res/* && errno == EINTR*/);
+    return res;
 }
 
 std::string Bool32::ToString()

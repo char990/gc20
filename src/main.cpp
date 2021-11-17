@@ -114,10 +114,10 @@ void TestDebounce()
 
 void LogResetTime()
 {
-    if (access(".lrt", F_OK)!=0)
-    {// there is no ".lrt"
+    if (access(".lrt", F_OK) != 0)
+    { // there is no ".lrt"
         time_t t;
-        t=time(nullptr);
+        t = time(nullptr);
         //pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
@@ -126,58 +126,50 @@ void LogResetTime()
         db.GetUciEvent().Push(0, "<--- Reset --->");
     }
     else
-    {// ".lrt" exists
+    { // ".lrt" exists
         remove(".lrt");
     }
 }
 
 void GpioInit()
 {
-unsigned int pins[] = {
-	PIN_CN9_7,
-	PIN_CN9_8,
-	PIN_CN9_9,
-	PIN_CN9_10,
-	PIN_CN7_1,
-	PIN_CN7_2,
-	PIN_CN7_3,
-	PIN_CN7_4,
-	PIN_CN7_7,
-	PIN_CN7_8,
-	PIN_CN7_9,
-	PIN_CN7_10,
-	PIN_IN1,
-	PIN_IN2,
-	PIN_IN3,
-	PIN_IN4,
-	PIN_IN5,
-	PIN_IN6,
-	PIN_IN7,
-	PIN_IN8,
-	PIN_CN9_2,
-	PIN_CN9_4,
-	PIN_HB_LED,
-	PIN_ST_LED,
-	PIN_RELAY_CTRL,
-	PIN_WDT};
+    unsigned int pins[] = {
+        PIN_CN9_7,
+        PIN_CN9_8,
+        PIN_CN9_9,
+        PIN_CN9_10,
+        PIN_CN7_1,
+        PIN_CN7_2,
+        PIN_CN7_3,
+        PIN_CN7_4,
+        PIN_CN7_7,
+        PIN_CN7_8,
+        PIN_CN7_9,
+        PIN_CN7_10,
+        PIN_IN1,
+        PIN_IN2,
+        PIN_IN3,
+        PIN_IN4,
+        PIN_IN5,
+        PIN_IN6,
+        PIN_IN7,
+        PIN_IN8,
+        PIN_CN9_2,
+        PIN_CN9_4,
+        PIN_HB_LED,
+        PIN_ST_LED,
+        PIN_RELAY_CTRL,
+        PIN_WDT};
 
-    for(int i=0;i<sizeof(pins)/sizeof(pins[0]);i++)
+    for (int i = 0; i < sizeof(pins) / sizeof(pins[0]); i++)
     {
         GpioEx::Export(pins[i]);
     }
-    /*
-    GpioEx::Export(PIN_ST_LED);
-    GpioEx::Export(PIN_WDT);
-    GpioEx::Export(PIN_RELAY_CTRL);
-    GpioEx::Export(PIN_MOSFET2_CTRL);
-
-    GpioEx::Export(PIN_HB_LED);
-    */
-    sleep(1);
-    pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1); // heartbeat led, yellow
-    pPinStatusLed = new GpioOut(PIN_ST_LED, 1); // status led, green
-    pPinWdt = new GpioOut(PIN_WDT, 1); // watchdog
-    pPinRelay = new GpioOut(PIN_RELAY_CTRL, 0); // relay off
+    Utils::Time::SleepMs(1000);
+    pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1);  // heartbeat led, yellow
+    pPinStatusLed = new GpioOut(PIN_ST_LED, 1);     // status led, green
+    pPinWdt = new GpioOut(PIN_WDT, 1);              // watchdog
+    pPinRelay = new GpioOut(PIN_RELAY_CTRL, 0);     // relay off
     pPinMosfet2 = new GpioOut(PIN_MOSFET2_CTRL, 0); // mosfet off
 }
 
@@ -185,20 +177,19 @@ int main(int argc, char *argv[])
 {
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
-    mainpath = get_current_dir_name();
-    if (strlen(mainpath) > 64)
-    {
-        printf("path is longer than 64 bytes.\n");
-        return -1;
-    }
-    PrintVersion();
-
     try
     {
+        mainpath = get_current_dir_name();
+        if (strlen(mainpath) > 64)
+        {
+            MyThrow("path is longer than 64 bytes.\n");
+        }
+        PrintVersion();
+
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
         GpioInit();
-        
+
         //pDS3231 = new DS3231{1};
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
@@ -278,7 +269,7 @@ int main(int argc, char *argv[])
     catch (const std::exception &e)
     {
         //muntrace();
-        printf("main exception: %s\n", e.what());
+        PrintDbg(DBG_LOG, "\n!!! main exception :%s\n", e.what());
         exit(1);
         // clean
     }
