@@ -79,7 +79,7 @@ void Log(int len)
 	if (days != 0 && days != today)
 	{
 		char rm[256];
-		sprintf(rm, "rm %s/log/*_%02d", mainpath, d);
+		snprintf(rm, 255, "rm %s/log/*_%02d", mainpath, d);
 		system(rm);
 	}
 	days = today;

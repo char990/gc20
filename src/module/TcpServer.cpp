@@ -123,8 +123,8 @@ void TcpServer::Accept()
         return;
     }
     SetNonblocking(connfd);
-    char ip_port[24];
-    sprintf(ip_port, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
+    char ip_port[32];
+    snprintf(ip_port, 31, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
     tcpOperator->Accept(connfd, tmrEvt, ip_port);
     PrintDbg(DBG_0, "%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
 }

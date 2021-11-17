@@ -65,7 +65,7 @@ public:
             fflush(stdout);
         }
         time_t alarm_t = time(NULL);
-        pDS3231->WriteTimeAlarm(alarm_t);
+        //pDS3231->WriteTimeAlarm(alarm_t);
         pPinHeartbeatLed->Toggle();
     };
 
@@ -117,7 +117,8 @@ void LogResetTime()
     if (access(".lrt", F_OK)!=0)
     {// there is no ".lrt"
         time_t t;
-        pDS3231->ReadTimeAlarm(&t);
+        t=time(nullptr);
+        //pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
@@ -132,14 +133,51 @@ void LogResetTime()
 
 void GpioInit()
 {
+unsigned int pins[] = {
+	PIN_CN9_7,
+	PIN_CN9_8,
+	PIN_CN9_9,
+	PIN_CN9_10,
+	PIN_CN7_1,
+	PIN_CN7_2,
+	PIN_CN7_3,
+	PIN_CN7_4,
+	PIN_CN7_7,
+	PIN_CN7_8,
+	PIN_CN7_9,
+	PIN_CN7_10,
+	PIN_IN1,
+	PIN_IN2,
+	PIN_IN3,
+	PIN_IN4,
+	PIN_IN5,
+	PIN_IN6,
+	PIN_IN7,
+	PIN_IN8,
+	PIN_CN9_2,
+	PIN_CN9_4,
+	PIN_HB_LED,
+	PIN_ST_LED,
+	PIN_RELAY_CTRL,
+	PIN_WDT};
+
+    for(int i=0;i<sizeof(pins)/sizeof(pins[0]);i++)
+    {
+        GpioEx::Export(pins[i]);
+    }
+    /*
+    GpioEx::Export(PIN_ST_LED);
+    GpioEx::Export(PIN_WDT);
+    GpioEx::Export(PIN_RELAY_CTRL);
+    GpioEx::Export(PIN_MOSFET2_CTRL);
+
+    GpioEx::Export(PIN_HB_LED);
+    */
+    sleep(1);
     pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1); // heartbeat led, yellow
-
     pPinStatusLed = new GpioOut(PIN_ST_LED, 1); // status led, green
-
     pPinWdt = new GpioOut(PIN_WDT, 1); // watchdog
-
     pPinRelay = new GpioOut(PIN_RELAY_CTRL, 0); // relay off
-
     pPinMosfet2 = new GpioOut(PIN_MOSFET2_CTRL, 0); // mosfet off
 }
 
@@ -159,7 +197,9 @@ int main(int argc, char *argv[])
     {
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
-        pDS3231 = new DS3231{1};
+        GpioInit();
+        
+        //pDS3231 = new DS3231{1};
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
@@ -172,7 +212,6 @@ int main(int argc, char *argv[])
         auto console = new DebugConsole();
 
         DbHelper::Instance().Init(CONFIG_PATH);
-        GpioInit();
         Controller::Instance().Init(&ctrllerTmrEvt);
 
         LogResetTime();

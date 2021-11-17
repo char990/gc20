@@ -166,6 +166,9 @@ void Controller::PeriodicRun()
     if (++msTemp >= CTRLLER_MS(60 * 1000))
     {// every 60s
         msTemp = 0;
+        maxTemp = 0;
+        curTemp = 0;
+        #if 0
         int t;
         if (pDS3231->GetTemp(&t) == 0)
         {
@@ -196,6 +199,7 @@ void Controller::PeriodicRun()
                 }
             }
         }
+        #endif
     }
 }
 

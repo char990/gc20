@@ -1,4 +1,5 @@
 #pragma once
+
 class GpioEx
 {
 public:
@@ -22,6 +23,7 @@ public:
     int GetValue(); // -1:falied, 0:low, 1:high
     void SetEdge(EDGE edge);
     unsigned int Pin() { return _pin; };
+    static void Export(unsigned int pin);
 
 private:
     int OpenFd(void);
@@ -31,6 +33,5 @@ private:
     DIR _dir;
     EDGE _edge;
     int _fd;
-    void Export();
     void Unexport();
 };

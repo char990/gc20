@@ -45,10 +45,11 @@
 
 #define GpioEx_BUF_SIZE 256
 
+
 GpioEx::GpioEx(unsigned int pin, DIR inout)
 	: _fd(-1), _pin(pin)
 {
-	Export();
+	//Export();
 	SetDir(inout);
 	SetEdge(EDGE::NONE);
 }
@@ -56,7 +57,7 @@ GpioEx::GpioEx(unsigned int pin, DIR inout)
 GpioEx::GpioEx(unsigned int pin, EDGE edge)
 	: _fd(-1), _pin(pin)
 {
-	Export();
+	//Export();
 	SetDir(DIR::INPUT);
 	SetEdge(edge);
 }
@@ -73,7 +74,7 @@ GpioEx::~GpioEx()
 /****************************************************************
  * gpio_export
  ****************************************************************/
-void GpioEx::Export()
+void GpioEx::Export(unsigned int pin)
 {
 	int fd, len;
 	char buf[GpioEx_BUF_SIZE];
@@ -81,10 +82,10 @@ void GpioEx::Export()
 	fd = open(SYSFS_GPIO_DIR "/export", O_WRONLY);
 	if (fd < 0)
 	{
-		MyThrow("Can't open \"export\" for pin %d\n", _pin);
+		MyThrow("Can't open \"export\" for pin %d\n", pin);
 	}
 
-	len = snprintf(buf, sizeof(buf) - 1, "%d\n", _pin);
+	len = snprintf(buf, sizeof(buf) - 1, "%d\n", pin);
 	write(fd, buf, len);
 	close(fd);
 }
@@ -103,7 +104,7 @@ void GpioEx::Unexport()
 		MyThrow("Can't open \"unexport\" for pin %d\n", _pin);
 	}
 
-	len = snprintf(buf, sizeof(buf)-1, "%d\n", _pin);
+	len = snprintf(buf, sizeof(buf) - 1, "%d\n", _pin);
 	write(fd, buf, len);
 	close(fd);
 }

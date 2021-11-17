@@ -51,4 +51,4 @@ private:
      void PrintTm(struct tm *tm);
 };
 
-extern DS3231 * pDS3231;
+//extern DS3231 * pDS3231;

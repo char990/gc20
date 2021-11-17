@@ -76,7 +76,7 @@ void TsiSp003App::Reject(APP::ERROR error)
     char str[64 + 4];
     if (rejectStr[0] != '\0')
     {
-        sprintf(str, " :%s\n", rejectStr);
+        snprintf(str, 64+4-1, " :%s\n", rejectStr);
         rejectStr[0] = '\0';
     }
     else
@@ -235,11 +235,13 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
             }
             else
             {
+                #if 0
                 if (pDS3231->SetTimet(t) < 0)
                 {
                     db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
                     db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 }
+                #endif
             }
             Ack();
             return;

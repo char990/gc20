@@ -107,7 +107,7 @@ void UciMsg::SaveMsg(uint8_t i)
 {
 	if (!IsMsgDefined(i))
 		return;
-	char option[8];
+	char option[16];
 	sprintf(option, _Option, i);
 	i--;
 	uint8_t a[MSG_LEN_MAX + MSG_TAIL];

@@ -106,7 +106,7 @@ void UciPln::SavePln(uint8_t i)
 {
     if (!IsPlnDefined(i))
         return;
-    char option[8];
+    char option[16];
     sprintf(option, _Option, i);
     uint8_t a[PLN_LEN_MAX + PLN_TAIL];
     char v[(PLN_LEN_MAX + PLN_TAIL) * 2 + 1];

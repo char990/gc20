@@ -16,7 +16,7 @@ Font::Font(const char *fontname)
     memcpy(fontName, fontname, fnlen);
     fontName[fnlen]='\0';
     char fn[16];
-    sprintf(fn, "font/%s", fontName);
+    snprintf(fn, 15, "font/%s", fontName);
     int fd = open(fn, O_RDONLY);
     if (fd < 0)
     {

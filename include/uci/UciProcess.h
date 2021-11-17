@@ -57,7 +57,7 @@ private:
     int PrintGrpPln(uint8_t gid, char *buf);
     void SaveGrpPln(uint8_t gid);
 
-    char sectionBuf[8];
+    char sectionBuf[16];
     const char *_Group = "Group";
     const char *_EnabledPlan = "EnabledPlan";
     const char *_Display = "Display";

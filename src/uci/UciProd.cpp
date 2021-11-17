@@ -330,9 +330,9 @@ void UciProd::LoadConfig()
         {
             sprintf(cbuf, "%s%d", _Font, i);
             str = GetStr(uciSec, cbuf);
-            if (strlen(str) > 15)
+            if (strlen(str) > 8)
             {
-                MyThrow("UciProd Error: %s '%s'(file name length too long >15)", cbuf, str);
+                MyThrow("UciProd Error: %s '%s'(file name length too long >8)", cbuf, str);
             }
             int j;
             for (j = 0; j < i; j++)

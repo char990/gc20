@@ -17,7 +17,7 @@ public:
 
     FS_STATE Get() { return fsState; };
 
-    char * ToStr() { return buf; };
+    char * ToStr() { return fsbuf; };
 
 private:
     bool isChanged{false};
@@ -29,5 +29,5 @@ private:
     const char * FS_STR[5]{"N/A", "OFF", "AUTO", "MSG1", "MSG2"};
     uint8_t lastkey{0};
     uint8_t keyCnt{0};
-    char buf[FacilitySwitch_BUF_SIZE];
+    char fsbuf[FacilitySwitch_BUF_SIZE];
 };
