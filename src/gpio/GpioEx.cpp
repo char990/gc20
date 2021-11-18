@@ -45,13 +45,16 @@
 
 #define GpioEx_BUF_SIZE 256
 
-
 GpioEx::GpioEx(unsigned int pin, DIR inout)
 	: _fd(-1), _pin(pin)
 {
 	//Export();
 	SetDir(inout);
-	SetEdge(EDGE::NONE);
+	if (inout == DIR::INPUT)
+	{
+		SetEdge(EDGE::NONE);
+	}
+	OpenFd();
 }
 
 GpioEx::GpioEx(unsigned int pin, EDGE edge)
@@ -60,6 +63,7 @@ GpioEx::GpioEx(unsigned int pin, EDGE edge)
 	//Export();
 	SetDir(DIR::INPUT);
 	SetEdge(edge);
+	OpenFd();
 }
 
 GpioEx::~GpioEx()
@@ -153,25 +157,17 @@ void GpioEx::SetValue(bool value)
 	{
 		MyThrow("pin %d is NOT output\n", _pin);
 	}
-
-	if (_fd > 0)
+	if (lseek(_fd, 0, SEEK_SET) >= 0)
 	{
-		write(_fd, value ? "1" : "0", 2);
-	}
-	else
-	{
-		int fd;
-		char buf[GpioEx_BUF_SIZE];
-		snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
-		fd = open(buf, O_WRONLY);
-		if (fd < 0)
+		if (write(_fd, value ? "1" : "0", 2) > 0)
 		{
-			MyThrow("Can't set \"value\" for pin %d\n", _pin);
+			fdatasync(_fd);
+			return;
 		}
-		write(fd, value ? "1" : "0", 2);
-		fdatasync(fd);
-		close(fd);
 	}
+	close(_fd);
+	_fd = -1;
+	MyThrow("GpioEX::SetValue(): Write gpio%d/value failed\n", _pin);
 }
 
 /****************************************************************
@@ -180,33 +176,20 @@ void GpioEx::SetValue(bool value)
 int GpioEx::GetValue()
 {
 	char ch;
-	if (_fd > 0)
+	if (_dir != DIR::INPUT)
 	{
-		lseek(_fd, 0, SEEK_SET);
-		if (read(_fd, &ch, 1) <= 0)
+		MyThrow("pin %d is NOT input\n", _pin);
+	}
+	if (lseek(_fd, 0, SEEK_SET) >= 0)
+	{
+		if (read(_fd, &ch, 1) > 0)
 		{
-			MyThrow("Can't get \"value\" for pin %d\n", _pin);
+			return ch == '1';
 		}
 	}
-	else
-	{
-		int fd;
-		char buf[GpioEx_BUF_SIZE];
-
-		snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
-
-		fd = open(buf, O_RDONLY | O_NONBLOCK);
-		if (fd < 0)
-		{
-			MyThrow("Can't get \"value\" for pin %d\n", _pin);
-		}
-		if (read(fd, &ch, 1) <= 0)
-		{
-			MyThrow("Can't get \"value\" for pin %d\n", _pin);
-		}
-		close(fd);
-	}
-	return ch == '1';
+	close(_fd);
+	_fd = -1;
+	MyThrow("GpioEX::GetValue(): Read gpio%d/value failed\n", _pin);
 }
 
 /****************************************************************
@@ -214,18 +197,34 @@ int GpioEx::GetValue()
  ****************************************************************/
 void GpioEx::SetEdge(EDGE edge)
 {
+	if (_dir == DIR::OUTPUT)
+	{
+		return;
+	}
 	int fd;
 	char buf[GpioEx_BUF_SIZE];
-	const char *p = (edge == EDGE::BOTHRF) ? "both" : ((edge == EDGE::RISING) ? "rising" : "falling");
-
+	const char *p;
+	switch (edge)
+	{
+	case EDGE::BOTHRF:
+		p = "both";
+		break;
+	case EDGE::RISING:
+		p = "rising";
+		break;
+	case EDGE::FALLING:
+		p = "falling";
+		break;
+	default:
+		p = "none";
+		break;
+	}
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/edge", _pin);
-
 	fd = open(buf, O_WRONLY);
 	if (fd < 0)
 	{
 		MyThrow("Can't open \"edge\" for pin %d\n", _pin);
 	}
-
 	write(fd, p, strlen(p) + 1);
 	close(fd);
 	_edge = edge;
@@ -237,24 +236,11 @@ void GpioEx::SetEdge(EDGE edge)
 int GpioEx::OpenFd()
 {
 	char buf[GpioEx_BUF_SIZE];
-
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/value", _pin);
-	if (_dir == DIR::OUTPUT)
-	{
-		_fd = open(buf, O_WRONLY);
-	}
-	else if (_dir == DIR::INPUT)
-	{
-		_fd = open(buf, O_RDONLY | O_NONBLOCK);
-	}
-	else
-	{
-		MyThrow("\"direction\" for pin %d undefined\n", _pin);
-	}
-
+	_fd = open(buf, (_dir == DIR::OUTPUT) ? O_WRONLY : O_RDONLY | O_NONBLOCK);
 	if (_fd < 0)
 	{
-		MyThrow("Can't open \"value\" for pin %d\n", _pin);
+		MyThrow("GpioEX::_Open(): Open gpio%d/value failed\n", _pin);
 	}
 	return _fd;
 }

@@ -228,20 +228,18 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
             sprintf(p, "->");
             Cnvt::ParseTmToLocalStr(t, p + 2);
             db.GetUciEvent().Push(0, buf);
-            if (stime(&t) < 0)
+            if (0)//stime(&t) < 0)
             {
                 db.GetUciAlarm().Push(0, "UpdateTime failed, errno=%d", errno);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
             }
             else
             {
-                #if 0
                 if (pDS3231->SetTimet(t) < 0)
                 {
                     db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
                     db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 }
-                #endif
             }
             Ack();
             return;

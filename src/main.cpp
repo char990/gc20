@@ -65,7 +65,7 @@ public:
             fflush(stdout);
         }
         time_t alarm_t = time(NULL);
-        //pDS3231->WriteTimeAlarm(alarm_t);
+        pDS3231->WriteTimeAlarm(alarm_t);
         pPinHeartbeatLed->Toggle();
     };
 
@@ -118,7 +118,7 @@ void LogResetTime()
     { // there is no ".lrt"
         time_t t;
         t = time(nullptr);
-        //pDS3231->ReadTimeAlarm(&t);
+        pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         srand(time(NULL));
         GpioInit();
 
-        //pDS3231 = new DS3231{1};
+        pDS3231 = new DS3231{1};
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
