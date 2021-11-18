@@ -6,6 +6,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+extern time_t ds3231time(time_t *);
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
@@ -205,7 +206,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 8))
         return;
     // set time
-    time_t cur = time(nullptr);
+    time_t cur = ds3231time(nullptr);
     struct tm stm;
     data++;
     stm.tm_mday = *data++;

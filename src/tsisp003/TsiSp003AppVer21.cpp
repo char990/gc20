@@ -8,6 +8,7 @@
 
 using namespace Utils;
 using namespace std;
+extern time_t ds3231time(time_t *);
 
 TsiSp003AppVer21::TsiSp003AppVer21()
 {
@@ -19,7 +20,7 @@ TsiSp003AppVer21::~TsiSp003AppVer21()
 uint8_t * TsiSp003AppVer21::Time2Buf(uint8_t *p)
 {
     struct tm t;
-    time_t t_ = time(nullptr);
+    time_t t_ = ds3231time(nullptr);
     localtime_r(&t_, &t);
     *p++ = t.tm_mday;
     *p++ = t.tm_mon + 1;

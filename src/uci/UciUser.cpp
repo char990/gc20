@@ -8,6 +8,7 @@
 #include <uci/DbHelper.h>
 
 using namespace Utils;
+extern time_t ds3231time(time_t *);
 
 UciUser::UciUser()
 {
@@ -302,7 +303,7 @@ uint8_t UciUser::GetLuxLevel(int lux)
 {
     if (lux < 0)
     {
-        switch (tz_AU->GetTwilightStatus(time(nullptr)))
+        switch (tz_AU->GetTwilightStatus(ds3231time(nullptr)))
         {
         case Tz_AU::TwilightStatus::TW_ST_NIGHT:
             return 1;

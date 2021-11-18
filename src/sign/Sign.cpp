@@ -5,6 +5,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+extern time_t ds3231time(time_t *);
 
 Sign::Sign(uint8_t id)
     : signId(id)
@@ -238,7 +239,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
 
     // *** light sensor
-    auto t = time(nullptr);
+    auto t = ds3231time(nullptr);
     uint8_t tf = t % 60;
     if (tflag != tf)
     { // a new time

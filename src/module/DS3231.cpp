@@ -16,7 +16,7 @@ DS3231 *pDS3231;
  ****************************************/
 DS3231::DS3231(int bus)
 {
-    _bus=bus;
+    _bus = bus;
 }
 
 int DS3231::bcd2hex(int bcd)
@@ -26,10 +26,10 @@ int DS3231::bcd2hex(int bcd)
 
 int DS3231::hex2bcd(int hex)
 {
-    int x1,x10;
-    x1=hex%10;
-    x10=((hex-x1)/10)%10;
-    return x10*0x10+x1;
+    int x1, x10;
+    x1 = hex % 10;
+    x10 = ((hex - x1) / 10) % 10;
+    return x10 * 0x10 + x1;
 }
 
 int DS3231::ReadRegs(int addr, int *buf, int len)
@@ -62,7 +62,7 @@ int DS3231::WriteRegs(int addr, int *buf, int len)
     return 0;
 }
 
-int DS3231::GetUtcTime(struct tm * utctm)
+int DS3231::GetUtcTime(struct tm *utctm)
 {
     int reg[7];
     int result;
@@ -96,29 +96,30 @@ int DS3231::GetUtcTime(struct tm * utctm)
     {
         utctm->tm_hour = bcd2hex(reg[2]);
     }
-    utctm->tm_wday = bcd2hex(reg[3])-1;
+    utctm->tm_wday = bcd2hex(reg[3]) - 1;
     utctm->tm_mday = bcd2hex(reg[4]);
-    utctm->tm_mon = bcd2hex(reg[5] & 0x1F)-1;
-    utctm->tm_year = bcd2hex(reg[6]) + ((reg[5] & 0x80)?100:0);
-    return(0);
+    utctm->tm_mon = bcd2hex(reg[5] & 0x1F) - 1;
+    utctm->tm_year = bcd2hex(reg[6]) + ((reg[5] & 0x80) ? 100 : 0);
+    return (0);
 }
 
-int DS3231::GetLocalTime(struct tm * localtm)
+int DS3231::GetLocalTime(struct tm *localtm)
 {
     time_t t = GetTimet();
-    if(t<0)
+    if (t < 0)
     {
         return t;
     }
-    localtime_r(&t,localtm);
-    return(0);
+    localtime_r(&t, localtm);
+    return (0);
 }
 
 int DS3231::SetLocalTime(struct tm *localtm)
 {
-    localtm->tm_isdst=-1;
+    localtm->tm_isdst = -1;
     time_t t = mktime(localtm);
-    if(t<0) return t;
+    if (t < 0)
+        return t;
     return SetTimet(t);
 }
 
@@ -137,35 +138,37 @@ int DS3231::GetTimet(void)
 int DS3231::SetTimet(time_t t)
 {
     struct tm utc;
-    if(gmtime_r(&t, &utc)<=0)
+    if (gmtime_r(&t, &utc) <= 0)
     {
         return -1;
     }
+    changed = 1;
     int reg[7];
-    reg[0]=hex2bcd(utc.tm_sec);
-    reg[1]=hex2bcd(utc.tm_min);
-    reg[2]=hex2bcd(utc.tm_hour);
-    reg[3]=hex2bcd(utc.tm_wday+1);
-    reg[4]=hex2bcd(utc.tm_mday);
-    if(utc.tm_year>=100)
+    reg[0] = hex2bcd(utc.tm_sec);
+    reg[1] = hex2bcd(utc.tm_min);
+    reg[2] = hex2bcd(utc.tm_hour);
+    reg[3] = hex2bcd(utc.tm_wday + 1);
+    reg[4] = hex2bcd(utc.tm_mday);
+    if (utc.tm_year >= 100)
     {
-        reg[5]=hex2bcd(utc.tm_mon+1)|0x80;
-        reg[6]=hex2bcd(utc.tm_year-100);
+        reg[5] = hex2bcd(utc.tm_mon + 1) | 0x80;
+        reg[6] = hex2bcd(utc.tm_year - 100);
     }
     else
     {
-        reg[5]=hex2bcd(utc.tm_mon+1);
-        reg[6]=hex2bcd(utc.tm_year);
+        reg[5] = hex2bcd(utc.tm_mon + 1);
+        reg[6] = hex2bcd(utc.tm_year);
     }
     return WriteRegs(0x00, reg, 7);
 }
 
-int DS3231::SetRtcRegs(char * rtc)
+int DS3231::SetRtcRegs(char *rtc)
 {
+    changed = 1;
     int reg[7];
-    for(int i=0;i<7;i++)
+    for (int i = 0; i < 7; i++)
     {
-        reg[i]=rtc[i];
+        reg[i] = rtc[i];
     }
     return WriteRegs(0x00, reg, 7);
 }
@@ -177,10 +180,10 @@ int DS3231::GetTemp(int *t)
     result = ReadRegs(0x11, &tt, 1);
     if (result < 0)
     {
-        return(result);
+        return (result);
     }
     unsigned char t1 = tt;
-    *t=*((int8_t *)&t1);
+    *t = *((int8_t *)&t1);
     return 0;
 }
 
@@ -191,7 +194,7 @@ int DS3231::GetControl(char *v)
     result = ReadRegs(0x0E, pr, 1);
     if (result < 0)
     {
-        return(result);
+        return (result);
     }
     *v = pr[0];
     return 0;
@@ -200,7 +203,7 @@ int DS3231::GetControl(char *v)
 int DS3231::SetControl(char v)
 {
     int reg[1];
-    reg[0]=v;
+    reg[0] = v;
     return WriteRegs(0x0E, reg, 1);
 }
 
@@ -211,7 +214,7 @@ int DS3231::GetStatus(char *v)
     result = ReadRegs(0x0F, pr, 1);
     if (result < 0)
     {
-        return(result);
+        return (result);
     }
     *v = pr[0];
     return 0;
@@ -220,7 +223,7 @@ int DS3231::GetStatus(char *v)
 int DS3231::SetStatus(char v)
 {
     int reg[1];
-    reg[0]=v;
+    reg[0] = v;
     return WriteRegs(0x0F, reg, 1);
 }
 
@@ -264,27 +267,27 @@ void DS3231::PrintTm(struct tm *tm)
            tm->tm_hour,
            tm->tm_min,
            tm->tm_sec,
-           (tm->tm_isdst==1)?"(DST)":"");
+           (tm->tm_isdst == 1) ? "(DST)" : "");
 }
 
 #define ALARM_FLAG 0x25
 int DS3231::WriteTimeAlarm(time_t t)
 {
     int reg[7];
-	reg[0]=1;
-	WriteRegs(0x0D, reg, 1);
-	struct tm utctm;
-	struct tm * r = gmtime_r (&t, &utctm);
-	if(r==&utctm)
-	{
-		reg[0]=hex2bcd(utctm.tm_sec);
-		reg[1]=hex2bcd(utctm.tm_min);
-		reg[2]=hex2bcd(utctm.tm_hour);
-		reg[3]=hex2bcd(utctm.tm_mday);
-		reg[4]=hex2bcd(utctm.tm_year-100);
-		reg[5]=hex2bcd(utctm.tm_mon);
-		reg[6]=ALARM_FLAG; // flag
-		/*printf("WriteAlarm : t=%ld %d/%d/%d %d:%d:%d\nRegs:", t,
+    reg[0] = 1;
+    WriteRegs(0x0D, reg, 1);
+    struct tm utctm;
+    struct tm *r = gmtime_r(&t, &utctm);
+    if (r == &utctm)
+    {
+        reg[0] = hex2bcd(utctm.tm_sec);
+        reg[1] = hex2bcd(utctm.tm_min);
+        reg[2] = hex2bcd(utctm.tm_hour);
+        reg[3] = hex2bcd(utctm.tm_mday);
+        reg[4] = hex2bcd(utctm.tm_year - 100);
+        reg[5] = hex2bcd(utctm.tm_mon);
+        reg[6] = ALARM_FLAG; // flag
+                             /*printf("WriteAlarm : t=%ld %d/%d/%d %d:%d:%d\nRegs:", t,
 			utctm.tm_mday, utctm.tm_mon, utctm.tm_year-100, utctm.tm_hour, utctm.tm_min, utctm.tm_sec) ;
 		for(int i=0;i<7;i++)
 		{
@@ -293,8 +296,8 @@ int DS3231::WriteTimeAlarm(time_t t)
 		printf("\n");
 	    */
         return WriteRegs(0x07, reg, 7);
-	}
-	return -1;
+    }
+    return -1;
 }
 
 // return :
@@ -305,30 +308,39 @@ int DS3231::WriteTimeAlarm(time_t t)
 int DS3231::ReadTimeAlarm(time_t *t)
 {
     int reg[7];
-    int r=ReadRegs(0x07, reg, 7);
-	*t=-1;
-	if(r==0)
-	{
-		if(reg[6]==ALARM_FLAG)
-		{
-		    struct tm utctm = { 0 };  // init to 0
-			utctm.tm_isdst = -1;
-			utctm.tm_sec = bcd2hex(reg[0]&0x7F);
-			utctm.tm_min = bcd2hex(reg[1]&0x7F);
-			utctm.tm_hour = bcd2hex(reg[2]&0x3F);
-			utctm.tm_mday = bcd2hex(reg[3]&0x3F); // 1-31
-			utctm.tm_year = bcd2hex(reg[4]&0x7F)+100; // 0-59: => 2000-2059
-			utctm.tm_mon = bcd2hex(reg[5]&0x1F);  // 0-11
-			*t=timegm(&utctm);	// utc time -> time_t
-			/*printf("ReadTimeAlarm REgs:");
+    int r = ReadRegs(0x07, reg, 7);
+    *t = -1;
+    if (r == 0)
+    {
+        if (reg[6] == ALARM_FLAG)
+        {
+            struct tm utctm = {0}; // init to 0
+            utctm.tm_isdst = -1;
+            utctm.tm_sec = bcd2hex(reg[0] & 0x7F);
+            utctm.tm_min = bcd2hex(reg[1] & 0x7F);
+            utctm.tm_hour = bcd2hex(reg[2] & 0x3F);
+            utctm.tm_mday = bcd2hex(reg[3] & 0x3F);       // 1-31
+            utctm.tm_year = bcd2hex(reg[4] & 0x7F) + 100; // 0-59: => 2000-2059
+            utctm.tm_mon = bcd2hex(reg[5] & 0x1F);        // 0-11
+            *t = timegm(&utctm);                          // utc time -> time_t
+                                                          /*printf("ReadTimeAlarm REgs:");
 			for(int i=0;i<7;i++)
 			{
 				printf(" %d",reg[i]);
 			}
 			printf(" => %s", ctime(t));
 			*/
-		}
-	}
-	return r;
+        }
+    }
+    return r;
 }
 
+bool DS3231::IsChanged()
+{
+    if (changed)
+    {
+        changed = 0;
+        return true;
+    }
+    return false;
+}

@@ -49,10 +49,24 @@ void PrintVersion()
     printf("%s\n", buf);
 }
 
+time_t ds3231_ts;
+time_t ds3231time(time_t * t)
+{
+    if(t!=nullptr)
+    {
+        *t=ds3231_ts;
+    }
+    return ds3231_ts;
+}
+
 bool ticktock = true;
 class TickTock : public IPeriodicRun
 {
 public:
+    TickTock()
+    {
+        ds3231_ts = pDS3231->GetTimet();
+    }
     virtual void PeriodicRun() override
     {
         if (ticktock)
@@ -64,14 +78,20 @@ public:
             cnt++;
             fflush(stdout);
         }
-        time_t alarm_t = time(NULL);
-        pDS3231->WriteTimeAlarm(alarm_t);
+        ds3231_ts++;
+        if(++sec>60 || pDS3231->IsChanged())
+        {
+            sec=0;
+            ds3231_ts = pDS3231->GetTimet();
+        }
+        pDS3231->WriteTimeAlarm(ds3231_ts);
         pPinHeartbeatLed->Toggle();
     };
 
 private:
     uint8_t cnt{0};
     char s[4]{'-', '\\', '|', '/'};
+    int sec{60};
 };
 
 void TestCrc8005()
@@ -117,7 +137,7 @@ void LogResetTime()
     if (access(".lrt", F_OK) != 0)
     { // there is no ".lrt"
         time_t t;
-        t = time(nullptr);
+        t = ds3231time(nullptr);
         pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
@@ -185,12 +205,13 @@ int main(int argc, char *argv[])
             MyThrow("path is longer than 64 bytes.\n");
         }
         PrintVersion();
+        pDS3231 = new DS3231{1};
+        TickTock * pTickTock = new TickTock{};
 
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
         GpioInit();
 
-        pDS3231 = new DS3231{1};
 
 #define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
 #define LINKS_WEB 2 // from web
@@ -199,7 +220,7 @@ int main(int argc, char *argv[])
         TimerEvent ctrllerTmrEvt{CTRLLER_TICK, "[ctrllerTmrEvt]"};
         //TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent tmrEvt1Sec{1000, "[tmrEvt1Sec]"};
-        tmrEvt1Sec.Add(new TickTock{});
+        tmrEvt1Sec.Add(pTickTock);
         auto console = new DebugConsole();
 
         DbHelper::Instance().Init(CONFIG_PATH);

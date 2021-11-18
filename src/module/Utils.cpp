@@ -665,9 +665,10 @@ long Time::Interval()
     return ms;
 }
 
+extern time_t ds3231time(time_t *);
 time_t Time::GetLocalTime(struct tm *stm)
 {
-    time_t t = time(nullptr);
+    time_t t = ds3231time(nullptr);
     localtime_r(&t, stm);
     stm->tm_mon += 1;
     stm->tm_year += 1900;

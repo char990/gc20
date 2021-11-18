@@ -45,10 +45,13 @@ public:
      int WriteTimeAlarm(time_t t);
      int ReadTimeAlarm(time_t *t);
 
+     bool IsChanged();
+
      int Print();
 private:
      int _bus;
      void PrintTm(struct tm *tm);
+     char changed{1};
 };
 
 extern DS3231 * pDS3231;

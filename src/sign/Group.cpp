@@ -416,9 +416,10 @@ bool Group::TaskPln(int *_ptLine)
     PT_END();
 }
 
+extern time_t ds3231time(time_t *);
 PlnMinute &Group::GetCurrentMinPln()
 {
-    time_t t = time(nullptr);
+    time_t t = ds3231time(nullptr);
     struct tm stm;
     localtime_r(&t, &stm);
     return plnMin.at((stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min);

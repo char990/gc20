@@ -9,6 +9,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+extern time_t ds3231time(time_t *);
 
 UciFault::UciFault()
 {
@@ -176,7 +177,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
 
 void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset)
 {
-    Push(id, errorCode, onset, time(nullptr));
+    Push(id, errorCode, onset, ds3231time(nullptr));
 }
 
 void UciFault::Reset()

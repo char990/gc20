@@ -190,6 +190,7 @@ int GpioEx::GetValue()
 	close(_fd);
 	_fd = -1;
 	MyThrow("GpioEX::GetValue(): Read gpio%d/value failed\n", _pin);
+	return -1;
 }
 
 /****************************************************************
