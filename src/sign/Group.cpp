@@ -504,7 +504,7 @@ bool Group::TaskMsg(int *_ptLine)
             while (true) // normal msg task
             {
             NORMAL_MSG_TASK_START:
-                ClrOrBuf();
+                /// #1: init orbuf and counters
                 InitMsgOverlayBuf(pMsg);
                 msgSetEntry = 0;
                 msgEntryCnt = 0;
@@ -516,6 +516,7 @@ bool Group::TaskMsg(int *_ptLine)
                     msgEntryCnt++;
                     msgSetEntry++;
                 };
+                /// #2: first frame 
                 do
                 {
                     SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
@@ -524,7 +525,7 @@ bool Group::TaskMsg(int *_ptLine)
                 } while (allSlavesNext == 1);
                 msgSetEntry++;
                 // +++++++++ after first round & first frame
-                // msg loop begin
+                /// #3: msg loop begin
                 do
                 {
                     if (deviceEnDisCur)
@@ -643,7 +644,31 @@ bool Group::TaskMsg(int *_ptLine)
 
 void Group::InitMsgOverlayBuf(Message *pMsg)
 {
+    ClrOrBuf();
     msgOverlay = 0;                 // no overlay
+    msgSetEntryMax = pMsg->entries; // no overlay
+    return;
+
+    for (int i = 0; i < pMsg->entries; i++)
+    {
+        if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
+        {
+            msgOverlay=1;
+        }
+    }
+    if(msgOverlay==0)
+    {
+        return;
+    }
+    // has overlay
+    msgOverlay = 0; // colour code
+    for (int i = 0; i < pMsg->entries; i++)
+    {
+        if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
+        {
+            msgOverlay=1;
+        }
+    }
     msgSetEntryMax = pMsg->entries; // no overlay
     bool onTime1 = false;
     for (int i = 0; i < pMsg->entries; i++)
@@ -748,7 +773,7 @@ bool Group::TaskFrm(int *_ptLine)
             {
                 // step3: check current & next
                 if (taskFrmRefreshTmr.IsExpired())
-                {// sync
+                { // sync
                     taskFrmRefreshTmr.Setms(600 * 1000);
                     SlaveSync();
                     PT_YIELD();
@@ -1241,7 +1266,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
             else if (dsCurrent->dispType == DISP_TYPE::N_A ||
                      dsCurrent->dispType == DISP_TYPE::BLK ||
                      (onDispMsgId == 0 && onDispFrmId == 0) ||
-                     cfg->flashingOv != 0 ||    // flash override OFF
+                     cfg->flashingOv != 0 ||  // flash override OFF
                      (cfg->flashingOv == 0 && // flash override ON
                       ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
                        onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
@@ -1319,7 +1344,7 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
     for (auto &sign : vSigns)
     {
         sign->DimmingSet(dimming);
-    }    
+    }
     return APP::ERROR::AppNoError;
 }
 
@@ -1383,7 +1408,7 @@ bool Group::IsDsNextEmergency()
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 5)
         {
-            if (db.GetUciUser().ExtSwCfgX(mid)->emergency==0)
+            if (db.GetUciUser().ExtSwCfgX(mid)->emergency == 0)
             {
                 r = true;
             }
