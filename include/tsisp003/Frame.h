@@ -68,6 +68,10 @@ protected:
     /// \brief Check Gfx/Hrg len
     /// \return 0:success
     virtual int CheckLength(int len);
+    
+    /// \brief Check Gfx/Hrg multicolour
+    /// \return 0:success
+    virtual int CheckMultiColour(uint8_t *frm, int len);
 };
 
 class FrmTxt : public Frame

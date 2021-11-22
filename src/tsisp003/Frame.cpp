@@ -115,6 +115,35 @@ int Frame::CheckLength(int len)
     return (appErr == APP::ERROR::AppNoError) ? 0 : -1;
 }
 
+int Frame::CheckMultiColour(uint8_t *frm, int len)
+{
+    if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
+    {
+        auto p = frm + frmOffset;
+        auto &prod = DbHelper::Instance().GetUciProd();
+        auto monoFinished = static_cast<uint8_t>(FRMCOLOUR::MonoFinished);
+        for (int i = 0; i < frmBytes; i++)
+        {
+            auto d = *p++;
+            for (int j = 0; j < 2; j++, d >>= 4)
+            {
+                uint8_t d2 = d & 0x0F;
+                if (d2 == 0)
+                {
+                    continue;
+                }
+                if (d2 >= monoFinished || !prod.IsGfxFrmColourValid(d2))
+                {
+                    appErr = APP::ERROR::ColourNotSupported;
+                    PrintDbg(DBG_LOG, "Frame[%d] Error:MultipleColours(frame contains coulour:%d)\n", frmId, colour, d2);
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 /*****************************FrmTxt*******************************/
 FrmTxt::FrmTxt(uint8_t *frm, int len)
 {
@@ -151,7 +180,7 @@ int FrmTxt::CheckLength(int len)
 
 int FrmTxt::CheckSub(uint8_t *frm, int len)
 {
-    if(CheckLength(len))
+    if (CheckLength(len))
     {
         return 1;
     }
@@ -199,7 +228,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
             }
         }
     }
-    if(chars>0)
+    if (chars > 0)
     {
         lines++;
     }
@@ -257,7 +286,7 @@ int FrmGfx::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::UnknownMi;
         return 1;
     }
-    return CheckLength(len);
+    return CheckLength(len) || CheckMultiColour(frm, len);
 }
 
 int FrmGfx::CheckColour()
@@ -304,7 +333,7 @@ int FrmHrg::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::UnknownMi;
         return 1;
     }
-    return CheckLength(len);
+    return CheckLength(len) || CheckMultiColour(frm, len);
 }
 
 int FrmHrg::CheckColour()
