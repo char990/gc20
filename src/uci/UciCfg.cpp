@@ -97,6 +97,7 @@ void UciCfg::Open()
 		MyThrow("Open '%s/%s' error. Can't alloc context.", PATH, PACKAGE);
 	}
 	uci_set_confdir(ctx, PATH);
+	uci_set_savedir(ctx, _SAVEDIR);
 	if (UCI_OK != uci_load(ctx, PACKAGE, &pkg))
 	{
 		uci_free_context(ctx);

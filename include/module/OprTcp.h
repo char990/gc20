@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <module/BootTimer.h>
 #include <module/IOperator.h>
 #include <module/IPeriodicRun.h>
@@ -21,7 +20,7 @@ public:
     /// \brief  Called by upperLayer
     virtual bool IsTxReady() override { return IsTxRdy(); };
     /// \brief  Called by upperLayer
-    virtual int Tx(uint8_t * data, int len) override;
+    virtual int Tx(uint8_t *data, int len) override;
 
     /// \brief  Called by Eepoll, receiving & sending handle
     virtual void EventsHandle(uint32_t events) override;
@@ -38,10 +37,10 @@ public:
     /*--------------------------------------------------------->*/
 
     /// \brief  Called only after object was created
-    virtual void Init(std::string name_, std::string aType, int idle);
+    virtual void Init(std::string name_, std::string aType);
 
     /// \brief  Called when accept
-    virtual void Accept(int fd, TimerEvent * tmr, const char *ip);
+    virtual void Accept(int fd, TimerEvent *tmr, const char *ip);
 
     std::string Name() { return name; };
 
@@ -49,15 +48,13 @@ public:
 
 private:
     std::string name;
-    TcpServer * server{nullptr};
-    TimerEvent * tmrEvt{nullptr};
+    TcpServer *server{nullptr};
+    TimerEvent *tmrEvt{nullptr};
     BootTimer tcpIdleTmr;
-    int idleTime{60};
+    long IdleMs();
 
     /// \brief  Called in EventsHandle
     int RxHandle();
 
     char client[24];
 };
-
-

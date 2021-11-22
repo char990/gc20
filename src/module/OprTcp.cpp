@@ -3,6 +3,7 @@
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
 #include <layer/UI_LayerManager.h>
+#include <uci/DbHelper.h>
 
 #define TCPSPEED 1000000 // 1M bytes per seconds
 
@@ -12,7 +13,7 @@ OprTcp::OprTcp()
 
 OprTcp::~OprTcp()
 {
-    if (upperLayer)
+    if (upperLayer!=nullptr)
     {
         delete upperLayer;
     }
@@ -41,17 +42,22 @@ void OprTcp::EventsHandle(uint32_t events)
     }
 }
 
+long OprTcp::IdleMs()
+{
+    long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
+    return (ms <= 0) ? 360 * 1000 : (ms + 60) * 1000;
+}
+
 /// \brief  Called when instantiation
-void OprTcp::Init(std::string name_, std::string aType, int idle)
+void OprTcp::Init(std::string name_, std::string aType)
 {
     name = name_;
     upperLayer = new UI_LayerManager(name, aType);
     upperLayer->LowerLayer(this);
-    idleTime = idle;
 }
 
 /// \brief  Called when a new connection accepted
-void OprTcp::Accept(int fd, TimerEvent *tmr, const char * client)
+void OprTcp::Accept(int fd, TimerEvent *tmr, const char *client)
 {
     strncpy(this->client, client, 23);
     eventFd = fd;
@@ -59,7 +65,7 @@ void OprTcp::Accept(int fd, TimerEvent *tmr, const char * client)
     Epoll::Instance().AddEvent(this, events);
     tmrEvt = tmr;
     tmrEvt->Add(this);
-    tcpIdleTmr.Setms(idleTime);
+    tcpIdleTmr.Setms(IdleMs());
     upperLayer->ClrRx();
     ClrTx();
 }
@@ -93,24 +99,24 @@ void OprTcp::PeriodicRun()
 /// \brief  Called in EventsHandle
 int OprTcp::RxHandle()
 {
-    #define buf_PAGE_SIZE 4096
+#define buf_PAGE_SIZE 4096
     uint8_t buf[buf_PAGE_SIZE];
-    tcpIdleTmr.Setms(idleTime);
+    tcpIdleTmr.Setms(IdleMs());
     while (1)
     {
         int n = read(eventFd, buf, buf_PAGE_SIZE);
         if (n <= 0)
-        {// no data
+        { // no data
             return n;
         }
         else
         {
-            if (IsTxRdy()) // if tx is busy, discard this rx
+            if (IsTxRdy())
             {
                 upperLayer->Rx(buf, n);
             }
             else
-            {
+            { // if tx is busy, discard this rx
                 PrintDbg(DBG_0, "%s-%s:Tx not ready, discard rx\n", name.c_str(), client);
             }
         }

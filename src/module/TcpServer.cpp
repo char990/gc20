@@ -19,11 +19,9 @@ TcpServer::TcpServer(int listenPort, std::string serverType, int poolsize, Timer
 
     objPool = new ObjectPool<OprTcp>(poolsize);
     auto ipool = objPool->Pool();
-    int idletime = DbHelper::Instance().GetUciUser().SessionTimeout();
-    idletime = idletime + ((idletime == 0) ? 3600 * 1000 : 600 * 1000);
     for (int i = 0; i < ipool.size(); i++)
     {
-        ipool[i]->Init(serverType + std::to_string(i), serverType, idletime);
+        ipool[i]->Init(serverType + std::to_string(i), serverType);
     }
     eventFd=-1;
     Open();

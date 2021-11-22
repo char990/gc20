@@ -841,6 +841,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
                         {
                             rqstNoRplCnt++;
                             s->ReportOffline(true);
+                            SlaveSetStoredFrame(0xFF, 0);
                         }
                     }
                     else
@@ -888,6 +889,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
                     {
                         rqstNoRplCnt++;
                         s->ReportOffline(true);
+                        SlaveSetStoredFrame(0xFF, 0);
                     }
                     //PT_EXIT();
                 }

@@ -35,6 +35,11 @@ protected:
 	struct uci_ptr ptrSecSave;
 	char bufSecSave[256];
 
+
+	/// temp savedir, nullptr for default(/tmp/.uci)
+	/// If use "/tmp/.uci", should have root permission
+	const char *_SAVEDIR{"tmp"};
+
 	/// config dir, nullptr for default(/etc/config)
 	const char *PATH;
 
