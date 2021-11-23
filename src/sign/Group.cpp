@@ -100,11 +100,12 @@ Group::Group(uint8_t groupId)
         s->SignErr(proc.SignErr(s->SignId())->Get());
         s->InitFaults();
     }
-    currentDimmingLvl = proc.GetDimming(groupId);
-    targetDimmingLvl = currentDimmingLvl | 0x80;
+    targetDimmingLvl = proc.GetDimming(groupId) | 0x80;
+    currentDimmingLvl = (targetDimmingLvl == 0x80) ? 1 : (targetDimmingLvl & 0x7F);
+    setDimming = *(prod.Dimming() + currentDimmingLvl - 1);
     for (auto &sign : vSigns)
     {
-        sign->DimmingSet(currentDimmingLvl);
+        sign->DimmingSet(targetDimmingLvl & 0x7F);
         sign->DimmingV(currentDimmingLvl);
     }
 
@@ -281,6 +282,7 @@ void Group::PowerFunc()
                 cmdPwr = PWR_STATE::ON;
                 fsPwr = PWR_STATE::ON;
                 readyToLoad = 1;
+                RqstExtStatus(0xFF);
             }
         }
     }
@@ -516,7 +518,7 @@ bool Group::TaskMsg(int *_ptLine)
                     msgEntryCnt++;
                     msgSetEntry++;
                 };
-                /// #2: first frame 
+                /// #2: first frame
                 do
                 {
                     SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
@@ -653,10 +655,10 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
     {
         if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
         {
-            msgOverlay=1;
+            msgOverlay = 1;
         }
     }
-    if(msgOverlay==0)
+    if (msgOverlay == 0)
     {
         return;
     }
@@ -666,7 +668,7 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
     {
         if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
         {
-            msgOverlay=1;
+            msgOverlay = 1;
         }
     }
     msgSetEntryMax = pMsg->entries; // no overlay
