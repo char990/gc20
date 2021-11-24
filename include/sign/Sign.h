@@ -51,6 +51,7 @@ public:
         reportFrm = f;
     };
 
+    void RefreshSlaveStatusAtSt();
     void RefreshSlaveStatusAtExtSt();
 
     // Init Debounce-Fault/Fault-flag from signErr
@@ -106,4 +107,6 @@ protected:
     uint16_t faultLedCnt{0};
 
     void DbncFault(Debounce &dbc, DEV::ERROR err, const char *info = nullptr);
+
+    void RefreshFatalError();
 };

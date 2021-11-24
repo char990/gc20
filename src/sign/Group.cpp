@@ -129,6 +129,7 @@ Group::Group(uint8_t groupId)
         }
         cmdPwr = PWR_STATE::RISING;
     }
+    fatalError.Init(STATE5::S5_0);
 }
 
 Group::~Group()
@@ -165,40 +166,40 @@ void Group::PeriodicRun()
     }
 
     // fatal error
-    bool rising = false;
-    bool falling = false;
     bool fatal = false;
-    for (auto &s : vSigns)
+    for (auto &sign : vSigns)
     {
-        if (s->fatalError.IsRising())
-        {
-            rising = true;
-            s->fatalError.ClearEdge();
-        }
-        else if (s->fatalError.IsFalling())
-        {
-            falling = true;
-            s->fatalError.ClearEdge();
-        }
-        fatal |= s->fatalError.IsHigh();
+        fatal |= sign->fatalError.IsHigh();
     }
-    if (rising)
+    for (auto &slv : vSlaves)
     {
-        newCurrent = 1;
+        fatal |= slv->isOffline;
+    }
+    fatal ? fatalError.Set() : fatalError.Clr();
+
+    if (fatalError.IsRising())
+    {
         if (dsCurrent->dispType != DISP_TYPE::EXT)
         {
-            dsBak->Clone(dsCurrent);
+            dsBak->Clone((dsNext->dispType != DISP_TYPE::N_A && dsNext->dispType != DISP_TYPE::EXT) ? dsNext : dsCurrent);
         }
-        dsCurrent->BLK();
-        dsNext->N_A();
+        newCurrent = 1;   // force to reload
+        dsNext->N_A();    // avoid to call LoadDsNext()
+        dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
+        fatalError.ClearRising();
+        PrintDbg(DBG_LOG, "Group[%d] fatalError Set\n", groupId);
     }
-    else if (falling)
+    else if (fatalError.IsFalling())
     {
         DispBackup();
+        dsCurrent->N_A();
+        readyToLoad = 1;
+        fatalError.ClearFalling();
+        PrintDbg(DBG_LOG, "Group[%d] fatalError Clr\n", groupId);
     }
 
-    if (!fatal)
-    {
+    if (fatalError.IsLow())
+    { // only when there is NO fatal error
         if (IsDsNextEmergency())
         {
             readyToLoad = 1;
@@ -304,7 +305,7 @@ void Group::FcltSwitchFunc()
         }
         else
         { // not OFF
-            if (fsPwr == PWR_STATE::OFF)
+            if (fsPwr == PWR_STATE::OFF || fsPwr == PWR_STATE::NA)
             {
                 fsPwr = PWR_STATE::RISING;
             }
@@ -812,20 +813,20 @@ bool Group::TaskRqstSlave(int *_ptLine)
     while (true)
     {
         // Request status 1-n
-        rqstStCnt = 0;
         do
         {
             rqstNoRplCnt = 0;
             do
             {
                 taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
-                RqstStatus(rqstStCnt);
-                vSlaves[rqstStCnt]->rxStatus = 0;
+                RqstStatus(rqstSt_slvindex);
+                vSlaves.at(rqstSt_slvindex)->rxStatus = 0;
                 PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
                 {
-                    auto &s = vSlaves[rqstStCnt];
+                    auto &s = vSlaves.at(rqstSt_slvindex);
                     if (s->rxStatus == 0)
-                    {
+                    { // no reply
+
                         if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
                         {
                             rqstNoRplCnt++;
@@ -842,72 +843,45 @@ bool Group::TaskRqstSlave(int *_ptLine)
                         else if (rqstNoRplCnt == (db.GetUciProd().OfflineDebounce() + 3))
                         {
                             rqstNoRplCnt++;
-                            s->ReportOffline(true);
-                            SlaveSetStoredFrame(0xFF, 0);
+                            if (!s->isOffline)
+                            {
+                                s->ReportOffline(true);
+                            }
                         }
                     }
                     else
                     {
                         rqstNoRplCnt = 0;
-                        if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
+                        if (s->isOffline)
                         {
                             s->ReportOffline(false);
                         }
                     }
                 }
             } while (rqstNoRplCnt > 0);
-            if (++rqstStCnt == vSlaves.size())
+            if (rqstSt_slvindex == vSlaves.size() - 1)
             {
-                rqstStCnt = 0;
+                auto &s = vSlaves.at(rqstSt_slvindex);
+                if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
+                {
+                    s->sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, false);
+                }
+                rqstSt_slvindex = 0;
             }
-        } while (rqstStCnt != 0);
+            else
+            {
+                rqstSt_slvindex++;
+            }
+        } while (rqstSt_slvindex != 0);
 
         // Request Ext-status x
-        rqstNoRplCnt = 0;
-        do
+        taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
+        RqstExtStatus(rqstExtSt_slvindex);
+        vSlaves.at(rqstExtSt_slvindex)->rxExtSt = 0;
+        PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
+        if (++rqstExtSt_slvindex == vSlaves.size())
         {
-            taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
-            RqstExtStatus(rqstExtStCnt);
-            vSlaves[rqstExtStCnt]->rxExtSt = 0;
-            PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
-            {
-                auto &s = vSlaves[rqstExtStCnt];
-                if (s->rxExtSt == 0)
-                {
-                    if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
-                    {
-                        rqstNoRplCnt++;
-                    }
-                    else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
-                    { // offline
-                        rqstNoRplCnt++;
-                        oprSp->ReOpen();
-                    }
-                    else if (rqstNoRplCnt < (db.GetUciProd().OfflineDebounce() + 3))
-                    {
-                        rqstNoRplCnt++;
-                    }
-                    else if (rqstNoRplCnt == (db.GetUciProd().OfflineDebounce() + 3))
-                    {
-                        rqstNoRplCnt++;
-                        s->ReportOffline(true);
-                        SlaveSetStoredFrame(0xFF, 0);
-                    }
-                    //PT_EXIT();
-                }
-                else
-                {
-                    rqstNoRplCnt = 0;
-                    if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
-                    {
-                        s->ReportOffline(false);
-                    }
-                }
-            }
-        } while (rqstNoRplCnt > 0);
-        if (++rqstExtStCnt == vSlaves.size())
-        {
-            rqstExtStCnt = 0;
+            rqstExtSt_slvindex = 0;
         }
 
         // dimming adjusting
@@ -968,7 +942,7 @@ void Group::ClrAllSlavesRxStatus()
     {
         s->rxStatus = 0;
     }
-    TaskRqstSlaveReset();
+    //TaskRqstSlaveReset();
 }
 
 bool Group::AllSlavesGotExtSt()
@@ -989,7 +963,7 @@ void Group::ClrAllSlavesRxExtSt()
     {
         s->rxExtSt = 0;
     }
-    TaskRqstSlaveReset();
+    //TaskRqstSlaveReset();
 }
 
 bool Group::IsSignInGroup(uint8_t id)
@@ -1290,9 +1264,11 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
 
 void Group::DispBackup()
 {
-    dsCurrent->Clone(dsBak);
-    dsBak->N_A();
-    newCurrent = 1;
+    if (dsNext->dispType == DISP_TYPE::N_A)
+    {
+        dsNext->Clone(dsBak);
+        dsBak->N_A();
+    }
 }
 
 APP::ERROR Group::DispFrm(uint8_t id)
@@ -1489,9 +1465,13 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
 {
     if (len != 14)
         return;
-    for (auto &s : vSlaves)
+    for (int i = 0; i < vSlaves.size(); i++)
     {
-        s->DecodeStRpl(data, len);
+        if (vSlaves[i]->DecodeStRpl(data, len) == 0)
+        {
+            vSlaves[i]->sign->RefreshSlaveStatusAtSt();
+            return;
+        }
     }
 }
 

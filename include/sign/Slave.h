@@ -21,6 +21,7 @@ public:
     static uint8_t numberOfTiles;
     static uint8_t numberOfColours;
 
+    bool isOffline{false};
     // ------------------------- status reply
     uint8_t rxStatus{0};
     // uint8_t slaveId; check rxbuf[0]

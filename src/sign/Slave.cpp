@@ -166,5 +166,9 @@ void Slave::ReportOffline(bool v)
     snprintf(buf, 63, "Sign[%d].Slave[%d] %s", sign->SignId(), slaveId, v ? "OFF-line" : "On-line");
     PrintDbg(DBG_LOG, "%s\n", buf);
     DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
-    sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);
+    if(v)
+    {
+        sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);
+    }
+    isOffline = v;
 }

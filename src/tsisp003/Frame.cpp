@@ -135,7 +135,7 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
                 if (d2 >= monoFinished || !prod.IsGfxFrmColourValid(d2))
                 {
                     appErr = APP::ERROR::ColourNotSupported;
-                    PrintDbg(DBG_LOG, "Frame[%d] Error:MultipleColours(frame contains coulour:%d)\n", frmId, colour, d2);
+                    PrintDbg(DBG_LOG, "Frame[%d] Error:MultipleColours(frame contains coulour:%d)\n", frmId, d2);
                     return 1;
                 }
             }

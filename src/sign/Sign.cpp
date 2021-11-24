@@ -98,11 +98,11 @@ uint8_t *Sign::GetStatus(uint8_t *p)
     return p;
 }
 
-void Sign::RefreshSlaveStatusAtExtSt()
+void Sign::RefreshSlaveStatusAtSt()
 {
     for (auto &s : vsSlaves)
     {
-        if (s->rxExtSt == 0)
+        if (s->rxStatus == 0)
         {
             return;
         }
@@ -121,7 +121,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         check_chain_fault |= s->panelFault & 0x0F;
         check_selftest |= s->selfTest & 1;
     }
-    // light sensor installed at first&last slaves
+    // lanterns installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
     chainFault.Check(check_chain_fault > 0);
@@ -134,6 +134,23 @@ void Sign::RefreshSlaveStatusAtExtSt()
     sprintf(buf, "LanternFault=0x%02X", check_lantern);
     DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
 
+    RefreshFatalError();
+}
+
+void Sign::RefreshSlaveStatusAtExtSt()
+{
+    for (auto &s : vsSlaves)
+    {
+        if (s->rxExtSt == 0)
+        {
+            return;
+        }
+    }
+
+    // ----------------------Check status
+    // single & multiLed bits ignored. checked in ext_st
+    // over-temperature bits ignored. checked in ext_st
+    char buf[64];
     DbHelper &db = DbHelper::Instance();
     UciProd &prod = db.GetUciProd();
     UciUser &user = db.GetUciUser();
@@ -141,7 +158,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
     uint32_t v = 0;
-    int16_t temperature = 0;                      // 0.1'C
+    int16_t temperature = 0; // 0.1'C
     for (auto &s : vsSlaves)
     {
         v += s->voltage;
@@ -265,7 +282,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         else if (lsConnectionFault.IsFalling())
         {
             lsConnectionFault.ClearFalling();
-            if(lscon!=STATE5::S5_NA)
+            if (lscon != STATE5::S5_NA)
             {
                 db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
             }
@@ -352,7 +369,28 @@ void Sign::RefreshSlaveStatusAtExtSt()
             }
         }
     }
-    (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overtempFault.IsHigh()) ? fatalError.Set() : fatalError.Clr();
+    RefreshFatalError();
+}
+
+void Sign::RefreshFatalError()
+{
+    if (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overtempFault.IsHigh())
+    {
+        fatalError.Set();
+        if (fatalError.IsRising())
+        {
+            PrintDbg(DBG_LOG, "Sign[%d] fatalError Set\n", signId);
+        }
+    }
+    else
+    {
+        fatalError.Clr();
+        if (fatalError.IsFalling())
+        {
+            PrintDbg(DBG_LOG, "Sign[%d] fatalError Clr\n", signId);
+        }
+    }
+    fatalError.ClearEdge();
 }
 
 uint8_t *Sign::LedStatus(uint8_t *buf)

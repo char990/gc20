@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <layer/LayerDL.h>
+#include <module/MyDbg.h>
 
 LayerDL::LayerDL(std::string name_, int size):maxPktSize(size)
 {
@@ -26,9 +27,12 @@ int LayerDL::Rx(uint8_t *data, int len)
         {// packet start, clear buffer
             buf[0] = c;
             length = 1;
+            //PrintDbg(0, "SOH\n");
         }
         else if(c == static_cast<uint8_t>(CTRL_CHAR::NAK))
-        {}  // TODO : CTRL_CHAR::NAK
+        {
+            //PrintDbg(0, "NAK\n");
+        }  // TODO : CTRL_CHAR::NAK
         else
         {
             if (length > 0)
@@ -38,6 +42,7 @@ int LayerDL::Rx(uint8_t *data, int len)
                     buf[length++] = c;
                     if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
+                        //PrintDbg(0, "ETX\n");
                         upperLayer->Rx(buf, length);
                         length = 0;
                         return 0;   // only deal with one pkt. Discard other data. 

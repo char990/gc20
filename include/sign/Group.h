@@ -190,6 +190,8 @@ private:
 
     bool IsDsNextEmergency();
 
+    Utils::State5 fatalError; 
+
     /******************** Task Plan ********************/
     uint8_t onDispPlnId;
 
@@ -268,14 +270,14 @@ private:
     bool TaskRqstSlave(int *_ptLine);
     int taskRqstSlaveLine{0};
     BootTimer taskRqstSlaveTmr;
-    uint8_t rqstStCnt{0};
-    uint8_t rqstExtStCnt{0};
+    uint8_t rqstSt_slvindex{0};
+    uint8_t rqstExtSt_slvindex{0};
     uint8_t rqstNoRplCnt{0};
     void TaskRqstSlaveReset()
     {
         taskRqstSlaveLine = 0;
-        rqstStCnt = 0;
-        rqstExtStCnt = 0;
+        rqstSt_slvindex = 0;
+        rqstExtSt_slvindex = 0;
         rqstNoRplCnt = 0;
         //taskRqstSlaveTmr.Setms(0);
     }
