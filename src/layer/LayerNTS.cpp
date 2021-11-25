@@ -128,7 +128,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     {
         if (addr == user.BroadcastId())
         { // ignore broadcast when off-line
-            PrintDbg(DBG_LOG, "No reply for broadcast cmd:%d\n",mi);
+            PrintDbg(DBG_LOG, "Ignore broadcast when off-line:cmd=%d\n",mi);
             return 0;
         }
     }

@@ -135,6 +135,7 @@ int DS3231::GetTimet(void)
     return timegm(&utc);
 }
 
+extern time_t ds3231_ts;
 int DS3231::SetTimet(time_t t)
 {
     struct tm utc;
@@ -142,6 +143,7 @@ int DS3231::SetTimet(time_t t)
     {
         return -1;
     }
+    ds3231_ts = t;
     changed = 1;
     int reg[7];
     reg[0] = hex2bcd(utc.tm_sec);

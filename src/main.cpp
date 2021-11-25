@@ -69,23 +69,27 @@ public:
     }
     virtual void PeriodicRun() override
     {
+        pPinHeartbeatLed->Toggle();
+        cnt++;
+        if((cnt&0x03)==0)
+        {
+            pDS3231->WriteTimeAlarm(ds3231_ts);
+        }
         if (ticktock)
         {
             putchar('\r');
             _r_need_n = 0;
             PrintDbg(DBG_0, "%c   \x08\x08\x08", s[cnt & 0x03]);
             _r_need_n = 1;
-            cnt++;
             fflush(stdout);
         }
         ds3231_ts++;
-        if(++sec>60 || pDS3231->IsChanged())
+        sec++;
+        if(sec>60 || pDS3231->IsChanged())
         {
             sec=0;
             ds3231_ts = pDS3231->GetTimet();
         }
-        pDS3231->WriteTimeAlarm(ds3231_ts);
-        pPinHeartbeatLed->Toggle();
     };
 
 private:
