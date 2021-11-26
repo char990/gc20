@@ -14,7 +14,7 @@ extern time_t ds3231time(time_t *);
 
 #define MyDbgBuf_SIZE 1024
 
-int dbg_level{DBG_LOG};
+DBG_LEVEL dbg_level{DBG_LOG};
 
 static char MyDbgBuf[MyDbgBuf_SIZE];
 void MyThrow(const char *fmt, ...)
@@ -27,22 +27,29 @@ void MyThrow(const char *fmt, ...)
 }
 
 void Log(int);
-char _r_need_n = 0;
-int PrintDbg(int level, const char *fmt, ...)
+
+int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 {
+	static DBG_LEVEL lastlvl;
 	int len = 0;
-	if (level == -1)
+	if (level >= DBG_HB)
 	{
-		level = dbg_level;
-	}
-	if (level >= 0)
-	{
-		struct timeval t;
-		if (_r_need_n != 0)
+		if (level == DBG_HB)
 		{
-			_r_need_n = 0;
-			putchar('\n');
+			if(lastlvl == DBG_HB)
+			{
+				putchar('\r');
+			}
 		}
+		else
+		{
+			if(lastlvl == DBG_HB)
+			{
+				putchar('\n');
+			}
+		}
+		lastlvl = level;
+		struct timeval t;
 		gettimeofday(&t, nullptr);
 		t.tv_sec = ds3231time(nullptr);
 		MyDbgBuf[0] = '[';

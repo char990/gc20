@@ -305,9 +305,13 @@ void Group::FcltSwitchFunc()
         }
         else
         { // not OFF
-            if (fsPwr == PWR_STATE::OFF || fsPwr == PWR_STATE::NA)
+            if (fsPwr == PWR_STATE::OFF)
             {
                 fsPwr = PWR_STATE::RISING;
+            }
+            else if(fsPwr == PWR_STATE::NA)
+            {
+                fsPwr = PWR_STATE::ON;
             }
             else
             {
@@ -731,6 +735,7 @@ bool Group::TaskFrm(int *_ptLine)
             onDispPlnId = 0;
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             activeMsg.ClrAll();
+            activeFrm.ClrAll();
             activeFrm.Set(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
             PrintDbg(DBG_LOG, "TaskFrm:Display ATF\n");
@@ -742,6 +747,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispPlnId = 0;
                 onDispFrmId = dsCurrent->fmpid[0];
                 activeMsg.ClrAll();
+                activeFrm.ClrAll();
                 activeFrm.Set(onDispFrmId);
             }
             else if (dsCurrent->dispType == DISP_TYPE::BLK)

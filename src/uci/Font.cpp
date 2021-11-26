@@ -39,9 +39,9 @@ Font::Font(const char *fontname)
     descender = *p++;
     charSpacing = *p++;
     lineSpacing = *p++;
-    // assume the smallest font is 4*6, largest font is 64*64
+    // smallest font is 4*6, largest font is 32*64
     if (bytesPerCell != (1 + bytesPerCellRow * rowsPerCell) ||
-        columnsPerCell < 4 || columnsPerCell > 64 ||
+        columnsPerCell < 4 || columnsPerCell > 32 ||
         rowsPerCell < 6 || rowsPerCell > 64 ||
         bytesPerCellRow != ((columnsPerCell + 7) / 8) ||
         charSpacing > 16 ||
@@ -84,7 +84,7 @@ uint8_t *Font::GetCell(char c)
     return cellPtr.at(c - 0x20);
 }
 
-uint8_t Font::GetWidth(char c)
+int Font::GetWidth(char c)
 {
     if (c < 0x20 || c > 127 || c == 0x5F)
     {
@@ -94,7 +94,7 @@ uint8_t Font::GetWidth(char c)
     return (*cell) & 0x7F;
 }
 
-uint8_t Font::GetWidth(char *s)
+int Font::GetWidth(char *s)
 {
     int len = strlen(s);
     if (len == 0)

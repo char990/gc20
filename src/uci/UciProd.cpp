@@ -285,11 +285,11 @@ void UciProd::LoadConfig()
     }
 
     colourBits = GetInt(uciSec, _ColourBits, 1, 24);
-    if (colourBits != 1 && colourBits != 4 && colourBits != 24)
+    if (colourBits != 1 && colourBits != 4)// && colourBits != 24)
     {
-        MyThrow("UciProd Error: %s(%d) Only 1/4/24 allowed", _ColourBits, colourBits);
+        MyThrow("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits);
     }
-    if ((strlen(colourLeds) == 1 && colourBits != 1) || (strlen(colourLeds) != 1 && colourBits == 1))
+    if (strlen(colourLeds) != colourBits)
     {
         MyThrow("UciProd Error: %s(%d) not matched with %s('%s')", _ColourBits, colourBits, _ColourLeds, colourLeds);
     }
@@ -398,21 +398,21 @@ void UciProd::LoadConfig()
         {
         case 1:
             configRplSignType = SCR_SIGN_TYPE::GFXMONO;
-            maxFrmLen = (pixels + 7) / 8;
-            gfx1FrmLen = maxFrmLen;
+            gfx1FrmLen = (pixels + 7) / 8;
+            maxFrmLen = gfx1FrmLen;
             break;
         case 4:
             configRplSignType = SCR_SIGN_TYPE::GFXMULTI;
-            maxFrmLen = (pixels + 1) / 2;
             gfx1FrmLen = (pixels + 7) / 8;
-            gfx4FrmLen = maxFrmLen;
+            gfx4FrmLen = (pixels + 1) / 2;
+            maxFrmLen = gfx4FrmLen;
             break;
         case 24:
             configRplSignType = SCR_SIGN_TYPE::GFXRGB24;
-            maxFrmLen = pixels * 3;
             gfx1FrmLen = (pixels + 7) / 8;
             gfx4FrmLen = (pixels + 1) / 2;
-            gfx24FrmLen = maxFrmLen;
+            gfx24FrmLen = pixels * 3;
+            maxFrmLen = gfx24FrmLen;
             break;
         default:
             MyThrow("Unknown ColourBits in UciProd");

@@ -144,6 +144,26 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
     return 0;
 }
 
+void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour)
+{
+    auto &prod = DbHelper::Instance().GetUciProd();
+    int columns = prod.PixelColumns();
+    int rows = prod.PixelRows();
+    int offset = y * columns + x;
+    if (colourbit == 1)
+    {
+        int byte_n = offset / 8;
+        int bit_n = offset & 0x07;
+        *(buf + byte_n) |= (1 << bit_n);
+    }
+    else
+    {
+        int byte_n = offset / 2;
+        int bit_n = (offset & 1) ? 4 : 0;
+        *(buf + byte_n) |= (monocolour << bit_n);
+    }
+}
+
 /*****************************FrmTxt*******************************/
 FrmTxt::FrmTxt(uint8_t *frm, int len)
 {
@@ -205,7 +225,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     auto pFont = prod.Fonts(font);
     int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
     int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
-    char *p = (char *)frm + frmOffset;
+    char *p = (char *)(frm + frmOffset);
     int lines = 0;
     int chars = 0;
     for (auto pe = p + frmBytes; p < pe; p++)
@@ -259,6 +279,125 @@ std::string FrmTxt::ToString()
              micode, frmId, frmRev, font, colour, conspicuity, frmBytes, crc);
     std::string s(buf);
     return s;
+}
+
+int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
+{
+    if (colourbit != 1 && colourbit != 4 /*&& colourbit!=24*/)
+    {
+        return 0;
+    }
+    auto &prod = DbHelper::Instance().GetUciProd();
+    int totallen;
+    if (colourbit == 1)
+    {
+        totallen = prod.Gfx1FrmLen();
+    }
+    else
+    {
+        totallen = prod.Gfx4FrmLen();
+    }
+    memset(buf, 0, totallen);
+    auto pFont = prod.Fonts(font);
+    auto char_space = pFont->CharSpacing();
+    auto line_space = pFont->LineSpacing();
+    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
+    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
+    char **text = new char *[rows];
+    for (int i = 0; i < rows; i++)
+    {
+        text[i] = new char[columns + 1];
+        memset(text[i], '\0', columns + 1);
+    }
+
+    char *p = (char *)(stFrm.rawData + frmOffset);
+    int rx = 0;
+    int cx = 0;
+    for (auto pe = p + frmBytes; p < pe; p++)
+    {
+        if (*p != ' ')
+        {
+            text[rx][cx] = *p;
+            cx++;
+            if (cx == columns)
+            {
+                rx++;
+                if (rx == rows)
+                {
+                    break;
+                }
+                cx = 0;
+            }
+        }
+        else
+        {
+            if (cx > 0)
+            {
+                rx++;
+                if (rx == rows)
+                {
+                    break;
+                }
+                cx = 0;
+            }
+        }
+    }
+    uint8_t monocolour = prod.GetMappedColour((colour == 0) ? DbHelper::Instance().GetUciUser().DefaultColour() : colour);
+    int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * rx - pFont->LineSpacing())) / 2;
+    for (int i = 0; i < rows; i++)
+    {
+        int width = pFont->GetWidth(text[i]);
+        int start_x = (prod.PixelColumns() - width) / 2;
+        StrToBitmap(colourbit, buf, start_x, start_y, monocolour, text[i], pFont);
+        start_y += pFont->CharHeightWS();
+    }
+    // finish
+    for (int i = 0; i < rows; i++)
+    {
+        delete[] text[i];
+    }
+    delete[] text;
+    return totallen;
+}
+
+void FrmTxt::StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font *pfont)
+{
+    while (*str != '\0')
+    {
+        CharToBitmap(colourbit, buf, x, y, monocolour, *str, pfont);
+        x += pfont->GetWidth(*str) + pfont->CharSpacing();
+        str++;
+    }
+}
+
+void FrmTxt::CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font *pfont)
+{
+    int height = pfont->RowsPerCell();
+    int width = pfont->GetWidth(c);
+    int bytes = pfont->BytesPerCellRow();
+    uint8_t *cell = pfont->GetCell(c);
+    if ((*cell & 0x80) != 0)
+    {
+        y += pfont->Descender();
+    }
+    cell++; // point to pixel data
+    for (int i = 0; i < height; i++)
+    {
+        uint32_t line = 0;
+        for (int j = 0; j < 4; j++)
+        {
+            line <<= 8;
+            line += (j < bytes) ? *cell++ : 0;
+        }
+        for (int j = 0; j < width; j++)
+        {
+            if (line & 0x80000000)
+            {
+                SetPixel(colourbit, buf, x + j, y + i, monocolour);
+            }
+            line <<= 1;
+        }
+    }
 }
 
 /****************************** FrmGfx *******************************/

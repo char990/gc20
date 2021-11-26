@@ -78,13 +78,13 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
         FrmTxt *frm = static_cast<FrmTxt *>(xfrm);
         if (frm != nullptr)
         {
-            if (msgOverlay == 0)
+            if (0)//msgOverlay == 0)
             {
                 *p++ = 0x0A; // Text frame
                 p++;         // skip slave frame id
                 uint8_t font = (frm->font == 0) ? user.DefaultFont() : frm->font;
                 *p++ = font;
-                *p++ = frm->colour;
+                *p++ = prod.GetMappedColour((frm->colour==0)?user.DefaultColour() : frm->colour);
                 *p++ = frm->conspicuity;
                 auto pFont = prod.Fonts(font);
                 *p++ = pFont->CharSpacing();
@@ -93,11 +93,27 @@ void GroupVms::MakeFrameForSlave(uint8_t uciFrmId)
                 memcpy(p, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
                 p += frm->frmBytes;
             }
-            else if (msgOverlay == 1)
+            else if (1)//msgOverlay == 1)
             {
+                *p++ = 0x0B; // Gfx frame
+                p++;         // skip slave frame id
+                *p++ = prod.PixelRows();
+                p = Cnvt::PutU16(prod.PixelColumns(), p);
+                *p++ = prod.GetMappedColour((frm->colour==0)?user.DefaultColour() : frm->colour);
+                *p++ = frm->conspicuity;
+                p = Cnvt::PutU16(prod.Gfx1FrmLen(), p);
+                p += frm->ToBitmap(1, p);
             }
-            else if (msgOverlay == 4)
+            else if (0)//msgOverlay == 4)
             {
+                *p++ = 0x0B; // Gfx frame
+                p++;         // skip slave frame id
+                *p++ = prod.PixelRows();
+                p = Cnvt::PutU16(prod.PixelColumns(), p);
+                *p++ = 0x0D;
+                *p++ = frm->conspicuity;
+                p = Cnvt::PutU16(prod.Gfx4FrmLen(), p);
+                p += frm->ToBitmap(4, p);
             }
             else // if(msgOverlay==24)
             {

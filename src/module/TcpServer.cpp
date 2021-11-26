@@ -107,7 +107,7 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    PrintDbg(DBG_0, "%s:Incomming...\n", name.c_str());
+    PrintDbg(DBG_PRT, "%s:Incomming...\n", name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
@@ -124,7 +124,7 @@ void TcpServer::Accept()
     char ip_port[32];
     snprintf(ip_port, 31, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
     tcpOperator->Accept(connfd, tmrEvt, ip_port);
-    PrintDbg(DBG_0, "%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
+    PrintDbg(DBG_PRT, "%s:Accept %s as %s\n", name.c_str(), ip_port, tcpOperator->Name().c_str());
 }
 
 void TcpServer::SetNonblocking(int sock)

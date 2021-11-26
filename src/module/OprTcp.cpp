@@ -25,7 +25,7 @@ void OprTcp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        PrintDbg(DBG_0, "%s-%s:Disconnected:events=0x%08X\n", name.c_str(), client, events);
+        PrintDbg(DBG_PRT, "%s-%s:Disconnected:events=0x%08X\n", name.c_str(), client, events);
         Release();
     }
     else if (events & EPOLLIN)
@@ -91,7 +91,7 @@ void OprTcp::PeriodicRun()
 {
     if (tcpIdleTmr.IsExpired())
     {
-        PrintDbg(DBG_0, "%s-%s:Idle timeout. Disconnected\n", name.c_str(), client);
+        PrintDbg(DBG_PRT, "%s-%s:Idle timeout. Disconnected\n", name.c_str(), client);
         Release();
     }
 }
@@ -117,7 +117,7 @@ int OprTcp::RxHandle()
             }
             else
             { // if tx is busy, discard this rx
-                PrintDbg(DBG_0, "%s-%s:Tx not ready, discard rx\n", name.c_str(), client);
+                PrintDbg(DBG_PRT, "%s-%s:Tx not ready, discard rx\n", name.c_str(), client);
             }
         }
     }

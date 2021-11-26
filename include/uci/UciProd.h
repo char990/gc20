@@ -27,6 +27,14 @@ public:
     Font *Fonts(int i) { return fonts[i]; };
     struct StSignPort *SignPort(uint8_t id) { return &signPort[id - 1]; };
     uint8_t *MappedColoursTable() { return &mappedColoursTable[0]; };
+    uint8_t GetMappedColour(uint8_t c)
+    {
+        if(c>9)
+        {
+            c=0;
+        }
+        return mappedColoursTable[c];
+    }
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
     uint16_t SlaveRqstStTo() { return slaveRqstStTo; };
@@ -97,9 +105,9 @@ public:
 
     int MinTxtFrmLen() { return 1; };
     int MaxTxtFrmLen() { return 255; };
-    int Gfx1FrmLen() { return gfx1FrmLen; };
-    int Gfx4FrmLen() { return gfx4FrmLen; };
-    int Gfx24FrmLen() { return gfx24FrmLen; };
+    int Gfx1FrmLen() { return gfx1FrmLen; }; // bytes
+    int Gfx4FrmLen() { return gfx4FrmLen; }; // bytes
+    int Gfx24FrmLen() { return gfx24FrmLen; }; // bytes
 
     uint8_t *GroupCfg() { return groupCfg; };
 

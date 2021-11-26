@@ -77,10 +77,7 @@ public:
         }
         if (ticktock)
         {
-            putchar('\r');
-            _r_need_n = 0;
-            PrintDbg(DBG_0, "%c   \x08\x08\x08", s[cnt & 0x03]);
-            _r_need_n = 1;
+            PrintDbg(DBG_HB, "%c   \x08\x08\x08", s[cnt & 0x03]);
             fflush(stdout);
         }
         ds3231_ts++;

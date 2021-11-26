@@ -7,16 +7,16 @@
 
 /********* Font definition *********
 1. Font file name looks like P5X7/F12X20
-2. File name length is 1-15
+2. File name length is 1-8
 3. Font file is binary file
 4. First 8-byte is font info
-    bytesPerCell=buf[0]*0x100+buf[1];
-    columnsPerCell=buf[2];
-    rowsPerCell=buf[3];
-    bytesPerCellRow=buf[4];
-    charSpacing=buf[5];
-    lineSpacing=buf[6];
-    descender=buf[7];
+    bytesPerCell=buf[0]*0x100+buf[1];   // 1 + rowsPerCell*bytesPerCellRow
+    columnsPerCell=buf[2];              // 6-64 | largest font is 32*64
+    rowsPerCell=buf[3];                 // 4-32 | smallest font is 4*6
+    bytesPerCellRow=buf[4];             // 1-4
+    charSpacing=buf[5];                 // 0-16
+    lineSpacing=buf[6];                 // 0-16
+    descender=buf[7];                   // 0-16
 5. From 9th byte, cell(char) data starts
 6. Each cell is bytesPerCell's long
 7. In each cell, celldata[0]&0x80 is descender flag for this char
@@ -143,10 +143,10 @@ public:
     uint8_t *GetCell(char c);
 
     /// \brief Get char width
-    uint8_t GetWidth(char c);
+    int GetWidth(char c);
 
     /// \brief Get string width
-    uint8_t GetWidth(char *s);
+    int GetWidth(char *s);
 
 private:
     char fontName[16];
