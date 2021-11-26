@@ -1580,12 +1580,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
             s->expectNextFrmId = slvFrmId;
             s->frmCrc[slvFrmId] = crc;
         }
-        ms = Tx();
-        auto dly = db.GetUciProd().SlaveSetStFrmDly();
-        if (ms < dly)
-        {
-            ms = dly;
-        }
+        ms = Tx() + db.GetUciProd().SlaveSetStFrmDly();
     }
     /*
     else

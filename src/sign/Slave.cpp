@@ -129,8 +129,8 @@ int Slave::CheckCurrent()
     }
     else
     {
-        PrintDbg(DBG_LOG, "NOT matched: current(%d:%04X) expect(%d:%04X)\n",
-                 currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+        PrintDbg(DBG_LOG, "Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)\n",
+                sign->SignId(), slaveId, currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
             if (currentFrmIdBak == currentFrmId && currentFrmId != 0 && frmCrc[currentFrmId] == currentFrmCrc)
@@ -154,8 +154,8 @@ int Slave::CheckNext()
     }
     else
     {
-        PrintDbg(DBG_LOG, "NOT matched: next(%d:%04X) expect(%d:%04X)\n",
-                 nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+        PrintDbg(DBG_LOG, "Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)\n",
+                sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
 }
