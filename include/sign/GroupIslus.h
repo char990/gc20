@@ -16,7 +16,7 @@ public:
 
     virtual void MakeFrameForSlave(uint8_t fid) override;
 
-    virtual void TransFrmToOrBuf(uint8_t fid) override;
+    virtual int TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) override;
 
 private:
     uint8_t sATF;

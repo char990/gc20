@@ -519,7 +519,7 @@ bool Group::TaskMsg(int *_ptLine)
                 // +++++++++ first round & first frame, set orbuf and frame 1
                 while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries - 1))
                 { // onTime==0 && not last entry, trans frame to set orBuf
-                    TransFrmToOrBuf(pMsg->msgEntries[msgEntryCnt].frmId);
+                    TransFrmWithOrBuf(pMsg->msgEntries[msgEntryCnt].frmId, orBuf);
                     msgEntryCnt++;
                     msgSetEntry++;
                 };
@@ -580,7 +580,7 @@ bool Group::TaskMsg(int *_ptLine)
                         { // onTime==0 and not last entry, trans frame to set orBuf
                             if (msgSetEntry < pMsg->entries)
                             { // only set orBuf at first round
-                                TransFrmToOrBuf(pMsg->msgEntries[nextEntry].frmId);
+                                TransFrmWithOrBuf(pMsg->msgEntries[nextEntry].frmId, orBuf);
                             }
                         }
                         else
@@ -1863,5 +1863,19 @@ void Group::SystemReset2()
     {
         s->ClearFaults();
         proc.SaveSignErr(s->SignId(), 0);
+    }
+}
+
+void Group::SetWithOrBuf(uint8_t * dst, uint8_t * src, int len)
+{
+    auto p = orBuf;
+    for(int i=0;i<len;len++)
+    {
+        uint8_t x = *src++ | *p++;
+        if(x<(uint8_t)FRMCOLOUR::MonoFinished)
+        {
+            *dst = x;
+        }
+        dst++;
     }
 }

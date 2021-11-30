@@ -20,7 +20,7 @@ public:
 
     virtual void MakeFrameForSlave(uint8_t fid) override;
 
-    virtual void TransFrmToOrBuf(uint8_t fid) override;
+    virtual int TransFrmWithOrBuf(uint8_t frmId, uint8_t *dst) override;
 
 private:
 

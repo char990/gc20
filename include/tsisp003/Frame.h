@@ -56,6 +56,11 @@ public:
 
     virtual std::string ToString() = 0;
 
+    /// \brief Convert 1/4-bit Gfx/Hrg frame to 4/24-bit bitmap
+    ///         Text frame override this function
+    /// \return bytes
+    virtual int ToBitmap(uint8_t colourbit, uint8_t *buf);
+
 protected:
     /// \brief Check item
     /// \return 0:success
@@ -93,7 +98,7 @@ public:
 
     std::string ToString() override;
 
-    int ToBitmap(uint8_t colourbit, uint8_t *buf);
+    int ToBitmap(uint8_t colourbit, uint8_t *buf) override;
     void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font * pfont);
     void CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font * pfont);
 

@@ -164,6 +164,60 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
     }
 }
 
+int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
+{
+    if (colourbit != 4 /*&& colourbit!=24*/)
+    { // dst colourbit 1 should not be here
+        return 0;
+    }
+    auto &prod = DbHelper::Instance().GetUciProd();
+    int totallen;
+    if (colourbit == 4)
+    {
+        totallen = prod.Gfx4FrmLen();
+    }
+    else
+    {
+        totallen = prod.Gfx24FrmLen();
+    }
+    memset(buf, 0, totallen);
+    auto mappedcolour = (colour == 0) ? prod.GetMappedColour(DbHelper::Instance().GetUciUser().DefaultColour()) : colour;
+    auto p = stFrm.rawData + frmOffset;
+    if(mappedcolour<(uint8_t)FRMCOLOUR::MonoFinished)
+    {// 1-bit frame
+        if(colourbit == 4)
+        {// to 4-bit
+            for (int i = 0; i < frmBytes; i++)
+            {
+                auto data = *p++;
+                for (int j = 0; j < 4; j++)
+                {
+                    if (data & 1)
+                    {
+                        *buf |= mappedcolour;
+                    }
+                    if(data & 2)
+                    {
+                        *buf |= mappedcolour*0x10;
+                    }
+                    data<<=2;
+                }
+            }
+        }
+        else // to 24-bit
+        {
+
+        }
+    }
+    else if(mappedcolour==(uint8_t)FRMCOLOUR::MultipleColours)
+    {// TODO : 4-bit frame -> 24-bit
+    }
+    else
+    {// 24-bit should not be here
+    }
+    return totallen;
+}
+
 /*****************************FrmTxt*******************************/
 FrmTxt::FrmTxt(uint8_t *frm, int len)
 {
@@ -283,6 +337,10 @@ std::string FrmTxt::ToString()
 
 int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
 {
+    if (colourbit == 0)
+    {
+        colourbit = 1;
+    }
     if (colourbit != 1 && colourbit != 4 /*&& colourbit!=24*/)
     {
         return 0;
@@ -342,7 +400,7 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
             }
         }
     }
-    uint8_t monocolour = prod.GetMappedColour((colour == 0) ? DbHelper::Instance().GetUciUser().DefaultColour() : colour);
+    uint8_t monocolour = (colour == 0) ? prod.GetMappedColour(DbHelper::Instance().GetUciUser().DefaultColour()) : colour;
     int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * rx - pFont->LineSpacing())) / 2;
     for (int i = 0; i < rows; i++)
     {
@@ -493,3 +551,4 @@ std::string FrmHrg::ToString()
     std::string s(buf);
     return s;
 }
+

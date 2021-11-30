@@ -11,6 +11,7 @@
 
 using namespace Utils;
 extern time_t ds3231time(time_t *);
+extern long ds3231usec();
 
 #define MyDbgBuf_SIZE 1024
 
@@ -52,6 +53,11 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		struct timeval t;
 		gettimeofday(&t, nullptr);
 		t.tv_sec = ds3231time(nullptr);
+		t.tv_usec -= ds3231usec();
+		if(t.tv_usec<0)
+		{
+			t.tv_usec+=1000000;
+		}
 		MyDbgBuf[0] = '[';
 		char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
 		*p++ = ']';

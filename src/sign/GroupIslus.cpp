@@ -126,7 +126,7 @@ void GroupIslus::MakeFrameForSlave(uint8_t fid)
 
 }
 
-void GroupIslus::TransFrmToOrBuf(uint8_t frmId)
+int GroupIslus::TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
-
+return 0;
 }

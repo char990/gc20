@@ -137,7 +137,7 @@ protected:
 
     virtual bool TaskSetATF(int *_ptLine) = 0;
 
-    virtual void TransFrmToOrBuf(uint8_t frmId) = 0;
+    virtual int TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) = 0;
     virtual void MakeFrameForSlave(uint8_t fid) = 0;
     uint8_t msgOverlay{0}; // 0:No overlay, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
     int orLen;
@@ -147,6 +147,8 @@ protected:
         msgOverlay = 0;
         memset(orBuf, 0, orLen);
     }
+
+    void SetWithOrBuf(uint8_t * dst, uint8_t * src, int len);
 
 private:
     uint8_t grpTick{0};

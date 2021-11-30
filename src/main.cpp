@@ -59,13 +59,27 @@ time_t ds3231time(time_t * t)
     return ds3231_ts;
 }
 
+long tv_usec;
+long ds3231usec()
+{
+    return tv_usec;
+}
+void reloadds3231usec()
+{
+    struct timeval t;
+    gettimeofday(&t, nullptr);
+    tv_usec=t.tv_usec;
+} 
+
 bool ticktock = true;
 class TickTock : public IPeriodicRun
 {
 public:
+    #define RD_DS3231_SEC 3600
     TickTock()
     {
         ds3231_ts = pDS3231->GetTimet();
+        sec = RD_DS3231_SEC;
     }
     virtual void PeriodicRun() override
     {
@@ -82,17 +96,18 @@ public:
         }
         ds3231_ts++;
         sec++;
-        if(sec>60 || pDS3231->IsChanged())
+        if(sec>RD_DS3231_SEC || pDS3231->IsChanged())
         {
             sec=0;
             ds3231_ts = pDS3231->GetTimet();
+            reloadds3231usec();
         }
     };
 
 private:
     uint8_t cnt{0};
     char s[4]{'-', '\\', '|', '/'};
-    int sec{60};
+    int sec;
 };
 
 void TestCrc8005()
