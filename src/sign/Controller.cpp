@@ -68,7 +68,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
     }
     else
     {
-        displayTimeout.Setms(ms * 1000);
+        displayTimeout.Setms(ms * 60000);
     }
 
     UciProd &prod = DbHelper::Instance().GetUciProd();
@@ -259,14 +259,22 @@ void Controller::RefreshDispTime()
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     if (ms > 0)
     {
-        displayTimeout.Setms(ms * 1000);
+        displayTimeout.Setms(ms * 60000);
         ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
     }
 }
 
 void Controller::RefreshSessionTime()
 {
-    sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
+    long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
+    if(ms==0)
+    {
+        sessionTimeout.Clear();
+    }
+    else
+    {
+        sessionTimeout.Setms(ms * 1000);
+    }
     ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
 }
 

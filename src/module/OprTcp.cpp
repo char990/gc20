@@ -45,7 +45,7 @@ void OprTcp::EventsHandle(uint32_t events)
 long OprTcp::IdleMs()
 {
     long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
-    return (ms <= 0) ? 360 * 1000 : (ms + 60) * 1000;
+    return (ms <= 0) ? 3600 * 1000 : (ms + 60) * 1000;
 }
 
 /// \brief  Called when instantiation

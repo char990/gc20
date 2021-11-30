@@ -53,8 +53,8 @@ public:
     const char * TZ();
     Tz_AU *tz_AU{nullptr};
     uint16_t PasswordOffset() { return passwordOffset;};
-    uint16_t SessionTimeout() { return sessionTimeout;};
-    uint16_t DisplayTimeout() { return displayTimeout;};
+    uint16_t SessionTimeout() { return sessionTimeout;};    // seconds
+    uint16_t DisplayTimeout() { return displayTimeout;};    // minutes
     uint16_t SvcPort() { return svcPort;};
     uint16_t WebPort() { return webPort;};
     uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold;};
@@ -90,8 +90,8 @@ public:
     void ComPort(uint8_t);
     void Tz(uint8_t);
     void PasswordOffset(uint16_t);
-    void SessionTimeout(uint16_t);
-    void DisplayTimeout(uint16_t);
+    void SessionTimeout(uint16_t);  // seconds
+    void DisplayTimeout(uint16_t);  // minutes
     void SvcPort(uint16_t);
     void WebPort(uint16_t);
     void MultiLedFaultThreshold(uint16_t);
