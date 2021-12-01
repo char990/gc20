@@ -136,7 +136,15 @@ int LayerNTS::Rx(uint8_t *data, int len)
     auto &ctrl = Controller::Instance();
     if (session == ISession::SESSION::ON_LINE)
     {
-        ntsSessionTimeout.Setms(user.SessionTimeout() * 1000);
+        long ms = user.SessionTimeout();
+        if(ms==0)
+        {
+            ntsSessionTimeout.Clear();
+        }
+        else
+        {
+            ntsSessionTimeout.Setms(ms * 1000);
+        }
         ctrl.RefreshSessionTime();
         ctrl.RefreshDispTime();
     }

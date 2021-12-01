@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+
 class MI
 {
 public:
@@ -198,21 +199,6 @@ public:
     static const char *ToStr(enum ERROR err);
 };
 
-enum class MULTICOLOUR : uint8_t
-{
-    OFF,
-    Red,
-    Yellow,
-    Green,
-    Cyan,
-    Blue,
-    Magenta,
-    White,
-    Orange,
-    Amber,
-    UNDEFINED = 0xFF
-};
-
 enum class FRMCOLOUR : uint8_t
 {
     Default = 0,
@@ -357,6 +343,14 @@ extern const char *TSISP003VER[TSISP003VER_SIZE];
 
 #define PRODTYPE_SIZE 2
 extern const char *PRODTYPE[PRODTYPE_SIZE];
+enum class PRODUCT : uint8_t
+{
+    VMS,
+    ISLUS    
+};
+
+#define COLOUR_NAME_SIZE 10
+extern const char *COLOUR_NAME[COLOUR_NAME_SIZE];
 
 enum class FCLTSWITCH : uint8_t
 {

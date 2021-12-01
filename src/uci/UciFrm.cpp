@@ -33,6 +33,16 @@ void UciFrm::LoadConfig()
 {
 	PrintDbg(DBG_LOG, ">>> Loading 'frames'\n");
 	PATH = DbHelper::Instance().Path();
+	if (DbHelper::Instance().GetUciProd().ProdType() == PRODUCT::ISLUS)
+	{
+		LoadFrms("%s/islus_frm_%03d");								   // load islus frames to frms
+		memcpy(islus_frms.data(), frms.data(), sizeof(Frame *) * 255); // copy frms to islus_frm
+	}
+	LoadFrms("%s/frm_%03d");
+}
+
+void UciFrm::LoadFrms(const char *FMT)
+{
 	// using HRGFRM to allocate the memory
 	maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	chksum = 0;
@@ -43,7 +53,8 @@ void UciFrm::LoadConfig()
 	{
 		for (int i = 1; i <= 255; i++)
 		{
-			snprintf(filename, 255, "%s/frm_%03d", PATH, i);
+			frms.at(i - 1) = nullptr;
+			snprintf(filename, 255, FMT, PATH, i);
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
 			{
@@ -115,6 +126,11 @@ StFrm *UciFrm::GetStFrm(uint8_t i)
 Frame *UciFrm::GetFrm(uint8_t i)
 {
 	return (i != 0) ? frms[i - 1] : nullptr;
+}
+
+Frame *UciFrm::GetIslusFrm(uint8_t i)
+{
+	return (i != 0) ? islus_frms[i - 1] : nullptr;
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)

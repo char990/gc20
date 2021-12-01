@@ -71,8 +71,8 @@ void UciUser::LoadConfig()
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
     lockedMsg = GetInt(uciSec, _LockedMsg, 0, 255);
     passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);
-    displayTimeout = GetInt(uciSec, _DisplayTimeout, 0, 0xFFFF);
-    sessionTimeout = GetInt(uciSec, _SessionTimeout, 1, 3600);
+    displayTimeout = GetInt(uciSec, _DisplayTimeout, 0, 10080);
+    sessionTimeout = GetInt(uciSec, _SessionTimeout, 1, 65535);
     svcPort = GetInt(uciSec, _SvcPort, 1024, 0xFFFF);
     webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)

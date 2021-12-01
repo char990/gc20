@@ -74,13 +74,13 @@ void Controller::Init(TimerEvent *tmrEvt_)
     UciProd &prod = DbHelper::Instance().GetUciProd();
     switch (prod.ProdType())
     {
-    case 0: // vms
+    case PRODUCT::VMS:
         for (int i = 0; i < groups.size(); i++)
         {
             groups[i] = new GroupVms(i + 1);
         }
         break;
-    case 1: // islus
+    case PRODUCT::ISLUS:
         for (int i = 0; i < groups.size(); i++)
         {
             groups[i] = new GroupIslus(i + 1);
@@ -266,7 +266,15 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    sessionTimeout.Setms(DbHelper::Instance().GetUciUser().SessionTimeout() * 1000);
+    long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
+    if(ms==0)
+    {
+        sessionTimeout.Clear();
+    }
+    else
+    {
+        sessionTimeout.Setms(ms * 1000);
+    }
     ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 0);
 }
 

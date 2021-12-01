@@ -123,7 +123,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::MakeFrameForSlave(uint8_t uciFrmId)
 {
-    auto frm = db.GetUciFrm().GetFrm(uciFrmId);
+    auto frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
     if (frm == nullptr)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);

@@ -59,7 +59,7 @@ public:
     uint16_t LightSensorScale() { return lightSensorScale; };
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver; };
-    uint8_t ProdType() { return prodType; };
+    PRODUCT ProdType() { return prodType; };
     uint8_t SlavePowerUpDelay() { return slavePowerUpDelay; };
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
@@ -176,6 +176,8 @@ private:
     const char *_Sign = "Sign"; // Sign1-x
     // const char * _Font="Font";   // Font0-x
 
+    PRODUCT prodType;
+
     char mfcCode[11];
 
     Font *fonts[MAX_FONT + 1];
@@ -212,7 +214,6 @@ private:
         isUpgradeAllowed,
         numberOfSigns,
         numberOfGroups,
-        prodType,
         pixelRowsPerTile,
         pixelColumnsPerTile,
         tileRowsPerSlave,
