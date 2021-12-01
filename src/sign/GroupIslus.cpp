@@ -123,7 +123,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::MakeFrameForSlave(uint8_t uciFrmId)
 {
-    auto frm = db.GetUciFrm().GetFrm(uciFrmId);
+    auto frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
     if (frm == nullptr)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
@@ -150,7 +150,7 @@ void GroupIslus::MakeFrameForSlave(uint8_t uciFrmId)
     txLen = p + frmlen - txBuf;
 }
 
-int GroupIsuls::TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
+int GroupIslus::TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
     auto frm = db.GetUciFrm().GetFrm(uciFrmId);
     if (frm == nullptr)

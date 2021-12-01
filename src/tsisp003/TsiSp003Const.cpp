@@ -11,6 +11,19 @@ const char *PRODTYPE[PRODTYPE_SIZE] = {
     "ISLUS", //  1 group of ISLUS at 1 com, 1 group has 1-x sign, 1 sign has 1 slave, slave id is same as sign Id
 };
 
+// index is coulur code
+const char *COLOUR_NAME[10] = {
+    "DEFAULT",
+    "RED",
+    "YELLOW",
+    "GREEN",
+    "CYAN",
+    "BLUE",
+    "MAGENTA",
+    "WHITE",
+    "ORANGE",
+    "AMBER"};
+
 std::vector<MI::sMiCodeStr> MI::micode_str{
     {MI::CODE::Reject, "Reject"},
     {MI::CODE::Ack, "Ack"},

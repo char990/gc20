@@ -29,19 +29,6 @@ std::string StSignPort::ToString()
     return s;
 }
 
-// index is coulur code
-const char *COLOUR_NAME[10] = {
-    "DEFAULT",
-    "RED",
-    "YELLOW",
-    "GREEN",
-    "CYAN",
-    "BLUE",
-    "MAGENTA",
-    "WHITE",
-    "ORANGE",
-    "AMBER"};
-
 UciProd::UciProd()
 {
     signPort = nullptr;
@@ -98,12 +85,26 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: MfcCode length should be 6");
     }
 
-    prodType = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
+    
+    int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
+    if(_prodT==0)
+    {
+        prodType = PRODUCT::VMS;
+    }
+    else if(_prodT==1)
+    {
+        prodType = PRODUCT::ISLUS;
+    }
+    else
+    {
+        MyThrow("UciProd Error: %s: unknown", _ProdType);
+    }
+    
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 16);
     groupCfg = new uint8_t[numberOfSigns];
 
-    if (prodType == 0)
+    if (prodType == PRODUCT::VMS)
     { // VMS
         // VMS can only has 1 sign in 1 group
         // _GroupCfg ignored
@@ -115,7 +116,7 @@ void UciProd::LoadConfig()
         slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
         slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
     }
-    else if (prodType == 1)
+    else if (prodType == PRODUCT::ISLUS)
     { // ISLUS
         // ISLUS can only has 1 slave per Sign
         // _SlaveRowsPerSign/_SlaveColumnsPerSign ignored
@@ -354,7 +355,7 @@ void UciProd::LoadConfig()
     }
 
     mappedColoursTable[0] = 0;
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
     {
         str = GetStr(uciSec, COLOUR_NAME[i]);
         for (cnt = 1; cnt < 10; cnt++)
@@ -365,7 +366,7 @@ void UciProd::LoadConfig()
                 break;
             }
         }
-        if (cnt == 10)
+        if (cnt == COLOUR_NAME_SIZE)
         {
             MyThrow("UciProd Error: colour map %s undefined", COLOUR_NAME[i]);
         }
@@ -431,7 +432,7 @@ void UciProd::Dump()
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
-    PrintOption_str(_ProdType, PRODTYPE[ProdType()]);
+    PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);
     PrintOption_str(_MfcCode, MfcCode());
 
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
@@ -502,7 +503,7 @@ void UciProd::Dump()
     PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
 
     printf("\tColour map:\n");
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
     {
         PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
     }
