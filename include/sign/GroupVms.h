@@ -18,9 +18,9 @@ public:
 
     bool TaskSetATF(int *_ptLine) override ; // no use for VMS, MyThrow("VMS can run ATF")
 
-    virtual void MakeFrameForSlave(uint8_t fid) override;
+    virtual void IMakeFrameForSlave(uint8_t fid) override;
 
-    virtual int TransFrmWithOrBuf(uint8_t frmId, uint8_t *dst) override;
+    virtual int ITransFrmWithOrBuf(uint8_t frmId, uint8_t *dst) override;
 
 private:
 

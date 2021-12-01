@@ -26,7 +26,8 @@ OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 TARGET   := goblin
 INCLUDE  := -Iinclude/
-SRC_DIRS := $(shell find ./src -maxdepth 5 -type d)
+SRC_ROOT := ./src
+SRC_DIRS := $(shell find $(SRC_ROOT) -maxdepth 5 -type d)
 SRC_C    := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 SRC_CXX  := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
 SRC		 := $(SRC_C) $(SRC_CXX)
@@ -54,7 +55,7 @@ $(APP_DIR)/$(TARGET): $(OBJECTS)
 .PHONY: all build clean debug release info
 
 build:
-	@clear
+	@touch $(SRC_ROOT)/main.cpp
 	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)
 

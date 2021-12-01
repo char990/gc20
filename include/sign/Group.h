@@ -137,8 +137,11 @@ protected:
 
     virtual bool TaskSetATF(int *_ptLine) = 0;
 
-    virtual int TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) = 0;
-    virtual void MakeFrameForSlave(uint8_t fid) = 0;
+    virtual int ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) = 0;
+    virtual int TransFrmWithOrBuf(Frame * frm, uint8_t *dst);
+    virtual void IMakeFrameForSlave(uint8_t uciFrmId) = 0;
+    virtual void MakeFrameForSlave(Frame * frm);
+
     uint8_t msgOverlay{0}; // 0:No overlay, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
     int orLen;
     uint8_t *orBuf;

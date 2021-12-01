@@ -121,96 +121,22 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
     PT_END();
 }
 
-void GroupIslus::MakeFrameForSlave(uint8_t uciFrmId)
+void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    auto frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
+    Frame * frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
     if (frm == nullptr)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
     }
-    auto &prod = db.GetUciProd();
-    auto &user = db.GetUciUser();
-    uint8_t *p = txBuf + 1;
-    *p++ = 0x0B; // Gfx frame
-    p++;         // skip slave frame id
-    *p++ = prod.PixelRows();
-    p = Cnvt::PutU16(prod.PixelColumns(), p);
-    auto mappedcolour = (frm->colour == 0) ? prod.GetMappedColour(user.DefaultColour()) : frm->colour;
-    if (msgOverlay == 0 || msgOverlay == 1)
-    {
-        *p++ = mappedcolour;
-    }
-    else if (msgOverlay == 4)
-    {
-        *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
-    }
-    *p++ = frm->conspicuity;
-    int frmlen = TransFrmWithOrBuf(uciFrmId, p+2);
-    p = Cnvt::PutU16(frmlen, p);
-    txLen = p + frmlen - txBuf;
+    MakeFrameForSlave(frm);
 }
 
-int GroupIsuls::TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
+int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
-    auto frm = db.GetUciFrm().GetFrm(uciFrmId);
+    Frame * frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
     if (frm == nullptr)
     {
         MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId);
     }
-    auto &prod = db.GetUciProd();
-    int frmlen;
-    if (msgOverlay == 0)
-    {
-        frmlen = (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame)) ? prod.Gfx1FrmLen() : frm->frmBytes;
-    }
-    else if (msgOverlay == 1)
-    {
-        frmlen = prod.Gfx1FrmLen();
-    }
-    else if (msgOverlay == 4)
-    {
-        frmlen = prod.Gfx4FrmLen();
-    }
-    else
-    {
-        // TODO: 24-bit
-    }
-    uint8_t * orsrc=dst;
-    if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
-    {
-        FrmTxt *txtfrm = static_cast<FrmTxt *>(frm);
-        if (txtfrm != nullptr)
-        {
-            txtfrm->ToBitmap(msgOverlay, dst);
-        }
-        else
-        {
-            MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", uciFrmId);
-        }
-    }
-    else// if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
-        //     frm->micode == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
-    {
-        if (msgOverlay == 0)
-        { // colour may be 0/mono/multi/RGB
-            memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frmlen);
-        }
-        else
-        {
-            if ((msgOverlay == 1 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished) ||
-                (msgOverlay == 4 && frm->colour == (uint8_t)FRMCOLOUR::MultipleColours))
-            {// just set orsrc, do not memcpy
-                orsrc = frm->stFrm.rawData + frm->frmOffset;
-            }
-            else if (msgOverlay == 4 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished)
-            { // 1-bit -> 4-bit
-                frm->ToBitmap(msgOverlay, dst);
-            }
-        }
-    }
-    if (msgOverlay > 0)
-    {// with overlay
-        SetWithOrBuf(dst, orsrc, frmlen);
-    }
-    return frmlen;
+    return TransFrmWithOrBuf(frm, dst);
 }

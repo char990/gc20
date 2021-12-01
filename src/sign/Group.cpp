@@ -519,7 +519,7 @@ bool Group::TaskMsg(int *_ptLine)
                 // +++++++++ first round & first frame, set orbuf and frame 1
                 while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries - 1))
                 { // onTime==0 && not last entry, trans frame to set orBuf
-                    TransFrmWithOrBuf(pMsg->msgEntries[msgEntryCnt].frmId, orBuf);
+                    ITransFrmWithOrBuf(pMsg->msgEntries[msgEntryCnt].frmId, orBuf);
                     msgEntryCnt++;
                     msgSetEntry++;
                 };
@@ -580,7 +580,7 @@ bool Group::TaskMsg(int *_ptLine)
                         { // onTime==0 and not last entry, trans frame to set orBuf
                             if (msgSetEntry < pMsg->entries)
                             { // only set orBuf at first round
-                                TransFrmWithOrBuf(pMsg->msgEntries[nextEntry].frmId, orBuf);
+                                ITransFrmWithOrBuf(pMsg->msgEntries[nextEntry].frmId, orBuf);
                             }
                         }
                         else
@@ -1556,7 +1556,7 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
     int ms = 10;
     if (deviceEnDisCur)
     {
-        MakeFrameForSlave(uciFrmId);
+        IMakeFrameForSlave(uciFrmId);
         txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
         txBuf[2] = slvFrmId;
 
@@ -1866,6 +1866,90 @@ void Group::SystemReset2()
     }
 }
 
+void Group::MakeFrameForSlave(Frame * frm)
+{
+    auto &prod = db.GetUciProd();
+    auto &user = db.GetUciUser();
+    uint8_t *p = txBuf + 1;
+    *p++ = 0x0B; // Gfx frame
+    p++;         // skip slave frame id
+    *p++ = prod.PixelRows();
+    p = Cnvt::PutU16(prod.PixelColumns(), p);
+    auto mappedcolour = (frm->colour == 0) ? prod.GetMappedColour(user.DefaultColour()) : frm->colour;
+    if (msgOverlay == 0 || msgOverlay == 1)
+    {
+        *p++ = mappedcolour;
+    }
+    else if (msgOverlay == 4)
+    {
+        *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
+    }
+    *p++ = frm->conspicuity;
+    int frmlen = TransFrmWithOrBuf(frm, p+2);
+    p = Cnvt::PutU16(frmlen, p);
+    txLen = p + frmlen - txBuf;
+}
+
+int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
+{
+    auto &prod = db.GetUciProd();
+    int frmlen;
+    if (msgOverlay == 0)
+    {
+        frmlen = (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame)) ? prod.Gfx1FrmLen() : frm->frmBytes;
+    }
+    else if (msgOverlay == 1)
+    {
+        frmlen = prod.Gfx1FrmLen();
+    }
+    else if (msgOverlay == 4)
+    {
+        frmlen = prod.Gfx4FrmLen();
+    }
+    else
+    {
+        // TODO: 24-bit
+    }
+    uint8_t * orsrc=dst;
+    if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
+    {
+        FrmTxt *txtfrm = static_cast<FrmTxt *>(frm);
+        if (txtfrm != nullptr)
+        {
+            txtfrm->ToBitmap(msgOverlay, dst);
+        }
+        else
+        {
+            MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId);
+        }
+    }
+    else// if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
+        //     frm->micode == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
+    {
+        if (msgOverlay == 0)
+        { // colour may be 0/mono/multi/RGB
+            memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frmlen);
+        }
+        else
+        {
+            if ((msgOverlay == 1 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished) ||
+                (msgOverlay == 4 && frm->colour == (uint8_t)FRMCOLOUR::MultipleColours))
+            {// just set orsrc, do not memcpy
+                orsrc = frm->stFrm.rawData + frm->frmOffset;
+            }
+            else if (msgOverlay == 4 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished)
+            { // 1-bit -> 4-bit
+                frm->ToBitmap(msgOverlay, dst);
+            }
+        }
+    }
+    if (msgOverlay > 0)
+    {// with overlay
+        SetWithOrBuf(dst, orsrc, frmlen);
+    }
+    return frmlen;
+}
+
 void Group::SetWithOrBuf(uint8_t * dst, uint8_t * src, int len)
 {
     auto p = orBuf;
@@ -1879,3 +1963,4 @@ void Group::SetWithOrBuf(uint8_t * dst, uint8_t * src, int len)
         dst++;
     }
 }
+

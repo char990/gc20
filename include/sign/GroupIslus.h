@@ -14,9 +14,9 @@ public:
 
     bool TaskSetATF(int *_ptLine) override;
 
-    virtual void MakeFrameForSlave(uint8_t fid) override;
+    virtual void IMakeFrameForSlave(uint8_t fid) override;
 
-    virtual int TransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) override;
+    virtual int ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) override;
 
 private:
     uint8_t sATF;
