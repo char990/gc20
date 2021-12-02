@@ -216,7 +216,8 @@ private:
     uint8_t
         onDispNewMsg, // 0:EMPTY, 1:new msg load
         onDispMsgId,
-        msgEntryCnt; // 0 - (msg->entries-1)
+        msgEntryCnt, // 0 - (msg->entries-1)
+        msgSlaveErrCnt;
     // msgSetEntry/Max depend on frame 'onTime'=0(frame overlay)
     // if there is an entry onTime(!0) following an entry onTime(0), msgSetEntryMax = msg->entries + last onTime(0) entry
     // otherwise, msgSetEntryMax=msg->entries

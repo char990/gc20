@@ -130,12 +130,21 @@ int Slave::CheckCurrent()
     else
     {
         PrintDbg(DBG_LOG, "Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)\n",
-                sign->SignId(), slaveId, currentFrmId, currentFrmCrc, expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+                 sign->SignId(), slaveId,
+                 currentFrmId, currentFrmCrc,
+                 expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
-            if (currentFrmIdBak == currentFrmId && currentFrmId != 0 && frmCrc[currentFrmId] == currentFrmCrc)
-            {
-                return 1; // lastFrm matched. Re-send Setstored/Display frame
+            if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmId] == currentFrmCrc)
+            {// may missed the command
+                if (currentFrmId != 0)
+                {
+                    return 1; // lastFrm matched. Re-send Setstored/Display frame
+                }
+                else
+                { // if currentFrmId==0, slave may reset
+                    return 3;
+                }
             }
         }
         return 2; // fatal error, frames in slave lost. Should re-SetFrame
@@ -155,7 +164,7 @@ int Slave::CheckNext()
     else
     {
         PrintDbg(DBG_LOG, "Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)\n",
-                sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+                 sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
 }
@@ -166,7 +175,7 @@ void Slave::ReportOffline(bool v)
     snprintf(buf, 63, "Sign[%d].Slave[%d] %s", sign->SignId(), slaveId, v ? "OFF-line" : "On-line");
     PrintDbg(DBG_LOG, "%s\n", buf);
     DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
-    if(v)
+    if (v)
     {
         sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);
     }

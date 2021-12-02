@@ -400,6 +400,12 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                          user.Fan1OnTemp(), v);
                 user.Fan1OnTemp(v);
             }
+            if (v != user.Fan2OnTemp())
+            {
+                evt.Push(0, "User.Fan2OnTemp changed: %u->%u",
+                         user.Fan2OnTemp(), v);
+                user.Fan2OnTemp(v);
+            }
 
             v = *(pd + 20);
             if (v != user.Humidity())

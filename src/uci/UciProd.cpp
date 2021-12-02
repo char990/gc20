@@ -100,8 +100,8 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s: unknown", _ProdType);
     }
     
-    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 16);
-    numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 16);
+    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
+    numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
     groupCfg = new uint8_t[numberOfSigns];
 
     if (prodType == PRODUCT::VMS)

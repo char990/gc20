@@ -309,7 +309,7 @@ void Group::FcltSwitchFunc()
             {
                 fsPwr = PWR_STATE::RISING;
             }
-            else if(fsPwr == PWR_STATE::NA)
+            else if (fsPwr == PWR_STATE::NA)
             {
                 fsPwr = PWR_STATE::ON;
             }
@@ -334,7 +334,9 @@ void Group::FcltSwitchFunc()
 
 bool Group::TaskPln(int *_ptLine)
 {
-    if (!IsBusFree() || dsCurrent->dispType != DISP_TYPE::PLN || !readyToLoad)
+    if (!IsBusFree())
+        return PT_RUNNING;
+    if (dsCurrent->dispType != DISP_TYPE::PLN || !readyToLoad)
     {
         return PT_RUNNING;
     }
@@ -435,8 +437,9 @@ PlnMinute &Group::GetCurrentMinPln()
 bool Group::TaskMsg(int *_ptLine)
 {
     uint8_t nextEntry; // temp using
-    if (!IsBusFree() ||
-        (dsCurrent->dispType != DISP_TYPE::MSG &&
+    if (!IsBusFree())
+        return PT_RUNNING;
+    if ((dsCurrent->dispType != DISP_TYPE::MSG &&
          dsCurrent->dispType != DISP_TYPE::FSW &&
          dsCurrent->dispType != DISP_TYPE::EXT &&
          !(dsCurrent->dispType == DISP_TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_MSG)))
@@ -555,6 +558,7 @@ bool Group::TaskMsg(int *_ptLine)
                         {
                             taskMsgLastFrmTmr.Clear();
                         }
+                        msgSlaveErrCnt = 0;
                         do // +++++++++ DispFrm X
                         {
                             SlaveSetStoredFrame(0xFF, msgEntryCnt + 1);
@@ -564,7 +568,15 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 AllSlavesUpdateCurrentBak();
                             }
-                        } while (allSlavesCurrent == 1); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
+                            else if (allSlavesCurrent == 3)
+                            {
+                                if (++msgSlaveErrCnt == 3)
+                                {
+                                    PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Slave may reset, RESTART\n");
+                                    goto NORMAL_MSG_TASK_START;
+                                }
+                            }
+                        } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
                             PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Current NOT matched, RESTART\n");
@@ -619,19 +631,30 @@ bool Group::TaskMsg(int *_ptLine)
                         // ++++++++++ transition time begin
                         if (pMsg->transTime != 0)
                         {
-                            SlaveDisplayFrame(0xFF, 0);
+                            if (msgEntryCnt == (pMsg->entries - 1))
+                            {
+                                // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
+                                readyToLoad = 1;
+                            }
                             taskMsgTmr.Setms(pMsg->transTime * 10 - MS_SHIFT);
-                            PT_WAIT_UNTIL(taskMsgTmr.IsExpired());
-                            AllSlavesUpdateCurrentBak();
+                            do
+                            {
+                                SlaveDisplayFrame(0xFF, 0);
+                                PT_YIELD();
+                                AllSlavesUpdateCurrentBak();
+                            } while (!taskMsgTmr.IsExpired());
                             // because transition time is generally short, don't have enough time to reload if there is an error, so just wait for expired
                         }
                         // +++++++++++ transition time end
                     }
                     if (msgEntryCnt == (pMsg->entries - 1))
                     {
-                        // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
-                        readyToLoad = 1;
-                        PT_YIELD();
+                        if (readyToLoad == 0)
+                        {
+                            // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
+                            readyToLoad = 1;
+                            PT_YIELD();
+                        }
                         msgEntryCnt = 0;
                         if (msgSetEntry < msgSetEntryMax)
                         {
@@ -705,8 +728,9 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
 
 bool Group::TaskFrm(int *_ptLine)
 {
-    if (!IsBusFree() ||
-        (dsCurrent->dispType != DISP_TYPE::FRM &&
+    if (!IsBusFree())
+        return PT_RUNNING;
+    if ((dsCurrent->dispType != DISP_TYPE::FRM &&
          dsCurrent->dispType != DISP_TYPE::BLK &&
          dsCurrent->dispType != DISP_TYPE::ATF &&
          !(dsCurrent->dispType == DISP_TYPE::PLN && onDispPlnEntryType == PLN_ENTRY_FRM)))
@@ -795,6 +819,7 @@ bool Group::TaskFrm(int *_ptLine)
                 }
             } while (allSlavesCurrent == 0); // all good
         } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
+        // if allSlavesCurrent == 2, slave may reset, re-start
     };
     PT_END();
 }
@@ -832,7 +857,6 @@ bool Group::TaskRqstSlave(int *_ptLine)
                     auto &s = vSlaves.at(rqstSt_slvindex);
                     if (s->rxStatus == 0)
                     { // no reply
-
                         if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
                         {
                             rqstNoRplCnt++;
@@ -1866,7 +1890,7 @@ void Group::SystemReset2()
     }
 }
 
-void Group::MakeFrameForSlave(Frame * frm)
+void Group::MakeFrameForSlave(Frame *frm)
 {
     auto &prod = db.GetUciProd();
     auto &user = db.GetUciUser();
@@ -1885,12 +1909,12 @@ void Group::MakeFrameForSlave(Frame * frm)
         *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
     }
     *p++ = frm->conspicuity;
-    int frmlen = TransFrmWithOrBuf(frm, p+2);
+    int frmlen = TransFrmWithOrBuf(frm, p + 2);
     p = Cnvt::PutU16(frmlen, p);
     txLen = p + frmlen - txBuf;
 }
 
-int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
+int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
 {
     auto &prod = db.GetUciProd();
     int frmlen;
@@ -1910,7 +1934,7 @@ int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
     {
         // TODO: 24-bit
     }
-    uint8_t * orsrc=dst;
+    uint8_t *orsrc = dst;
     if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
         FrmTxt *txtfrm = static_cast<FrmTxt *>(frm);
@@ -1923,7 +1947,7 @@ int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
             MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId);
         }
     }
-    else// if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
+    else // if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
         //     frm->micode == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
     {
         if (msgOverlay == 0)
@@ -1934,7 +1958,7 @@ int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
         {
             if ((msgOverlay == 1 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished) ||
                 (msgOverlay == 4 && frm->colour == (uint8_t)FRMCOLOUR::MultipleColours))
-            {// just set orsrc, do not memcpy
+            { // just set orsrc, do not memcpy
                 orsrc = frm->stFrm.rawData + frm->frmOffset;
             }
             else if (msgOverlay == 4 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished)
@@ -1944,23 +1968,22 @@ int Group::TransFrmWithOrBuf(Frame * frm, uint8_t *dst)
         }
     }
     if (msgOverlay > 0)
-    {// with overlay
+    { // with overlay
         SetWithOrBuf(dst, orsrc, frmlen);
     }
     return frmlen;
 }
 
-void Group::SetWithOrBuf(uint8_t * dst, uint8_t * src, int len)
+void Group::SetWithOrBuf(uint8_t *dst, uint8_t *src, int len)
 {
     auto p = orBuf;
-    for(int i=0;i<len;len++)
+    for (int i = 0; i < len; len++)
     {
         uint8_t x = *src++ | *p++;
-        if(x<(uint8_t)FRMCOLOUR::MonoFinished)
+        if (x < (uint8_t)FRMCOLOUR::MonoFinished)
         {
             *dst = x;
         }
         dst++;
     }
 }
-
