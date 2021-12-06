@@ -193,7 +193,7 @@ void Group::PeriodicRun()
     {
         DispBackup();
         dsCurrent->N_A();
-        readyToLoad = 1;
+        ReadyToLoad(1);
         fatalError.ClearFalling();
         PrintDbg(DBG_LOG, "Group[%d] fatalError Clr\n", groupId);
     }
@@ -202,7 +202,7 @@ void Group::PeriodicRun()
     { // only when there is NO fatal error
         if (IsDsNextEmergency())
         {
-            readyToLoad = 1;
+            ReadyToLoad(1);
         }
         if (readyToLoad)
         {
@@ -282,7 +282,7 @@ void Group::PowerFunc()
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
                 fsPwr = PWR_STATE::ON;
-                readyToLoad = 1;
+                ReadyToLoad(1);
                 RqstExtStatus(0xFF);
             }
         }
@@ -298,7 +298,10 @@ void Group::FcltSwitchFunc()
         fcltSw.ClearChanged();
         Controller::Instance().ctrllerError.Push(
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
-        db.GetUciEvent().Push(0, "Group%d:%s", groupId, fcltSw.ToStr());
+        char buf[64];
+        snprintf(buf, 63, "Group%d:%s", groupId, fcltSw.ToStr());
+        PrintDbg(DBG_LOG, "%s\n", buf);
+        db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
             fsPwr = PWR_STATE::OFF;
@@ -526,7 +529,7 @@ bool Group::TaskMsg(int *_ptLine)
                     msgEntryCnt++;
                     msgSetEntry++;
                 };
-                /// #2: first frame
+                /// #2: set first frame
                 do
                 {
                     SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
@@ -540,9 +543,8 @@ bool Group::TaskMsg(int *_ptLine)
                 {
                     if (deviceEnDisCur)
                     {
-                        readyToLoad = 0; // when a msg begin, clear readyToLoad
+                        ReadyToLoad(0); // when a msg begin, clear readyToLoad
                     }
-
                     if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
                     { // overlay frame do not need to run DispFrm
                         onDispFrmId = pMsg->msgEntries[msgEntryCnt].frmId;
@@ -615,7 +617,7 @@ bool Group::TaskMsg(int *_ptLine)
                             if (taskMsgLastFrmTmr.IsExpired())
                             {
                                 taskMsgLastFrmTmr.Clear();
-                                readyToLoad = 1; // last frame on expired
+                                ReadyToLoad(1); // last frame on expired
                             }
                         }
                     } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
@@ -634,27 +636,24 @@ bool Group::TaskMsg(int *_ptLine)
                             if (msgEntryCnt == (pMsg->entries - 1))
                             {
                                 // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
-                                readyToLoad = 1;
+                                ReadyToLoad(1);
                             }
                             taskMsgTmr.Setms(pMsg->transTime * 10 - MS_SHIFT);
                             do
                             {
                                 SlaveDisplayFrame(0xFF, 0);
-                                PT_YIELD();
+                                ClrAllSlavesRxStatus();
                                 AllSlavesUpdateCurrentBak();
+                                PT_WAIT_UNTIL(CheckAllSlavesCurrent() > 0 || taskMsgTmr.IsExpired());
                             } while (!taskMsgTmr.IsExpired());
-                            // because transition time is generally short, don't have enough time to reload if there is an error, so just wait for expired
                         }
                         // +++++++++++ transition time end
                     }
                     if (msgEntryCnt == (pMsg->entries - 1))
                     {
-                        if (readyToLoad == 0)
-                        {
-                            // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
-                            readyToLoad = 1;
-                            PT_YIELD();
-                        }
+                        // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
+                        ReadyToLoad(1);
+                        PT_YIELD();
                         msgEntryCnt = 0;
                         if (msgSetEntry < msgSetEntryMax)
                         {
@@ -754,6 +753,7 @@ bool Group::TaskFrm(int *_ptLine)
     while (true)
     {
         // step1: set frame
+        taskFrmRefreshTmr.Clear();
         if (dsCurrent->dispType == DISP_TYPE::ATF)
         {
             onDispPlnId = 0;
@@ -800,7 +800,7 @@ bool Group::TaskFrm(int *_ptLine)
         do
         {
             SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
-            taskFrmRefreshTmr.Setms(600 * 1000);
+            taskFrmRefreshTmr.Setms(taskFrmRefreshTmr.IsClear() ? 600 * 1000 : 1000);
             ClrAllSlavesRxStatus();
             do
             {
@@ -885,6 +885,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
                         if (s->isOffline)
                         {
                             s->ReportOffline(false);
+                            rqstSt_slvindex = 0;
                         }
                     }
                 }
@@ -1657,7 +1658,7 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
     txBuf[2] = slvFrmId;
     txLen = 3;
     Tx();
-    int ms = db.GetUciProd().SlaveDispDly();
+    int ms = (slvFrmId == 0) ? db.GetUciProd().SlaveRqstInterval() : db.GetUciProd().SlaveDispDly();
     LockBus(ms);
     return ms;
 }
@@ -1863,7 +1864,7 @@ void Group::SystemReset0()
     buf[2] = 0;
     db.GetUciProcess().SetDisp(groupId, buf, 3);
     DispNext(DISP_TYPE::FRM, 0);
-    readyToLoad = 1;
+    ReadyToLoad(1);
     SetDimming(0);
     SetDevice(1);
     activeMsg.ClrAll();
@@ -1987,3 +1988,14 @@ void Group::SetWithOrBuf(uint8_t *dst, uint8_t *src, int len)
         dst++;
     }
 }
+
+/*
+void Group::ReadyToLoad(uint8_t v)
+{
+    if (readyToLoad != v)
+    {
+        PrintDbg(DBG_PRT, "readyToLoad(%d)->%d\n", readyToLoad, v);
+        readyToLoad = v;
+    }
+}
+*/

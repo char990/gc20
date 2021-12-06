@@ -143,6 +143,10 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     {
         return;
     }
+    if(t==0)
+    {
+        t = ds3231time(nullptr);
+    }
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
@@ -173,11 +177,6 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     {
         PrintDbg(DBG_LOG, "Fault:%s:%s\n", DEV::ToStr(errorCode), onset?"onset":"clear");
     }
-}
-
-void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset)
-{
-    Push(id, errorCode, onset, ds3231time(nullptr));
 }
 
 void UciFault::Reset()

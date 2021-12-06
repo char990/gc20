@@ -135,7 +135,7 @@ int Slave::CheckCurrent()
                  expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
-            if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmId] == currentFrmCrc)
+            if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmIdBak] == currentFrmCrc)
             {// may missed the command
                 if (currentFrmId != 0)
                 {

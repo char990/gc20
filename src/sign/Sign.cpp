@@ -49,18 +49,13 @@ void Sign::InitFaults()
     ls18hoursFault.SetState(false);
     lsMidnightFault.SetState(false);
     lsMiddayFault.SetState(false);
-    if (chainFault.IsHigh() ||
-        multiLedFault.IsHigh() ||
-        selftestFault.IsHigh() ||
-        voltageFault.IsHigh() ||
-        overtempFault.IsHigh())
-    {
-        fatalError.Set();
-    }
-    else
-    {
-        fatalError.Clr();
-    }
+    fatalError.Init((chainFault.IsHigh() ||
+                     multiLedFault.IsHigh() ||
+                     selftestFault.IsHigh() ||
+                     voltageFault.IsHigh() ||
+                     overtempFault.IsHigh())
+                        ? STATE5::S5_1
+                        : STATE5::S5_0);
 }
 
 void Sign::ClearFaults()
@@ -385,7 +380,7 @@ void Sign::RefreshFatalError()
     else
     {
         fatalError.Clr();
-        if (fatalError.IsFalling())
+        if (fatalError.IsFalling() && (fatalError.PreV() != STATE5::S5_NA))
         {
             PrintDbg(DBG_LOG, "Sign[%d] fatalError Clr\n", signId);
         }

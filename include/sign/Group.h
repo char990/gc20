@@ -138,9 +138,9 @@ protected:
     virtual bool TaskSetATF(int *_ptLine) = 0;
 
     virtual int ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) = 0;
-    virtual int TransFrmWithOrBuf(Frame * frm, uint8_t *dst);
+    virtual int TransFrmWithOrBuf(Frame *frm, uint8_t *dst);
     virtual void IMakeFrameForSlave(uint8_t uciFrmId) = 0;
-    virtual void MakeFrameForSlave(Frame * frm);
+    virtual void MakeFrameForSlave(Frame *frm);
 
     uint8_t msgOverlay{0}; // 0:No overlay, 1:mono gfx, 4:4-bit gfx, 24:24-bit gfx
     int orLen;
@@ -151,12 +151,13 @@ protected:
         memset(orBuf, 0, orLen);
     }
 
-    void SetWithOrBuf(uint8_t * dst, uint8_t * src, int len);
+    void SetWithOrBuf(uint8_t *dst, uint8_t *src, int len);
 
 private:
     uint8_t grpTick{0};
 
     uint8_t readyToLoad{1}, newCurrent{0};
+    void ReadyToLoad(uint8_t v) { readyToLoad = v; };
 
     uint8_t deviceEnDisSet, deviceEnDisCur;
     void EnDisDevice();
@@ -195,7 +196,7 @@ private:
 
     bool IsDsNextEmergency();
 
-    Utils::State5 fatalError; 
+    Utils::State5 fatalError;
 
     /******************** Task Plan ********************/
     uint8_t onDispPlnId;
@@ -273,6 +274,7 @@ private:
         taskATFLine = 0;
     }
 
+    /******************** Task Rqst ********************/
     bool TaskRqstSlave(int *_ptLine);
     int taskRqstSlaveLine{0};
     BootTimer taskRqstSlaveTmr;

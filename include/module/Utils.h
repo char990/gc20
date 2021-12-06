@@ -26,11 +26,12 @@ namespace Utils
     class State5
     {
     public:
-        State5() { value = STATE5::S5_NA; };
-        State5(STATE5 _v) : value(_v){};
-        void Init(STATE5 _v) { value = _v; };
+        State5() { pre_v = value = STATE5::S5_NA; };
+        State5(STATE5 _v) : value(_v), pre_v(_v){};
+        void Init(STATE5 _v) { pre_v = value = _v; };
         void Set()
         {
+            pre_v = value;
             if (value == STATE5::S5_NA || value == STATE5::S5_0 || value == STATE5::S5_F)
             {
                 value = STATE5::S5_R;
@@ -38,6 +39,7 @@ namespace Utils
         };
         void Clr()
         {
+            pre_v = value;
             if (value == STATE5::S5_NA || value == STATE5::S5_1 || value == STATE5::S5_R)
             {
                 value = STATE5::S5_F;
@@ -77,6 +79,7 @@ namespace Utils
         bool IsLow() { return value == STATE5::S5_F || value == STATE5::S5_0; };
         bool IsValid() { return value != STATE5::S5_NA; };
         STATE5 Value() { return value; };
+        STATE5 PreV() { return pre_v; };
         const char *State()
         {
             if (value == STATE5::S5_0)
@@ -92,6 +95,7 @@ namespace Utils
 
     protected:
         STATE5 value;
+        STATE5 pre_v;
     };
 
     extern const uint32_t MASK_BIT[32];
