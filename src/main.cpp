@@ -229,10 +229,8 @@ int main(int argc, char *argv[])
         GpioInit();
 
 
-#define LINKS_NTS 3 // from tcp-tsi-sp-003-nts
-#define LINKS_WEB 2 // from web
-        // 2(tmr) + 1+3*2(nts) + 1+2*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 30
-        Epoll::Instance().Init(32);
+        // 2(tmr) + 1+8*2(nts) + 1+4*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 44
+        Epoll::Instance().Init(64);
         TimerEvent ctrllerTmrEvt{CTRLLER_TICK, "[ctrllerTmrEvt]"};
         //TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
         TimerEvent tmrEvt1Sec{1000, "[tmrEvt1Sec]"};
@@ -288,10 +286,10 @@ int main(int argc, char *argv[])
         }
 
         // TSI-SP-003 Web
-        TcpServer tcpServerWeb{user.WebPort(), "WEB", LINKS_WEB, &tmrEvt1Sec};
+        TcpServer tcpServerWeb{user.WebPort(), "WEB", prod.TcpServerWEB(), &tmrEvt1Sec};
 
         // TSI-SP-003 Tcp
-        TcpServer tcpServerNts{user.SvcPort(), "NTS", LINKS_NTS, &tmrEvt1Sec};
+        TcpServer tcpServerNts{user.SvcPort(), "NTS", prod.TcpServerNTS(), &tmrEvt1Sec};
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
         PrintDbg(DBG_LOG, ">>> DONE >>>\n");

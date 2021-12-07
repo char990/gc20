@@ -95,7 +95,7 @@ void Log(int len)
 	if (days != 0 && days != today)
 	{
 		char rm[256];
-		snprintf(rm, 255, "rm %s/log/*_%02d", mainpath, d);
+		snprintf(rm, 255, "rm %s/log/*_%02d > /dev/null 2>&1", mainpath, d);
 		system(rm);
 	}
 	days = today;

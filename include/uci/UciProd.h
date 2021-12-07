@@ -23,15 +23,17 @@ public:
     void Dump() override;
 
     // getter
+    uint8_t TcpServerNTS() { return tcpServerNTS; };
+    uint8_t TcpServerWEB() { return tcpServerWEB; };
     char *MfcCode() { return &mfcCode[0]; };
     Font *Fonts(int i) { return fonts[i]; };
     struct StSignPort *SignPort(uint8_t id) { return &signPort[id - 1]; };
     uint8_t *MappedColoursTable() { return &mappedColoursTable[0]; };
     uint8_t GetMappedColour(uint8_t c)
     {
-        if(c>9)
+        if (c > 9)
         {
-            c=0;
+            c = 0;
         }
         return mappedColoursTable[c];
     }
@@ -105,8 +107,8 @@ public:
 
     int MinTxtFrmLen() { return 1; };
     int MaxTxtFrmLen() { return 255; };
-    int Gfx1FrmLen() { return gfx1FrmLen; }; // bytes
-    int Gfx4FrmLen() { return gfx4FrmLen; }; // bytes
+    int Gfx1FrmLen() { return gfx1FrmLen; };   // bytes
+    int Gfx4FrmLen() { return gfx4FrmLen; };   // bytes
     int Gfx24FrmLen() { return gfx24FrmLen; }; // bytes
 
     uint8_t *GroupCfg() { return groupCfg; };
@@ -150,6 +152,8 @@ private:
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
 
     /// uint8_t
+    const char *_TcpServerNTS = "TcpServerNTS";
+    const char *_TcpServerWEB = "TcpServerWEB";
     const char *_TsiSp003Ver = "TsiSp003Ver";
     const char *_NumberOfSigns = "NumberOfSigns";
     const char *_NumberOfGroups = "NumberOfGroups";
@@ -207,6 +211,8 @@ private:
         lightSensorScale;
 
     uint8_t
+        tcpServerNTS,
+        tcpServerWEB,
         tsiSp003Ver,
         slavePowerUpDelay,
         colourBits, // 1,4,24

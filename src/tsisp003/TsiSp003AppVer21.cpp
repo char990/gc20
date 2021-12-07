@@ -165,6 +165,11 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
 {
+	if (db.GetUciProd().ProdType() == PRODUCT::ISLUS)
+    {
+        Reject(APP::ERROR::MiNotSupported);
+        return;
+    }
     auto r = APP::ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
@@ -247,6 +252,11 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 {
     if (!CheckOnline_RejectIfFalse())
     {
+        return;
+    }
+	if (db.GetUciProd().ProdType() == PRODUCT::ISLUS)
+    {
+        Reject(APP::ERROR::MiNotSupported);
         return;
     }
     auto r = APP::ERROR::AppNoError;

@@ -164,7 +164,7 @@ void Controller::PeriodicRun()
     }
 
     if (++msTemp >= CTRLLER_MS(60 * 1000))
-    {// every 60s
+    { // every 60s
         msTemp = 0;
         maxTemp = 0;
         curTemp = 0;
@@ -267,7 +267,7 @@ void Controller::RefreshDispTime()
 void Controller::RefreshSessionTime()
 {
     long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
-    if(ms==0)
+    if (ms == 0)
     {
         sessionTimeout.Clear();
     }
@@ -360,8 +360,12 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         }
         if (lvl >= 3)
         {
-            db.GetUciFrm().Reset();
-            db.GetUciMsg().Reset();
+            if(db.GetUciProd().ProdType() == PRODUCT::VMS)
+            {   // Clearing all frame/msg is for VMS only
+                // ISLUS's frame/msg/plan can not be changed
+                db.GetUciFrm().Reset();
+                db.GetUciMsg().Reset();
+            }
             db.GetUciPln().Reset();
         }
         if (lvl == 255)

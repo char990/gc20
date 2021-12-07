@@ -74,6 +74,10 @@ void UciProd::LoadConfig()
     const char *str;
     int cnt;
 
+
+    tcpServerNTS = GetInt(uciSec, _TcpServerNTS, 1, 8);
+    tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
+
     tsiSp003Ver = GetIntFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
@@ -430,6 +434,9 @@ void UciProd::Dump()
 {
     PrintDash();
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
+
+    PrintOption_d(_TcpServerNTS, TcpServerNTS());
+    PrintOption_d(_TcpServerWEB, TcpServerWEB());
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);

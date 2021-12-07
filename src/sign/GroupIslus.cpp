@@ -123,12 +123,19 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    Frame * frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
-    if (frm == nullptr)
-    {
-        MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+    if(uciFrmId==189 || uciFrmId==199)
+    { // Red Cross "X"
+
     }
-    MakeFrameForSlave(frm);
+    else
+    {
+        Frame * frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
+        if (frm == nullptr)
+        {
+            MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+        }
+        MakeFrameForSlave(frm);
+    }
 }
 
 int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
