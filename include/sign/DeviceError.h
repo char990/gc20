@@ -8,7 +8,7 @@ class DeviceError
 protected:
     const DEV::ERROR *devErr;
     int size;
-    Utils::Bool32 errBit{0};
+    Utils::Bits errBit{32};
 
     // \return  true: state changed, false: state NOT changed
     bool DevError(DEV::ERROR code, bool v);
@@ -16,9 +16,9 @@ protected:
 public:
     DeviceError(int size);
     virtual ~DeviceError();
-    void Clear() { errBit.Set(0); };
-    uint32_t GetV() { return errBit.Get(); };
-    void SetV(uint32_t v) { errBit.Set(v); } ;
+    void Clear() { errBit.ClrAll(); };
+    Utils::Bits & GetV() { return errBit; };
+    void SetV(Utils::Bits & v) { errBit.Clone(v); } ;
     bool IsSet(DEV::ERROR code);
 
     // highest priority error code

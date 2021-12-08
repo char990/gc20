@@ -708,27 +708,8 @@ int Time::SleepMs(long msec)
     do
     {
         res = nanosleep(&ts, &ts);
-    } while (res/* && errno == EINTR*/);
+    } while (res /* && errno == EINTR*/);
     return res;
-}
-
-std::string Bool32::ToString()
-{
-    char buf[128];
-    int len = 0;
-    for (int i = 0; i < 32; i++)
-    {
-        if (GetBit(i))
-        {
-            if (len > 0)
-            {
-                sprintf(buf + len, ",");
-                len++;
-            }
-            len += sprintf(buf + len, "%d", i);
-        }
-    }
-    return (len == 0) ? " " : std::string{buf};
 }
 
 void BitOffset::SetBit(uint8_t *buf, int bitOffset)
@@ -752,41 +733,94 @@ bool BitOffset::GetBit(uint8_t *buf, int bitOffset)
     return (*p & b) != 0;
 }
 
-void Bool256::Set(uint8_t bitOffset)
+Bits::Bits(int size)
+    : size(size)
 {
+    bytes = (size + 7) / 8;
+    data = new uint8_t[bytes];
+    ClrAll();
+}
+
+void Bits::Init(int size)
+{
+    if (data != nullptr)
+    {
+        delete[] data;
+    }
+    this->size = size;
+    bytes = (size + 7) / 8;
+    data = new uint8_t[bytes];
+    ClrAll();
+}
+
+Bits::~Bits()
+{
+    if (data != nullptr)
+    {
+        delete[] data;
+    }
+}
+
+void Bits::SetBit(int bitOffset)
+{
+    Check(bitOffset);
     BitOffset::SetBit(data, bitOffset);
 }
 
-void Bool256::Clr(uint8_t bitOffset)
+void Bits::ClrBit(int bitOffset)
 {
+    Check(bitOffset);
     BitOffset::ClrBit(data, bitOffset);
 }
 
-void Bool256::ClrAll()
+void Bits::ClrAll()
 {
-    memset(data, 0, sizeof(data));
+    memset(data, 0, bytes);
 }
 
-bool Bool256::Get(uint8_t bitOffset)
+bool Bits::GetBit(int bitOffset)
 {
+    Check(bitOffset);
     return BitOffset::GetBit(data, bitOffset);
 }
 
-std::string Bool256::ToString()
+std::string Bits::ToString()
 {
     char buf[1024];
     int len = 0;
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < size && i < 256; i++)
     {
         if (BitOffset::GetBit(data, i))
         {
-            if (len > 0)
-            {
-                sprintf(buf + len, ",");
-                len++;
-            }
-            len += sprintf(buf + len, "%d", i);
+            len += sprintf(buf + len, (len == 0) ? "%d" : ",%d", i);
         }
     }
     return (len == 0) ? " " : std::string{buf};
+}
+
+void Bits::Check(int bitOffset)
+{
+    if (bitOffset >= size)
+    {
+        MyThrow("Bits(size=%d):out_of_range: bit[%d]", size, bitOffset);
+    }
+}
+
+int Bits::GetMaxBit()
+{
+    int max = -1;
+    for (int i = 0; i < size; i++)
+    {
+        if (BitOffset::GetBit(data, i))
+        {
+            max = i;
+        }
+    }
+    return max;
+}
+
+void Bits::Clone(Bits &v)
+{
+    Init(v.Size());
+    memcpy(data, v.Data(), bytes);
 }

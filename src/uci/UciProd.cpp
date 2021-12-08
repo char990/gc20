@@ -13,7 +13,7 @@ extern const char *FirmwareMinorVer;
 
 using namespace Utils;
 
-std::string StSignPort::ToString()
+std::string SignCfg::ToString()
 {
     char buf[64];
     if (com_ip < COMPORT_SIZE)
@@ -31,7 +31,6 @@ std::string StSignPort::ToString()
 
 UciProd::UciProd()
 {
-    signPort = nullptr;
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         fonts[i] = nullptr;
@@ -40,10 +39,6 @@ UciProd::UciProd()
 
 UciProd::~UciProd()
 {
-    if (signPort != nullptr)
-    {
-        delete[] signPort;
-    }
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
         Font *v = fonts[i];
@@ -74,7 +69,6 @@ void UciProd::LoadConfig()
     const char *str;
     int cnt;
 
-
     tcpServerNTS = GetInt(uciSec, _TcpServerNTS, 1, 8);
     tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
 
@@ -89,13 +83,12 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: MfcCode length should be 6");
     }
 
-    
     int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
-    if(_prodT==0)
+    if (_prodT == 0)
     {
         prodType = PRODUCT::VMS;
     }
-    else if(_prodT==1)
+    else if (_prodT == 1)
     {
         prodType = PRODUCT::ISLUS;
     }
@@ -103,7 +96,7 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: %s: unknown", _ProdType);
     }
-    
+
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
     groupCfg = new uint8_t[numberOfSigns];
@@ -150,7 +143,7 @@ void UciProd::LoadConfig()
     tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
     tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
 
-    signPort = new struct StSignPort[numberOfSigns];
+    signCfg.resize(numberOfSigns);
     for (int i = 1; i <= numberOfSigns; i++)
     {
         sprintf(cbuf, "%s%d", _Sign, i);
@@ -160,8 +153,8 @@ void UciProd::LoadConfig()
         {
             if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
             {
-                signPort[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
-                signPort[i - 1].bps_port = x5;
+                signCfg[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
+                signCfg[i - 1].bps_port = x5;
                 continue;
             }
         }
@@ -174,7 +167,7 @@ void UciProd::LoadConfig()
             }
             if (cnt < COMPORT_SIZE)
             {
-                signPort[i - 1].com_ip = cnt;
+                signCfg[i - 1].com_ip = cnt;
                 const char *bps = strchr(str, ':');
                 if (bps != NULL)
                 {
@@ -188,7 +181,7 @@ void UciProd::LoadConfig()
                         }
                         if (cnt < EXTENDEDBPS_SIZE)
                         {
-                            signPort[i - 1].bps_port = x5;
+                            signCfg[i - 1].bps_port = x5;
                             continue;
                         }
                     }
@@ -196,6 +189,21 @@ void UciProd::LoadConfig()
             }
         }
         MyThrow("UciProd Error: %s '%s'", cbuf, str);
+    }
+
+    if (prodType == PRODUCT::ISLUS)
+    {
+        for (int i = 1; i <= numberOfSigns; i++)
+        {
+            try
+            {
+                sprintf(cbuf, "%s%d", _RjctFrmSign, i);
+                ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm);
+            }
+            catch (...)
+            {
+            };
+        }
     }
 
     slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 5000);
@@ -290,7 +298,7 @@ void UciProd::LoadConfig()
     }
 
     colourBits = GetInt(uciSec, _ColourBits, 1, 24);
-    if (colourBits != 1 && colourBits != 4)// && colourBits != 24)
+    if (colourBits != 1 && colourBits != 4) // && colourBits != 24)
     {
         MyThrow("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits);
     }
@@ -302,28 +310,36 @@ void UciProd::LoadConfig()
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
 
-    ReadBool32(uciSec, _Font, bFont);
+    ReadBits(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
     {
         MyThrow("UciProd Error: Font : Default(0) is not enabled");
     }
-    if ((bFont.Get() & 0xFFFFFFC0) != 0)
+    if (bFont.GetMaxBit() > 5)
     {
         MyThrow("UciProd Error: Font : Only 0-5 allowed");
     }
-    ReadBool32(uciSec, _Conspicuity, bConspicuity);
-    if ((bConspicuity.Get() & 0xFFFFFFC0) != 0)
+    ReadBits(uciSec, _Conspicuity, bConspicuity);
+    if (!bConspicuity.GetBit(0))
+    {
+        MyThrow("UciProd Error: Conspicuity : OFF(0) is not enabled");
+    }
+    if (bConspicuity.GetMaxBit() > 5)
     {
         MyThrow("UciProd Error: Conspicuity : Only 0-5 allowed");
     }
-    ReadBool32(uciSec, _Annulus, bAnnulus);
-    if ((bAnnulus.Get() & 0xFFFFFFF8) != 0)
+    ReadBits(uciSec, _Annulus, bAnnulus);
+    if (!bAnnulus.GetBit(0))
+    {
+        MyThrow("UciProd Error: Annulus : OFF(0) is not enabled");
+    }
+    if (bAnnulus.GetMaxBit() > 2)
     {
         MyThrow("UciProd Error: Annulus : Only 0-2 allowed");
     }
-    ReadBool32(uciSec, _TxtFrmColour, bTxtFrmColour);
-    ReadBool32(uciSec, _GfxFrmColour, bGfxFrmColour);
-    ReadBool32(uciSec, _HrgFrmColour, bHrgFrmColour);
+    ReadBits(uciSec, _TxtFrmColour, bTxtFrmColour);
+    ReadBits(uciSec, _GfxFrmColour, bGfxFrmColour);
+    ReadBits(uciSec, _HrgFrmColour, bHrgFrmColour);
     // check colourLeds & b___FrmColour
 
     // Font0 'P5X7'
@@ -445,7 +461,7 @@ void UciProd::Dump()
     PrintOption_d(_NumberOfSigns, NumberOfSigns());
     for (int i = 1; i <= NumberOfSigns(); i++)
     {
-        printf("\t%s%d \t'%s'\n", _Sign, i, SignPort(i)->ToString().c_str());
+        printf("\t%s%d \t'%s'\n", _Sign, i, GetSignCfg(i).ToString().c_str());
     }
 
     PrintOption_d(_NumberOfGroups, NumberOfGroups());

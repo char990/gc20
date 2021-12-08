@@ -7,13 +7,13 @@ using namespace Utils;
 
 bool GrpProc::IsPlanEnabled(uint8_t id)
 {
-    return (id == 0) ? false : enabledPln.Get(id);
+    return (id == 0) ? false : enabledPln.GetBit(id);
 }
 
 void GrpProc::EnDisPlan(uint8_t id, bool endis)
 {
     (id == 0) ? enabledPln.ClrAll() :
-                (endis ? enabledPln.Set(id) : enabledPln.Clr(id));
+                (endis ? enabledPln.SetBit(id) : enabledPln.ClrBit(id));
 }
 
 void GrpProc::ProcDisp(uint8_t *cmd, int len)

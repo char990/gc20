@@ -29,7 +29,7 @@ UciProcess::~UciProcess()
 
 void UciProcess::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'process'\n");
+	PrintDbg(DBG_LOG, ">>> Loading 'process'\n");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];
@@ -50,20 +50,20 @@ void UciProcess::LoadConfig()
 		sprintf(sectionBuf, "%s%d", _Group, i);
 		uciSec = GetSection(SECTION);
 		p = GetGrpProc(i);
-
 		// _EnabledPlan
-		str = GetStr(uciSec, _EnabledPlan);
-		if (str != NULL)
+		try
 		{
-			int j = Cnvt::GetIntArray(str, 255, buf, 1, 255);
-			for (int k = 0; k < j; k++)
+			auto & enp = p->EnabledPln();
+			ReadBits(uciSec, _EnabledPlan, enp);
+			for (int k = 1; k <= 255; k++)
 			{
-				if (db.GetUciPln().IsPlnDefined(buf[k]))
+				if (!db.GetUciPln().IsPlnDefined(k))
 				{
-					p->EnDisPlan(buf[k], true);
+					enp.ClrBit(k);
 				}
 			}
 		}
+		catch (...){};
 		// _Display
 		uint8_t *plen = p->ProcDisp();
 		*plen = 0;
@@ -90,20 +90,20 @@ void UciProcess::LoadConfig()
 	uciSec = GetSection(SECTION);
 	try
 	{
-		ReadBool32(uciSec, _CtrllerError, ctrllerErr);
+		ReadBits(uciSec, _CtrllerError, ctrllerErr);
 	}
 	catch (...){};
-
 	/************************** SignX *************************/
 	signCnt = db.GetUciProd().NumberOfSigns();
-	signErr = new Utils::Bool32[signCnt];
+	signErr = new Utils::Bits[signCnt];
 	for (int i = 1; i <= signCnt; i++)
 	{
+		signErr[i - 1].Init(32);
 		sprintf(sectionBuf, "%s%d", _Sign, i);
 		uciSec = GetSection(SECTION);
 		try
 		{
-			ReadBool32(uciSec, _SignError, signErr[i - 1]);
+			ReadBits(uciSec, _SignError, signErr[i - 1]);
 		}
 		catch (...){};
 	}
@@ -275,17 +275,17 @@ uint8_t UciProcess::GetDevice(uint8_t gid)
 	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Device();
 }
 
-void UciProcess::SaveCtrllerErr(uint32_t v)
+void UciProcess::SaveCtrllerErr(Utils::Bits &v)
 {
-	ctrllerErr.Set(v);
+	ctrllerErr.Clone(v);
 	OpenSaveClose(_Ctrller, _CtrllerError, ctrllerErr);
 }
 
-void UciProcess::SaveSignErr(uint8_t signId, uint32_t v)
+void UciProcess::SaveSignErr(uint8_t signId, Utils::Bits &v)
 {
 	if (signId == 0 || signId > signCnt)
 		return;
-	signErr[signId - 1].Set(v);
+	signErr[signId - 1].Clone(v);
 	sprintf(sectionBuf, "%s%d", _Sign, signId);
 	OpenSaveClose(SECTION, _SignError, signErr[signId - 1]);
 }

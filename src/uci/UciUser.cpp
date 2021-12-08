@@ -208,7 +208,7 @@ void UciUser::LoadConfig()
     comPort = GetIntFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
     for (uint8_t i = 1; i <= numberOfSigns; i++)
     {
-        if (comPort == uciProd.SignPort(i)->com_ip)
+        if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
             MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i - 1], i);
         }

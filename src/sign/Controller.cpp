@@ -59,7 +59,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
 
-    ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr().Get());
+    ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr());
     long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
     if (ms == 0)
     {
@@ -354,9 +354,9 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         if (lvl >= 2)
         {
             db.GetUciFault().Reset();
-            db.GetUciProcess().SaveCtrllerErr(0);
             overtempFault.SetState(false);
-            ctrllerError.SetV(0);
+            ctrllerError.Clear();
+            db.GetUciProcess().SaveCtrllerErr(ctrllerError.GetV());
         }
         if (lvl >= 3)
         {

@@ -20,4 +20,5 @@ public:
 
 private:
     uint8_t sATF;
+    bool IsSpeedFrame(uint8_t frmId);
 };

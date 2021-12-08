@@ -396,22 +396,16 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
     int bitOffset = 0;
     for (auto &s : vsSlaves)
     {
-        for (int i = 0; i < s->numberOfTiles; i++)
+        for (int i = 0; i < s->numberOfTiles; i++, bitOffset++)
         {
-            uint8_t tile = 0;
             for (int j = 0; j < s->numberOfColours; j++)
             {
                 if (*(s->numberOfFaultyLed + j * s->numberOfTiles + i) > 0)
                 {
-                    tile = 1;
+                    BitOffset::SetBit(buf, bitOffset);
                     break;
                 }
             }
-            if (tile != 0)
-            {
-                BitOffset::SetBit(buf, bitOffset);
-            }
-            bitOffset++;
         }
     }
     return buf + tbytes;

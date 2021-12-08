@@ -32,7 +32,7 @@ public:
 
     // set
     void SignErr(DEV::ERROR err, bool v) { signErr.Push(signId, err, v); };
-    void SignErr(uint32_t v) { signErr.SetV(v); };
+    void SignErr(Utils::Bits & v) { signErr.SetV(v); };
     void DimmingSet(uint8_t v) { dimmingSet = v; };
     void DimmingV(uint8_t v) { dimmingV = v; };
     void Device(uint8_t v) { device = v; };

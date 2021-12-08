@@ -13,6 +13,7 @@ public:
 
     bool IsPlanEnabled(uint8_t id);
     void EnDisPlan(uint8_t id, bool endis);
+    Utils::Bits & EnabledPln() { return enabledPln; };
 
     void ProcDisp(uint8_t *cmd, int len);
     uint8_t * ProcDisp() { return disp; };
@@ -27,7 +28,7 @@ public:
     uint8_t Device() { return device; };
 
 private:
-    Utils::Bool256 enabledPln;
+    Utils::Bits enabledPln{256};
     uint8_t dimming{0};
     uint8_t power{1};
     uint8_t device{1};

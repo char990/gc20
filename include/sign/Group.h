@@ -311,9 +311,9 @@ private:
     bool IsBusFree();
     void LockBus(int ms);
 
-    Utils::Bool256 activeFrm;
+    Utils::Bits activeFrm{256};
 
-    Utils::Bool256 activeMsg;
+    Utils::Bits activeMsg{256};
     // will set activeMsg & activeFrm
     void SetActiveMsg(uint8_t mid);
 

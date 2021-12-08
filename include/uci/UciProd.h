@@ -1,16 +1,20 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/UciCfg.h>
 #include <module/Utils.h>
-#include <string>
 #include <uci/Font.h>
 
-struct StSignPort
+class SignCfg
 {
+public:
     uint32_t com_ip;
     int bps_port;
     std::string ToString();
+    Utils::Bits rjctFrm{256};
 };
 
 class UciProd : public UciCfg
@@ -27,7 +31,7 @@ public:
     uint8_t TcpServerWEB() { return tcpServerWEB; };
     char *MfcCode() { return &mfcCode[0]; };
     Font *Fonts(int i) { return fonts[i]; };
-    struct StSignPort *SignPort(uint8_t id) { return &signPort[id - 1]; };
+    SignCfg & GetSignCfg(uint8_t id) { return signCfg.at(id-1); };
     uint8_t *MappedColoursTable() { return &mappedColoursTable[0]; };
     uint8_t GetMappedColour(uint8_t c)
     {
@@ -178,6 +182,8 @@ private:
 
     // items : 1-n
     const char *_Sign = "Sign"; // Sign1-x
+    const char *_RjctFrmSign = "RjctFrmSign"; // Reject frames of Sign1-x
+    
     // const char * _Font="Font";   // Font0-x
 
     PRODUCT prodType;
@@ -186,7 +192,7 @@ private:
 
     Font *fonts[MAX_FONT + 1];
 
-    struct StSignPort *signPort;
+    std::vector<SignCfg> signCfg;
 
     uint16_t
         slaveRqstInterval,
@@ -239,12 +245,12 @@ private:
 
     uint8_t mappedColoursTable[10]; // colourtable[0] is always 0
 
-    Utils::Bool32 bFont;
-    Utils::Bool32 bConspicuity;
-    Utils::Bool32 bAnnulus;
-    Utils::Bool32 bTxtFrmColour;
-    Utils::Bool32 bGfxFrmColour;
-    Utils::Bool32 bHrgFrmColour;
+    Utils::Bits bFont{8};
+    Utils::Bits bConspicuity{8};
+    Utils::Bits bAnnulus{8};
+    Utils::Bits bTxtFrmColour{32};
+    Utils::Bits bGfxFrmColour{32};
+    Utils::Bits bHrgFrmColour{32};
 
     // configurations calculated from other configurations
     uint16_t pixelRows;

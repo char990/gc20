@@ -90,7 +90,7 @@ bool SignError::Push(uint8_t sid, DEV::ERROR code, bool v)
     if (DevError(code, v))
     {
         DbHelper::Instance().GetUciFault().Push(sid, code, v ? 1 : 0);
-        DbHelper::Instance().GetUciProcess().SaveSignErr(sid, errBit.Get());
+        DbHelper::Instance().GetUciProcess().SaveSignErr(sid, errBit);
         return true;
     }
     return false;
@@ -124,7 +124,7 @@ bool CtrllerError::Push(DEV::ERROR code, bool v)
     if (DeviceError::DevError(code, v))
     {
         DbHelper::Instance().GetUciFault().Push(0, code, v ? 1 : 0);
-        DbHelper::Instance().GetUciProcess().SaveCtrllerErr(errBit.Get());
+        DbHelper::Instance().GetUciProcess().SaveCtrllerErr(errBit);
         return true;
     }
     return false;

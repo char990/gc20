@@ -26,7 +26,7 @@ public:
 	const char *GetStr(struct uci_section *section, const char *option);
 	int GetInt(struct uci_section *section, const char *option, int min, int max);
 	uint32_t GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max);
-	void ReadBool32(struct uci_section *section, const char *option, Utils::Bool32 &bo);
+	void ReadBits(struct uci_section *section, const char *option, Utils::Bits &bo);
 	int GetIntFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize);
 
 protected:
@@ -83,8 +83,7 @@ protected:
 	void OpenSaveClose(const char *section, const char *option, const char *value);
 	void OpenSaveClose(const char *section, const char *option, int value);
 	void OpenSaveClose(const char *section, struct OptChars *optval);
-	void OpenSaveClose(const char *section, const char *option, Utils::Bool32 &bo);
-	void OpenSaveClose(const char *section, const char *option, Utils::Bool256 &bo);
+	void OpenSaveClose(const char *section, const char *option, Utils::Bits &bo);
 	//void OpenSaveClose(const char * section, struct OptChars ** optval, int len);
 
 	/// \brief	save multi option.value

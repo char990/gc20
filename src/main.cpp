@@ -257,26 +257,26 @@ int main(int argc, char *argv[])
         // Slaves of Groups on RS485
         for (int i = 1; i <= prod.NumberOfSigns(); i++)
         {
-            struct StSignPort *cn = prod.SignPort(i);
-            if (cn->com_ip < COMPORT_SIZE)
+            auto & cn = prod.GetSignCfg(i);
+            if (cn.com_ip < COMPORT_SIZE)
             { // com port
-                if (oprSp[cn->com_ip] == nullptr)
+                if (oprSp[cn.com_ip] == nullptr)
                 {
                     for (uint8_t g = 1; g <= Controller::Instance().GroupCnt(); g++)
                     {
                         if (Controller::Instance().GetGroup(g)->IsSignInGroup(i))
                         {
-                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn->com_ip].name, Controller::Instance().GetGroup(g));
-                            oprSp[cn->com_ip] = new OprSp{(uint8_t)cn->com_ip, cn->bps_port, upperLayer};
-                            Controller::Instance().GetGroup(g)->SetOprSp(oprSp[cn->com_ip]);
+                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn.com_ip].name, Controller::Instance().GetGroup(g));
+                            oprSp[cn.com_ip] = new OprSp{(uint8_t)cn.com_ip, cn.bps_port, upperLayer};
+                            Controller::Instance().GetGroup(g)->SetOprSp(oprSp[cn.com_ip]);
                         }
                     }
                 }
                 else
                 {
-                    if (oprSp[cn->com_ip]->Bps() != cn->bps_port)
+                    if (oprSp[cn.com_ip]->Bps() != cn.bps_port)
                     {
-                        MyThrow("Sign%d baudrate error. Baudrate on %s should be same", i + 1, oprSp[cn->com_ip]->Name());
+                        MyThrow("Sign%d baudrate error. Baudrate on %s should be same", i + 1, oprSp[cn.com_ip]->Name());
                     }
                 }
             }

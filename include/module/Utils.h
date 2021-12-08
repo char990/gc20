@@ -336,49 +336,6 @@ namespace Utils
         static int SleepMs(long msec);
     };
 
-    class Bool32
-    {
-    public:
-        Bool32() : bits(0) {}
-        Bool32(uint32_t v) : bits(v) {}
-        void Set(uint32_t v) { bits = v; }
-
-        uint32_t Get() { return bits; }
-
-        void SetBit(int b)
-        {
-            if (b < 32)
-            {
-                bits |= MASK_BIT[b];
-            }
-        }
-        void ClrBit(int b)
-        {
-            if (b < 32)
-            {
-                bits &= ~MASK_BIT[b];
-            }
-        }
-        bool GetBit(int b) { return (b < 32) ? ((bits & MASK_BIT[b]) != 0) : false; }
-        int GetMaxBit()
-        {
-            int max = -1;
-            for (int i = 0; i < 32; i++)
-            {
-                if ((bits & MASK_BIT[i]) != 0)
-                {
-                    max = i;
-                }
-            }
-            return max;
-        }
-
-        std::string ToString();
-
-    private:
-        uint32_t bits;
-    };
-
     /// \brief  Set/Clr bit in uint8_t *buf
     /// bifOffset is from [0:7](0), ..., [0:0](7), [1:7](8), ..., [1:0](15), ...
     class BitOffset
@@ -389,17 +346,28 @@ namespace Utils
         static bool GetBit(uint8_t *buf, int bitOffset);
     };
 
-    class Bool256
+    class Bits
     {
     public:
-        void Set(uint8_t bitOffset);
-        void Clr(uint8_t bitOffset);
+        Bits(int size);
+        Bits(){};
+        ~Bits();
+        void Init(int size);
+        int Size() { return size; };
+        void SetBit(int bitOffset);
+        void ClrBit(int bitOffset);
         void ClrAll();
-        bool Get(uint8_t bitOffset);
+        bool GetBit(int bitOffset);
+        int GetMaxBit();
         std::string ToString();
+        void Clone(Bits & v);
+        uint8_t *Data() { return data; };
 
     private:
-        uint8_t data[256 / 8]{};
+        int size{0};
+        int bytes{0};
+        uint8_t *data{nullptr};
+        void Check(int bitOffset);
     };
 
     // Only for byte type: uint8_t/char

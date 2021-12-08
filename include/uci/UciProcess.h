@@ -35,19 +35,19 @@ public:
     uint8_t GetDevice(uint8_t gid);
 
     /******************** Ctrller ***********************/
-    Utils::Bool32 &CtrllerErr() { return ctrllerErr; };
-    void SaveCtrllerErr(uint32_t v);
+    Utils::Bits &CtrllerErr() { return ctrllerErr; };
+    void SaveCtrllerErr(Utils::Bits & v);
 
     /******************** SignX ***********************/
-    Utils::Bool32 *SignErr()
+    Utils::Bits *SignErr()
     {
         return &signErr[0];
     };
-    Utils::Bool32 *SignErr(uint8_t signId)
+    Utils::Bits *SignErr(uint8_t signId)
     {
         return (signId == 0 || signId > signCnt) ? nullptr : &signErr[signId - 1];
     };
-    void SaveSignErr(uint8_t signId, uint32_t v);
+    void SaveSignErr(uint8_t signId, Utils::Bits & v);
 
 private:
     GrpProc *grpProc;
@@ -66,11 +66,11 @@ private:
     const char *_Device = "Device";
 
     const char *_Ctrller = "Ctrller";
-    Utils::Bool32 ctrllerErr;
+    Utils::Bits ctrllerErr{32};
     const char *_CtrllerError = "CtrllerError";
 
     const char *_Sign = "Sign";
-    Utils::Bool32 *signErr;
+    Utils::Bits *signErr;
     uint8_t signCnt;
     const char *_SignError = "SignError";
 };

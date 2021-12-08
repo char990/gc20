@@ -183,14 +183,7 @@ void UciCfg::OpenSaveClose(const char *section, struct OptChars **optval, int le
 }
 */
 
-void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bool32 &bo)
-{
-	OpenSectionForSave(section);
-	OptionSave(option, bo.ToString().c_str());
-	CommitCloseSectionForSave();
-}
-
-void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bool256 &bo)
+void UciCfg::OpenSaveClose(const char * section, const char * option, Utils::Bits &bo)
 {
 	OpenSectionForSave(section);
 	OptionSave(option, bo.ToString().c_str());
@@ -277,16 +270,20 @@ void UciCfg::PrintOption_str(const char * option, const char *str)
 	printf("\t%s \t'%s'\n", option, str);
 }
 
-void UciCfg::ReadBool32(struct uci_section *uciSec, const char *option, Utils::Bool32 &bo)
+void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bits &bo)
 {
-    int ibuf[32];
+    int ibuf[256];
+    if(bo.Size()==0 || bo.Size()>256)
+	{
+		MyThrow("Uci Error: %s.%s, ReadBits: bo.size=%d", uciSec->e.name, option, bo.Size());
+	}
+	bo.ClrAll();
     const char *str = GetStr(uciSec, option);
     if (str != NULL)
     {
-        int cnt = Utils::Cnvt::GetIntArray(str, 32, ibuf, 0, 31);
+        int cnt = Utils::Cnvt::GetIntArray(str, bo.Size(), ibuf, 0, bo.Size()-1);
         if (cnt != 0)
         {
-            bo.Set(0);
             for (int i = 0; i < cnt; i++)
             {
                 bo.SetBit(ibuf[i]);

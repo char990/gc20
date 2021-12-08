@@ -97,7 +97,7 @@ Group::Group(uint8_t groupId)
     //PrintPlnMin();
     for (auto &s : vSigns)
     {
-        s->SignErr(proc.SignErr(s->SignId())->Get());
+        s->SignErr(*proc.SignErr(s->SignId()));
         s->InitFaults();
     }
     targetDimmingLvl = proc.GetDimming(groupId) | 0x80;
@@ -385,7 +385,7 @@ bool Group::TaskPln(int *_ptLine)
                     {
                         if (pln->plnEntries[i].fmType == PLN_ENTRY_FRM)
                         {
-                            activeFrm.Set(pln->plnEntries[i].fmId);
+                            activeFrm.SetBit(pln->plnEntries[i].fmId);
                         }
                         else // if (pln->plnEntries[i].fmType == PLN_ENTRY_MSG)
                         {
@@ -760,7 +760,7 @@ bool Group::TaskFrm(int *_ptLine)
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             activeMsg.ClrAll();
             activeFrm.ClrAll();
-            activeFrm.Set(1); // TODO all frames in ATF
+            activeFrm.SetBit(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
             PrintDbg(DBG_LOG, "TaskFrm:Display ATF\n");
         }
@@ -772,7 +772,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = dsCurrent->fmpid[0];
                 activeMsg.ClrAll();
                 activeFrm.ClrAll();
-                activeFrm.Set(onDispFrmId);
+                activeFrm.SetBit(onDispFrmId);
             }
             else if (dsCurrent->dispType == DISP_TYPE::BLK)
             {
@@ -831,9 +831,9 @@ void Group::SetActiveMsg(uint8_t mid)
         return;
     for (int i = 0; i < msg->entries; i++)
     {
-        activeFrm.Set(msg->msgEntries[i].frmId);
+        activeFrm.SetBit(msg->msgEntries[i].frmId);
     }
-    activeMsg.Set(mid);
+    activeMsg.SetBit(mid);
 }
 
 bool Group::TaskRqstSlave(int *_ptLine)
@@ -1239,12 +1239,12 @@ APP::ERROR Group::DisablePlan(uint8_t id)
 
 bool Group::IsMsgActive(uint8_t p)
 {
-    return activeMsg.Get(p);
+    return activeMsg.GetBit(p);
 }
 
 bool Group::IsFrmActive(uint8_t p)
 {
-    return activeFrm.Get(p);
+    return activeFrm.GetBit(p);
 }
 
 bool Group::DispExt(uint8_t msgX)
@@ -1315,6 +1315,14 @@ APP::ERROR Group::DispFrm(uint8_t id)
     if (cmdPwr == PWR_STATE::OFF)
     {
         return APP::ERROR::PowerIsOff;
+    }
+    for(auto & sign : vSigns)
+    {
+        auto & signCfg = db.GetUciProd().GetSignCfg(sign->SignId());
+        if(signCfg.rjctFrm.GetBit(id))
+        {
+            return APP::ERROR::SyntaxError;
+        }
     }
     uint8_t buf[3];
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
@@ -1887,7 +1895,7 @@ void Group::SystemReset2()
     for (auto &s : vSigns)
     {
         s->ClearFaults();
-        proc.SaveSignErr(s->SignId(), 0);
+        proc.SaveSignErr(s->SignId(), s->SignErr().GetV());
     }
 }
 
