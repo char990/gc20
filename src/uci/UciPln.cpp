@@ -54,7 +54,7 @@ void UciPln::LoadConfig()
 
 void UciPln::Dump()
 {
-    PrintDash();
+    PrintDash('<');
     printf("%s/%s\n", PATH, PACKAGE);
     for (auto &m : plns)
     {
@@ -63,6 +63,7 @@ void UciPln::Dump()
             printf("\t%s\n", m.ToString().c_str());
         }
     }
+	PrintDash('>');
 }
 
 uint16_t UciPln::ChkSum()

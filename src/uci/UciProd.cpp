@@ -448,7 +448,7 @@ void UciProd::LoadConfig()
 
 void UciProd::Dump()
 {
-    PrintDash();
+    PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
 
     PrintOption_d(_TcpServerNTS, TcpServerNTS());
@@ -544,6 +544,7 @@ void UciProd::Dump()
 
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
+	PrintDash('>');
 }
 
 uint8_t UciProd::CharRows(int i)

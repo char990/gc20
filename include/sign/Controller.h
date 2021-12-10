@@ -35,12 +35,12 @@ public:
 
     void Init(TimerEvent *tmrEvt);
 
-    void SetTcpServer(TcpServer * tcpServer);
+    void SetTcpServer(TcpServer *tcpServer);
 
     void RefreshDispTime();
 
     void RefreshSessionTime();
-    
+
     uint8_t CtrllerErr();
 
     uint8_t GroupCnt() { return groups.size(); };
@@ -76,7 +76,7 @@ public:
     void RR_flag(uint8_t rr)
     {
         rr_flag |= rr;
-        if(rr_flag!=0)
+        if (rr_flag != 0)
         {
             rrTmr.Setms(5000);
         }
@@ -85,7 +85,7 @@ public:
 private:
     Controller();
     ~Controller();
-
+    DbHelper &db;
     std::vector<Group *> groups;
 
     TimerEvent *tmrEvt{nullptr};
@@ -98,13 +98,13 @@ private:
     GpioIn *pBatLow;
     GpioIn *pBatOpen;
     uint8_t cnt100ms{0};
-
-    GpioIn *extInput[4];
+    unsigned int EXTIN_PINS[4]{PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
+    std::vector<GpioIn *> extInput{4};
     void ExtInputFunc();
 
     int8_t curTemp{0};
     int8_t maxTemp{0};
-    uint16_t msTemp{60 * 100};
+    uint16_t msTemp{UINT16_MAX - 1};
     Debounce overtempFault;
 
     // restart/reboot/network flag

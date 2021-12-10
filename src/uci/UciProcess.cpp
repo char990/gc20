@@ -113,7 +113,7 @@ void UciProcess::LoadConfig()
 
 void UciProcess::Dump()
 {
-	PrintDash();
+	PrintDash('<');
 	printf("%s/%s\n", PATH, PACKAGE);
 	char buf[1024];
 	for (int i = 1; i <= grpCnt; i++)
@@ -145,6 +145,7 @@ void UciProcess::Dump()
 		printf("%s%d:\n", _Sign, i);
 		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
+	PrintDash('>');
 }
 
 GrpProc *UciProcess::GetGrpProc(uint8_t gid)

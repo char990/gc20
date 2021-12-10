@@ -73,11 +73,12 @@ void UciNetwork::Set(uint8_t * src, const char * _option, uint8_t * dst)
 
 void UciNetwork::Dump()
 {
-    PrintDash();
+    PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
     PrintIp(_ipaddr, ipaddr);
     PrintIp(_netmask, netmask);
     PrintIp(_gateway, gateway);
+	PrintDash('>');
 }
 
 void UciNetwork::PrintIp(const char *_option, uint8_t *dst)

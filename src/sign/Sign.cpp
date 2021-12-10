@@ -154,6 +154,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
     uint32_t v = 0;
     int16_t temperature = 0; // 0.1'C
+    uint16_t faultLeds = 0;
     for (auto &s : vsSlaves)
     {
         v += s->voltage;
@@ -172,7 +173,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         uint8_t *p = s->numberOfFaultyLed;
         for (int i = 0; i < Slave::numberOfTiles * Slave::numberOfColours; i++)
         {
-            faultLedCnt += *p++;
+            faultLeds += *p++;
         }
     }
 
@@ -224,12 +225,12 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
 
     // *** single/multi led
-    if (faultLedCnt == 0)
+    if (faultLeds == 0)
     {
         singleLedFault.Check(0);
         multiLedFault.Check(0);
     }
-    else if (faultLedCnt == 1)
+    else if (faultLeds == 1)
     {
         singleLedFault.Check(1);
         multiLedFault.Check(0);
@@ -237,13 +238,21 @@ void Sign::RefreshSlaveStatusAtExtSt()
     else
     {
         singleLedFault.Check(1);
-        multiLedFault.Check(faultLedCnt > user.MultiLedFaultThreshold());
+        multiLedFault.Check(faultLeds > user.MultiLedFaultThreshold());
     }
-    sprintf(buf, "%d LEDs", faultLedCnt);
+    if (multiLedFault.IsRising() || multiLedFault.IsFalling())
+    {
+        faultLedCnt = faultLeds;
+    }
+    sprintf(buf, "%d LEDs", faultLeds);
     DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
     if (multiLedFault.IsLow())
     {
         DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
+        if (singleLedFault.IsRising() || singleLedFault.IsFalling())
+        {
+            faultLedCnt = faultLeds;
+        }
     }
     else
     {

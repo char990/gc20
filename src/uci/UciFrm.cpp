@@ -117,7 +117,7 @@ void UciFrm::LoadFrms(const char *FMT)
 
 void UciFrm::Dump()
 {
-	PrintDash();
+	PrintDash('<');
 	printf("%s/frm_xxx\n", PATH);
 	for (int i = 0; i < 255; i++)
 	{
@@ -126,6 +126,7 @@ void UciFrm::Dump()
 			printf("\tfrm_%03d: %s\n", i + 1, frms[i]->ToString().c_str());
 		}
 	}
+	PrintDash('>');
 }
 
 uint16_t UciFrm::ChkSum()

@@ -16,7 +16,7 @@ void DbHelper::Init(const char * dbPath1)
     uciFlt.LoadConfig();
     uciAlm.LoadConfig();
     uciEvt.LoadConfig();
-    PrintDash();
+    PrintDash('-');
 }
 
 uint16_t DbHelper::HdrChksum()

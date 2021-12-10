@@ -12,37 +12,64 @@
 #include <layer/LayerNTS.h>
 
 Controller::Controller()
-    : groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
+    : db(DbHelper::Instance()), groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
 {
-    overtempFault.SetCNT(3); // set as 3 minutes
-    overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
     pBatOpen = new GpioIn(10, 10, PIN_BATTERY_OPEN);
-    unsigned int pins[4] = {PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
     for (int i = 0; i < 4; i++)
     {
-        extInput[i] = new GpioIn(2, 2, pins[i]);
-        extInput[i]->Init(Utils::STATE5::S5_1);
+        extInput.at(i) = new GpioIn(2, 2, EXTIN_PINS[i]);
+        extInput.at(i)->Init(Utils::STATE5::S5_1);
     }
-    groups.assign(DbHelper::Instance().GetUciProd().NumberOfGroups(), nullptr);
+    groups.assign(groups.size(), nullptr);
+
+    ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
+    overtempFault.SetCNT(3); // set as 3 minutes
+    overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
+    long dt = db.GetUciUser().DisplayTimeout();
+    if (dt == 0)
+    {
+        displayTimeout.Clear();
+    }
+    else
+    {
+        displayTimeout.Setms(dt * 60000);
+    }
+
+    UciProd &prod = db.GetUciProd();
+    switch (prod.ProdType())
+    {
+    case PRODUCT::VMS:
+        for (int i = 0; i < groups.size(); i++)
+        {
+            groups.at(i) = new GroupVms(i + 1);
+        }
+        break;
+    case PRODUCT::ISLUS:
+        for (int i = 0; i < groups.size(); i++)
+        {
+            groups.at(i) = new GroupIslus(i + 1);
+        }
+        break;
+    default:
+        MyThrow("Unknown ProdType:%d", static_cast<int>(prod.ProdType()));
+        break;
+    }
 }
 
 Controller::~Controller()
 {
-    for (int i = 0; i < 4; i++)
+    for (auto &ei : extInput)
     {
-        delete extInput[i];
+        delete ei;
     }
     delete pBatOpen;
     delete pBatLow;
     delete pMainPwr;
     for (auto &g : groups)
     {
-        if (g != nullptr)
-        {
-            delete g;
-        }
+        delete g;
     }
     if (tmrEvt != nullptr)
     {
@@ -58,35 +85,6 @@ void Controller::Init(TimerEvent *tmrEvt_)
     }
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
-
-    ctrllerError.SetV(DbHelper::Instance().GetUciProcess().CtrllerErr());
-    long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
-    if (ms == 0)
-    {
-        displayTimeout.Clear();
-        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
-    }
-    else
-    {
-        displayTimeout.Setms(ms * 60000);
-    }
-
-    UciProd &prod = DbHelper::Instance().GetUciProd();
-    switch (prod.ProdType())
-    {
-    case PRODUCT::VMS:
-        for (int i = 0; i < groups.size(); i++)
-        {
-            groups[i] = new GroupVms(i + 1);
-        }
-        break;
-    case PRODUCT::ISLUS:
-        for (int i = 0; i < groups.size(); i++)
-        {
-            groups[i] = new GroupIslus(i + 1);
-        }
-        break;
-    }
 }
 
 void Controller::SetTcpServer(TcpServer *tcpServer)
@@ -127,6 +125,7 @@ void Controller::PeriodicRun()
                 MyThrow("\n%s...\n", _re);
             }
             rr_flag = 0;
+            rrTmr.Clear();
         }
     }
 
@@ -231,7 +230,7 @@ void Controller::ExtInputFunc()
 {
     for (int i = 0; i < 4; i++)
     {
-        auto gin = extInput[i];
+        auto gin = extInput.at(i);
         gin->PeriodicRun();
         if (gin->IsRising())
         {
@@ -245,7 +244,7 @@ void Controller::ExtInputFunc()
             // only the highest priority will be triggered, ignore others
             while (++i < 4)
             { // clear others changed flag
-                auto gin = extInput[i];
+                gin = extInput.at(i);
                 gin->PeriodicRun();
                 gin->ClearRising();
             };
@@ -389,6 +388,15 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
+        }
+        // reject frames
+        auto signs = GetGroup(grpId)->GetSigns();
+        for(auto & sign : signs)
+        {
+            if(db.GetUciProd().GetSignCfg(sign->SignId()).rjctFrm.GetBit(frmId))
+            {
+                return APP::ERROR::SyntaxError;
+            }
         }
     }
     return GetGroup(grpId)->DispFrm(frmId);

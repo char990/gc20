@@ -37,14 +37,14 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 	{
 		if (level == DBG_HB)
 		{
-			if(lastlvl == DBG_HB)
+			if (lastlvl == DBG_HB)
 			{
 				putchar('\r');
 			}
 		}
 		else
 		{
-			if(lastlvl == DBG_HB)
+			if (lastlvl == DBG_HB)
 			{
 				putchar('\n');
 			}
@@ -54,9 +54,9 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		gettimeofday(&t, nullptr);
 		t.tv_sec = ds3231time(nullptr);
 		t.tv_usec -= ds3231usec();
-		if(t.tv_usec<0)
+		if (t.tv_usec < 0)
 		{
-			t.tv_usec+=1000000;
+			t.tv_usec += 1000000;
 		}
 		MyDbgBuf[0] = '[';
 		char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
@@ -108,19 +108,11 @@ void Log(int len)
 	close(log_fd);
 }
 
-void PrintDash()
+void PrintDash(char c)
 {
 #define DASH_LEN 40
-	static char buf[DASH_LEN + 2] = {0};
-	if (buf[0] == 0)
-	{
-		char *p = buf;
-		for (int i = 0; i < DASH_LEN; i++)
-		{
-			*p++ = '-';
-		}
-		*p++ = '\n';
-		*p++ = '\0';
-	}
+	char buf[DASH_LEN + 1];
+	memset(buf, c, DASH_LEN);
+	buf[DASH_LEN] = '\0';
 	puts(buf);
 }

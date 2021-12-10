@@ -232,7 +232,7 @@ void UciUser::LoadFactoryDefault()
 
 void UciUser::Dump()
 {
-    PrintDash();
+    PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
     PrintOption_d(_DeviceId, DeviceId());
     PrintOption_d(_BroadcastId, BroadcastId());
@@ -270,6 +270,7 @@ void UciUser::Dump()
 
     PrintDawnDusk(buf);
     printf("\t%s \t'%s'\n", _DawnDusk, buf);
+	PrintDash('>');
 }
 
 void UciUser::PrintExtSw(int i, char *buf)

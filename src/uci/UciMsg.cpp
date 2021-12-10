@@ -55,7 +55,7 @@ void UciMsg::LoadConfig()
 
 void UciMsg::Dump()
 {
-	PrintDash();
+	PrintDash('<');
 	printf("%s/%s\n", PATH, PACKAGE);
 	for (auto &m : msgs)
 	{
@@ -64,6 +64,7 @@ void UciMsg::Dump()
 			printf("\t%s\n", m.ToString().c_str());
 		}
 	}
+	PrintDash('>');
 }
 
 uint16_t UciMsg::ChkSum()

@@ -94,7 +94,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             return APP::ERROR::UndefinedDeviceNumber;
         }
         // frm is defined
-        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(*p))
+        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frm_id))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -113,12 +113,17 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
                 }
             }
         }
+        // reject frames
+        if(db.GetUciProd().GetSignCfg(sign_id).rjctFrm.Get(frm_id))
+        {
+            return APP::ERROR::SyntaxError;
+        }
         // check if test frames: 250,251,252, not allowed
         if(frm_id>=250&&frm_id<=252)
         {
             return APP::ERROR::SyntaxError;
         }
-        // check lane merge or 
+        // check lane merge
         if(i < signCnt-1)
         {
             uint8_t frm_r = *(p+1);
@@ -128,12 +133,6 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             {// merge to closed lane
                 return APP::ERROR::SyntaxError;
             }
-        }
-        // reject frames
-        auto & signCfg = db.GetUciProd().GetSignCfg(sign_id);
-        if(signCfg.rjctFrm.Get(frm_id))
-        {
-            return APP::ERROR::SyntaxError;
         }
     }
     db.GetUciProcess().SetDisp(groupId, cmd, 3+signCnt*2);
@@ -185,7 +184,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    if (uciFrmId == 189 || uciFrmId == 199)
+    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1)
     { // Red Cross "X"
     }
     else
@@ -201,10 +200,18 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 
 int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
-    Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
-    if (frm == nullptr)
-    {
-        MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId);
+    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1)
+    { // Red Cross "X"
+
+        return 0;
     }
-    return TransFrmWithOrBuf(frm, dst);
+    else
+    {
+        Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
+        if (frm == nullptr)
+        {
+            MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId);
+        }
+        return TransFrmWithOrBuf(frm, dst);
+    }
 }
