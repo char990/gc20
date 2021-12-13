@@ -153,18 +153,23 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
     uint32_t v = 0;
+    uint8_t vcnt = 0;
     int16_t temperature = 0; // 0.1'C
     uint16_t faultLeds = 0;
     for (auto &s : vsSlaves)
     {
-        v += s->voltage;
-        if (s->voltage > maxvoltage)
+        if (s->voltage > 3000 && s->voltage < 15000)
         {
-            maxvoltage = s->voltage;
-        }
-        if (s->voltage < minvoltage)
-        {
-            minvoltage = s->voltage;
+            v += s->voltage;
+            vcnt++;
+            if (s->voltage > maxvoltage)
+            {
+                maxvoltage = s->voltage;
+            }
+            if (s->voltage < minvoltage)
+            {
+                minvoltage = s->voltage;
+            }
         }
         if (s->temperature > temperature)
         {
@@ -191,7 +196,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     else
     {
         voltageFault.Check(false);
-        voltage = v / vsSlaves.size();
+        voltage = v / vcnt;
     }
     sprintf(buf, "%dmv", voltage);
     DbncFault(voltageFault, DEV::ERROR::InternalPowerSupplyFault, buf);
