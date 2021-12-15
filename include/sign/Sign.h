@@ -95,10 +95,10 @@ protected:
 
     uint8_t tflag{255};
     uint8_t lasthour{255};
-    Debounce lsConnectionFault;
-    Debounce ls18hoursFault;
-    Debounce lsMidnightFault;
-    Debounce lsMiddayFault;
+    DebounceByTime lsConnectionFault;
+    DebounceByTime ls18hoursFault;
+    DebounceByTime lsMidnightFault;
+    DebounceByTime lsMiddayFault;
 
     int8_t curTemp{0}, maxTemp{0};
 

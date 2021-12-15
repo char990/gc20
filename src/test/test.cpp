@@ -1,11 +1,14 @@
-#if 0
+#include <3rdparty/catch2/enable_test.h>
+#ifdef CATCH2TEST
 #define CATCH_CONFIG_MAIN
 #include <3rdparty/catch2/catch.hpp>
 #include <module/Utils.h>
+#include <module/Debounce.h>
+#include <time.h>
 
 using namespace Utils;
 
-TEST_CASE("Class Utils::Bits", "[Utils::Bits]")
+TEST_CASE("Class Utils::Bits", "[Bits]")
 {
     Bits b1(256);
 
@@ -247,4 +250,120 @@ TEST_CASE("Class Utils::Bits", "[Utils::Bits]")
         }
     }
 }
+
+
+
+TEST_CASE("Class DebounceByTime", "[DebounceByTime]")
+{
+#define DBNC_TIME_START 10000
+#define SET_DBNC_TIMET(a) ((time_t)(a+DBNC_TIME_START))
+    DebounceByTime dbnc;
+    int RISING_CNT = 50;
+    int FALING_CNT = 20;
+    
+    dbnc.SetCNT(RISING_CNT, FALING_CNT);
+    dbnc.Reset();
+    SECTION("dbnc by time start")
+    {
+        int t=0;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.Value() == Utils::STATE5::S5_NA);
+        t+=RISING_CNT-1;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.Value() == Utils::STATE5::S5_NA);
+        t++;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsRising() == true);
+        
+        dbnc.Check(0, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsRising() == true);
+        t+=FALING_CNT-1;
+        dbnc.Check(0, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsRising() == true);
+        t++;
+        dbnc.Check(0, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsFalling() == true);
+        t++;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsFalling() == true);
+
+        t+=RISING_CNT-1;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsFalling() == true);
+        t++;
+        dbnc.Check(1, SET_DBNC_TIMET(t));
+        REQUIRE(dbnc.IsRising() == true);
+    }
+}
+
+TEST_CASE("Class Crc16_8005", "[Crc16_8005]")
+{
+    uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
+    uint8_t buf2[] = {
+        0x02, 0x30, 0x32, 0x30, 0x36,
+        0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+        0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
+    SECTION("Crc16_8005")
+    {
+        REQUIRE(Crc::Crc16_8005(buf1, sizeof(buf1)) == 0x18F3);
+        REQUIRE(Crc::Crc16_8005(buf2, sizeof(buf2)) == 0x4AFF);
+    }
+}
+
+TEST_CASE("Class Debounce", "[Debounce]")
+{
+    int RISING_CNT = 50;
+    int FALING_CNT = 20;
+    Debounce test(RISING_CNT, FALING_CNT);
+
+    SECTION("N/A->Rising")
+    {
+        for(int i=0;i<RISING_CNT-1;i++)
+        {
+            test.Check(1);
+            REQUIRE(test.Value() == Utils::STATE5::S5_NA);
+        }
+        test.Check(1);
+        REQUIRE(test.IsRising() == true);
+    }
+    
+    SECTION("N/A->Falling")
+    {
+        for(int i=0;i<FALING_CNT-1;i++)
+        {
+            test.Check(0);
+            REQUIRE(test.Value() == Utils::STATE5::S5_NA);
+        }
+        test.Check(0);
+        REQUIRE(test.IsFalling() == true);
+    }
+
+    SECTION("1->Falling")
+    {
+        test.Check(1, RISING_CNT);
+        REQUIRE(test.IsRising() == true);
+        for(int i=0;i<FALING_CNT-1;i++)
+        {
+            test.Check(0);
+            REQUIRE(test.IsRising() == true);
+        }
+        test.Check(0);
+        REQUIRE(test.IsFalling() == true);
+    }
+
+    SECTION("0->Rising")
+    {
+        test.Check(0, FALING_CNT);
+        REQUIRE(test.IsFalling() == true);
+        for(int i=0;i<RISING_CNT-1;i++)
+        {
+            test.Check(1);
+            REQUIRE(test.IsFalling() == true);
+        }
+        test.Check(1);
+        REQUIRE(test.IsRising() == true);
+    }
+}
+
+
 #endif

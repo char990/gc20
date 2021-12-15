@@ -65,11 +65,12 @@ public:
     }
 
     // Called regularly
-    void Check(bool v)
+    virtual void Check(bool v, int cnt = 1)
     {
         if (v)
         {
-            if (++cnt1 >= CNT1)
+            cnt1 += cnt;
+            if (cnt1 >= CNT1)
             {
                 cnt0 = 0;
                 cnt1 = CNT1;
@@ -78,7 +79,8 @@ public:
         }
         else
         {
-            if (++cnt0 >= CNT0)
+            cnt0 += cnt;
+            if (cnt0 >= CNT0)
             {
                 cnt1 = 0;
                 cnt0 = CNT0;
@@ -95,13 +97,31 @@ public:
 
     void State()
     {
-        printf("CNT0:%d CNT1:%d cnt0=%d cnt1=%d State=%s\n",CNT0,CNT1,cnt0,cnt1, Utils::State5::State());
+        printf("CNT0:%d CNT1:%d cnt0=%d cnt1=%d State=%s\n", CNT0, CNT1, cnt0, cnt1, Utils::State5::State());
     }
 
 private:
-
     int CNT1{1};
     int CNT0{1};
     int cnt1{0};
     int cnt0{0};
+};
+
+class DebounceByTime : public Debounce
+{
+public:
+    void Check(bool v, time_t ct)
+    {
+        if (_ct != 0 && ct >= _ct)
+        {
+            Debounce::Check(_v, ct - _ct);
+        }
+        _ct = ct;
+        _v = v;
+    }
+
+private:
+    void Check(bool v, int cnt) override{};
+    time_t _ct{0};
+    bool _v;
 };

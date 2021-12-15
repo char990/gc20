@@ -28,6 +28,8 @@
 
 #include <module/DebugConsole.h>
 
+#include <3rdparty/catch2/enable_test.h>
+
 const char *FirmwareMajorVer = "01";
 const char *FirmwareMinorVer = "50";
 const char *CONFIG_PATH = "config";
@@ -50,11 +52,11 @@ void PrintVersion()
 }
 
 time_t ds3231_ts;
-time_t ds3231time(time_t * t)
+time_t ds3231time(time_t *t)
 {
-    if(t!=nullptr)
+    if (t != nullptr)
     {
-        *t=ds3231_ts;
+        *t = ds3231_ts;
     }
     return ds3231_ts;
 }
@@ -68,14 +70,14 @@ void reloadds3231usec()
 {
     struct timeval t;
     gettimeofday(&t, nullptr);
-    tv_usec=t.tv_usec;
-} 
+    tv_usec = t.tv_usec;
+}
 
 bool ticktock = true;
 class TickTock : public IPeriodicRun
 {
 public:
-    #define RD_DS3231_SEC 3600
+#define RD_DS3231_SEC 3600
     TickTock()
     {
         ds3231_ts = pDS3231->GetTimet();
@@ -85,7 +87,7 @@ public:
     {
         pPinHeartbeatLed->Toggle();
         cnt++;
-        if((cnt&0x03)==0)
+        if ((cnt & 0x03) == 0)
         {
             pDS3231->WriteTimeAlarm(ds3231_ts);
         }
@@ -96,9 +98,9 @@ public:
         }
         ds3231_ts++;
         sec++;
-        if(sec>RD_DS3231_SEC || pDS3231->IsChanged())
+        if (sec > RD_DS3231_SEC || pDS3231->IsChanged())
         {
-            sec=0;
+            sec = 0;
             ds3231_ts = pDS3231->GetTimet();
             reloadds3231usec();
         }
@@ -109,44 +111,6 @@ private:
     char s[4]{'-', '\\', '|', '/'};
     int sec;
 };
-
-void TestCrc8005()
-{
-    uint8_t buf1[] = {0x02, 0x30, 0x31, 0x30, 0x35};
-    printf("\ncrc1(18F3):%04X\n", Utils::Crc::Crc16_8005(buf1, sizeof(buf1)));
-    uint8_t buf2[] = {
-        0x02, 0x30, 0x32, 0x30, 0x36,
-        0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
-        0x31, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34, 0x30, 0x31, 0x34, 0x44, 0x46, 0x34};
-    printf("\ncrc2(4AFF):%04X\n", Utils::Crc::Crc16_8005(buf2, sizeof(buf2)));
-}
-
-void TestDebounce()
-{
-    Debounce test(5, 4);
-    char c;
-    while (1)
-    {
-        test.State();
-        scanf(" %c", &c);
-        switch (c)
-        {
-        case '0':
-        case '1':
-            test.Check(c != '0');
-            break;
-        case 'r':
-            test.ClearRising();
-            break;
-        case 'f':
-            test.ClearFalling();
-            break;
-        default:
-            test.ClearEdge();
-            break;
-        }
-    }
-}
 
 void LogResetTime()
 {
@@ -209,7 +173,11 @@ void GpioInit()
     pPinMosfet2 = new GpioOut(PIN_MOSFET2_CTRL, 0); // mosfet off
 }
 
+#ifdef CATCH2TEST
+int test_mask_main(int argc, char *argv[])
+#else
 int main(int argc, char *argv[])
+#endif
 {
     // setenv("MALLOC_TRACE","./test.log",1);
     // mtrace();
@@ -222,12 +190,11 @@ int main(int argc, char *argv[])
         }
         PrintVersion();
         pDS3231 = new DS3231{1};
-        TickTock * pTickTock = new TickTock{};
+        TickTock *pTickTock = new TickTock{};
 
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
         GpioInit();
-
 
         // 2(tmr) + 1+8*2(nts) + 1+4*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 44
         Epoll::Instance().Init(64);
@@ -257,7 +224,7 @@ int main(int argc, char *argv[])
         // Slaves of Groups on RS485
         for (int i = 1; i <= prod.NumberOfSigns(); i++)
         {
-            auto & cn = prod.GetSignCfg(i);
+            auto &cn = prod.GetSignCfg(i);
             if (cn.com_ip < COMPORT_SIZE)
             { // com port
                 if (oprSp[cn.com_ip] == nullptr)

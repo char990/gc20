@@ -263,122 +263,117 @@ void Sign::RefreshSlaveStatusAtExtSt()
     {
         singleLedFault.ClearEdge();
     }
+    RefreshFatalError();
 
     // *** light sensor
     auto t = ds3231time(nullptr);
-    uint8_t tf = t % 60;
-    if (tflag != tf)
-    { // a new time
-        tflag = tf;
-        // light sensor installed at first slave
-        auto lscon = lsConnectionFault.Value();
-        lux = vsSlaves[0]->lux;
-        if ((vsSlaves[0]->lightSensorFault & 1) == 0 && lux > 0)
+    // light sensor installed at first slave
+    auto lscon = lsConnectionFault.Value();
+    lux = vsSlaves[0]->lux;
+    if ((vsSlaves[0]->lightSensorFault & 1) == 0 && lux > 0)
+    {
+        lsConnectionFault.Clr();
+    }
+    else
+    {
+        lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1, t);
+    }
+    if (lsConnectionFault.IsRising())
+    {
+        lsConnectionFault.ClearRising();
+        luminanceFault.Set();
+        signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
+        db.GetUciAlarm().Push(signId, "Light sensor DISCONNECTED");
+    }
+    else if (lsConnectionFault.IsFalling())
+    {
+        lsConnectionFault.ClearFalling();
+        if (lscon != STATE5::S5_NA)
         {
-            lsConnectionFault.Clr();
+            db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
         }
-        else
-        {
-            lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1);
-        }
-        if (lsConnectionFault.IsRising())
-        {
-            lsConnectionFault.ClearRising();
-            luminanceFault.Set();
-            signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
-            db.GetUciAlarm().Push(signId, "Light sensor DISCONNECTED");
-        }
-        else if (lsConnectionFault.IsFalling())
-        {
-            lsConnectionFault.ClearFalling();
-            if (lscon != STATE5::S5_NA)
-            {
-                db.GetUciAlarm().Push(signId, "Light sensor CONNECTED");
-            }
-        }
+    }
 
-        if (lsConnectionFault.IsLow())
+    if (lsConnectionFault.IsLow())
+    {
+        auto &prod = DbHelper::Instance().GetUciProd();
+        ls18hoursFault.Check(lux < prod.LightSensor18Hours(), t);
+        struct tm stm;
+        localtime_r(&t, &stm);
+        if (stm.tm_hour >= 11 && stm.tm_hour < 15)
+        { // mid-day
+            if (lasthour != stm.tm_hour && (lasthour < 11 || lasthour > 15))
+            {
+                lsMiddayFault.ResetCnt();
+            }
+            lsMiddayFault.Check(lux < prod.LightSensorMidday(), t);
+        }
+        if (stm.tm_hour < 3 || stm.tm_hour >= 23)
+        { // mid-night
+            if (lasthour != stm.tm_hour && (lasthour < 23 || lasthour > 3))
+            {
+                lsMidnightFault.ResetCnt();
+            }
+            lsMidnightFault.Check(lux > prod.LightSensorMidnight(), t);
+        }
+        lasthour = stm.tm_hour;
+        if (ls18hoursFault.IsHigh() ||
+            lsMiddayFault.IsHigh() ||
+            lsMidnightFault.IsHigh())
+        { // any failed
+            if (!luminanceFault.IsHigh())
+            {
+                signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
+                luminanceFault.Set();
+            }
+        }
+        else if (ls18hoursFault.IsLow() &&
+                 lsMiddayFault.IsLow() &&
+                 lsMidnightFault.IsLow())
+        { // all good
+            if (!luminanceFault.IsLow())
+            {
+                signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, false);
+                luminanceFault.Clr();
+            }
+        }
+        if (ls18hoursFault.HasEdge())
         {
-            auto &prod = DbHelper::Instance().GetUciProd();
-            ls18hoursFault.Check(lux < prod.LightSensor18Hours());
-            struct tm stm;
-            localtime_r(&t, &stm);
-            if (stm.tm_hour >= 11 && stm.tm_hour < 15)
-            { // mid-day
-                if (lasthour != stm.tm_hour && (lasthour < 11 || lasthour > 15))
-                {
-                    lsMiddayFault.ResetCnt();
-                }
-                lsMiddayFault.Check(lux < prod.LightSensorMidday());
-            }
-            if (stm.tm_hour < 3 || stm.tm_hour >= 23)
-            { // mid-night
-                if (lasthour != stm.tm_hour && (lasthour < 23 || lasthour > 3))
-                {
-                    lsMidnightFault.ResetCnt();
-                }
-                lsMidnightFault.Check(lux > prod.LightSensorMidnight());
-            }
-            lasthour = stm.tm_hour;
-            if (ls18hoursFault.IsHigh() ||
-                lsMiddayFault.IsHigh() ||
-                lsMidnightFault.IsHigh())
-            { // any failed
-                if (!luminanceFault.IsHigh())
-                {
-                    signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, true);
-                    luminanceFault.Set();
-                }
-            }
-            else if (ls18hoursFault.IsLow() &&
-                     lsMiddayFault.IsLow() &&
-                     lsMidnightFault.IsLow())
-            { // all good
-                if (!luminanceFault.IsLow())
-                {
-                    signErr.Push(signId, DEV::ERROR::SignLuminanceControllerFailure, false);
-                    luminanceFault.Clr();
-                }
-            }
-            if (ls18hoursFault.HasEdge())
+            ls18hoursFault.ClearEdge();
+            if (ls18hoursFault.IsHigh())
             {
-                ls18hoursFault.ClearEdge();
-                if (ls18hoursFault.IsHigh())
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, prod.LightSensor18Hours());
-                }
-                else
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, prod.LightSensor18Hours());
-                }
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, prod.LightSensor18Hours());
             }
-            if (lsMiddayFault.HasEdge())
+            else
             {
-                lsMiddayFault.ClearEdge();
-                if (lsMiddayFault.IsHigh())
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, prod.LightSensorMidday());
-                }
-                else
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, prod.LightSensorMidday());
-                }
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, prod.LightSensor18Hours());
             }
-            if (lsMidnightFault.HasEdge())
+        }
+        if (lsMiddayFault.HasEdge())
+        {
+            lsMiddayFault.ClearEdge();
+            if (lsMiddayFault.IsHigh())
             {
-                lsMidnightFault.ClearEdge();
-                if (lsMidnightFault.IsHigh())
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, prod.LightSensorMidnight());
-                }
-                else
-                {
-                    db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, prod.LightSensorMidnight());
-                }
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, prod.LightSensorMidday());
+            }
+            else
+            {
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, prod.LightSensorMidday());
+            }
+        }
+        if (lsMidnightFault.HasEdge())
+        {
+            lsMidnightFault.ClearEdge();
+            if (lsMidnightFault.IsHigh())
+            {
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, prod.LightSensorMidnight());
+            }
+            else
+            {
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, prod.LightSensorMidnight());
             }
         }
     }
-    RefreshFatalError();
 }
 
 void Sign::RefreshFatalError()
