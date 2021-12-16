@@ -43,8 +43,8 @@ public:
     uint8_t Fan2OnTemp() { return fan2OnTemp;};
     uint8_t OverTemp() { return overTemp;};
     uint8_t Humidity() { return humidity;};
-    uint8_t DefaultFont() { return defaultFont;};
-    uint8_t DefaultColour() { return defaultColour;};
+    //uint8_t DefaultFont() { return defaultFont;};
+    //uint8_t DefaultColour() { return defaultColour;};
     uint8_t LockedFrm() { return lockedFrm;};
     uint8_t LockedMsg() { return lockedMsg;};
     uint8_t LastFrmOn() { return lastFrmOn;};
@@ -82,8 +82,8 @@ public:
     void Fan2OnTemp(uint8_t);
     void OverTemp(uint8_t);
     void Humidity(uint8_t);
-    void DefaultFont(uint8_t);
-    void DefaultColour(uint8_t);
+    //void DefaultFont(uint8_t);
+    //void DefaultColour(uint8_t);
     void LockedFrm(uint8_t);
     void LockedMsg(uint8_t);
     void LastFrmOn(uint8_t);
@@ -112,8 +112,8 @@ private:
         fan2OnTemp,
         overTemp,
         humidity,
-        defaultFont,
-        defaultColour,
+        //defaultFont,
+        //defaultColour,
         lockedFrm,
         lockedMsg,
         comPort,
@@ -151,8 +151,8 @@ private:
 
     const char * _SessionTimeout="SessionTimeout";
     const char * _DisplayTimeout="DisplayTimeout";
-    const char * _DefaultFont="DefaultFont";
-    const char * _DefaultColour="DefaultColour";
+    //const char * _DefaultFont="DefaultFont";
+    //const char * _DefaultColour="DefaultColour";
 
     const char * _MultiLedFaultThreshold="MultiLedFaultThreshold";
 

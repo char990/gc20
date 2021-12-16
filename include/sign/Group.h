@@ -156,8 +156,9 @@ protected:
 private:
     uint8_t grpTick{0};
 
-    uint8_t readyToLoad{1}, newCurrent{0};
+    uint8_t readyToLoad{1}, reloadCurrent{0};
     void ReadyToLoad(uint8_t v) { readyToLoad = v; };
+    void ReloadCurrent(uint8_t v) { reloadCurrent = v; };
 
     uint8_t deviceEnDisSet, deviceEnDisCur;
     void EnDisDevice();

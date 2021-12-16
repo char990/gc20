@@ -375,10 +375,10 @@ void UciProd::LoadConfig()
     }
 
     mappedColoursTable[0] = 0;
-    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
         str = GetStr(uciSec, COLOUR_NAME[i]);
-        for (cnt = 1; cnt < 10; cnt++)
+        for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
         {
             if (strcmp(str, COLOUR_NAME[cnt]) == 0)
             {

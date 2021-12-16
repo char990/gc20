@@ -424,6 +424,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                 rr_flag |= RQST_RESTART;
             }
 
+            /* discard DefaultFont & DefaultColour
             v = *(pd + 22);
             if (v != user.DefaultFont())
             {
@@ -438,7 +439,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                 evt.Push(0, "User.DefaultColour changed: %u->%u",
                          user.DefaultColour(), v);
                 user.DefaultColour(v);
-            }
+            }*/
 
             v = Cnvt::GetU16(pd + 24);
             if (v != user.MultiLedFaultThreshold())
@@ -555,8 +556,8 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = user.Fan1OnTemp();
         *pt++ = user.Humidity();
         *pt++ = user.Tz();
-        *pt++ = user.DefaultFont();
-        *pt++ = user.DefaultColour();
+        *pt++ = 0; //user.DefaultFont();
+        *pt++ = 0; //user.DefaultColour();
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
@@ -917,12 +918,13 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
                          user.BroadcastId(), broadcastId);
                 user.BroadcastId(broadcastId);
             }
+            /*
             if (defaultFont != user.DefaultFont())
             {
                 evt.Push(0, "User.DefaultFont changed: %u->%u",
                          user.DefaultFont(), defaultFont);
                 user.DefaultFont(defaultFont);
-            }
+            }*/
             if (sessiont != user.SessionTimeout())
             {
                 evt.Push(0, "User.SessionTimeout changed: %u->%u",
@@ -966,7 +968,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = sign->MaxTemp();           // max temperature
         uint16_t faultleds = sign->FaultLedCnt();
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
-        *p++ = user.DefaultFont();                  //
+        *p++ = 0;//user.DefaultFont();                  //
         p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
         *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                     // light sensor 2
@@ -974,7 +976,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = 'B';                                 //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
         *p++ = prod.MaxConspicuity();               // conspicuity
         *p++ = prod.MaxFont();                      // max. number of fonts
-        *p++ = user.DefaultColour();                // 09
+        *p++ = 0;//user.DefaultColour();                // 09
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.max_template=0;		// 00
         *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk1=1;                // 01
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_offset=0;		// 00

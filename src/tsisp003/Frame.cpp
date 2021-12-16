@@ -181,7 +181,7 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
         totallen = prod.Gfx24FrmLen();
     }
     memset(buf, 0, totallen);
-    auto mappedcolour = (colour == 0) ? prod.GetMappedColour(DbHelper::Instance().GetUciUser().DefaultColour()) : colour;
+    auto mappedcolour = prod.GetMappedColour(colour);
     auto p = stFrm.rawData + frmOffset;
     if(mappedcolour<(uint8_t)FRMCOLOUR::MonoFinished)
     {// 1-bit frame
@@ -400,7 +400,7 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
             }
         }
     }
-    uint8_t monocolour = (colour == 0) ? prod.GetMappedColour(DbHelper::Instance().GetUciUser().DefaultColour()) : colour;
+    uint8_t monocolour = prod.GetMappedColour(colour);
     int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * rx - pFont->LineSpacing())) / 2;
     for (int i = 0; i < rows; i++)
     {

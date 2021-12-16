@@ -48,6 +48,7 @@ void UciUser::LoadConfig()
     fan2OnTemp = GetInt(uciSec, _Fan2OnTemp, 0, 100);
     overTemp = GetInt(uciSec, _OverTemp, 0, 100);
     humidity = GetInt(uciSec, _Humidity, 0, 100);
+    /*
     defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
     if (!uciProd.IsFont(defaultFont))
     {
@@ -65,7 +66,7 @@ void UciUser::LoadConfig()
     if (!uciProd.IsHrgFrmColourValid(defaultColour))
     {
         MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
-    }
+    }*/
 
     lastFrmOn = GetInt(uciSec, _LastFrmOn, 1, 60);
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
@@ -247,8 +248,8 @@ void UciUser::Dump()
     PrintOption_d(_Humidity, Humidity());
     PrintOption_d(_SessionTimeout, SessionTimeout());
     PrintOption_d(_DisplayTimeout, DisplayTimeout());
-    PrintOption_d(_DefaultFont, DefaultFont());
-    PrintOption_d(_DefaultColour, DefaultColour());
+    //PrintOption_d(_DefaultFont, DefaultFont());
+    //PrintOption_d(_DefaultColour, DefaultColour());
     PrintOption_d(_MultiLedFaultThreshold, MultiLedFaultThreshold());
     PrintOption_d(_LockedFrm, LockedFrm());
     PrintOption_d(_LockedMsg, LockedMsg());
@@ -394,6 +395,7 @@ void UciUser::Humidity(uint8_t v)
     }
 }
 
+/*
 void UciUser::DefaultFont(uint8_t v)
 {
     if (defaultFont != v)
@@ -411,7 +413,7 @@ void UciUser::DefaultColour(uint8_t v)
         OpenSaveClose(SECTION, _DefaultColour, v);
     }
 }
-
+*/
 void UciUser::LockedFrm(uint8_t v)
 {
     if (lockedFrm != v)

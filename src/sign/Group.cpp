@@ -183,7 +183,7 @@ void Group::PeriodicRun()
         {
             dsBak->Clone((dsNext->dispType != DISP_TYPE::N_A && dsNext->dispType != DISP_TYPE::EXT) ? dsNext : dsCurrent);
         }
-        newCurrent = 1;   // force to reload
+        ReloadCurrent(1);   // force to reload
         dsNext->N_A();    // avoid to call LoadDsNext()
         dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
         fatalError.ClearRising();
@@ -207,13 +207,16 @@ void Group::PeriodicRun()
         if (readyToLoad)
         {
             EnDisDevice();
-            newCurrent = 0;
+            ReloadCurrent(0);
             if (dsCurrent->dispType == DISP_TYPE::EXT && extDispTmr.IsExpired())
             {
                 extDispTmr.Clear();
                 DispBackup();
             }
-            newCurrent |= LoadDsNext(); // current->bak and next/fs/ext->current
+            if(LoadDsNext()) // current->bak and next/fs/ext->current
+            {
+                ReloadCurrent(1);
+            }
         }
     }
     else
@@ -318,17 +321,14 @@ void Group::FcltSwitchFunc()
             }
             else
             {
-                if (IsPowerOn())
-                { // power is ok, this means fsState is turning: AUTO<->MSG1<->MSG2
-                    if (fs == FacilitySwitch::FS_STATE::AUTO)
-                    {
-                        DispNext(DISP_TYPE::FRM, 0);
-                    }
-                    else
-                    {
-                        uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
-                        DispNext(DISP_TYPE::FSW, msg);
-                    }
+                if (fs == FacilitySwitch::FS_STATE::AUTO)
+                {
+                    DispNext(DISP_TYPE::FRM, 0);
+                }
+                else
+                {
+                    uint8_t msg = (fs == FacilitySwitch::FS_STATE::MSG1) ? 1 : 2;
+                    DispNext(DISP_TYPE::FSW, msg);
                 }
             }
         }
@@ -343,9 +343,9 @@ bool Group::TaskPln(int *_ptLine)
     {
         return PT_RUNNING;
     }
-    if (newCurrent)
+    if (reloadCurrent)
     {
-        newCurrent = 0;
+        ReloadCurrent(0);
         ClrOrBuf();
         TaskPlnReset();
     }
@@ -449,9 +449,9 @@ bool Group::TaskMsg(int *_ptLine)
     {
         return PT_RUNNING;
     }
-    if (newCurrent)
+    if (reloadCurrent)
     {
-        newCurrent = 0;
+        ReloadCurrent(0);
         onDispNewMsg = 1;
         ClrOrBuf();
     }
@@ -487,7 +487,7 @@ bool Group::TaskMsg(int *_ptLine)
                 dsCurrent->dispType != DISP_TYPE::EXT)
             {
                 // Something wrong, Load pln0 to run plan
-                newCurrent = 1;
+                ReloadCurrent(1);
                 dsCurrent->Pln0();
                 // log
                 TaskMsgReset();
@@ -737,9 +737,9 @@ bool Group::TaskFrm(int *_ptLine)
         return PT_RUNNING;
     }
 
-    if (newCurrent)
+    if (reloadCurrent)
     {
-        newCurrent = 0;
+        ReloadCurrent(0);
         onDispNewFrm = 1;
         ClrOrBuf();
     }
@@ -1269,7 +1269,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
         if (time != 0)
         {
             if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
-            {
+            {// same, reload timer
                 extDispTmr.Setms(time * 1000);
             }
             else if (dsCurrent->dispType == DISP_TYPE::N_A ||
@@ -1304,7 +1304,7 @@ void Group::DispBackup()
 
 APP::ERROR Group::DispFrm(uint8_t id)
 {
-    if (mainPwr == PWR_STATE::OFF)
+    if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
     {
         return APP::ERROR::PowerIsOff;
     }
@@ -1312,14 +1312,10 @@ APP::ERROR Group::DispFrm(uint8_t id)
     {
         return APP::ERROR::FacilitySwitchOverride;
     }
-    if (cmdPwr == PWR_STATE::OFF)
+    for (auto &sign : vSigns)
     {
-        return APP::ERROR::PowerIsOff;
-    }
-    for(auto & sign : vSigns)
-    {
-        auto & signCfg = db.GetUciProd().GetSignCfg(sign->SignId());
-        if(signCfg.rjctFrm.GetBit(id))
+        auto &signCfg = db.GetUciProd().GetSignCfg(sign->SignId());
+        if (signCfg.rjctFrm.GetBit(id))
         {
             return APP::ERROR::SyntaxError;
         }
@@ -1335,17 +1331,13 @@ APP::ERROR Group::DispFrm(uint8_t id)
 
 APP::ERROR Group::DispMsg(uint8_t id)
 {
-    if (mainPwr == PWR_STATE::OFF)
+    if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
     {
         return APP::ERROR::PowerIsOff;
     }
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
         return APP::ERROR::FacilitySwitchOverride;
-    }
-    if (cmdPwr == PWR_STATE::OFF)
-    {
-        return APP::ERROR::PowerIsOff;
     }
     uint8_t buf[3];
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
@@ -1908,7 +1900,7 @@ void Group::MakeFrameForSlave(Frame *frm)
     p++;         // skip slave frame id
     *p++ = prod.PixelRows();
     p = Cnvt::PutU16(prod.PixelColumns(), p);
-    auto mappedcolour = (frm->colour == 0) ? prod.GetMappedColour(user.DefaultColour()) : frm->colour;
+    auto mappedcolour = prod.GetMappedColour(frm->colour);
     if (msgOverlay == 0 || msgOverlay == 1)
     {
         *p++ = mappedcolour;
