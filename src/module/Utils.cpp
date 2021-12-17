@@ -665,33 +665,47 @@ long Time::Interval()
     return ms;
 }
 
-extern time_t ds3231time(time_t *);
-time_t Time::GetLocalTime(struct tm *stm)
+extern time_t GetTime(time_t *);
+time_t Time::GetLocalTime(struct tm & stm)
 {
-    time_t t = ds3231time(nullptr);
-    localtime_r(&t, stm);
-    stm->tm_mon += 1;
-    stm->tm_year += 1900;
+    time_t t = GetTime(nullptr);
+    localtime_r(&t, &stm);
     return t;
 }
 
-bool Time::IsTmValid(struct tm *stm)
+time_t Time::SetLocalTime(struct tm & stm)
 {
-    if (stm->tm_mday < 1 ||
-        stm->tm_mon < 0 || stm->tm_mon > 11 ||
-        stm->tm_year < 101 || stm->tm_year > 200 ||
-        stm->tm_hour < 0 || stm->tm_hour > 23 ||
-        stm->tm_min < 0 || stm->tm_min > 59 ||
-        stm->tm_sec < 0 || stm->tm_sec > 59)
+    char buf[64];
+    snprintf(buf, 63, "date '%d-%d-%d %d:%d:%d'",
+             stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
+    auto t = mktime(&stm);
+    system(buf);
+    auto newt = GetTime(nullptr);
+    auto sec =  newt - t;
+    if (sec < 0 || sec > 3)
+    {
+        return -1;
+    }
+    return newt;
+}
+
+bool Time::IsTmValid(struct tm & stm)
+{
+    if (stm.tm_mday < 1 ||
+        stm.tm_mon < 0 || stm.tm_mon > 11 ||
+        stm.tm_year < 101 || stm.tm_year > 200 ||
+        stm.tm_hour < 0 || stm.tm_hour > 23 ||
+        stm.tm_min < 0 || stm.tm_min > 59 ||
+        stm.tm_sec < 0 || stm.tm_sec > 59)
     {
         return false;
     }
-    uint8_t md = monthday[stm->tm_mon];
-    if (stm->tm_mon == 1 && ((stm->tm_year + 1900) % 4) == 0) // Feb of leap year
+    uint8_t md = monthday[stm.tm_mon];
+    if (stm.tm_mon == 1 && ((stm.tm_year + 1900) % 4) == 0) // Feb of leap year
     {
         md++;
     }
-    return (stm->tm_mday <= md);
+    return (stm.tm_mday <= md);
 }
 
 int Time::SleepMs(long msec)

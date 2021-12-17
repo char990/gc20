@@ -324,13 +324,17 @@ namespace Utils
         /// \return     interval of ms
         long Interval();
 
-        /// \brief      get localtime to stm. Note !!! stm->tm_mon(1-12),  stm->year(1970-)
+        /// \brief      get localtime to stm
         /// \return     time_t
-        static time_t GetLocalTime(struct tm *stm);
+        static time_t GetLocalTime(struct tm & stm);
+
+        /// \brief      set system time from localtime-stm
+        /// \return     time_t of stm, -1:failed
+        static time_t SetLocalTime(struct tm & stm);
 
         /// \brief      check if a broken time is valid
         ///             from 1/1/2001 0:00:00
-        static bool IsTmValid(struct tm *stm);
+        static bool IsTmValid(struct tm & stm);
 
         /// \brief      sleep ms
         static int SleepMs(long msec);

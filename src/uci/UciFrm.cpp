@@ -39,7 +39,7 @@ UciFrm::~UciFrm()
 
 void UciFrm::LoadConfig()
 {
-	PrintDbg(DBG_LOG, ">>> Loading 'frames'\n");
+	PrintDbg(DBG_LOG, ">>> Loading 'frames'");
 	auto & db = DbHelper::Instance();
 	PATH = db.Path();
 	auto prodtype = db.GetUciProd().ProdType();
@@ -108,7 +108,7 @@ void UciFrm::LoadFrms(const char *FMT)
 	}
 	catch (const std::exception &e)
 	{
-		PrintDbg(DBG_LOG, "%s\n", e.what());
+		PrintDbg(DBG_LOG, "%s", e.what());
 	}
 	delete[] v;
 	delete[] b;
@@ -216,7 +216,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
 		db.GetUciAlarm().Push(0, buf);
-		PrintDbg(DBG_LOG, "%s\n", buf);
+		PrintDbg(DBG_LOG, "%s", buf);
 	}
 	else
 	{
@@ -224,7 +224,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
 			db.GetUciAlarm().Push(0, buf);
-			PrintDbg(DBG_LOG, "%s\n", buf);
+			PrintDbg(DBG_LOG, "%s", buf);
 		}
 		fdatasync(frm_fd);
 		close(frm_fd);

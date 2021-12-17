@@ -17,7 +17,7 @@ UciMsg::~UciMsg()
 
 void UciMsg::LoadConfig()
 {
-	PrintDbg(DBG_LOG, ">>> Loading 'messages'\n");
+	PrintDbg(DBG_LOG, ">>> Loading 'messages'");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciMsg";
 	SECTION = "msg";

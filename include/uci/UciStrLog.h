@@ -32,4 +32,6 @@ protected:
     const char * _Fmt_1 =  "]t=%d, ID=%d, EntryNo=%d, ";
     const char * _Fmt_2 =  "Str=";
     const char * _Fmt_3 =  "]t=%d, ID=%d, EntryNo=%d, Str=%s";
+
+
 };

@@ -36,7 +36,7 @@ public:
     int GetLog(uint8_t *dst);
 
     /// \brief  Push a fault in faultLog and save to UciFault
-    /// \param  Generally, t==0, load ds3231time in this function
+    /// \param  Generally, t==0, load GetTime in this function
     /// \param  if t>0, this is a special pushing for a RESET log
     void Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t=0);
 

@@ -17,7 +17,7 @@ UciPln::~UciPln()
 
 void UciPln::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'plans'\n");
+    PrintDbg(DBG_LOG, ">>> Loading 'plans'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciPln";
     SECTION = "pln";

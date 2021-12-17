@@ -10,8 +10,6 @@
 #include <module/BootTimer.h>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
-extern long ds3231usec();
 
 #define MyDbgBuf_SIZE 1024
 
@@ -52,12 +50,6 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		lastlvl = level;
 		struct timeval t;
 		gettimeofday(&t, nullptr);
-		t.tv_sec = ds3231time(nullptr);
-		t.tv_usec -= ds3231usec();
-		if (t.tv_usec < 0)
-		{
-			t.tv_usec += 1000000;
-		}
 		MyDbgBuf[0] = '[';
 		char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
 		*p++ = ']';
@@ -66,6 +58,11 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		va_start(args, fmt);
 		len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
 		va_end(args);
+		if(level != DBG_HB)
+		{
+			MyDbgBuf[len++]='\n';
+			MyDbgBuf[len]='\0';
+		}
 		printf("%s", MyDbgBuf);
 	}
 	if (level >= DBG_LOG)

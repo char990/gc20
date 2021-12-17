@@ -104,24 +104,24 @@ void Controller::PeriodicRun()
             {
                 tcpServer->Close();
                 evt.Push(0, "ETH1 restart");
-                PrintDbg(DBG_LOG, "ETH1 restart...\n");
+                PrintDbg(DBG_LOG, "ETH1 restart...");
                 system("ifdown ETH1");
                 system("ifup ETH1");
-                PrintDbg(DBG_LOG, "Done.\n");
+                PrintDbg(DBG_LOG, "Done.");
                 tcpServer->Open();
             }
             if (rr_flag & RQST_REBOOT)
             {
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
-                PrintDbg(DBG_LOG, "\n%s...\n", _re);
+                PrintDbg(DBG_LOG, "\n%s...", _re);
                 MyThrow("\n%s...\n", _re);
             }
             if (rr_flag & RQST_RESTART)
             {
                 const char *_re = " -> -> -> restart";
                 evt.Push(0, _re);
-                PrintDbg(DBG_LOG, "\n%s...\n", _re);
+                PrintDbg(DBG_LOG, "\n%s...", _re);
                 MyThrow("\n%s...\n", _re);
             }
             rr_flag = 0;

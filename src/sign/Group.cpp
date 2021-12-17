@@ -187,7 +187,7 @@ void Group::PeriodicRun()
         dsNext->N_A();    // avoid to call LoadDsNext()
         dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
         fatalError.ClearRising();
-        PrintDbg(DBG_LOG, "Group[%d] fatalError Set\n", groupId);
+        PrintDbg(DBG_LOG, "Group[%d] fatalError Set", groupId);
     }
     else if (fatalError.IsFalling())
     {
@@ -195,7 +195,7 @@ void Group::PeriodicRun()
         dsCurrent->N_A();
         ReadyToLoad(1);
         fatalError.ClearFalling();
-        PrintDbg(DBG_LOG, "Group[%d] fatalError Clr\n", groupId);
+        PrintDbg(DBG_LOG, "Group[%d] fatalError Clr", groupId);
     }
 
     if (fatalError.IsLow())
@@ -303,7 +303,7 @@ void Group::FcltSwitchFunc()
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[64];
         snprintf(buf, 63, "Group%d:%s", groupId, fcltSw.ToStr());
-        PrintDbg(DBG_LOG, "%s\n", buf);
+        PrintDbg(DBG_LOG, "%s", buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
@@ -358,7 +358,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    PrintDbg(DBG_LOG, "TaskPln:Display:BLANK\n");
+                    PrintDbg(DBG_LOG, "TaskPln:Display:BLANK");
                     db.GetUciEvent().Push(0, "Display:BLANK");
                     TaskFrmReset();
                     TaskMsgReset();
@@ -376,7 +376,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    PrintDbg(DBG_LOG, "TaskPln:Plan%d start\n", plnmin.plnId);
+                    PrintDbg(DBG_LOG, "TaskPln:Plan%d start", plnmin.plnId);
                     db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -428,10 +428,10 @@ bool Group::TaskPln(int *_ptLine)
     PT_END();
 }
 
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 PlnMinute &Group::GetCurrentMinPln()
 {
-    time_t t = ds3231time(nullptr);
+    time_t t = GetTime(nullptr);
     struct tm stm;
     localtime_r(&t, &stm);
     return plnMin.at((stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min);
@@ -475,7 +475,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        PrintDbg(DBG_LOG, "TaskMsg:Display Msg:%d\n", onDispMsgId);
+        PrintDbg(DBG_LOG, "TaskMsg:Display Msg:%d", onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -574,14 +574,14 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 if (++msgSlaveErrCnt == 3)
                                 {
-                                    PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Slave may reset, RESTART\n");
+                                    PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Slave may reset, RESTART");
                                     goto NORMAL_MSG_TASK_START;
                                 }
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Current NOT matched, RESTART\n");
+                            PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Current NOT matched, RESTART");
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -623,7 +623,7 @@ bool Group::TaskMsg(int *_ptLine)
                     } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                     if (!taskMsgTmr.IsExpired())
                     { // Currnet is NOT matched, fatal error
-                        PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART\n");
+                        PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART");
                         goto NORMAL_MSG_TASK_START;
                     }
 
@@ -762,7 +762,7 @@ bool Group::TaskFrm(int *_ptLine)
             activeFrm.ClrAll();
             activeFrm.SetBit(1); // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
-            PrintDbg(DBG_LOG, "TaskFrm:Display ATF\n");
+            PrintDbg(DBG_LOG, "TaskFrm:Display ATF");
         }
         else
         {
@@ -784,7 +784,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            PrintDbg(DBG_LOG, "TaskFrm:Display Frm:%d\n", onDispFrmId);
+            PrintDbg(DBG_LOG, "TaskFrm:Display Frm:%d", onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -1817,7 +1817,7 @@ bool Group::DimmingAdjust()
             {
                 setDimming = newdim;
                 /*
-                PrintDbg(DBG_LOG, "currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d\n",
+                PrintDbg(DBG_LOG, "currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d",
                          currentDimmingLvl, targetDimmingLvl, tgtLevel, setDimming);
                          */
                 RqstExtStatus(0xFF);
@@ -1994,7 +1994,7 @@ void Group::ReadyToLoad(uint8_t v)
 {
     if (readyToLoad != v)
     {
-        PrintDbg(DBG_PRT, "readyToLoad(%d)->%d\n", readyToLoad, v);
+        PrintDbg(DBG_PRT, "readyToLoad(%d)->%d", readyToLoad, v);
         readyToLoad = v;
     }
 }

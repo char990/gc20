@@ -5,7 +5,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 
 Sign::Sign(uint8_t id)
     : signId(id)
@@ -266,7 +266,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     RefreshFatalError();
 
     // *** light sensor
-    auto t = ds3231time(nullptr);
+    auto t = GetTime(nullptr);
     // light sensor installed at first slave
     auto lscon = lsConnectionFault.Value();
     lux = vsSlaves[0]->lux;
@@ -383,7 +383,7 @@ void Sign::RefreshFatalError()
         fatalError.Set();
         if (fatalError.IsRising())
         {
-            PrintDbg(DBG_LOG, "Sign[%d] fatalError Set\n", signId);
+            PrintDbg(DBG_LOG, "Sign[%d] fatalError Set", signId);
         }
     }
     else
@@ -391,7 +391,7 @@ void Sign::RefreshFatalError()
         fatalError.Clr();
         if (fatalError.IsFalling() && (fatalError.PreV() != STATE5::S5_NA))
         {
-            PrintDbg(DBG_LOG, "Sign[%d] fatalError Clr\n", signId);
+            PrintDbg(DBG_LOG, "Sign[%d] fatalError Clr", signId);
         }
     }
     fatalError.ClearEdge();

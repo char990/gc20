@@ -6,7 +6,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 
 TsiSp003App::TsiSp003App()
     : db(DbHelper::Instance()),
@@ -77,12 +77,8 @@ void TsiSp003App::Reject(APP::ERROR error)
     char str[64 + 4];
     if (rejectStr[0] != '\0')
     {
-        snprintf(str, 64+4-1, " :%s\n", rejectStr);
+        snprintf(str, 64 + 4 - 1, " :%s", rejectStr);
         rejectStr[0] = '\0';
-    }
-    else
-    {
-        sprintf(str, "\n");
     }
     PrintDbg(DBG_LOG, "Reject: MI=0x%02X(%s), Error=0x%02X(%s)%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), str);
     /*
@@ -206,7 +202,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 8))
         return;
     // set time
-    time_t cur = ds3231time(nullptr);
+    time_t cur = GetTime(nullptr);
     struct tm stm;
     data++;
     stm.tm_mday = *data++;
@@ -218,7 +214,7 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
     stm.tm_min = *data++;
     stm.tm_sec = *data;
     stm.tm_isdst = -1;
-    if (Time::IsTmValid(&stm))
+    if (Time::IsTmValid(stm))
     {
         time_t t = mktime(&stm);
         if (t > 0)
@@ -229,16 +225,21 @@ void TsiSp003App::UpdateTime(uint8_t *data, int len)
             sprintf(p, "->");
             Cnvt::ParseTmToLocalStr(t, p + 2);
             db.GetUciEvent().Push(0, buf);
-            if (0)//stime(&t) < 0)
+            PrintDbg(DBG_LOG, "%s", buf);
+            if (Time::SetLocalTime(stm) < 0)
             {
-                db.GetUciAlarm().Push(0, "UpdateTime failed, errno=%d", errno);
+                const char *s = "UpdateTime: Set system time failed(MemoryError)";
+                PrintDbg(DBG_LOG, s);
+                db.GetUciAlarm().Push(0, s);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
             }
             else
             {
                 if (pDS3231->SetTimet(t) < 0)
                 {
-                    db.GetUciAlarm().Push(0, "UpdateTime: Set DS3231 time failed(MemoryError)");
+                    const char *s = "UpdateTime: Set DS3231 time failed(MemoryError)";
+                    PrintDbg(DBG_LOG, s);
+                    db.GetUciAlarm().Push(0, s);
                     db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 }
             }

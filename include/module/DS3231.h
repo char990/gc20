@@ -51,7 +51,7 @@ public:
 private:
      int _bus;
      void PrintTm(struct tm *tm);
-     char changed{1};
+     char changed{0};
 };
 
 extern DS3231 * pDS3231;

@@ -8,7 +8,7 @@
 #include <uci/DbHelper.h>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 
 UciUser::UciUser()
 {
@@ -24,7 +24,7 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'user'\n");
+    PrintDbg(DBG_LOG, ">>> Loading 'user'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciUser";
     DEFAULT_FILE = "UciUser.def";
@@ -305,7 +305,7 @@ uint8_t UciUser::GetLuxLevel(int lux)
 {
     if (lux < 0)
     {
-        switch (tz_AU->GetTwilightStatus(ds3231time(nullptr)))
+        switch (tz_AU->GetTwilightStatus(GetTime(nullptr)))
         {
         case Tz_AU::TwilightStatus::TW_ST_NIGHT:
             return 1;

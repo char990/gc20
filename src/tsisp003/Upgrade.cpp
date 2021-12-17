@@ -15,13 +15,13 @@ int Upgrade::FileInfo(uint8_t *data)
     uint32_t len = Cnvt::GetU32(data + 4);
     if (len < FILE_SIZE_MIN || len > FILE_SIZE_MAX)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FileInfo: len=%d\n", len);
+        PrintDbg(DBG_LOG, "Upgrade::FileInfo: len=%d", len);
         return 1;
     }
     uint8_t sizeK = data[8];
     if (sizeK != 1 && sizeK != 4 && sizeK != 16 && sizeK != 64)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FileInfo: PktSize=%d\n", sizeK);
+        PrintDbg(DBG_LOG, "Upgrade::FileInfo: PktSize=%d", sizeK);
         return 2;
     }
     char pf[256];
@@ -29,7 +29,7 @@ int Upgrade::FileInfo(uint8_t *data)
     int fd = open(pf, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd < 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FileInfo: Can't open '%s'\n",pf);
+        PrintDbg(DBG_LOG, "Upgrade::FileInfo: Can't open '%s'",pf);
         return fd;
     }
     close(fd);
@@ -43,7 +43,7 @@ int Upgrade::FileInfo(uint8_t *data)
         delete[] rcvd;
     }
     rcvd = new uint8_t[totalPkt];
-    PrintDbg(DBG_LOG, "Upgrade::FileInfo: success\n");
+    PrintDbg(DBG_LOG, "Upgrade::FileInfo: success");
     return 0;
 }
 
@@ -51,21 +51,21 @@ int Upgrade::FilePacket(uint8_t *data, int len)
 {
     if (rcvd == nullptr || totalPkt == 0 || filelen == 0 || pktsizeK == 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FilePacket: Need file info\n");
+        PrintDbg(DBG_LOG, "Upgrade::FilePacket: Need file info");
         return 1;
     }
     pktN = Cnvt::GetU16(data + 2);
     len -= 4;
     if (pktN > (totalPkt - 1))
     {
-        PrintDbg(DBG_LOG, "Upgrade::FilePacket: pktN[%d](0-%d)\n", pktN, totalPkt - 1);
+        PrintDbg(DBG_LOG, "Upgrade::FilePacket: pktN[%d](0-%d)", pktN, totalPkt - 1);
         return 2;
     }
     else if (pktN < (totalPkt - 1))
     {
         if (len != (pktsizeK * 1024))
         {
-            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Pkt[%d] len=%d\n", pktN, len);
+            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
             return 3;
         }
     }
@@ -73,7 +73,7 @@ int Upgrade::FilePacket(uint8_t *data, int len)
     {
         if (len != (filelen % (pktsizeK * 1024)))
         {
-            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Pkt[%d] len=%d\n", pktN, len);
+            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
             return 4;
         }
     }
@@ -82,14 +82,14 @@ int Upgrade::FilePacket(uint8_t *data, int len)
     int fd = open(pf, O_WRONLY);
     if (fd < 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FilePacket: Can't open '%s'\n", pf);
+        PrintDbg(DBG_LOG, "Upgrade::FilePacket: Can't open '%s'", pf);
         return fd;
     }
     int wr;
     wr = lseek(fd, pktN * pktsizeK * 1024, SEEK_SET);
     if (wr < 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::FilePacket: lseek failed:pkt[%d]size[%d]\n", pktN, pktsizeK);
+        PrintDbg(DBG_LOG, "Upgrade::FilePacket: lseek failed:pkt[%d]size[%d]", pktN, pktsizeK);
     }
     else
     {
@@ -101,7 +101,7 @@ int Upgrade::FilePacket(uint8_t *data, int len)
         }
         else
         {
-            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Write '%s' failed:wr[%d]len[%d]\n", pf, wr, len);
+            PrintDbg(DBG_LOG, "Upgrade::FilePacket: Write '%s' failed:wr[%d]len[%d]", pf, wr, len);
             wr = -1;
         }
     }
@@ -113,26 +113,26 @@ int Upgrade::Start()
 {
     if (rcvd == nullptr || totalPkt == 0 || filelen == 0 || pktsizeK == 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::Start: Need file info\n");
+        PrintDbg(DBG_LOG, "Upgrade::Start: Need file info");
         return 1;
     }
     for (int i = 0; i < totalPkt; i++)
     {
         if (rcvd[pktN] == 0)
         {
-            PrintDbg(DBG_LOG, "Upgrade::Start: Receiving file uncompleted\n");
+            PrintDbg(DBG_LOG, "Upgrade::Start: Receiving file uncompleted");
             return 2;
         }
     }
     char cwd[256];
     if (getcwd(cwd, 255) == nullptr)
     {
-        PrintDbg(DBG_LOG, "Upgrade::CheckMD5: path is longer than 256 bytes.\n");
+        PrintDbg(DBG_LOG, "Upgrade::CheckMD5: path is longer than 256 bytes.");
         return 3;
     }
     if (chdir(GDIR) != 0)
     {
-        PrintDbg(DBG_LOG, "Upgrade::CheckMD5: Can't change path to '%s'\n", GDIR);
+        PrintDbg(DBG_LOG, "Upgrade::CheckMD5: Can't change path to '%s'", GDIR);
         return 4;
     }
     char cmd[256];
@@ -147,27 +147,27 @@ int Upgrade::Start()
     {
         if (!Exec::FileExists(GFILE))
         {
-            PrintDbg(DBG_LOG, "Upgrade::Start: Can't find '%s'\n", GFILE);
+            PrintDbg(DBG_LOG, "Upgrade::Start: Can't find '%s'", GFILE);
             r = 6;
         }
         else if (!Exec::FileExists(GMD5FILE))
         {
-            PrintDbg(DBG_LOG, "Upgrade::Start: Can't find '%s'\n", GMD5FILE);
+            PrintDbg(DBG_LOG, "Upgrade::Start: Can't find '%s'", GMD5FILE);
             r = 7;
         }
         else
         {
-            PrintDbg(DBG_LOG, "Upgrade::Start: unzip '%s' success\n", UFILE);
+            PrintDbg(DBG_LOG, "Upgrade::Start: unzip '%s' success", UFILE);
             snprintf(cmd, 255, "md5sum -c %s", GMD5FILE);
             r = system(cmd);
             if (r != 0)
             {
-                PrintDbg(DBG_LOG, "Upgrade::Start: MD5 NOT matched\n");
+                PrintDbg(DBG_LOG, "Upgrade::Start: MD5 NOT matched");
                 r = 8;
             }
             else
             {
-                PrintDbg(DBG_LOG, "Upgrade::Start: MD5 success\n");
+                PrintDbg(DBG_LOG, "Upgrade::Start: MD5 success");
                 int md5f = open(GMD5FILE, O_RDONLY);
                 if(md5f)
                 {

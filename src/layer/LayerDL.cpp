@@ -27,11 +27,11 @@ int LayerDL::Rx(uint8_t *data, int len)
         {// packet start, clear buffer
             buf[0] = c;
             length = 1;
-            //PrintDbg(DBG_PRT, "SOH\n");
+            //PrintDbg(DBG_PRT, "SOH");
         }
         else if(c == static_cast<uint8_t>(CTRL_CHAR::NAK))
         {
-            //PrintDbg(DBG_PRT, "NAK\n");
+            //PrintDbg(DBG_PRT, "NAK");
         }  // TODO : CTRL_CHAR::NAK
         else
         {
@@ -42,7 +42,7 @@ int LayerDL::Rx(uint8_t *data, int len)
                     buf[length++] = c;
                     if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
-                        //PrintDbg(DBG_PRT, "ETX\n");
+                        //PrintDbg(DBG_PRT, "ETX");
                         upperLayer->Rx(buf, length);
                         length = 0;
                         return 0;   // only deal with one pkt. Discard other data. 

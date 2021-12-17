@@ -10,7 +10,7 @@
 #include <cstdarg>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 
 void UciStrLog::LoadConfig()
 {
@@ -91,6 +91,7 @@ int UciStrLog::GetLog(uint8_t *dst)
 
 void UciStrLog::Push(uint8_t id, const char *fmt, ...)
 {
+    time_t t = GetTime(NULL);
     uint16_t entryNo = 0;
     if (lastLog != -1)
     {
@@ -103,7 +104,6 @@ void UciStrLog::Push(uint8_t id, const char *fmt, ...)
     }
 
     auto &log = pStrLog[lastLog];
-    time_t t = ds3231time(NULL);
     log.id = id;
     log.entryNo = entryNo;
     log.logTime = t;

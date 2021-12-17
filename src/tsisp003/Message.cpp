@@ -22,12 +22,12 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     }
     if (xlen < (MSG_LEN_MIN + MSG_TAIL) || xlen > (MSG_LEN_MAX + MSG_TAIL)) // with crc
     {
-        PrintDbg(DBG_LOG, "Msg[%d] Error:len=%d\n", msgId, xlen);
+        PrintDbg(DBG_LOG, "Msg[%d] Error:len=%d", msgId, xlen);
         return APP::ERROR::LengthError;
     }
     if (msgId == 0)
     {
-        PrintDbg(DBG_LOG, "Msg Error:MsgID=0\n");
+        PrintDbg(DBG_LOG, "Msg Error:MsgID=0");
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xmsg + 4;
@@ -48,7 +48,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     }
     if (p != (xmsg + xlen - MSG_TAIL))
     {
-        PrintDbg(DBG_LOG, "Msg[%d] Error:Invalid entries\n", msgId);
+        PrintDbg(DBG_LOG, "Msg[%d] Error:Invalid entries", msgId);
         return APP::ERROR::LengthError;
     }
     if (0 != CheckEntries())
@@ -104,7 +104,7 @@ int Message::CheckEntries()
     {
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(msgEntries[i].frmId))
         {
-            PrintDbg(DBG_LOG, "Msg[%d] Error:Frame[%d] undefined\n", msgId, msgEntries[i].frmId);
+            PrintDbg(DBG_LOG, "Msg[%d] Error:Frame[%d] undefined", msgId, msgEntries[i].frmId);
             return -1;
         }
     }

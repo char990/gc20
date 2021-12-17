@@ -45,12 +45,12 @@ int LayerNTS::Rx(uint8_t *data, int len)
     UciUser &user = DbHelper::Instance().GetUciUser();
     if (addr != user.DeviceId() || addr == user.BroadcastId())
     {
-        PrintDbg(DBG_LOG, "NOT my addr: %d\n", addr);
+        PrintDbg(DBG_LOG, "NOT my addr: %d", addr);
         return 0;
     }
     if(data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
     {
-        PrintDbg(DBG_LOG, "Missing STX at [7]\n");
+        PrintDbg(DBG_LOG, "Missing STX at [7]");
         return 0;
     }
     if (len < 15 || (len & 1) == 0)
@@ -117,7 +117,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 {
                     if (i == BROADCAST_MI_SIZE - 1)
                     {
-                        PrintDbg(DBG_LOG, "Unsupported broadcast cmd:%d\n",mi);
+                        PrintDbg(DBG_LOG, "Unsupported broadcast cmd:%d",mi);
                         return 0;
                     }
                 }
@@ -128,7 +128,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     {
         if (addr == user.BroadcastId())
         { // ignore broadcast when off-line
-            PrintDbg(DBG_LOG, "Ignore broadcast when off-line:cmd=%d\n",mi);
+            PrintDbg(DBG_LOG, "Ignore broadcast when off-line:cmd=%d",mi);
             return 0;
         }
     }

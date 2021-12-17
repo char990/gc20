@@ -25,17 +25,17 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (xlen < (PLN_LEN_MIN + PLN_TAIL) || xlen > (PLN_LEN_MAX + PLN_TAIL)) // with crc & enable flag
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d\n", plnId, xlen);
+        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d", plnId, xlen);
         return APP::ERROR::LengthError;
     }
     if (plnId == 0)
     {
-        PrintDbg(DBG_LOG, "Plan Error:PlanID=0\n");
+        PrintDbg(DBG_LOG, "Plan Error:PlanID=0");
         return APP::ERROR::SyntaxError;
     }
     if ((weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X\n", plnId, weekdays);
+        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X", plnId, weekdays);
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xpln + 4;
@@ -47,7 +47,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
         {
             if (i == 0)
             {
-                PrintDbg(DBG_LOG, "Plan[%d] Error:type of first entry=0\n", plnId);
+                PrintDbg(DBG_LOG, "Plan[%d] Error:type of first entry=0", plnId);
                 return APP::ERROR::LengthError;
             }
             break;
@@ -72,7 +72,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (p != (xpln + xlen - PLN_TAIL))
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:invalid entries\n", plnId);
+        PrintDbg(DBG_LOG, "Plan[%d] Error:invalid entries", plnId);
         return APP::ERROR::LengthError;
     }
     // check time overlap in plan
@@ -180,12 +180,12 @@ int Plan::CheckEntries()
     {
         if (plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId))
         {
-            PrintDbg(DBG_LOG, "Plan[%d] Error:Frame[%d] undefined\n", plnId, plnEntries[i].fmId);
+            PrintDbg(DBG_LOG, "Plan[%d] Error:Frame[%d] undefined", plnId, plnEntries[i].fmId);
             return -1;
         }
         else if (plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId))
         {
-            PrintDbg(DBG_LOG, "Plan[%d] Error:Msg[%d] undefined\n", plnId, plnEntries[i].fmId);
+            PrintDbg(DBG_LOG, "Plan[%d] Error:Msg[%d] undefined", plnId, plnEntries[i].fmId);
             return -1;
         }
     }

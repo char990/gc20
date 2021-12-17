@@ -58,7 +58,7 @@ UciProd::~UciProd()
 
 void UciProd::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'prod'\n");
+    PrintDbg(DBG_LOG, ">>> Loading 'prod'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciProd";
     SECTION = "ctrller_cfg";

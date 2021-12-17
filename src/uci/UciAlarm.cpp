@@ -13,7 +13,7 @@ UciAlarm::~UciAlarm()
 
 void UciAlarm::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'alarmlog'\n");
+    PrintDbg(DBG_LOG, ">>> Loading 'alarmlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciAlarm";
 	SECTION = "alm";

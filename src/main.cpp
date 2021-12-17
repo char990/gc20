@@ -51,65 +51,59 @@ void PrintVersion()
     printf("%s\n", buf);
 }
 
-time_t ds3231_ts;
-time_t ds3231time(time_t *t)
+// a wrapper for time()
+time_t GetTime(time_t *t)
 {
-    if (t != nullptr)
-    {
-        *t = ds3231_ts;
-    }
-    return ds3231_ts;
-}
-
-long tv_usec;
-long ds3231usec()
-{
-    return tv_usec;
-}
-void reloadds3231usec()
-{
-    struct timeval t;
-    gettimeofday(&t, nullptr);
-    tv_usec = t.tv_usec;
+    return time(t);
 }
 
 bool ticktock = true;
 class TickTock : public IPeriodicRun
 {
 public:
-#define RD_DS3231_SEC 3600
+#define RD_DS3231_SEC (3600 * 24)
     TickTock()
     {
-        ds3231_ts = pDS3231->GetTimet();
-        sec = RD_DS3231_SEC;
+        UpdateSysTime();
     }
+
+    void UpdateSysTime()
+    {
+        struct tm stm;
+        int x = pDS3231->GetLocalTime(&stm);
+        if (x == 0)
+        {
+            PrintDbg(DBG_LOG, "DS3231 updates system time->%d/%d/%d %d:%02d:%02d",
+                     stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
+            Utils::Time::SetLocalTime(stm);
+        }
+    }
+
     virtual void PeriodicRun() override
     {
+        sec++;
+        if (sec > RD_DS3231_SEC)
+        {
+            sec = 0;
+            UpdateSysTime();
+        }
         pPinHeartbeatLed->Toggle();
         cnt++;
         if ((cnt & 0x03) == 0)
         {
-            pDS3231->WriteTimeAlarm(ds3231_ts);
+            pDS3231->WriteTimeAlarm(time(nullptr));
         }
         if (ticktock)
         {
             PrintDbg(DBG_HB, "%c   \x08\x08\x08", s[cnt & 0x03]);
             fflush(stdout);
         }
-        ds3231_ts++;
-        sec++;
-        if (sec > RD_DS3231_SEC || pDS3231->IsChanged())
-        {
-            sec = 0;
-            ds3231_ts = pDS3231->GetTimet();
-            reloadds3231usec();
-        }
     };
 
 private:
     uint8_t cnt{0};
     char s[4]{'-', '\\', '|', '/'};
-    int sec;
+    int sec{0};
 };
 
 void LogResetTime()
@@ -117,7 +111,7 @@ void LogResetTime()
     if (access(".lrt", F_OK) != 0)
     { // there is no ".lrt"
         time_t t;
-        t = ds3231time(nullptr);
+        t = GetTime(nullptr);
         pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
@@ -189,10 +183,10 @@ int main(int argc, char *argv[])
             MyThrow("path is longer than 64 bytes.\n");
         }
         PrintVersion();
+        PrintDbg(DBG_LOG, "\n>>> %s START... >>>", argv[0]);
         pDS3231 = new DS3231{1};
         TickTock *pTickTock = new TickTock{};
 
-        PrintDbg(DBG_LOG, "\n>>> %s START... >>>\n", argv[0]);
         srand(time(NULL));
         GpioInit();
 
@@ -259,7 +253,7 @@ int main(int argc, char *argv[])
         TcpServer tcpServerNts{user.SvcPort(), "NTS", prod.TcpServerNTS(), &tmrEvt1Sec};
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
-        PrintDbg(DBG_LOG, ">>> DONE >>>\n");
+        PrintDbg(DBG_LOG, ">>> DONE >>>");
 
         /*************** Start ****************/
         while (1)
@@ -271,7 +265,7 @@ int main(int argc, char *argv[])
     catch (const std::exception &e)
     {
         //muntrace();
-        PrintDbg(DBG_LOG, "\n!!! main exception :%s\n", e.what());
+        PrintDbg(DBG_LOG, "\n!!! main exception :%s", e.what());
         exit(1);
         // clean
     }

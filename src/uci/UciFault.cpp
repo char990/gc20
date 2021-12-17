@@ -9,7 +9,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
-extern time_t ds3231time(time_t *);
+extern time_t GetTime(time_t *);
 
 UciFault::UciFault()
 {
@@ -22,7 +22,7 @@ UciFault::~UciFault()
 
 void UciFault::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'faultlog'\n");
+    PrintDbg(DBG_LOG, ">>> Loading 'faultlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciFault";
     SECTION = "flt";
@@ -145,7 +145,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     }
     if(t==0)
     {
-        t = ds3231time(nullptr);
+        t = GetTime(nullptr);
     }
     uint16_t entryNo = 0;
     if (lastLog != -1)
@@ -175,7 +175,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     OpenSaveClose(SECTION, option, v);
     if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)
     {
-        PrintDbg(DBG_LOG, "Fault:%s:%s\n", DEV::ToStr(errorCode), onset?"onset":"clear");
+        PrintDbg(DBG_LOG, "Fault:%s:%s", DEV::ToStr(errorCode), onset?"onset":"clear");
     }
 }
 

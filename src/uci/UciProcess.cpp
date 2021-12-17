@@ -29,7 +29,7 @@ UciProcess::~UciProcess()
 
 void UciProcess::LoadConfig()
 {
-	PrintDbg(DBG_LOG, ">>> Loading 'process'\n");
+	PrintDbg(DBG_LOG, ">>> Loading 'process'");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];

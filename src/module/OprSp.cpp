@@ -93,7 +93,7 @@ int OprSp::RxHandle()
         }
         else
         {
-            PrintDbg(DBG_LOG, "%s:ComTx not ready\n", sp->Config().name);
+            PrintDbg(DBG_LOG, "%s:ComTx not ready", sp->Config().name);
         }
     }
     return 0;
