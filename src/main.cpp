@@ -88,6 +88,7 @@ public:
             UpdateSysTime();
         }
         pPinHeartbeatLed->Toggle();
+        pPinWdt->Toggle();
         cnt++;
         if ((cnt & 0x03) == 0)
         {
