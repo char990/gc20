@@ -38,11 +38,17 @@ char *mainpath;
 
 using namespace std;
 
+extern const char *BUILDTIME;
 void PrintVersion()
 {
     char sbuf[256];
-    int len = snprintf(sbuf, 255, "* Version %s.%s, Build at UTC: %s %s *",
-                       FirmwareMajorVer, FirmwareMinorVer, __DATE__, __TIME__);
+    int len = snprintf(sbuf, 255, "* Version: %s-%s.%s, Build at: %s *",
+#ifdef DEBUG
+                       "Debug",
+#else
+                       "Release",
+#endif
+                       FirmwareMajorVer, FirmwareMinorVer, BUILDTIME);
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';
@@ -67,16 +73,26 @@ public:
         UpdateSysTime();
     }
 
-    void UpdateSysTime()
+    time_t UpdateSysTime()
     {
-        struct tm stm;
-        int x = pDS3231->GetLocalTime(&stm);
-        if (x == 0)
+        time_t t1 = pDS3231->GetTimet();
+        time_t t2 = time(nullptr);
+        if (t1 > 0)
         {
-            PrintDbg(DBG_LOG, "DS3231 updates system time->%d/%d/%d %d:%02d:%02d",
-                     stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
-            Utils::Time::SetLocalTime(stm);
+            if (t1 != t2)
+            {
+                struct tm stm;
+                localtime_r(&t1, &stm);
+                PrintDbg(DBG_LOG, "DS3231 updates system time->%d/%d/%d %d:%02d:%02d",
+                         stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
+                Utils::Time::SetLocalTime(stm);
+            }
+            else
+            {
+                PrintDbg(DBG_LOG, "DS3231 updates system time-> Timestamp matched, ignore this");
+            }
         }
+        return t1;
     }
 
     virtual void PeriodicRun() override
@@ -84,8 +100,10 @@ public:
         sec++;
         if (sec > RD_DS3231_SEC)
         {
-            sec = 0;
-            UpdateSysTime();
+            if (UpdateSysTime() > 0)
+            {
+                sec = 0;
+            }
         }
         pPinHeartbeatLed->Toggle();
         pPinWdt->Toggle();
