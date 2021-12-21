@@ -74,29 +74,15 @@ void TsiSp003App::Reject(APP::ERROR error)
     buf[1] = micode;
     buf[2] = static_cast<uint8_t>(error);
     Tx(buf, 3);
-    char str[64 + 4];
     if (rejectStr[0] != '\0')
     {
-        snprintf(str, 64 + 4 - 1, " :%s", rejectStr);
+        PrintDbg(DBG_LOG, "Reject: MI=0x%02X(%s), Error=0x%02X(%s) :%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), rejectStr);
         rejectStr[0] = '\0';
     }
-    PrintDbg(DBG_LOG, "Reject: MI=0x%02X(%s), Error=0x%02X(%s)%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), str);
-    /*
-    ACE_DEBUG((LM_DEBUG, "%s!!! cmd_Reject - error code %d : %s", LocaltimeStr(), apperror, apperrtomsg(apperror)));
-	unsigned char logapperror[]={
-		SNTXERR, LNGTHERR, DTCHKSMERR, NONASCIICHAR, FRAMETOOLARGE, UNDEFINEDSIGNNO,
-		FONTNOTSUPPORTED, COLOURNOTSUPPORTED, PFACILITYSWOVERRIDE, CONSPICUITYNOTSUP,
-		SIZEMISMATCH, FRAMETOOSMALL, INCORRECTPASSWORD};
-	for(int i=0;i<sizeof(logapperror)/sizeof(logapperror[0]);i++)
-	{
-		if(apperror == logapperror[i])
-		{
-			addLogEntry(EVENT,"cmd_Reject - error code %d : %s", apperror, apperrtomsg(apperror));
-			break;
-		}
-	}
-	protocolp->updateApperror(apperror);
-    */
+    else
+    {
+        PrintDbg(DBG_LOG, "Reject: MI=0x%02X(%s), Error=0x%02X(%s)", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]));
+    }
 }
 
 void TsiSp003App::SetRejectStr(const char *fmt, ...)
