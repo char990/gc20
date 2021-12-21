@@ -115,7 +115,7 @@ public:
     int Gfx4FrmLen() { return gfx4FrmLen; };   // bytes
     int Gfx24FrmLen() { return gfx24FrmLen; }; // bytes
 
-    uint8_t *GroupCfg() { return groupCfg; };
+    //uint8_t *GroupCfg() { return groupCfg; };
 
 private:
     ///  ---------- option -----------
@@ -243,7 +243,7 @@ private:
 
     char colourLeds[5];
 
-    uint8_t mappedColoursTable[10]; // colourtable[0] is always 0
+    uint8_t mappedColoursTable[10]{0};
 
     Utils::Bits bFont{8};
     Utils::Bits bConspicuity{8};

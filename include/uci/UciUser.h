@@ -98,7 +98,6 @@ public:
     void Baudrate(int);
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
-    void GroupCfg(uint8_t *);
     void ExtSwCfgX(int i, ExtSw *cfg);
     void ShakehandsPassword(const char * shake);
 

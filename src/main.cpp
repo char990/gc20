@@ -39,16 +39,16 @@ char *mainpath;
 using namespace std;
 
 extern const char *BUILDTIME;
+#ifdef DEBUG
+const char *MAKE = "Debug";
+#else
+const char *MAKE = "Release";
+#endif
 void PrintVersion()
 {
     char sbuf[256];
     int len = snprintf(sbuf, 255, "* Version: %s-%s.%s, Build at: %s *",
-#ifdef DEBUG
-                       "Debug",
-#else
-                       "Release",
-#endif
-                       FirmwareMajorVer, FirmwareMinorVer, BUILDTIME);
+                       MAKE, FirmwareMajorVer, FirmwareMinorVer, BUILDTIME);
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';

@@ -97,51 +97,56 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s: unknown", _ProdType);
     }
 
-    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
-    numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
-    groupCfg = new uint8_t[numberOfSigns];
-
-    if (prodType == PRODUCT::VMS)
-    { // VMS
-        // VMS can only has 1 sign in 1 group
-        // _GroupCfg ignored
-        groupCfg = new uint8_t[numberOfSigns];
-        for (int i = 0; i < numberOfSigns; i++)
-        {
-            groupCfg[i] = i + 1;
-        }
-        slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
-        slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
-    }
-    else if (prodType == PRODUCT::ISLUS)
-    { // ISLUS
-        // ISLUS can only has 1 slave per Sign
-        // _SlaveRowsPerSign/_SlaveColumnsPerSign ignored
-        slaveRowsPerSign = 1;
-        slaveColumnsPerSign = 1;
-
-        str = GetStr(uciSec, _GroupCfg);
-        cnt = Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
-        if (cnt == numberOfSigns)
-        {
-            for (cnt = 0; cnt < numberOfSigns; cnt++)
-            {
-                if (ibuf[cnt] == 0 || ibuf[cnt] > numberOfGroups)
-                {
-                    MyThrow("UciProd::GroupCfg Error: illegal group id : %d", ibuf[cnt]);
-                }
-                groupCfg[cnt] = ibuf[cnt];
-            }
-        }
-        else
-        {
-            MyThrow("UciProd::GroupCfg Error: cnt!=%d", numberOfSigns);
-        }
-    }
     pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
     pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
     tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
     tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
+    slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
+    slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
+    numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
+    numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
+    groupCfg = new uint8_t[numberOfSigns];
+    str = GetStr(uciSec, _GroupCfg);
+    cnt = Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
+    if (cnt == numberOfSigns)
+    {
+        for (cnt = 0; cnt < numberOfSigns; cnt++)
+        {
+            if (ibuf[cnt] == 0 || ibuf[cnt] > numberOfGroups)
+            {
+                MyThrow("UciProd::GroupCfg Error: illegal group id : %d", ibuf[cnt]);
+            }
+            groupCfg[cnt] = ibuf[cnt];
+        }
+    }
+    else
+    {
+        MyThrow("UciProd::GroupCfg Error: cnt!=%d", numberOfSigns);
+    }
+
+    if (prodType == PRODUCT::VMS)
+    { // VMS
+        // VMS should configured as 1 sign per group
+        for (int i = 0; i < numberOfSigns; i++)
+        {
+            if(groupCfg[i] != i + 1)
+            {
+                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
+            }
+        }
+    }
+    else if (prodType == PRODUCT::ISLUS)
+    { // ISLUS
+        // ISLUS should configured as 1 slave per Sign
+        if(slaveRowsPerSign != 1)
+        {
+            MyThrow("UciProd::slaveRowsPerSign=%d should be 1 for ISLUS", slaveRowsPerSign);
+        }
+        if(slaveColumnsPerSign != 1)
+        {
+            MyThrow("UciProd::slaveColumnsPerSign=%d should be 1 for ISLUS", slaveColumnsPerSign);
+        }
+    }
 
     signCfg.resize(numberOfSigns);
     for (int i = 1; i <= numberOfSigns; i++)
@@ -374,7 +379,6 @@ void UciProd::LoadConfig()
         }
     }
 
-    mappedColoursTable[0] = 0;
     for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
         str = GetStr(uciSec, COLOUR_NAME[i]);

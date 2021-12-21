@@ -1,20 +1,4 @@
-#TARGET = main
-#SRC = ./src
-#OBJ = ./obj
-
-#$(OBJ)/%.o: $(SRC)/%.c
-#	$(CXX) $(CFLAGS) -c $< -o $@ 
-#$(OBJ)/%.o: $(SRC)/%.cpp
-#	$(CXX) $(CXXFLAGS) -std=c++11 -c $< -o $@ 
-
-#SOURCES = $(wildcard $(SRC)/*.c $(SRC)/*.cpp)
-#OBJS = $(patsubst %c,$(OBJ)/%o,$(patsubst %.cpp,$(OBJ)/%.o,$(notdir $(SOURCES))))
-#$(TARGET) : $(OBJS)
-#	$(CXX) $(CFLAGS) -o $(TARGET) $^
-#.PHONY: clean
-#clean:
-#	-rm -f $(TARGET) $(OBJ)/*
-
+TARGET   := goblin
 #CXX      := -c++
 #CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror -std=c++11
 CFLAGS 	 := -std=c99
@@ -24,14 +8,13 @@ LDFLAGS  := -luci -lcrypto
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
-TARGET   := goblin
 INCLUDE  := -Iinclude/
 SRC_ROOT := ./src
 SRC_DIRS := $(shell find $(SRC_ROOT) -maxdepth 5 -type d)
 SRC_C    := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 SRC_CXX  := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
 SRC		 := $(SRC_C) $(SRC_CXX)
-DATE = $(shell date)
+DATE      = $(shell date)
 BUILDTIME = 'const char *BUILDTIME="$(DATE)";'
 
 OBJECTS  := $(SRC_C:%.c=$(OBJ_DIR)/%.o) $(SRC_CXX:%.cpp=$(OBJ_DIR)/%.o)
