@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <vector>
 
 #include <uci/UciCfg.h>
 #include <uci/UciProd.h>
@@ -11,12 +11,12 @@ typedef struct ExtSw {
 	uint8_t reserved;
 	uint8_t emergency;      // 0:ON / 1:OFF
 	uint8_t flashingOv;     // 0:ON / 1:OFF
-	bool Equal(struct ExtSw* v)
+	bool Equal(struct ExtSw & v)
 	{
-		return (	dispTime==v->dispTime &&
-					reserved==v->reserved &&
-					emergency==v->emergency &&
-					flashingOv==v->flashingOv );
+		return (	dispTime==v.dispTime &&
+					reserved==v.reserved &&
+					emergency==v.emergency &&
+					flashingOv==v.flashingOv );
 	};
 }ExtSw;
 
@@ -63,14 +63,9 @@ public:
     uint8_t GetLuxLevel(int lux);   // level:1-16
     uint8_t *DawnDusk(){ return dawnDusk; };
 
-    ExtSw *ExtSwCfgX(int i)
+    ExtSw & ExtSwCfgX(int i)
     {
-        if(i>5) return nullptr;
-        if(i>=3&&i<=5)
-        {
-            i-=3;
-        }
-        return &extSw[i];
+        return extSw.at(i);
     };
     const char * ShakehandsPassword() {return shakehandsPassword; };
 
@@ -98,7 +93,7 @@ public:
     void Baudrate(int);
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
-    void ExtSwCfgX(int i, ExtSw *cfg);
+    void ExtSwCfgX(int i, ExtSw & cfg);
     void ShakehandsPassword(const char * shake);
 
 private:
@@ -133,7 +128,7 @@ private:
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 
-    ExtSw extSw[3];
+    std::vector<ExtSw> extSw{4};
 
     const char * _DeviceId="DeviceId";
     const char * _BroadcastId="BroadcastId";

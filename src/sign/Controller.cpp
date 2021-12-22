@@ -137,7 +137,7 @@ void Controller::PeriodicRun()
     if (++cnt100ms >= CTRLLER_MS(100))
     { // 100ms
         cnt100ms = 0;
-        //ExtInputFunc();
+        ExtInputFunc();
         PowerMonitor();
         if (displayTimeout.IsExpired())
         {
@@ -228,7 +228,7 @@ void Controller::PowerMonitor()
 
 void Controller::ExtInputFunc()
 {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < extInput.size(); i++)
     {
         auto gin = extInput.at(i);
         gin->PeriodicRun();
@@ -236,13 +236,15 @@ void Controller::ExtInputFunc()
         {
             gin->ClearRising();
             uint8_t msg = i + 3;
-            DbHelper::Instance().GetUciEvent().Push(0, "Leading edge of external input[%d]", i + 1);
+            const char * fmt = "Leading edge of external input[%d]";
+            DbHelper::Instance().GetUciEvent().Push(0, fmt, i + 1);
+            PrintDbg(DBG_LOG, fmt, i+1);
             for (auto &g : groups)
             {
                 g->DispExt(msg);
             }
             // only the highest priority will be triggered, ignore others
-            while (++i < 4)
+            while (++i < extInput.size())
             { // clear others changed flag
                 gin = extInput.at(i);
                 gin->PeriodicRun();

@@ -109,17 +109,18 @@ void UciUser::LoadConfig()
         shakehandsPassword[len] = '\0';
     }
 
-    for (int m = 0; m < 3; m++)
+    for (int m = 0; m < extSw.size(); m++)
     {
-        sprintf(cbuf, "%s%d", _ExtSw, m + 1); // ExtSw_
+        sprintf(cbuf, "%s%d", _ExtSw, m + 1); // ExtSw1-4
         str = GetStr(uciSec, cbuf);
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if (cnt == 4)
         {
-            extSw[m].dispTime = ibuf[0];
-            extSw[m].reserved = ibuf[1];
-            extSw[m].emergency = ibuf[2];
-            extSw[m].flashingOv = ibuf[3];
+            auto & ext = extSw.at(m); 
+            ext.dispTime = ibuf[0];
+            ext.reserved = ibuf[1];
+            ext.emergency = ibuf[2];
+            ext.flashingOv = ibuf[3];
         }
         else
         {
@@ -260,7 +261,7 @@ void UciUser::Dump()
 
     char buf[256];
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < extSw.size(); i++)
     {
         PrintExtSw(i, buf);
         printf("\t%s%d \t'%s'\n", _ExtSw, i + 1, buf);
@@ -276,9 +277,9 @@ void UciUser::Dump()
 
 void UciUser::PrintExtSw(int i, char *buf)
 {
-    ExtSw *exswcfg = ExtSwCfgX(i);
+    auto & exswcfg = ExtSwCfgX(i);
     sprintf(buf, "%d,%d,%d,%d",
-            exswcfg->dispTime, exswcfg->reserved, exswcfg->emergency, exswcfg->flashingOv);
+            exswcfg.dispTime, exswcfg.reserved, exswcfg.emergency, exswcfg.flashingOv);
 }
 
 void UciUser::PrintDawnDusk(char *buf)
@@ -557,17 +558,11 @@ void UciUser::Luminance(uint16_t *p)
     }
 }
 
-void UciUser::ExtSwCfgX(int i, ExtSw *cfg)
+void UciUser::ExtSwCfgX(int i, ExtSw & cfg)
 {
-    if (i > 5)
-        return;
-    if (i >= 3 && i <= 5)
+    if (i >= 0 && i < extSw.size() && !extSw.at(i).Equal(cfg))
     {
-        i -= 3;
-    }
-    if (!extSw[i].Equal(cfg))
-    {
-        memcpy(&extSw[i], cfg, sizeof(ExtSw));
+        memcpy(&extSw.at(i), &cfg, sizeof(ExtSw));
         char op[32];
         strcpy(op, _ExtSw);
         op[5] = i + '1';
@@ -576,7 +571,6 @@ void UciUser::ExtSwCfgX(int i, ExtSw *cfg)
         OpenSaveClose(SECTION, op, buf);
     }
 }
-
 
 void UciUser::ShakehandsPassword(const char * shake)
 {

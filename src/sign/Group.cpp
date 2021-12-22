@@ -183,7 +183,7 @@ void Group::PeriodicRun()
         {
             dsBak->Clone((dsNext->dispType != DISP_TYPE::N_A && dsNext->dispType != DISP_TYPE::EXT) ? dsNext : dsCurrent);
         }
-        ReloadCurrent(1);   // force to reload
+        ReloadCurrent(1); // force to reload
         dsNext->N_A();    // avoid to call LoadDsNext()
         dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
         fatalError.ClearRising();
@@ -213,7 +213,7 @@ void Group::PeriodicRun()
                 extDispTmr.Clear();
                 DispBackup();
             }
-            if(LoadDsNext()) // current->bak and next/fs/ext->current
+            if (LoadDsNext()) // current->bak and next/fs/ext->current
             {
                 ReloadCurrent(1);
             }
@@ -1264,25 +1264,30 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
 {
     if (type == DISP_TYPE::EXT)
     {
-        auto cfg = db.GetUciUser().ExtSwCfgX(id);
-        auto time = cfg->dispTime;
-        if (time != 0)
+        if (id >= 3 && id <= 6)
         {
-            if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
-            {// same, reload timer
-                extDispTmr.Setms(time * 1000);
-            }
-            else if (dsCurrent->dispType == DISP_TYPE::N_A ||
-                     dsCurrent->dispType == DISP_TYPE::BLK ||
-                     (onDispMsgId == 0 && onDispFrmId == 0) ||
-                     cfg->flashingOv != 0 ||  // flash override OFF
-                     (cfg->flashingOv == 0 && // flash override ON
-                      ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
-                       onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
+            auto &cfg = db.GetUciUser().ExtSwCfgX(id-3);
+            auto time = cfg.dispTime * 100;
+            if (time != 0)
             {
-                extDispTmr.Setms(time * 1000);
-                dsExt->dispType = type;
-                dsExt->fmpid[0] = id;
+                if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
+                { // same, reload timer
+                    extDispTmr.Setms(time);
+                    PrintDbg(DBG_PRT, "EXT timer reload:%dms", time);
+                }
+                else if (dsCurrent->dispType == DISP_TYPE::N_A ||
+                         dsCurrent->dispType == DISP_TYPE::BLK ||
+                         (onDispMsgId == 0 && onDispFrmId == 0) ||
+                         cfg.flashingOv != 0 ||  // flash override OFF
+                         (cfg.flashingOv == 0 && // flash override ON
+                          ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
+                           onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
+                {
+                    extDispTmr.Setms(time);
+                    dsExt->dispType = type;
+                    dsExt->fmpid[0] = id;
+                    PrintDbg(DBG_PRT, "EXT timer start:%dms", time);
+                }
             }
         }
     }
@@ -1417,9 +1422,9 @@ bool Group::IsDsNextEmergency()
     if (dsExt->dispType == DISP_TYPE::EXT)
     { // external input
         uint8_t mid = dsExt->fmpid[0];
-        if (mid >= 3 && mid <= 5)
+        if (mid >= 3 && mid <= 6)
         {
-            if (db.GetUciUser().ExtSwCfgX(mid)->emergency == 0)
+            if (db.GetUciUser().ExtSwCfgX(mid - 3).emergency == 0)
             {
                 r = true;
             }

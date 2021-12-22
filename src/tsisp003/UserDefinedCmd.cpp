@@ -708,7 +708,7 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
         auto &user = DbHelper::Instance().GetUciUser();
         for (int i = 0; i < 3; i++)
         {
-            user.ExtSwCfgX(i, &extsw[i]);
+            user.ExtSwCfgX(i, extsw[i]);
         }
         Ack();
     }
@@ -723,23 +723,18 @@ int TsiSp003App::FA03_RqstExtInput(uint8_t *data, int len)
         txbuf[1] = FACMD_SET_EXT_INPUT;
         auto pt = txbuf + 2;
         auto &user = DbHelper::Instance().GetUciUser();
-        ExtSw *pextsw[3];
         for (int i = 0; i < 3; i++)
         {
-            pextsw[i] = user.ExtSwCfgX(i);
+            pt = Cnvt::PutU16(user.ExtSwCfgX(i).dispTime, pt);
         }
         for (int i = 0; i < 3; i++)
         {
-            pt = Cnvt::PutU16(pextsw[i]->dispTime, pt);
+            *pt++ = user.ExtSwCfgX(i).emergency;
         }
+        *pt++ = user.ExtSwCfgX(0).reserved; // feedback = reserved, only report [0]
         for (int i = 0; i < 3; i++)
         {
-            *pt++ = pextsw[i]->emergency;
-        }
-        *pt++ = pextsw[0]->reserved; // feedback = msg345_reserved, only report MSG[0/3]
-        for (int i = 0; i < 3; i++)
-        {
-            *pt++ = pextsw[i]->flashingOv;
+            *pt++ = user.ExtSwCfgX(i).flashingOv;
         }
         Tx(txbuf, pt - txbuf);
     }
