@@ -30,8 +30,7 @@
 
 #include <3rdparty/catch2/enable_test.h>
 
-const char *FirmwareMajorVer = "01";
-const char *FirmwareMinorVer = "50";
+const char *FirmwareVer = "0150";
 const char *CONFIG_PATH = "config";
 
 char *mainpath;
@@ -47,8 +46,8 @@ const char *MAKE = "Release";
 void PrintVersion()
 {
     char sbuf[256];
-    int len = snprintf(sbuf, 255, "* Version: %s-%s.%s, Build at: %s *",
-                       MAKE, FirmwareMajorVer, FirmwareMinorVer, BUILDTIME);
+    int len = snprintf(sbuf, 255, "* Version: %s-%s, Build at: %s *",
+                       MAKE, FirmwareVer, BUILDTIME);
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';

@@ -1279,7 +1279,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                          dsCurrent->dispType == DISP_TYPE::BLK ||
                          (onDispMsgId == 0 && onDispFrmId == 0) ||
                          cfg.flashingOv != 0 ||  // flash override OFF
-                         (cfg.flashingOv == 0 && // flash override ON
+                         (cfg.flashingOv == 0 && // flash override ON && current msg/frm NOT flashing 
                           ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
                            onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
                 {

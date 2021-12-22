@@ -8,8 +8,7 @@
 #include <sign/Sign.h>
 #include <uci/DbHelper.h>
 
-extern const char *FirmwareMajorVer;
-extern const char *FirmwareMinorVer;
+extern const char *FirmwareVer;
 
 using namespace Utils;
 
@@ -76,7 +75,7 @@ void UciProd::LoadConfig()
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
-        sprintf(mfcCode, "%s%s%s", str, FirmwareMajorVer, FirmwareMinorVer);
+        sprintf(mfcCode, "%s%s", str, FirmwareVer);
     }
     else
     {

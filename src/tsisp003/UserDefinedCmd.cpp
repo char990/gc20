@@ -2,8 +2,7 @@
 #include <openssl/md5.h>
 #include <tsisp003/TsiSp003App.h>
 
-extern const char *FirmwareMajorVer;
-extern const char *FirmwareMinorVer;
+extern const char *FirmwareVer;
 
 using namespace Utils;
 
@@ -594,10 +593,8 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         char *mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
-        *pt++ = *FirmwareMajorVer;
-        *pt++ = *(FirmwareMajorVer + 1);
-        *pt++ = *FirmwareMinorVer;
-        *pt++ = *(FirmwareMinorVer + 1);
+        memcpy(pt,FirmwareVer,4);
+        pt+=4;
         Tx(txbuf, pt - txbuf);
     }
     return 0;
