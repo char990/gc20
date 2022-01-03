@@ -1,8 +1,8 @@
 TARGET   := goblin
 #CXX      := -c++
 #CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror -std=c++11
-CFLAGS 	 := -std=c99
-CXXFLAGS := -std=c++11
+CFLAGS 	 := -std=c99 -D '__BUILDTIME__="$(shell date)"'
+CXXFLAGS := -std=c++11 -D '__BUILDTIME__="$(shell date)"'
 #LDFLAGS  := -L/usr/lib -lstdc++ -lm
 LDFLAGS  := -luci -lcrypto
 BUILD    := ./build
@@ -14,8 +14,6 @@ SRC_DIRS := $(shell find $(SRC_ROOT) -maxdepth 5 -type d)
 SRC_C    := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.c))
 SRC_CXX  := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
 SRC		 := $(SRC_C) $(SRC_CXX)
-DATE      = $(shell date)
-BUILDTIME = 'const char *BUILDTIME="$(DATE)";'
 
 OBJECTS  := $(SRC_C:%.c=$(OBJ_DIR)/%.o) $(SRC_CXX:%.cpp=$(OBJ_DIR)/%.o)
 DEPENDENCIES \
@@ -40,7 +38,6 @@ $(APP_DIR)/$(TARGET): $(OBJECTS)
 .PHONY: all build clean debug release info
 
 build:
-	@echo $(BUILDTIME) > $(SRC_ROOT)/buildtime.cpp
 	@touch $(SRC_ROOT)/main.cpp
 	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)

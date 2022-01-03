@@ -151,7 +151,8 @@ protected:
         memset(orBuf, 0, orLen);
     }
 
-    void SetWithOrBuf(uint8_t *dst, uint8_t *src, int len);
+    void SetWithOrBuf1(uint8_t *dst, uint8_t *src, int len);
+    void SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len);
 
 private:
     uint8_t grpTick{0};

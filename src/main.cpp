@@ -37,7 +37,6 @@ char *mainpath;
 
 using namespace std;
 
-extern const char *BUILDTIME;
 #ifdef DEBUG
 const char *MAKE = "Debug";
 #else
@@ -47,7 +46,7 @@ void PrintVersion()
 {
     char sbuf[256];
     int len = snprintf(sbuf, 255, "* Version: %s-%s, Build at: %s *",
-                       MAKE, FirmwareVer, BUILDTIME);
+                       MAKE, FirmwareVer, __BUILDTIME__);   // __BUILDTIME__ is defined in Makefile
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';

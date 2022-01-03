@@ -19,6 +19,8 @@ using namespace Utils;
 #define DN_RIGHT_1 195
 #define RED_CROSS_1 199
 
+#define ALL_RED_PIXELS_LIT 251
+
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
 {
@@ -61,6 +63,7 @@ void GroupIslus::PeriodicHook()
 {
 }
 
+// TODO
 APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
 #if 0
@@ -184,16 +187,36 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1)
-    { // Red Cross "X"
+    Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
+    if (frm == nullptr)
+    {
+        MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+    }
+    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1 || uciFrmId == ALL_RED_PIXELS_LIT)
+    {/* TODO
+        auto &prod = db.GetUciProd();
+        auto &user = db.GetUciUser();
+        uint8_t *p = txBuf + 1;
+        *p++ = 0x0B; // Gfx frame
+        p++;         // skip slave frame id
+        *p++ = prod.PixelRows();
+        p = Cnvt::PutU16(prod.PixelColumns(), p);
+        auto mappedcolour = prod.GetMappedColour(frm->colour);
+        if (msgOverlay == 0 || msgOverlay == 1)
+        {
+            *p++ = mappedcolour;
+        }
+        else if (msgOverlay == 4)
+        {
+            *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
+        }
+        *p++ = frm->conspicuity;
+        int frmlen = TransFrmWithOrBuf(frm, p + 2);
+        p = Cnvt::PutU16(frmlen, p);
+        txLen = p + frmlen - txBuf;*/
     }
     else
     {
-        Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
-        if (frm == nullptr)
-        {
-            MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
-        }
         MakeFrameForSlave(frm);
     }
 }

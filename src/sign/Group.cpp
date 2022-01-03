@@ -760,7 +760,8 @@ bool Group::TaskFrm(int *_ptLine)
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             activeMsg.ClrAll();
             activeFrm.ClrAll();
-            activeFrm.SetBit(1); // TODO all frames in ATF
+            activeFrm.SetBit(1);
+            // TODO all frames in ATF
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
             PrintDbg(DBG_LOG, "TaskFrm:Display ATF");
         }
@@ -1266,7 +1267,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
     {
         if (id >= 3 && id <= 6)
         {
-            auto &cfg = db.GetUciUser().ExtSwCfgX(id-3);
+            auto &cfg = db.GetUciUser().ExtSwCfgX(id - 3);
             auto time = cfg.dispTime * 100;
             if (time != 0)
             {
@@ -1279,7 +1280,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                          dsCurrent->dispType == DISP_TYPE::BLK ||
                          (onDispMsgId == 0 && onDispFrmId == 0) ||
                          cfg.flashingOv != 0 ||  // flash override OFF
-                         (cfg.flashingOv == 0 && // flash override ON && current msg/frm NOT flashing 
+                         (cfg.flashingOv == 0 && // flash override ON && current msg/frm NOT flashing
                           ((onDispMsgId != 0 && !db.GetUciMsg().IsMsgFlashing(onDispMsgId)) ||
                            onDispMsgId == 0 && onDispFrmId != 0 && !db.GetUciFrm().IsFrmFlashing(onDispFrmId))))
                 {
@@ -1923,74 +1924,76 @@ void Group::MakeFrameForSlave(Frame *frm)
 int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
 {
     auto &prod = db.GetUciProd();
-    int frmlen;
-    if (msgOverlay == 0)
-    {
-        frmlen = (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame)) ? prod.Gfx1FrmLen() : frm->frmBytes;
-    }
-    else if (msgOverlay == 1)
-    {
-        frmlen = prod.Gfx1FrmLen();
-    }
-    else if (msgOverlay == 4)
-    {
-        frmlen = prod.Gfx4FrmLen();
-    }
-    else
-    {
-        // TODO: 24-bit
-    }
+    int frmlen = frm->frmBytes;
     uint8_t *orsrc = dst;
     if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
-    {
+    {// text frame trans to bitmap
         FrmTxt *txtfrm = static_cast<FrmTxt *>(frm);
         if (txtfrm != nullptr)
         {
-            txtfrm->ToBitmap(msgOverlay, dst);
+            frmlen = txtfrm->ToBitmap(msgOverlay, dst); // update frmlen
         }
         else
         {
             MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId);
         }
     }
-    else // if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame) ||
-        //     frm->micode == static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame))
-    {
+    else
+    {// gfx/hrg
         if (msgOverlay == 0)
-        { // colour may be 0/mono/multi/RGB
+        { // no overlay, memcpy
             memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frmlen);
         }
         else
         {
             if ((msgOverlay == 1 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished) ||
                 (msgOverlay == 4 && frm->colour == (uint8_t)FRMCOLOUR::MultipleColours))
-            { // just set orsrc, do not memcpy
+            { // overlay but no need to trans or copy
                 orsrc = frm->stFrm.rawData + frm->frmOffset;
             }
             else if (msgOverlay == 4 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished)
-            { // 1-bit -> 4-bit
-                frm->ToBitmap(msgOverlay, dst);
+            { //frame is mono but should transfer from 1-bit to 4-bit
+                frmlen = frm->ToBitmap(msgOverlay, dst); // update frmlen
             }
         }
     }
-    if (msgOverlay > 0)
+    // frame is ready in orsrc/dst, then OR with orbuf if overlay
+    if (msgOverlay == 1)
     { // with overlay
-        SetWithOrBuf(dst, orsrc, frmlen);
+        SetWithOrBuf1(dst, orsrc, frmlen);
+    }
+    else if (msgOverlay == 4)
+    {
+        SetWithOrBuf4(dst, orsrc, frmlen);
     }
     return frmlen;
 }
 
-void Group::SetWithOrBuf(uint8_t *dst, uint8_t *src, int len)
-{
+void Group::SetWithOrBuf1(uint8_t *dst, uint8_t *src, int len)
+{// 1-bit
     auto p = orBuf;
     for (int i = 0; i < len; len++)
     {
-        uint8_t x = *src++ | *p++;
-        if (x < (uint8_t)FRMCOLOUR::MonoFinished)
-        {
-            *dst = x;
+        *dst++ = *src++ | *p++;
+    }
+}
+
+void Group::SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len)
+{// 4-bit
+    auto p = orBuf;
+    for (int i = 0; i < len; len++)
+    {
+        uint8_t d = *src++;
+        uint8_t o = *p++;
+        if ((d & 0xF0) == 0)
+        {// high 4-bit is OFF
+            d |= (o & 0xF0); // use orbuf value for this pixel
         }
-        dst++;
+        if ((d & 0x0F) == 0)
+        {// low 4-bit is OFF
+            d |= (o & 0x0F); // use orbuf value for this pixel
+        }
+        *dst++ = d;
     }
 }
 
