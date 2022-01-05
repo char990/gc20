@@ -42,7 +42,7 @@ public:
     uint8_t frmRev;
     uint8_t colour;
     uint8_t conspicuity;
-    int frmBytes; //
+    int frmBytes; // frame string/bitmap data
     int frmOffset;
     uint16_t crc{0};
     StFrm stFrm;
@@ -58,6 +58,7 @@ public:
 
     /// \brief Convert 1/4-bit Gfx/Hrg frame to 4/24-bit bitmap
     ///         Text frame override this function
+    /// \param  buf: buffer, be cleared in this function 
     /// \return bytes
     virtual int ToBitmap(uint8_t colourbit, uint8_t *buf);
 
@@ -80,7 +81,7 @@ protected:
 
     /// \brief  Set a pixel in display buffer which is 1/4/24 bits map
     /// \param  colourbit:1/4/24
-    /// \param  buf: buffer
+    /// \param  buf: buffer, preset as 0
     /// \param  x: x position of pixel
     /// \param  y: y position of pixel
     /// \param  monocolour: pixel colour (must be mono:0-9)
@@ -98,6 +99,9 @@ public:
 
     std::string ToString() override;
 
+    /// \brief  trans txt frame to 1/4/24 bits map
+    /// \param  colourbit:0/1/4/24
+    /// \param  buf: buffer, be cleared in this function 
     int ToBitmap(uint8_t colourbit, uint8_t *buf) override;
     void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font * pfont);
     void CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font * pfont);

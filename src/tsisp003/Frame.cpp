@@ -152,41 +152,26 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
     int offset = y * columns + x;
     if (colourbit == 1)
     {
-        int byte_n = offset / 8;
-        int bit_n = offset & 0x07;
-        *(buf + byte_n) |= (1 << bit_n);
+        *(buf + offset / 8) |= 1 << (offset & 0x07);
     }
     else
     {
-        int byte_n = offset / 2;
-        int bit_n = (offset & 1) ? 4 : 0;
-        *(buf + byte_n) |= (monocolour << bit_n);
+        *(buf + offset / 2) |= (offset & 1) ? (monocolour*0x10) : monocolour;
     }
 }
 
 int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
 {
-    if (colourbit != 4 /*&& colourbit!=24*/)
-    { // dst colourbit 1 should not be here
-        return 0;
-    }
     auto &prod = DbHelper::Instance().GetUciProd();
-    int totallen;
-    if (colourbit == 4)
-    {
-        totallen = prod.Gfx4FrmLen();
-    }
-    else
-    {
-        totallen = prod.Gfx24FrmLen();
-    }
-    memset(buf, 0, totallen);
+    int frmLen = (colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen();
+    memset(buf, 0, frmLen);
     auto mappedcolour = prod.GetMappedColour(colour);
+    uint8_t mappedcolourH = mappedcolour * 0x10;
     auto p = stFrm.rawData + frmOffset;
-    if(mappedcolour<(uint8_t)FRMCOLOUR::MonoFinished)
-    {// 1-bit frame
-        if(colourbit == 4)
-        {// to 4-bit
+    if (mappedcolour < (uint8_t)FRMCOLOUR::MonoFinished)
+    { // 1-bit frame
+        if (colourbit == 4)
+        { // to 4-bit
             for (int i = 0; i < frmBytes; i++)
             {
                 auto data = *p++;
@@ -196,26 +181,26 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
                     {
                         *buf |= mappedcolour;
                     }
-                    if(data & 2)
+                    if (data & 2)
                     {
-                        *buf |= mappedcolour*0x10;
+                        *buf |= mappedcolourH;
                     }
-                    data<<=2;
+                    data <<= 2;
+                    buf++;
                 }
             }
         }
         else // to 24-bit
         {
-
         }
     }
-    else if(mappedcolour==(uint8_t)FRMCOLOUR::MultipleColours)
-    {// TODO : 4-bit frame -> 24-bit
+    else if (mappedcolour == (uint8_t)FRMCOLOUR::MultipleColours)
+    { // TODO : 4-bit frame -> 24-bit
     }
     else
-    {// 24-bit should not be here
+    { // 24-bit should not be here
     }
-    return totallen;
+    return frmLen;
 }
 
 /*****************************FrmTxt*******************************/
@@ -341,21 +326,9 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
     {
         colourbit = 1;
     }
-    if (colourbit != 1 && colourbit != 4 /*&& colourbit!=24*/)
-    {
-        return 0;
-    }
     auto &prod = DbHelper::Instance().GetUciProd();
-    int totallen;
-    if (colourbit == 1)
-    {
-        totallen = prod.Gfx1FrmLen();
-    }
-    else
-    {
-        totallen = prod.Gfx4FrmLen();
-    }
-    memset(buf, 0, totallen);
+    int frmLen = (colourbit == 1) ? prod.Gfx1FrmLen() : ((colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen());
+    memset(buf, 0, frmLen);
     auto pFont = prod.Fonts(font);
     auto char_space = pFont->CharSpacing();
     auto line_space = pFont->LineSpacing();
@@ -415,7 +388,7 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
         delete[] text[i];
     }
     delete[] text;
-    return totallen;
+    return frmLen;
 }
 
 void FrmTxt::StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font *pfont)
@@ -551,4 +524,3 @@ std::string FrmHrg::ToString()
     std::string s(buf);
     return s;
 }
-

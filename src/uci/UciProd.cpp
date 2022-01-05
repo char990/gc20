@@ -96,12 +96,11 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s: unknown", _ProdType);
     }
 
-    pixelRowsPerTile = GetInt(uciSec, _PixelRowsPerTile, 4, 255);
-    pixelColumnsPerTile = GetInt(uciSec, _PixelColumnsPerTile, 8, 255);
-    tileRowsPerSlave = GetInt(uciSec, _TileRowsPerSlave, 1, 32);
-    tileColumnsPerSlave = GetInt(uciSec, _TileColumnsPerSlave, 1, 32);
-    slaveRowsPerSign = GetInt(uciSec, _SlaveRowsPerSign, 1, 16);
-    slaveColumnsPerSign = GetInt(uciSec, _SlaveColumnsPerSign, 1, 16);
+    pixelRows = GetInt(uciSec, _PixelRows, 8, 4096);
+    pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
+    tilesPerSlave = GetInt(uciSec, _TilesPerSlave, 1, 255);
+    slavesPerSign = GetInt(uciSec, _SlavesPerSign, 1, 16);
+    
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
     groupCfg = new uint8_t[numberOfSigns];
@@ -137,13 +136,9 @@ void UciProd::LoadConfig()
     else if (prodType == PRODUCT::ISLUS)
     { // ISLUS
         // ISLUS should configured as 1 slave per Sign
-        if(slaveRowsPerSign != 1)
+        if(slavesPerSign != 1)
         {
-            MyThrow("UciProd::slaveRowsPerSign=%d should be 1 for ISLUS", slaveRowsPerSign);
-        }
-        if(slaveColumnsPerSign != 1)
-        {
-            MyThrow("UciProd::slaveColumnsPerSign=%d should be 1 for ISLUS", slaveColumnsPerSign);
+            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
         }
     }
 
@@ -398,11 +393,9 @@ void UciProd::LoadConfig()
     Close();
     Dump();
 
-    Slave::numberOfTiles = tileRowsPerSlave * tileColumnsPerSlave;
+    Slave::numberOfTiles = tilesPerSlave;
     Slave::numberOfColours = strlen(colourLeds);
 
-    pixelRows = (uint16_t)pixelRowsPerTile * tileRowsPerSlave * slaveRowsPerSign;
-    pixelColumns = (uint16_t)pixelColumnsPerTile * tileColumnsPerSlave * slaveColumnsPerSign;
     pixels = (uint32_t)pixelRows * pixelColumns;
 
     gfx1FrmLen = 0;
@@ -475,13 +468,11 @@ void UciProd::Dump()
     }
     printf("'\n");
 
-    PrintOption_d(_PixelRowsPerTile, PixelRowsPerTile());
-    PrintOption_d(_PixelColumnsPerTile, PixelColumnsPerTile());
-    PrintOption_d(_TileRowsPerSlave, TileRowsPerSlave());
-    PrintOption_d(_TileColumnsPerSlave, TileColumnsPerSlave());
-    PrintOption_d(_SlaveRowsPerSign, SlaveRowsPerSign());
-    PrintOption_d(_SlaveColumnsPerSign, SlaveColumnsPerSign());
-
+    PrintOption_d(_PixelRows, PixelRows());
+    PrintOption_d(_PixelColumns, PixelColumns());
+    PrintOption_d(_TilesPerSlave, TilesPerSlave());
+    PrintOption_d(_SlavesPerSign, SlavesPerSign());
+    
     PrintOption_d(_SlaveRqstInterval, SlaveRqstInterval());
     PrintOption_d(_SlaveRqstStTo, SlaveRqstStTo());
     PrintOption_d(_SlaveRqstExtTo, SlaveRqstExtTo());
@@ -529,7 +520,7 @@ void UciProd::Dump()
     PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
 
     printf("\tColour map:\n");
-    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
         PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
     }

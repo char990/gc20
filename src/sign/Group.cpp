@@ -489,7 +489,6 @@ bool Group::TaskMsg(int *_ptLine)
                 // Something wrong, Load pln0 to run plan
                 ReloadCurrent(1);
                 dsCurrent->Pln0();
-                // log
                 TaskMsgReset();
                 return false;
             }
@@ -505,11 +504,10 @@ bool Group::TaskMsg(int *_ptLine)
                     ClrAllSlavesRxStatus();
                     do
                     {
-                        // step3: check current
                         taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
                         PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                     } while (allSlavesCurrent == 0); // all good
-                };                                   // end of null msg task
+                };
             }
         }
         else
@@ -519,24 +517,28 @@ bool Group::TaskMsg(int *_ptLine)
             NORMAL_MSG_TASK_START:
                 /// #1: init orbuf and counters
                 InitMsgOverlayBuf(pMsg);
+                //printf("\nmsg start\n");
+                //PrintOrBuf();
                 msgSetEntry = 0;
-                msgEntryCnt = 0;
+                msgDispEntry = 0;
                 // set & display, TotalRound
-                // +++++++++ first round & first frame, set orbuf and frame 1
-                while (pMsg->msgEntries[msgEntryCnt].onTime == 0 && msgEntryCnt < (pMsg->entries - 1))
-                { // onTime==0 && not last entry, trans frame to set orBuf
-                    ITransFrmWithOrBuf(pMsg->msgEntries[msgEntryCnt].frmId, orBuf);
-                    msgEntryCnt++;
-                    msgSetEntry++;
-                };
-                /// #2: set first frame
-                do
+                // +++++++++ first round & first entry
+                if (pMsg->msgEntries[msgDispEntry].onTime == 0)
                 {
-                    SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgEntryCnt].frmId);
-                    ClrAllSlavesRxStatus();
-                    PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
-                } while (allSlavesNext == 1);
+                    ITransFrmWithOrBuf(pMsg->msgEntries[msgDispEntry].frmId, orBuf);
+                }
+                else
+                {
+                    do
+                    {
+                        SlaveSetFrame(0xFF, 1, pMsg->msgEntries[msgDispEntry].frmId);
+                        ClrAllSlavesRxStatus();
+                        PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
+                    } while (allSlavesNext == 1);
+                }
                 msgSetEntry++;
+                //printf("\nAfter 1st entry\n");
+                //PrintOrBuf();
                 // +++++++++ after first round & first frame
                 /// #3: msg loop begin
                 do
@@ -545,14 +547,14 @@ bool Group::TaskMsg(int *_ptLine)
                     {
                         ReadyToLoad(0); // when a msg begin, clear readyToLoad
                     }
-                    if (msgEntryCnt == pMsg->entries - 1 || pMsg->msgEntries[msgEntryCnt].onTime != 0)
+                    if (msgDispEntry == pMsg->entries - 1 || pMsg->msgEntries[msgDispEntry].onTime != 0)
                     { // overlay frame do not need to run DispFrm
-                        onDispFrmId = pMsg->msgEntries[msgEntryCnt].frmId;
+                        onDispFrmId = pMsg->msgEntries[msgDispEntry].frmId;
                         GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
-                        (pMsg->msgEntries[msgEntryCnt].onTime == 0) ? taskMsgTmr.Clear() // last entry && onTIme is 0, display forever
-                                                                    : taskMsgTmr.Setms(pMsg->msgEntries[msgEntryCnt].onTime * 100 - 1);
-                        if (msgEntryCnt == pMsg->entries - 1)
-                        {
+                        (pMsg->msgEntries[msgDispEntry].onTime == 0) ? taskMsgTmr.Clear() // last entry && onTIme is 0, display forever
+                                                                     : taskMsgTmr.Setms(pMsg->msgEntries[msgDispEntry].onTime * 100 - 1);
+                        if (msgDispEntry == pMsg->entries - 1)
+                        { // last entry, start lastFrmOn
                             long lastFrmOn = db.GetUciUser().LastFrmOn();
                             (lastFrmOn == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmOn * 1000);
                         }
@@ -563,7 +565,7 @@ bool Group::TaskMsg(int *_ptLine)
                         msgSlaveErrCnt = 0;
                         do // +++++++++ DispFrm X
                         {
-                            SlaveSetStoredFrame(0xFF, msgEntryCnt + 1);
+                            SlaveSetStoredFrame(0xFF, msgDispEntry + 1);
                             ClrAllSlavesRxStatus();
                             PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0);
                             if (allSlavesCurrent == 0)
@@ -589,16 +591,19 @@ bool Group::TaskMsg(int *_ptLine)
                     // load next frame to set or make orbuf
                     if (msgSetEntry < msgSetEntryMax)
                     {
-                        nextEntry = (msgEntryCnt == pMsg->entries - 1) ? 0 : (msgEntryCnt + 1);
+                        nextEntry = (msgDispEntry == pMsg->entries - 1) ? 0 : (msgDispEntry + 1);
+                        //printf("\nBefore nextEntry=%d\n", nextEntry);
+                        //PrintOrBuf();
                         if (pMsg->msgEntries[nextEntry].onTime == 0 && nextEntry != (pMsg->entries - 1))
                         { // onTime==0 and not last entry, trans frame to set orBuf
                             if (msgSetEntry < pMsg->entries)
-                            { // only set orBuf at first round
+                            { // set orBuf at first round
                                 ITransFrmWithOrBuf(pMsg->msgEntries[nextEntry].frmId, orBuf);
                             }
                         }
                         else
-                        { // Set next frame
+                        {
+                            // Set next frame
                             do
                             {
                                 SlaveSetFrame(0xFF, nextEntry + 1, pMsg->msgEntries[nextEntry].frmId);
@@ -607,35 +612,39 @@ bool Group::TaskMsg(int *_ptLine)
                             } while (allSlavesNext == 1);
                         }
                         msgSetEntry++;
+                        //printf("\nAfter nextEntry=%d\n", nextEntry);
+                        //PrintOrBuf();
                     }
-                    do // +++++++++ OnTime
-                    {
-                        taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
-                        PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
-                        if (msgEntryCnt == pMsg->entries - 1)
+                    if (msgDispEntry == pMsg->entries - 1 || pMsg->msgEntries[msgDispEntry].onTime != 0)
+                    {      // OnTime is for displayed frm only
+                        do // +++++++++ OnTime
                         {
-                            if (taskMsgLastFrmTmr.IsExpired())
+                            taskFrmTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
+                            PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
+                            if (msgDispEntry == pMsg->entries - 1)
                             {
-                                taskMsgLastFrmTmr.Clear();
-                                ReadyToLoad(1); // last frame on expired
+                                if (taskMsgLastFrmTmr.IsExpired())
+                                {
+                                    taskMsgLastFrmTmr.Clear();
+                                    ReadyToLoad(1); // last frame on expired
+                                }
                             }
+                        } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
+                        if (!taskMsgTmr.IsExpired())
+                        { // Currnet is NOT matched, fatal error
+                            PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART");
+                            goto NORMAL_MSG_TASK_START;
                         }
-                    } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
-                    if (!taskMsgTmr.IsExpired())
-                    { // Currnet is NOT matched, fatal error
-                        PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART");
-                        goto NORMAL_MSG_TASK_START;
                     }
-
                     // ++++++++++ OnTime finish
-                    if (pMsg->msgEntries[msgEntryCnt].onTime != 0)
+                    if (pMsg->msgEntries[msgDispEntry].onTime != 0)
                     { // overlay frame do not need to run transition
                         // ++++++++++ transition time begin
                         if (pMsg->transTime != 0)
                         {
-                            if (msgEntryCnt == (pMsg->entries - 1))
+                            if (msgDispEntry == (pMsg->entries - 1))
                             {
-                                // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
+                                // this is last entry, msg finished, set readyToLoad=1. If there is new setting, could be loaded
                                 ReadyToLoad(1);
                             }
                             taskMsgTmr.Setms(pMsg->transTime * 10 - MS_SHIFT);
@@ -649,20 +658,17 @@ bool Group::TaskMsg(int *_ptLine)
                         }
                         // +++++++++++ transition time end
                     }
-                    if (msgEntryCnt == (pMsg->entries - 1))
+                    // entry done!
+                    if (msgDispEntry == (pMsg->entries - 1))
                     {
                         // last frm finished, set readyToLoad=1 and YIELD. If there is new setting, could be loaded
                         ReadyToLoad(1);
                         PT_YIELD();
-                        msgEntryCnt = 0;
-                        if (msgSetEntry < msgSetEntryMax)
-                        {
-                            msgSetEntry++;
-                        }
+                        msgDispEntry = 0;
                     }
                     else
                     {
-                        msgEntryCnt++;
+                        msgDispEntry++;
                     }
                 } while (true); // end of 'msg loop'
             };                  // end of 'normal msg task'
@@ -676,29 +682,20 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
     ClrOrBuf();
     msgOverlay = 0;                 // no overlay
     msgSetEntryMax = pMsg->entries; // no overlay
-    return;
-
     for (int i = 0; i < pMsg->entries; i++)
     {
-        if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
+        if (i == (pMsg->entries - 1))
         {
-            msgOverlay = 1;
+            return; // no overlay
+        }
+        else
+        {
+            if (pMsg->msgEntries[i].onTime == 0)
+            {
+                break; // has overlay
+            }
         }
     }
-    if (msgOverlay == 0)
-    {
-        return;
-    }
-    // has overlay
-    msgOverlay = 0; // colour code
-    for (int i = 0; i < pMsg->entries; i++)
-    {
-        if ((pMsg->msgEntries[i].onTime == 0) && (i != (pMsg->entries - 1)))
-        {
-            msgOverlay = 1;
-        }
-    }
-    msgSetEntryMax = pMsg->entries; // no overlay
     bool onTime1 = false;
     for (int i = 0; i < pMsg->entries; i++)
     {
@@ -709,12 +706,12 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
             { // NOT last entry
                 msgOverlay = db.GetUciProd().ColourBits();
                 if (onTime1)
-                { // previouse entry ontime>0
+                { // had an entry with ontime>0
                     msgSetEntryMax = pMsg->entries + i;
                 }
             }
             else
-            { // last entry is 0, so just set max
+            { // last entry ontime is 0, so just set max
                 msgSetEntryMax = pMsg->entries;
             }
         }
@@ -949,7 +946,7 @@ int Group::CheckAllSlavesCurrent()
         if (x != 0)
         {
             allSlavesCurrent = x;
-            return x;
+            return allSlavesCurrent;
         }
     }
     allSlavesCurrent = 0;
@@ -1923,41 +1920,54 @@ void Group::MakeFrameForSlave(Frame *frm)
 
 int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
 {
-    auto &prod = db.GetUciProd();
-    int frmlen = frm->frmBytes;
-    uint8_t *orsrc = dst;
+    FrmTxt *txtfrm = nullptr;
     if (frm->micode == static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
-    {// text frame trans to bitmap
-        FrmTxt *txtfrm = static_cast<FrmTxt *>(frm);
-        if (txtfrm != nullptr)
-        {
-            frmlen = txtfrm->ToBitmap(msgOverlay, dst); // update frmlen
-        }
-        else
+    { // text frame trans to bitmap
+        txtfrm = static_cast<FrmTxt *>(frm);
+        if (txtfrm == nullptr)
         {
             MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId);
         }
     }
-    else
-    {// gfx/hrg
-        if (msgOverlay == 0)
-        { // no overlay, memcpy
-            memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frmlen);
+    if (msgOverlay == 0)
+    { // no overlay
+        if (txtfrm != nullptr)
+        { // text frame trans to bitmap
+            return txtfrm->ToBitmap(msgOverlay, dst);
         }
         else
         {
-            if ((msgOverlay == 1 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished) ||
-                (msgOverlay == 4 && frm->colour == (uint8_t)FRMCOLOUR::MultipleColours))
-            { // overlay but no need to trans or copy
-                orsrc = frm->stFrm.rawData + frm->frmOffset;
-            }
-            else if (msgOverlay == 4 && frm->colour < (uint8_t)FRMCOLOUR::MonoFinished)
-            { //frame is mono but should transfer from 1-bit to 4-bit
-                frmlen = frm->ToBitmap(msgOverlay, dst); // update frmlen
-            }
+            memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
+            return frm->frmBytes;
         }
     }
-    // frame is ready in orsrc/dst, then OR with orbuf if overlay
+    // overlay
+    auto &prod = db.GetUciProd();
+    int frmlen = (msgOverlay == 1) ? prod.Gfx1FrmLen() : ((msgOverlay == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen());
+    uint8_t *buf = nullptr;
+    uint8_t *orsrc;
+    if (txtfrm != nullptr)
+    { // text frame trans to bitmap
+        buf = new uint8_t[frmlen];
+        txtfrm->ToBitmap(msgOverlay, buf);
+        orsrc = buf;
+    }
+    else
+    { // gfx/hrg
+        if ((msgOverlay == 1 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished)) ||
+            (msgOverlay == 4 && frm->colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours)))
+        { // overlay but no need to trans or copy
+            orsrc = frm->stFrm.rawData + frm->frmOffset;
+        }
+        else if (msgOverlay == 4 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
+        { //frame is mono but should transfer from 1-bit to 4-bit
+            buf = new uint8_t[frmlen];
+            frm->ToBitmap(msgOverlay, buf);
+            orsrc = buf;
+        }
+        // TODO 24-bit
+    }
+    // frame is ready in orsrc, then OR with orbuf if overlay
     if (msgOverlay == 1)
     { // with overlay
         SetWithOrBuf1(dst, orsrc, frmlen);
@@ -1966,35 +1976,43 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     {
         SetWithOrBuf4(dst, orsrc, frmlen);
     }
+    else
+    {
+        // TODO 24-bit
+    }
+    if (buf != nullptr)
+    {
+        delete[] buf;
+    }
     return frmlen;
 }
 
 void Group::SetWithOrBuf1(uint8_t *dst, uint8_t *src, int len)
-{// 1-bit
-    auto p = orBuf;
-    for (int i = 0; i < len; len++)
+{ // 1-bit
+    uint8_t *p = orBuf;
+    while (len--)
     {
         *dst++ = *src++ | *p++;
-    }
+    };
 }
 
 void Group::SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len)
-{// 4-bit
-    auto p = orBuf;
-    for (int i = 0; i < len; len++)
+{ // 4-bit
+    uint8_t *p = orBuf;
+    while (len--)
     {
         uint8_t d = *src++;
         uint8_t o = *p++;
         if ((d & 0xF0) == 0)
-        {// high 4-bit is OFF
+        {                    // high 4-bit is OFF
             d |= (o & 0xF0); // use orbuf value for this pixel
         }
         if ((d & 0x0F) == 0)
-        {// low 4-bit is OFF
+        {                    // low 4-bit is OFF
             d |= (o & 0x0F); // use orbuf value for this pixel
         }
         *dst++ = d;
-    }
+    };
 }
 
 /*
@@ -2007,3 +2025,23 @@ void Group::ReadyToLoad(uint8_t v)
     }
 }
 */
+
+void Group::PrintOrBuf()
+{
+    puts("OrBuf:\n");
+    auto Y = db.GetUciProd().PixelColumns() / 8;
+    for (int i = 0; i < orLen; i++)
+    {
+        uint8_t x = *(orBuf + i);
+        uint8_t b = 1;
+        for (int j = 0; j < 8; j++)
+        {
+            putchar((x & b) ? '*' : '-');
+            b <<= 1;
+        }
+        if ((i % Y) == (Y - 1))
+        {
+            putchar('\n');
+        }
+    }
+}

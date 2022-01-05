@@ -16,7 +16,7 @@ GroupVms::GroupVms(uint8_t id)
         MyThrow("VMS: Group can only have ONE sign");
     }
     UciProd &prod = db.GetUciProd();
-    for (int i = 0; i < prod.SlaveRowsPerSign() * prod.SlaveColumnsPerSign(); i++)
+    for (int i = 0; i < prod.SlavesPerSign(); i++)
     { // slave id = 1~n
         auto s = new Slave(i + 1);
         vSlaves.push_back(s);

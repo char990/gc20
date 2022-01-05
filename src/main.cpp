@@ -42,6 +42,11 @@ const char *MAKE = "Debug";
 #else
 const char *MAKE = "Release";
 #endif
+
+#ifndef __BUILDTIME__
+#define __BUILDTIME__ ("UTC:" __DATE__ " " __TIME__)
+#endif
+
 void PrintVersion()
 {
     char sbuf[256];
@@ -95,17 +100,15 @@ public:
 
     virtual void PeriodicRun() override
     {
-        sec++;
-        if (sec > RD_DS3231_SEC)
+        if (++cnt > RD_DS3231_SEC)
         {
             if (UpdateSysTime() > 0)
             {
-                sec = 0;
+                cnt = 0;
             }
         }
         pPinHeartbeatLed->Toggle();
         pPinWdt->Toggle();
-        cnt++;
         if ((cnt & 0x03) == 0)
         {
             pDS3231->WriteTimeAlarm(time(nullptr));
@@ -118,9 +121,8 @@ public:
     };
 
 private:
-    uint8_t cnt{0};
-    char s[4]{'-', '\\', '|', '/'};
-    int sec{0};
+    int cnt{0};
+    const char s[4]{'-', '\\', '|', '/'};
 };
 
 void LogResetTime()

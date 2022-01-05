@@ -593,8 +593,8 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         char *mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
-        memcpy(pt,FirmwareVer,4);
-        pt+=4;
+        memcpy(pt, FirmwareVer, 4);
+        pt += 4;
         Tx(txbuf, pt - txbuf);
     }
     return 0;
@@ -852,9 +852,11 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
         auto humid = data[12];
         auto broadcastId = data[13];
         auto defaultFont = data[16];
-        if (sessiont > displayt || devId == broadcastId ||
+        if (sessiont < 60 ||
+            (displayt != 0 && sessiont > displayt * 60) ||
+            devId == broadcastId ||
             overtemp > 99 || fan1temp > 99 || fan2temp > 99 || humid > 99 ||
-            defaultFont == 0 || prod.IsFont(defaultFont) == false)
+            prod.IsFont(defaultFont) == false)
         {
             Reject(APP::ERROR::SyntaxError);
         }
@@ -960,7 +962,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = sign->MaxTemp();           // max temperature
         uint16_t faultleds = sign->FaultLedCnt();
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
-        *p++ = 0;//user.DefaultFont();                  //
+        *p++ = 0;                                   //user.DefaultFont();                  //
         p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
         *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                     // light sensor 2
@@ -968,7 +970,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = 'B';                                 //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
         *p++ = prod.MaxConspicuity();               // conspicuity
         *p++ = prod.MaxFont();                      // max. number of fonts
-        *p++ = 0;//user.DefaultColour();                // 09
+        *p++ = 0;                                   //user.DefaultColour();                // 09
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.max_template=0;		// 00
         *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk1=1;                // 01
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_offset=0;		// 00

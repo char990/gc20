@@ -71,12 +71,10 @@ public:
     uint8_t NumberOfSigns() { return numberOfSigns; };
     uint8_t NumberOfGroups() { return numberOfGroups; };
     uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId - 1]; };
-    uint8_t PixelRowsPerTile() { return pixelRowsPerTile; };
-    uint8_t PixelColumnsPerTile() { return pixelColumnsPerTile; };
-    uint8_t TileRowsPerSlave() { return tileRowsPerSlave; };
-    uint8_t TileColumnsPerSlave() { return tileColumnsPerSlave; };
-    uint8_t SlaveRowsPerSign() { return slaveRowsPerSign; };
-    uint8_t SlaveColumnsPerSign() { return slaveColumnsPerSign; };
+    uint16_t PixelRows() { return pixelRows; };
+    uint16_t PixelColumns() { return pixelColumns; };
+    uint8_t TilesPerSlave() { return tilesPerSlave; };
+    uint8_t SlavesPerSign() { return slavesPerSign; };
 
     uint8_t *Dimming() { return &dimming[0]; };
     uint8_t *ColourRatio() { return &colourRatio[0]; };
@@ -102,8 +100,6 @@ public:
     // configurations calculated from other configurations
     uint8_t CharRows(int fontX);
     uint8_t CharColumns(int fontX);
-    uint16_t PixelRows() { return pixelRows; };
-    uint16_t PixelColumns() { return pixelColumns; };
     uint32_t Pixels() { return pixels; };
     SESR_SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
     SCR_SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
@@ -154,7 +150,9 @@ private:
     const char *_SlaveVoltageLow = "SlaveVoltageLow";
     const char *_SlaveVoltageHigh = "SlaveVoltageHigh";
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
-
+    const char *_PixelRows = "PixelRows";
+    const char *_PixelColumns = "PixelColumns";
+    
     /// uint8_t
     const char *_TcpServerNTS = "TcpServerNTS";
     const char *_TcpServerWEB = "TcpServerWEB";
@@ -166,12 +164,8 @@ private:
     const char *_ColourLeds = "ColourLeds";
     const char *_IsResetLogAllowed = "IsResetLogAllowed";
     const char *_IsUpgradeAllowed = "IsUpgradeAllowed";
-    const char *_PixelRowsPerTile = "PixelRowsPerTile";
-    const char *_PixelColumnsPerTile = "PixelColumnsPerTile";
-    const char *_TileRowsPerSlave = "TileRowsPerSlave";
-    const char *_TileColumnsPerSlave = "TileColumnsPerSlave";
-    const char *_SlaveRowsPerSign = "SlaveRowsPerSign";
-    const char *_SlaveColumnsPerSign = "SlaveColumnsPerSign";
+    const char *_TilesPerSlave = "TilesPerSlave";
+    const char *_SlavesPerSign = "SlavesPerSign";
     const char *_DriverMode = "DriverMode";
     const char *_ColourRatio = "ColourRatio";
     const char *_Dimming = "Dimming";
@@ -195,6 +189,8 @@ private:
     std::vector<SignCfg> signCfg;
 
     uint16_t
+        pixelRows,
+        pixelColumns,
         slaveRqstInterval,
         slaveRqstStTo,
         slaveRqstExtTo,
@@ -226,12 +222,8 @@ private:
         isUpgradeAllowed,
         numberOfSigns,
         numberOfGroups,
-        pixelRowsPerTile,
-        pixelColumnsPerTile,
-        tileRowsPerSlave,
-        tileColumnsPerSlave,
-        slaveRowsPerSign,
-        slaveColumnsPerSign,
+        tilesPerSlave,
+        slavesPerSign,
         powerOnDelay,
         dimmingAdjTime,
         driverMode;
@@ -253,8 +245,6 @@ private:
     Utils::Bits bHrgFrmColour{32};
 
     // configurations calculated from other configurations
-    uint16_t pixelRows;
-    uint16_t pixelColumns;
     uint32_t pixels;
     SESR_SIGN_TYPE extStsRplSignType;
     SCR_SIGN_TYPE configRplSignType;

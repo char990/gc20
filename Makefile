@@ -1,10 +1,11 @@
 TARGET   := goblin
+LDFLAGS  := -luci -lcrypto
+#LDFLAGS  := -L/usr/lib -lstdc++ -lm
+
 #CXX      := -c++
 #CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror -std=c++11
 CFLAGS 	 := -std=c99 -D '__BUILDTIME__="$(shell date)"'
 CXXFLAGS := -std=c++11 -D '__BUILDTIME__="$(shell date)"'
-#LDFLAGS  := -L/usr/lib -lstdc++ -lm
-LDFLAGS  := -luci -lcrypto
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
@@ -16,8 +17,7 @@ SRC_CXX  := $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)/*.cpp))
 SRC		 := $(SRC_C) $(SRC_CXX)
 
 OBJECTS  := $(SRC_C:%.c=$(OBJ_DIR)/%.o) $(SRC_CXX:%.cpp=$(OBJ_DIR)/%.o)
-DEPENDENCIES \
-	:= $(OBJECTS:.o=.d)
+DEPENDENCIES := $(OBJECTS:.o=.d)
 
 all: build $(APP_DIR)/$(TARGET)
 
