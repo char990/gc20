@@ -93,6 +93,8 @@ public:
     bool IsGfxFrmColourValid(int i) { return bGfxFrmColour.GetBit(i); };
     bool IsHrgFrmColourValid(int i) { return bHrgFrmColour.GetBit(i); };
 
+    bool IsIslusSpFrm(int i)  { return bIslusSpFrm.GetBit(i); };
+
     uint8_t MaxConspicuity() { return bConspicuity.GetMaxBit(); };
     uint8_t MaxFont() { return bConspicuity.GetMaxBit(); };
     uint8_t MaxAnnulus() { return bAnnulus.GetMaxBit(); };
@@ -178,7 +180,8 @@ private:
     const char *_Sign = "Sign"; // Sign1-x
     const char *_RjctFrmSign = "RjctFrmSign"; // Reject frames of Sign1-x
     
-    // const char * _Font="Font";   // Font0-x
+    const char *_IslusSpFrm = "IslusSpFrm";     // Islus specila frame
+    Utils::Bits bIslusSpFrm{256};
 
     PRODUCT prodType;
 

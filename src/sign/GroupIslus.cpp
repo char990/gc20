@@ -1,11 +1,10 @@
 #include <cstring>
 #include <sign/GroupIslus.h>
+#include <sign/Slave.h>
 #include <uci/DbHelper.h>
 #include <sign/SignTxt.h>
 #include <module/ptcpp.h>
 #include <module/Utils.h>
-
-using namespace Utils;
 
 #define UP_LEFT_0 182
 #define UP_RIGHT_0 183
@@ -19,7 +18,7 @@ using namespace Utils;
 #define DN_RIGHT_1 195
 #define RED_CROSS_1 199
 
-#define ALL_RED_PIXELS_LIT 251
+using namespace Utils;
 
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
@@ -66,12 +65,12 @@ void GroupIslus::PeriodicHook()
 // TODO
 APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
-#if 0
     if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
     {
         return APP::ERROR::FacilitySwitchOverride;
     }
-    if (cmd[2] != signCnt)
+    uint8_t signCnt = cmd[2];
+    if (signCnt != vSigns.size())
     {
         return APP::ERROR::SyntaxError;
     }
@@ -117,12 +116,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             }
         }
         // reject frames
-        if(db.GetUciProd().GetSignCfg(sign_id).rjctFrm.Get(frm_id))
-        {
-            return APP::ERROR::SyntaxError;
-        }
-        // check if test frames: 250,251,252, not allowed
-        if(frm_id>=250&&frm_id<=252)
+        if(db.GetUciProd().GetSignCfg(sign_id).rjctFrm.GetBit(frm_id))
         {
             return APP::ERROR::SyntaxError;
         }
@@ -144,9 +138,9 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
     for (int i = 0; i < signCnt; i++)
     {
         dsNext->fmpid[i] = 0;
-        for (int j = 0; i < signCnt; j++)
+        for (int j = 0; j < signCnt; j++)
         {
-            if (*p == vSigns[i]->SignId())
+            if (*p == vSigns.at(j)->SignId())
             { // matched sign id
                 dsNext->fmpid[i] = *(p + 1);
                 break;
@@ -154,7 +148,6 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         }
         p += 2;
     }
-#endif
     return APP::ERROR::AppNoError;
 }
 
@@ -192,28 +185,15 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
     }
-    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1 || uciFrmId == ALL_RED_PIXELS_LIT)
-    {/* TODO
+    if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
+    {
         auto &prod = db.GetUciProd();
         auto &user = db.GetUciUser();
         uint8_t *p = txBuf + 1;
-        *p++ = 0x0B; // Gfx frame
+        *p++ = 0xFC; // ISLUS special frame
         p++;         // skip slave frame id
-        *p++ = prod.PixelRows();
-        p = Cnvt::PutU16(prod.PixelColumns(), p);
-        auto mappedcolour = prod.GetMappedColour(frm->colour);
-        if (msgOverlay == 0 || msgOverlay == 1)
-        {
-            *p++ = mappedcolour;
-        }
-        else if (msgOverlay == 4)
-        {
-            *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
-        }
-        *p++ = frm->conspicuity;
-        int frmlen = TransFrmWithOrBuf(frm, p + 2);
-        p = Cnvt::PutU16(frmlen, p);
-        txLen = p + frmlen - txBuf;*/
+        p = Cnvt::PutU32(uciFrmId, p);
+        txLen = p - txBuf;
     }
     else
     {
@@ -223,9 +203,8 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 
 int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
-    if (uciFrmId == RED_CROSS_0 || uciFrmId == RED_CROSS_1)
-    { // Red Cross "X"
-
+    if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
+    {
         return 0;
     }
     else

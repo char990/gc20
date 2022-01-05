@@ -1587,7 +1587,6 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         IMakeFrameForSlave(uciFrmId);
         txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
         txBuf[2] = slvFrmId;
-
         char *asc = new char[(txLen - 1) * 2];
         Cnvt::ParseToAsc(txBuf + 1, asc, txLen - 1);
         uint16_t crc = Crc::Crc16_8005((uint8_t *)asc, (txLen - 1) * 2);
@@ -1610,26 +1609,6 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         }
         ms = Tx() + db.GetUciProd().SlaveSetStFrmDly();
     }
-    /*
-    else
-    {
-        if (slvindex == 0xFF)
-        {
-            for (auto &s : vSlaves)
-            {
-                s->expectNextFrmId = 0;
-                s->frmCrc[0] = 0;
-                s->nextState = Slave::FRM_ST::MATCH_NA;
-            }
-        }
-        else
-        {
-            auto &s = vSlaves[slvindex];
-            s->expectNextFrmId = 0;
-            s->frmCrc[0] = 0;
-            s->nextState = Slave::FRM_ST::MATCH_NA;
-        }
-    }*/
     LockBus(ms);
     return ms;
 }

@@ -270,7 +270,7 @@ void UciCfg::PrintOption_str(const char * option, const char *str)
 	printf("\t%s \t'%s'\n", option, str);
 }
 
-void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bits &bo)
+void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bits &bo, bool ex)
 {
     int ibuf[256];
     if(bo.Size()==0 || bo.Size()>256)
@@ -278,20 +278,30 @@ void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bit
 		MyThrow("Uci Error: %s.%s, ReadBits: bo.size=%d", uciSec->e.name, option, bo.Size());
 	}
 	bo.ClrAll();
-    const char *str = GetStr(uciSec, option);
-    if (str != NULL)
-    {
-        int cnt = Utils::Cnvt::GetIntArray(str, bo.Size(), ibuf, 0, bo.Size()-1);
-        if (cnt != 0)
-        {
-            for (int i = 0; i < cnt; i++)
-            {
-                bo.SetBit(ibuf[i]);
-            }
-            return;
-        }
-    }
-    MyThrow("Uci Error: %s.%s", uciSec->e.name, option);
+	try
+	{
+		const char *str = GetStr(uciSec, option);
+		if (str != NULL)
+		{
+			int cnt = Utils::Cnvt::GetIntArray(str, bo.Size(), ibuf, 0, bo.Size()-1);
+			if (cnt != 0)
+			{
+				for (int i = 0; i < cnt; i++)
+				{
+					bo.SetBit(ibuf[i]);
+				}
+				return;
+			}
+		}
+		MyThrow("Uci Error: %s.%s", uciSec->e.name, option);
+	}
+	catch(std::exception e)
+	{
+		if(ex)
+		{
+			throw e;
+		}
+	}
 }
 
 int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, const char **collection, int cSize)

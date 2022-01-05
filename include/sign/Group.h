@@ -154,6 +154,9 @@ protected:
     void SetWithOrBuf1(uint8_t *dst, uint8_t *src, int len);
     void SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len);
 
+protected:
+    FacilitySwitch fcltSw;
+
 private:
     uint8_t grpTick{0};
 
@@ -182,8 +185,6 @@ private:
     void DispBackup();
 
     BootTimer pwrUpTmr;
-
-    FacilitySwitch fcltSw;
 
     BootTimer extDispTmr;
 

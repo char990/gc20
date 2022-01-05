@@ -10,8 +10,8 @@ public:
     DispStatus(uint8_t signCnt)
     :signCnt(signCnt)
     {
-        dispType = DISP_TYPE::N_A;
         fmpid = new uint8_t[signCnt];
+        Clear();
     };
 
     ~DispStatus()
@@ -51,6 +51,12 @@ public:
         dispType = DISP_TYPE::N_A;
         fmpid[0] = 0;
     };
+
+    void Clear()
+    {
+        dispType = DISP_TYPE::N_A;
+        memset(fmpid, 0, signCnt);
+    }
     
     bool Equal(DispStatus * dst)
     {

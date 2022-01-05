@@ -122,26 +122,6 @@ void UciProd::LoadConfig()
         MyThrow("UciProd::GroupCfg Error: cnt!=%d", numberOfSigns);
     }
 
-    if (prodType == PRODUCT::VMS)
-    { // VMS
-        // VMS should configured as 1 sign per group
-        for (int i = 0; i < numberOfSigns; i++)
-        {
-            if(groupCfg[i] != i + 1)
-            {
-                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
-            }
-        }
-    }
-    else if (prodType == PRODUCT::ISLUS)
-    { // ISLUS
-        // ISLUS should configured as 1 slave per Sign
-        if(slavesPerSign != 1)
-        {
-            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
-        }
-    }
-
     signCfg.resize(numberOfSigns);
     for (int i = 1; i <= numberOfSigns; i++)
     {
@@ -190,18 +170,29 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s '%s'", cbuf, str);
     }
 
-    if (prodType == PRODUCT::ISLUS)
-    {
+    if (prodType == PRODUCT::VMS)
+    { // VMS
+        // VMS should configured as 1 sign per group
+        for (int i = 0; i < numberOfSigns; i++)
+        {
+            if(groupCfg[i] != i + 1)
+            {
+                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
+            }
+        }
+    }
+    else if (prodType == PRODUCT::ISLUS)
+    { // ISLUS
+        // ISLUS should configured as 1 slave per Sign
+        if(slavesPerSign != 1)
+        {
+            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
+        }
         for (int i = 1; i <= numberOfSigns; i++)
         {
-            try
-            {
-                sprintf(cbuf, "%s%d", _RjctFrmSign, i);
-                ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm);
-            }
-            catch (...)
-            {
-            };
+            sprintf(cbuf, "%s%d", _RjctFrmSign, i);
+            ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm, false);
+            ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
         }
     }
 

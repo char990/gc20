@@ -1,5 +1,6 @@
 #include <cstring>
 #include <sign/GroupVms.h>
+#include <sign/Slave.h>
 #include <uci/DbHelper.h>
 #include <sign/SignTxt.h>
 #include <sign/SignGfx.h>

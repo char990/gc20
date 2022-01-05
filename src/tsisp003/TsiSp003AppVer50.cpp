@@ -75,13 +75,11 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
 // todo: not tested
 void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
 {
-    Reject(APP::ERROR::MiNotSupported);
-    return;
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, data[2] * 2 + 3))
     {
         return;
     }
-    if (data[2] != 0)
+    if (data[2] == 0)
     {
         Reject(APP::ERROR::SyntaxError);
     }
