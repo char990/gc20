@@ -19,7 +19,7 @@ Sign::Sign(uint8_t id)
     lanternFault.SetCNT(prod.LanternFaultDebounce());
     overtempFault.SetCNT(prod.OverTempDebounce());
 
-    lsConnectionFault.SetCNT(2 * 60, 3 * 60); // fault debounce 1 minute in slave, so set true_cnt as 2*60
+    lsConnectionFault.SetCNT(2 * 60, 3 * 60); // fault debounce 1 minute in slave, so set true_cnt as 2*60 = 3 minutes
     ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
     lsMidnightFault.SetCNT(15 * 60);
     lsMiddayFault.SetCNT(15 * 60);

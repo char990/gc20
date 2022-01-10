@@ -13,6 +13,7 @@ public:
     virtual APP::ERROR DispAtomicFrm(uint8_t *id) override;
 
     bool TaskSetATF(int *_ptLine) override;
+    void TaskSetATFReset() override;
 
     virtual void IMakeFrameForSlave(uint8_t fid) override;
 
@@ -21,4 +22,5 @@ public:
 private:
     uint8_t sATF;
     bool IsSpeedFrame(uint8_t frmId);
+    std::vector<uint8_t> atfSt;     // atf setting status: 0:OK, others:NG
 };

@@ -302,7 +302,7 @@ void Group::FcltSwitchFunc()
         Controller::Instance().ctrllerError.Push(
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[64];
-        snprintf(buf, 63, "Group%d:%s", groupId, fcltSw.ToStr());
+        snprintf(buf, 63, "Group[%d]:%s", groupId, fcltSw.ToStr());
         PrintDbg(DBG_LOG, "%s", buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
@@ -358,7 +358,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    PrintDbg(DBG_LOG, "TaskPln:Display:BLANK");
+                    PrintDbg(DBG_LOG, "Group[%d]-TaskPln:Display:BLANK", groupId);
                     db.GetUciEvent().Push(0, "Display:BLANK");
                     TaskFrmReset();
                     TaskMsgReset();
@@ -376,7 +376,7 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    PrintDbg(DBG_LOG, "TaskPln:Plan%d start", plnmin.plnId);
+                    PrintDbg(DBG_LOG, "Group[%d]-TaskPln:Plan%d start", groupId, plnmin.plnId);
                     db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -475,7 +475,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        PrintDbg(DBG_LOG, "TaskMsg:Display Msg:%d", onDispMsgId);
+        PrintDbg(DBG_LOG, "Group[%d]-TaskMsg:Display Msg:%d", groupId, onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -576,14 +576,14 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 if (++msgSlaveErrCnt == 3)
                                 {
-                                    PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Slave may reset, RESTART");
+                                    PrintDbg(DBG_LOG, "Group[%d]-TaskMsg:SetStoredFrame: Slave may reset, RESTART", groupId);
                                     goto NORMAL_MSG_TASK_START;
                                 }
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            PrintDbg(DBG_LOG, "TaskMsg:SetStoredFrame: Current NOT matched, RESTART");
+                            PrintDbg(DBG_LOG, "Group[%d]-TaskMsg:SetStoredFrame: Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -632,7 +632,7 @@ bool Group::TaskMsg(int *_ptLine)
                         } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                         if (!taskMsgTmr.IsExpired())
                         { // Currnet is NOT matched, fatal error
-                            PrintDbg(DBG_LOG, "TaskMsg:Frm-onTime: Current NOT matched, RESTART");
+                            PrintDbg(DBG_LOG, "Group[%d]-TaskMsg:Frm-onTime: Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                     }
@@ -759,8 +759,17 @@ bool Group::TaskFrm(int *_ptLine)
             activeFrm.ClrAll();
             activeFrm.SetBit(1);
             // TODO all frames in ATF
+            TaskSetATFReset();
             PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
-            PrintDbg(DBG_LOG, "TaskFrm:Display ATF");
+            {
+                char buf[128];
+                int len = 0;
+                for (int i = 0; i < vSlaves.size(); i++)
+                {
+                    snprintf(buf + len, 127 - len, " %d-%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
+                }
+                PrintDbg(DBG_LOG, "Group[%d]-TaskFrm:Display ATF:(signId-frmId)%s", groupId, buf);
+            }
         }
         else
         {
@@ -782,7 +791,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            PrintDbg(DBG_LOG, "TaskFrm:Display Frm:%d", onDispFrmId);
+            PrintDbg(DBG_LOG, "Group[%d]-TaskFrm:Display Frm:%d", groupId, onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -1271,7 +1280,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                 if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
                 { // same, reload timer
                     extDispTmr.Setms(time);
-                    PrintDbg(DBG_PRT, "EXT timer reload:%dms", time);
+                    PrintDbg(DBG_PRT, "Group[%d]-EXT timer reload:%dms", groupId, time);
                 }
                 else if (dsCurrent->dispType == DISP_TYPE::N_A ||
                          dsCurrent->dispType == DISP_TYPE::BLK ||
@@ -1284,7 +1293,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                     extDispTmr.Setms(time);
                     dsExt->dispType = type;
                     dsExt->fmpid[0] = id;
-                    PrintDbg(DBG_PRT, "EXT timer start:%dms", time);
+                    PrintDbg(DBG_PRT, "Group[%d]-EXT timer start:%dms", groupId, time);
                 }
             }
         }
@@ -1574,18 +1583,18 @@ int Group::SlaveSync()
     return ms;
 }
 
-int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
+int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
 {
     if (slvFrmId == 0 || uciFrmId == 0)
     {
-        MyThrow("ERROR: SlaveSetFrame(slvindex=%d, slvFrmId=%d, uciFrmId=%d)",
-                slvindex, slvFrmId, uciFrmId);
+        MyThrow("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)",
+                slvId, slvFrmId, uciFrmId);
     }
     int ms = 10;
     if (deviceEnDisCur)
     {
         IMakeFrameForSlave(uciFrmId);
-        txBuf[0] = (slvindex == 0xFF) ? 0xFF : vSlaves[slvindex]->SlaveId();
+        txBuf[0] = slvId;
         txBuf[2] = slvFrmId;
         char *asc = new char[(txLen - 1) * 2];
         Cnvt::ParseToAsc(txBuf + 1, asc, txLen - 1);
@@ -1593,19 +1602,13 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
         delete[] asc;
         Cnvt::PutU16(crc, txBuf + txLen);
         txLen += 2;
-        if (slvindex == 0xFF)
+        for (auto &s : vSlaves)
         {
-            for (auto &s : vSlaves)
+            if (slvId == 0xFF || slvId == s->SlaveId())
             {
                 s->expectNextFrmId = slvFrmId;
                 s->frmCrc[slvFrmId] = crc;
             }
-        }
-        else
-        {
-            auto &s = vSlaves[slvindex];
-            s->expectNextFrmId = slvFrmId;
-            s->frmCrc[slvFrmId] = crc;
         }
         ms = Tx() + db.GetUciProd().SlaveSetStFrmDly();
     }
@@ -1613,30 +1616,22 @@ int Group::SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId)
     return ms;
 }
 
-// this function is actually for transistion time
-int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
+int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
 {
     if (deviceEnDisCur == 0)
     {
         slvFrmId = 0;
     }
-    if (slvindex == 0xFF)
+    for (auto &s : vSlaves)
     {
-        txBuf[0] = 0xFF;
-        for (auto &s : vSlaves)
+        if(slvId == s->SlaveId() || slvId == 0xFF)
         {
             s->expectCurrentFrmId = slvFrmId;
             s->expectNextFrmId = slvFrmId;
         }
     }
-    else
-    {
-        auto &s = vSlaves[slvindex];
-        txBuf[0] = s->SlaveId();
-        s->expectCurrentFrmId = slvFrmId;
-        s->expectNextFrmId = slvFrmId;
-    }
-    txBuf[1] = SLVCMD::DISPLAY_FRM;
+    txBuf[0] = slvId;
+    //txBuf[1] = cmd;
     txBuf[2] = slvFrmId;
     txLen = 3;
     Tx();
@@ -1645,35 +1640,17 @@ int Group::SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId)
     return ms;
 }
 
-int Group::SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId)
+// this function is actually for transistion time ONLY
+int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId)
 {
-    if (deviceEnDisCur == 0)
-    {
-        slvFrmId = 0;
-    }
-    if (slvindex == 0xFF)
-    {
-        txBuf[0] = 0xFF;
-        for (auto &s : vSlaves)
-        {
-            s->expectCurrentFrmId = slvFrmId;
-            s->expectNextFrmId = slvFrmId;
-        }
-    }
-    else
-    {
-        auto &s = vSlaves[slvindex];
-        txBuf[0] = s->SlaveId();
-        s->expectCurrentFrmId = slvFrmId;
-        s->expectNextFrmId = slvFrmId;
-    }
+    txBuf[1] = SLVCMD::DISPLAY_FRM;
+    return SlaveSDFrame(slvId, slvFrmId);
+}
+
+int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
+{
     txBuf[1] = SLVCMD::SET_STD_FRM;
-    txBuf[2] = slvFrmId;
-    txLen = 3;
-    Tx();
-    int ms = db.GetUciProd().SlaveDispDly();
-    LockBus(ms);
-    return ms;
+    return SlaveSDFrame(slvId, slvFrmId);
 }
 
 void Group::AllSlavesUpdateCurrentBak()
@@ -1799,8 +1776,8 @@ bool Group::DimmingAdjust()
             {
                 setDimming = newdim;
                 /*
-                PrintDbg(DBG_LOG, "currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d",
-                         currentDimmingLvl, targetDimmingLvl, tgtLevel, setDimming);
+                PrintDbg(DBG_LOG, "Group[%d]-currentDimmingLvl=%d, targetDimmingLvl=%d(%d), setDimming=%d",
+                         groupId, currentDimmingLvl, targetDimmingLvl, tgtLevel, setDimming);
                          */
                 RqstExtStatus(0xFF);
                 r = true;
@@ -1878,8 +1855,8 @@ void Group::MakeFrameForSlave(Frame *frm)
     auto &prod = db.GetUciProd();
     auto &user = db.GetUciUser();
     uint8_t *p = txBuf + 1;
-    *p++ = 0x0B; // Gfx frame
-    p++;         // skip slave frame id
+    *p++ = SET_GFX_FRM; // Gfx frame
+    p++;                // skip slave frame id
     *p++ = prod.PixelRows();
     p = Cnvt::PutU16(prod.PixelColumns(), p);
     auto mappedcolour = prod.GetMappedColour(frm->colour);
@@ -1999,7 +1976,7 @@ void Group::ReadyToLoad(uint8_t v)
 {
     if (readyToLoad != v)
     {
-        PrintDbg(DBG_PRT, "readyToLoad(%d)->%d", readyToLoad, v);
+        PrintDbg(DBG_PRT, "Group[%d]-readyToLoad(%d)->%d", groupId, readyToLoad, v);
         readyToLoad = v;
     }
 }

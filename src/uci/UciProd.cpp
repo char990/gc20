@@ -82,20 +82,6 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: MfcCode length should be 6");
     }
 
-    int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
-    if (_prodT == 0)
-    {
-        prodType = PRODUCT::VMS;
-    }
-    else if (_prodT == 1)
-    {
-        prodType = PRODUCT::ISLUS;
-    }
-    else
-    {
-        MyThrow("UciProd Error: %s: unknown", _ProdType);
-    }
-
     pixelRows = GetInt(uciSec, _PixelRows, 8, 4096);
     pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
     tilesPerSlave = GetInt(uciSec, _TilesPerSlave, 1, 255);
@@ -170,8 +156,10 @@ void UciProd::LoadConfig()
         MyThrow("UciProd Error: %s '%s'", cbuf, str);
     }
 
-    if (prodType == PRODUCT::VMS)
-    { // VMS
+    int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
+    if (_prodT == 0)
+    {
+        prodType = PRODUCT::VMS;
         // VMS should configured as 1 sign per group
         for (int i = 0; i < numberOfSigns; i++)
         {
@@ -181,8 +169,9 @@ void UciProd::LoadConfig()
             }
         }
     }
-    else if (prodType == PRODUCT::ISLUS)
-    { // ISLUS
+    else if (_prodT == 1)
+    {
+        prodType = PRODUCT::ISLUS;
         // ISLUS should configured as 1 slave per Sign
         if(slavesPerSign != 1)
         {
@@ -194,6 +183,10 @@ void UciProd::LoadConfig()
             ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm, false);
             ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
         }
+    }
+    else
+    {
+        MyThrow("UciProd Error: %s: unknown", _ProdType);
     }
 
     slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 5000);

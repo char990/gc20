@@ -23,15 +23,17 @@ using namespace Utils;
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
 {
-    if (vSlaves.size() != 1)
+    UciProd &prod = db.GetUciProd();
+    if (prod.SlavesPerSign() != 1)
     {
         MyThrow("ISLUS: Sign can only have ONE slave");
     }
 
     for (int i = 0; i < vSigns.size(); i++)
-    { // slave id = Sign Id
-        vSlaves.push_back(new Slave(vSigns[i]->SignId()));
+    {
+        vSlaves.push_back(new Slave(vSigns[i]->SignId())); // slave id = Sign Id
     }
+    atfSt.assign(vSigns.size(), 1); // resize atfSt and init
     // load process
     auto disp = db.GetUciProcess().GetDisp(groupId);
     if (disp[0] > 0)
@@ -74,14 +76,16 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
     {
         return APP::ERROR::SyntaxError;
     }
-    uint8_t *p = cmd + 3;
-    uint8_t speed_frm_id=0;
+    uint8_t *pnext = cmd + 3;
+    uint8_t speed_frm_id = 0;
+    DispStatus ds{signCnt};
+    ds.dispType = DISP_TYPE::ATF;
     for (int i = 0; i < signCnt; i++)
     {
-        auto sign_id = *p++;
-        auto frm_id = *p++;
+        auto sign_id = *pnext++;
+        auto frm_id = *pnext++;
         // check if there is a duplicate sign id
-        auto p2 = p;
+        auto p2 = pnext;
         for (int j = i + 1; j < signCnt; j++)
         {
             if (sign_id == *p2)
@@ -101,53 +105,53 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
         // check if same speed
-        if(IsSpeedFrame(frm_id))
+        if (IsSpeedFrame(frm_id))
         {
-            if(speed_frm_id==0)
-            {
-                speed_frm_id=frm_id;
+            if (speed_frm_id == 0)
+            { // first speed frame, mark it
+                speed_frm_id = frm_id;
             }
             else
             {
-                if(speed_frm_id!=frm_id)
-                {
+                if (speed_frm_id != frm_id)
+                { // have differrent speed frames
                     return APP::ERROR::SyntaxError;
                 }
             }
         }
-        // reject frames
-        if(db.GetUciProd().GetSignCfg(sign_id).rjctFrm.GetBit(frm_id))
+        // reject frames => check exit
+        if (db.GetUciProd().GetSignCfg(sign_id).rjctFrm.GetBit(frm_id))
         {
             return APP::ERROR::SyntaxError;
         }
         // check lane merge
-        if(i < signCnt-1)
+        if (i < signCnt - 1)
         {
-            uint8_t frm_r = *(p+1);
-            if(((frm_id==DN_RIGHT_0 || frm_id==DN_RIGHT_1) && 
-                    (frm_r==RED_CROSS_0 || frm_r==RED_CROSS_1 || frm_r==DN_LEFT_0 || frm_r==DN_LEFT_1)) ||
-                ((frm_id==RED_CROSS_0 || frm_id==RED_CROSS_1) && (frm_r==DN_LEFT_0 || frm_r==DN_LEFT_1)) )
-            {// merge to closed lane
+#define IS_LEFT(frm) (frm == DN_LEFT_0 || frm == DN_LEFT_1)
+#define IS_RIGHT(frm) (frm == DN_RIGHT_0 || frm == DN_RIGHT_1)
+#define IS_CROSS(frm) (frm == RED_CROSS_0 || frm == RED_CROSS_1)
+            uint8_t frm_next = pnext[1];
+            if ((IS_RIGHT(frm_id) && (IS_CROSS(frm_next) || IS_LEFT(frm_next))) ||
+                (IS_CROSS(frm_id) && IS_LEFT(frm_next)))
+            { // merge to closed lane
                 return APP::ERROR::SyntaxError;
             }
+#undef IS_CROSS
+#undef IS_RIGHT
+#undef IS_LEFT
         }
-    }
-    db.GetUciProcess().SetDisp(groupId, cmd, 3+signCnt*2);
-    dsNext->dispType = DISP_TYPE::ATF;
-    p = cmd + 3;
-    for (int i = 0; i < signCnt; i++)
-    {
-        dsNext->fmpid[i] = 0;
+        // all good
         for (int j = 0; j < signCnt; j++)
         {
-            if (*p == vSigns.at(j)->SignId())
+            if (sign_id == vSigns.at(j)->SignId())
             { // matched sign id
-                dsNext->fmpid[i] = *(p + 1);
+                ds.fmpid[j] = frm_id;
                 break;
             }
         }
-        p += 2;
     }
+    dsNext->Clone(&ds);
+    db.GetUciProcess().SetDisp(groupId, cmd, 3 + signCnt * 2);
     return APP::ERROR::AppNoError;
 }
 
@@ -162,18 +166,36 @@ bool GroupIslus::IsSpeedFrame(uint8_t frmId)
     return (ab >= 1 && ab <= 11 && c >= 0 && c <= 4);
 }
 
+void GroupIslus::TaskSetATFReset()
+{
+    taskATFLine = 0;
+    atfSt.assign(atfSt.size(), 1);
+}
+
 // TODO set slave frame, active frm, reprot frm
 bool GroupIslus::TaskSetATF(int *_ptLine)
 {
     PT_BEGIN();
-    for (sATF = 0; sATF < vSigns.size(); sATF++)
+    while (1)
     {
-        do
+        for (sATF = 0; sATF < vSlaves.size(); sATF++)
         {
-            //SetFrame(vSigns[sATF]->SignId(), , onDispFrmId); // SignId is same as SlaveId
-            ClrAllSlavesRxStatus();
-            PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
-        } while (allSlavesNext == 1);
+            if (atfSt.at(sATF) != 0)
+            {
+                SlaveSetFrame(vSlaves.at(sATF)->SlaveId() /*signId=slaveId */, 1, dsCurrent->fmpid[sATF]);
+                PT_WAIT_UNTIL(IsBusFree());
+            }
+        }
+        ClrAllSlavesRxStatus();
+        PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
+        if (allSlavesNext == 0)
+        { // finished
+            PT_EXIT();
+        }
+        for (int i = 0; i < vSlaves.size(); i++)
+        { // mark atfSt
+            atfSt.at(i) = vSlaves.at(i)->CheckNext();
+        }
     }
     PT_END();
 }
@@ -190,8 +212,8 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
         auto &prod = db.GetUciProd();
         auto &user = db.GetUciUser();
         uint8_t *p = txBuf + 1;
-        *p++ = 0xFC; // ISLUS special frame
-        p++;         // skip slave frame id
+        *p++ = SET_ISLUS_SP_FRM; // ISLUS special frame
+        p++;                     // skip slave frame id
         p = Cnvt::PutU32(uciFrmId, p);
         txLen = p - txBuf;
     }

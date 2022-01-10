@@ -47,10 +47,11 @@ public:
     int SlaveSync();
 
     /// \brief      call TranslateFrame and send txBuf by SetTextFrame/SetGfxFrm
-    int SlaveSetFrame(uint8_t slvindex, uint8_t slvFrmId, uint8_t uciFrmId);
+    int SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId);
 
-    int SlaveDisplayFrame(uint8_t slvindex, uint8_t slvFrmId);
-    int SlaveSetStoredFrame(uint8_t slvindex, uint8_t slvFrmId);
+    int SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId);
+    int SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId);
+    int SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId);
 
     // called by scheduler
     void PeriodicRun();
@@ -134,8 +135,8 @@ protected:
     DispStatus *dsExt;
 
     int taskATFLine{0};
-
     virtual bool TaskSetATF(int *_ptLine) = 0;
+    virtual void TaskSetATFReset() = 0;
 
     virtual int ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst) = 0;
     virtual int TransFrmWithOrBuf(Frame *frm, uint8_t *dst);
@@ -156,6 +157,22 @@ protected:
 
 protected:
     FacilitySwitch fcltSw;
+
+    enum SLVCMD
+    {
+        RQST_STATUS = 0x05,
+        RPL_STATUS = 0x06,
+        RQST_EXT_ST = 0x07,
+        RPL_EXT_ST = 0x08,
+        SYNC = 0x09,
+        SET_TXT_FRM = 0x0A,
+        SET_GFX_FRM = 0x0B,
+        DISPLAY_FRM = 0x0E,
+        SET_STD_FRM = 0x0F,
+        SET_ISLUS_SP_FRM = 0xFC
+    };
+
+    bool IsBusFree();
 
 private:
     uint8_t grpTick{0};
@@ -297,21 +314,7 @@ private:
 
     bool IsDimmingChanged();
 
-    enum SLVCMD
-    {
-        RQST_STATUS = 0x05,
-        RPL_STATUS = 0x06,
-        RQST_EXT_ST = 0x07,
-        RPL_EXT_ST = 0x08,
-        SYNC = 0x09,
-        SET_TXT_FRM = 0x0A,
-        SET_GFX_FRM = 0x0B,
-        DISPLAY_FRM = 0x0E,
-        SET_STD_FRM = 0x0F
-    };
-
     BootTimer busLockTmr;
-    bool IsBusFree();
     void LockBus(int ms);
 
     Utils::Bits activeFrm{256};

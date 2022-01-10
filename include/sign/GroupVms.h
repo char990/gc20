@@ -16,7 +16,8 @@ public:
     
     APP::ERROR DispAtomicFrm(uint8_t *id) override;
 
-    bool TaskSetATF(int *_ptLine) override ; // no use for VMS, MyThrow("VMS can run ATF")
+    bool TaskSetATF(int *_ptLine) override ; // no use for VMS, MyThrow("VMS can NOT run ATF")
+    void TaskSetATFReset() override {}; // do nothing
 
     virtual void IMakeFrameForSlave(uint8_t fid) override;
 

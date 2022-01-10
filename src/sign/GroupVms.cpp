@@ -59,7 +59,7 @@ APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
 
 bool GroupVms::TaskSetATF(int *_ptLine)
 {
-    MyThrow("VMS can not run ATF");
+    MyThrow("VMS can NOT run ATF");
     return true;
 }
 
@@ -82,21 +82,3 @@ int GroupVms::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
     }
     return TransFrmWithOrBuf(frm, dst);
 }
-
-/*
-if (msgOverlay == 0)
-{
-    *p++ = 0x0A; // Text frame
-    p++;         // skip slave frame id
-    uint8_t font = (frm->font == 0) ? user.DefaultFont() : frm->font;
-    *p++ = font;
-    *p++ = (frm->colour==0) ? prod.GetMappedColour(user.DefaultColour()) : frm->colour;
-    *p++ = frm->conspicuity;
-    auto pFont = prod.Fonts(font);
-    *p++ = pFont->CharSpacing();
-    *p++ = pFont->LineSpacing();
-    *p++ = frm->frmBytes;
-    memcpy(p, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
-    p += frm->frmBytes;
-}
-*/
