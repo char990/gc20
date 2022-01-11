@@ -354,7 +354,10 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         auto &db = DbHelper::Instance();
         if (lvl >= 2)
         {
-            db.GetUciFault().Reset();
+            if(db.GetUciProd().IsResetLogAllowed())
+            {
+                db.GetUciFault().Reset();
+            }
             overtempFault.SetState(false);
             ctrllerError.Clear();
             db.GetUciProcess().SaveCtrllerErr(ctrllerError.GetV());

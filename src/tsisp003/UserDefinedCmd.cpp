@@ -130,6 +130,11 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
     if (ChkLen(len, 3))
     {
         auto &db = DbHelper::Instance();
+        if (!db.GetUciProd().IsResetLogAllowed())
+        {
+            Reject(APP::ERROR::MiNotSupported);
+            return 0;
+        }
         uint8_t subcmd = *(data + 2);
         switch (subcmd)
         {
@@ -167,26 +172,28 @@ int TsiSp003App::FA10_SendFileInfo(uint8_t *data, int len)
 {
     if (ChkLen(len, 9))
     {
-        if (shake_hands_status != 2)
+        if (shake_hands_status == 2)
         {
-            Reject(APP::ERROR::IncorrectPassword);
-            return 0;
-        }
-        if (db.GetUciProd().IsUpgradeAllowed() == 0)
-        {
-            Reject(APP::ERROR::MiNotSupported); // upgrade not allowed
-            return 0;
-        }
-
-        int x = upgrade.FileInfo(data);
-        if (x == 0)
-        {
-            Ack();
+            if (db.GetUciProd().IsUpgradeAllowed())
+            {
+                if (upgrade.FileInfo(data))
+                {
+                    db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file info");
+                    Reject(APP::ERROR::UserDefinedFE);
+                }
+                else
+                {
+                    Ack();
+                }
+            }
+            else
+            {
+                Reject(APP::ERROR::MiNotSupported); // upgrade not allowed
+            }
         }
         else
         {
-            db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file info");
-            Reject(APP::ERROR::UserDefinedFE);
+            Reject(APP::ERROR::IncorrectPassword);
         }
     }
     return 0;
@@ -194,41 +201,59 @@ int TsiSp003App::FA10_SendFileInfo(uint8_t *data, int len)
 
 int TsiSp003App::FA11_SendFilePacket(uint8_t *data, int len)
 {
-    if (shake_hands_status != 2)
+    if (shake_hands_status == 2)
     {
-        Reject(APP::ERROR::IncorrectPassword);
-        return 0;
-    }
-    int x = upgrade.FilePacket(data, len);
-    if (x == 0)
-    {
-        Ack();
+        if (db.GetUciProd().IsUpgradeAllowed())
+        {
+            if (upgrade.FilePacket(data, len))
+            {
+                db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file packet");
+                Reject(APP::ERROR::UserDefinedFE);
+            }
+            else
+            {
+                Ack();
+            }
+        }
+        else
+        {
+            Reject(APP::ERROR::MiNotSupported);
+        }
     }
     else
     {
-        db.GetUciAlarm().Push(0, "Upgrading failed: Invalid file packet");
-        Reject(APP::ERROR::UserDefinedFE);
+        Reject(APP::ERROR::IncorrectPassword);
+        return 0;
     }
     return 0;
 }
 
 int TsiSp003App::FA12_StartUpgrading(uint8_t *data, int len)
 {
-    if (shake_hands_status != 2)
+    if (shake_hands_status == 2)
     {
-        Reject(APP::ERROR::IncorrectPassword);
-        return 0;
-    }
-    int x = upgrade.Start();
-    if (x == 0)
-    {
-        db.GetUciEvent().Push(0, "Upgrading success: MD5=%s", upgrade.MD5());
-        Ack();
+        if (db.GetUciProd().IsUpgradeAllowed())
+        {
+            if (upgrade.Start())
+            {
+                db.GetUciAlarm().Push(0, "Upgrading failed: zip/md5 error");
+                Reject(APP::ERROR::DataChksumError);
+            }
+            else
+            {
+                db.GetUciEvent().Push(0, "Upgrading success: MD5=%s", upgrade.MD5());
+                Ack();
+            }
+        }
+        else
+        {
+            Reject(APP::ERROR::MiNotSupported);
+        }
     }
     else
     {
-        db.GetUciAlarm().Push(0, "Upgrading failed: zip/md5 error");
-        Reject(APP::ERROR::DataChksumError);
+        Reject(APP::ERROR::IncorrectPassword);
+        return 0;
     }
     return 0;
 }
@@ -490,22 +515,28 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             int m3 = memcmp(pip3, nip3, 4);
             if (m1 != 0 || m2 != 0 || m3 != 0)
             {
+                char ipbuf[64];
+                auto printip = [&ipbuf](const char *str, uint8_t *old_n, uint8_t *new_p) -> void
+                {
+                    sprintf(ipbuf, "network.%s changed: %u.%u.%u.%u->%u.%u.%u.%u",
+                            str, old_n[0], old_n[1], old_n[2], old_n[3], new_p[0], new_p[1], new_p[2], new_p[3]);
+                };
                 if (m1 != 0)
                 {
-                    evt.Push(0, "network.ipaddr changed: %u.%u.%u.%u-> %u.%u.%u.%u",
-                             nip1[0], nip1[1], nip1[2], nip1[3], pip1[0], pip1[1], pip1[2], pip1[3]);
+                    printip("ipaddr", nip1, pip1);
+                    evt.Push(0, ipbuf);
                     net.Ipaddr(pip1);
                 }
                 if (m2 != 0)
                 {
-                    evt.Push(0, "network.netmask changed: %u.%u.%u.%u-> %u.%u.%u.%u",
-                             nip2[0], nip2[1], nip2[2], nip2[3], pip2[0], pip2[1], pip2[2], pip2[3]);
+                    printip("netmask", nip2, pip2);
+                    evt.Push(0, ipbuf);
                     net.Netmask(pip2);
                 }
                 if (m3 != 0)
                 {
-                    evt.Push(0, "network.gateway changed: %u.%u.%u.%u-> %u.%u.%u.%u",
-                             nip3[0], nip3[1], nip3[2], nip3[3], pip3[0], pip3[1], pip3[2], pip3[3]);
+                    printip("gateway", nip3, pip3);
+                    evt.Push(0, ipbuf);
                     net.Gateway(pip3);
                 }
                 rr_flag |= RQST_NETWORK;

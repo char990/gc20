@@ -628,7 +628,14 @@ void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    db.GetUciFault().Reset();
-    db.GetUciEvent().Push(0, "ResetFaultLog");
-    Ack();
+    if(db.GetUciProd().IsResetLogAllowed())
+    {
+        db.GetUciFault().Reset();
+        db.GetUciEvent().Push(0, "ResetFaultLog");
+        Ack();
+    }
+    else
+    {
+        Reject(APP::ERROR::MiNotSupported);
+    }
 }
