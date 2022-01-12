@@ -522,7 +522,7 @@ void UciProd::Dump()
 
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
-	PrintDash('>');
+	PrintDash('>', "\n");
 }
 
 uint8_t UciProd::CharRows(int i)

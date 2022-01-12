@@ -55,6 +55,11 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     {
         return APP::ERROR::FrmMsgPlnUndefined;
     }
+    if (0 != CheckOverlay())
+    {
+        return APP::ERROR::OverlaysNotSupported;
+    }
+   
     micode = static_cast<uint8_t>(MI::CODE::SignSetMessage);
     return APP::ERROR::AppNoError;
 }
@@ -108,5 +113,11 @@ int Message::CheckEntries()
             return -1;
         }
     }
+    return 0;
+}
+
+
+int Message::CheckOverlay()
+{
     return 0;
 }

@@ -31,15 +31,11 @@ public:
     uint8_t TcpServerWEB() { return tcpServerWEB; };
     char *MfcCode() { return &mfcCode[0]; };
     Font *Fonts(int i) { return fonts[i]; };
-    SignCfg & GetSignCfg(uint8_t id) { return signCfg.at(id-1); };
+    SignCfg &GetSignCfg(uint8_t id) { return signCfg.at(id - 1); };
     uint8_t *MappedColoursTable() { return &mappedColoursTable[0]; };
     uint8_t GetMappedColour(uint8_t c)
     {
-        if (c > 9)
-        {
-            c = 0;
-        }
-        return mappedColoursTable[c];
+        return (c > 9) ? mappedColoursTable[0] : mappedColoursTable[c];
     }
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
@@ -93,7 +89,7 @@ public:
     bool IsGfxFrmColourValid(int i) { return bGfxFrmColour.GetBit(i); };
     bool IsHrgFrmColourValid(int i) { return bHrgFrmColour.GetBit(i); };
 
-    bool IsIslusSpFrm(int i)  { return bIslusSpFrm.GetBit(i); };
+    bool IsIslusSpFrm(int i) { return bIslusSpFrm.GetBit(i); };
 
     uint8_t MaxConspicuity() { return bConspicuity.GetMaxBit(); };
     uint8_t MaxFont() { return bConspicuity.GetMaxBit(); };
@@ -154,7 +150,7 @@ private:
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
     const char *_PixelRows = "PixelRows";
     const char *_PixelColumns = "PixelColumns";
-    
+
     /// uint8_t
     const char *_TcpServerNTS = "TcpServerNTS";
     const char *_TcpServerWEB = "TcpServerWEB";
@@ -177,10 +173,10 @@ private:
     const char *_LightSensorScale = "LightSensorScale";
 
     // items : 1-n
-    const char *_Sign = "Sign"; // Sign1-x
+    const char *_Sign = "Sign";               // Sign1-x
     const char *_RjctFrmSign = "RjctFrmSign"; // Reject frames of Sign1-x
-    
-    const char *_IslusSpFrm = "IslusSpFrm";     // Islus specila frame
+
+    const char *_IslusSpFrm = "IslusSpFrm"; // Islus specila frame
     Utils::Bits bIslusSpFrm{256};
 
     PRODUCT prodType;

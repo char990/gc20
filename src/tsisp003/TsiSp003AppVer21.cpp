@@ -283,9 +283,9 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
     }
     else
     {
-        /*
+        #if 0   // 1: reject overlay frames
         uint8_t *fid = data + 4;
-        for (int i = 0; i < 6; i++) // overlay frames in msg not supported
+        for (int i = 0; i < 6; i++)
         {
             if (*fid == 0)
             {
@@ -293,9 +293,9 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
             }
             else
             {
-                if (*(fid + 1) == 0)
+                if (fid[1] == 0)
                 {
-                    if (i < 5 && *(fid + 2) != 0)
+                    if (i < 5 && fid[2] != 0)
                     {
                         r = APP::ERROR::OverlaysNotSupported;
                         break;
@@ -303,7 +303,8 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
                 }
             }
             fid += 2;
-        }*/
+        }
+        #endif
         if (r == APP::ERROR::AppNoError)
         {
             Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC

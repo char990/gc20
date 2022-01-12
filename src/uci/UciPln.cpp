@@ -63,7 +63,7 @@ void UciPln::Dump()
             printf("\t%s\n", m.ToString().c_str());
         }
     }
-	PrintDash('>');
+	PrintDash('>', "\n");
 }
 
 uint16_t UciPln::ChkSum()

@@ -1624,7 +1624,7 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
     }
     for (auto &s : vSlaves)
     {
-        if(slvId == s->SlaveId() || slvId == 0xFF)
+        if (slvId == s->SlaveId() || slvId == 0xFF)
         {
             s->expectCurrentFrmId = slvFrmId;
             s->expectNextFrmId = slvFrmId;
@@ -1643,12 +1643,14 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
 // this function is actually for transistion time ONLY
 int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId)
 {
+    //PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]DisplayFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::DISPLAY_FRM;
     return SlaveSDFrame(slvId, slvFrmId);
 }
 
 int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
 {
+    //PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]SetStoredFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::SET_STD_FRM;
     return SlaveSDFrame(slvId, slvFrmId);
 }
@@ -1859,10 +1861,9 @@ void Group::MakeFrameForSlave(Frame *frm)
     p++;                // skip slave frame id
     *p++ = prod.PixelRows();
     p = Cnvt::PutU16(prod.PixelColumns(), p);
-    auto mappedcolour = prod.GetMappedColour(frm->colour);
     if (msgOverlay == 0 || msgOverlay == 1)
     {
-        *p++ = mappedcolour;
+        *p++ = (frm->colour >= (uint8_t)FRMCOLOUR::MonoFinished) ? frm->colour : prod.GetMappedColour(frm->colour);
     }
     else if (msgOverlay == 4)
     {

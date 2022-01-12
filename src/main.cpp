@@ -50,8 +50,8 @@ const char *MAKE = "Release";
 void PrintVersion()
 {
     char sbuf[256];
-    int len = snprintf(sbuf, 255, "* Version: %s-%s, Build at: %s *",
-                       MAKE, FirmwareVer, __BUILDTIME__);   // __BUILDTIME__ is defined in Makefile
+    int len = snprintf(sbuf, 255, "* Version: %s, %s. Build time: %s *",
+                       FirmwareVer, MAKE, __BUILDTIME__);   // __BUILDTIME__ is defined in Makefile
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';

@@ -78,7 +78,7 @@ void UciNetwork::Dump()
     PrintIp(_ipaddr, ipaddr);
     PrintIp(_netmask, netmask);
     PrintIp(_gateway, gateway);
-	PrintDash('>');
+	PrintDash('>', "\n");
 }
 
 void UciNetwork::PrintIp(const char *_option, uint8_t *dst)

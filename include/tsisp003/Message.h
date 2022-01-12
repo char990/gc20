@@ -43,6 +43,10 @@ private:
     /// \brief  Check if there is undefined frm in msg
     /// \return -1:msg has no frm; 0:OK; 1: msg has undefined frm 
     int CheckEntries();
+
+    /// \brief  Check if there is pixel overlaying
+    /// \return 0:OK; -1: failed 
+    int CheckOverlay();
 };
 
 

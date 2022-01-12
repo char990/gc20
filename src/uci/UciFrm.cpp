@@ -126,7 +126,7 @@ void UciFrm::Dump()
 			printf("\tfrm_%03d: %s\n", i + 1, frms[i]->ToString().c_str());
 		}
 	}
-	PrintDash('>');
+	PrintDash('>', "\n");
 }
 
 uint16_t UciFrm::ChkSum()

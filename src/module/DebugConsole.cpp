@@ -4,7 +4,6 @@
 #include <module/DebugConsole.h>
 #include <module/Epoll.h>
 
-
 DebugConsole::DebugConsole()
 {
     // set stdin
@@ -60,8 +59,16 @@ extern bool ticktock;
 void DebugConsole::Process()
 {
     printf("Console got '%s'\n", inbuf);
-    if(strcmp(inbuf,"t")==0)
+    bool hit = false;
+    if (strcmp(inbuf, "t") == 0)
     {
-        ticktock=!ticktock;
+        hit = true;
+        printf("Ticktock %s\n", ticktock ? "OFF" : "ON");
+        ticktock = !ticktock;
+    }
+    if (hit == false)
+    {
+        printf("Unknown command\nPlease use command from the Command list:\n");
+        printf("t = Ticktock ON/OFF\n");
     }
 }

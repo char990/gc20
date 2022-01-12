@@ -145,7 +145,7 @@ void UciProcess::Dump()
 		printf("%s%d:\n", _Sign, i);
 		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
-	PrintDash('>');
+	PrintDash('>', "\n");
 }
 
 GrpProc *UciProcess::GetGrpProc(uint8_t gid)

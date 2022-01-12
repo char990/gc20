@@ -12,10 +12,8 @@
 using namespace Utils;
 
 #define MyDbgBuf_SIZE 1024
-
-DBG_LEVEL dbg_level{DBG_LOG};
-
 static char MyDbgBuf[MyDbgBuf_SIZE];
+
 void MyThrow(const char *fmt, ...)
 {
 	va_list args;
@@ -33,19 +31,9 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 	int len = 0;
 	if (level >= DBG_HB)
 	{
-		if (level == DBG_HB)
+		if (lastlvl == DBG_HB)
 		{
-			if (lastlvl == DBG_HB)
-			{
-				putchar('\r');
-			}
-		}
-		else
-		{
-			if (lastlvl == DBG_HB)
-			{
-				putchar('\n');
-			}
+			putchar(level == DBG_HB ? '\r' : '\n');
 		}
 		lastlvl = level;
 		struct timeval t;
@@ -58,10 +46,10 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		va_start(args, fmt);
 		len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
 		va_end(args);
-		if(level != DBG_HB)
+		if (level > DBG_HB)
 		{
-			MyDbgBuf[len++]='\n';
-			MyDbgBuf[len]='\0';
+			MyDbgBuf[len++] = '\n';
+			MyDbgBuf[len] = '\0';
 		}
 		printf("%s", MyDbgBuf);
 	}
@@ -79,16 +67,12 @@ void Log(int len)
 {
 	char filename[256];
 	int d, m, y;
-	int today;
-	if (sscanf(MyDbgBuf, "[%d/%d/%d", &d, &m, &y) == 3)
-	{
-		snprintf(filename, 255, "%s/log/%d_%02d_%02d", mainpath, y, m, d);
-		today = ((y * 0x100) + m) * 0x100 + d;
-	}
-	else
+	if (sscanf(MyDbgBuf, "[%d/%d/%d", &d, &m, &y) != 3)
 	{
 		return;
 	}
+	snprintf(filename, 255, "%s/log/%d_%02d_%02d", mainpath, y, m, d);
+	int today = ((y * 0x100) + m) * 0x100 + d;
 	if (days != 0 && days != today)
 	{
 		char rm[256];
@@ -105,11 +89,15 @@ void Log(int len)
 	close(log_fd);
 }
 
-void PrintDash(char c)
+void PrintDash(char c, const char *str)
 {
 #define DASH_LEN 40
 	char buf[DASH_LEN + 1];
 	memset(buf, c, DASH_LEN);
 	buf[DASH_LEN] = '\0';
 	puts(buf);
+	if (str != nullptr)
+	{
+		puts(str);
+	}
 }
