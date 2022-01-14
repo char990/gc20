@@ -6,7 +6,7 @@
 class UciLog : public UciCfg
 {
 public:
-    UciLog():lastLog(-1){};
+    UciLog(){};
     virtual ~UciLog(){};
 
     virtual void LoadConfig() override = 0;
@@ -14,6 +14,6 @@ public:
 	virtual void Dump() override {} ;
 
 protected:
-    int lastLog;
+    int lastLog{-1};
 };
 

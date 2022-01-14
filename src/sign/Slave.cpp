@@ -23,6 +23,28 @@ Slave::Slave(uint8_t id)
     }
     numberOfFaultyLed = new uint8_t[numberOfTiles * numberOfColours];
     Reset();
+#ifdef SLAVE_EMULATOR
+    panelFault = 0;
+    overTemp = 0;
+    selfTest = 0;
+    singleLedFault = 0;
+    lanternFan = 0;
+    lightSensorFault = 0;
+    currentFrmId = 0;
+    currentFrmCrc = 0x55AA;
+    nextFrmId = 0;
+    nextFrmCrc = 0xAA55;
+    controlByte = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        dimming[i] = 0;
+    }
+    voltage = 12055;
+    hours = 0;
+    temperature = 370;
+    humidity = 49;
+    lux = 12345;
+#endif
 }
 
 Slave::~Slave()
@@ -119,6 +141,9 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
 
 int Slave::CheckCurrent()
 {
+#ifdef SLAVE_EMULATOR
+    return 0;
+#endif
     if (rxStatus == 0)
     {
         return -1;
@@ -136,7 +161,7 @@ int Slave::CheckCurrent()
         if (expectCurrentFrmId != currentFrmId)
         {
             if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmIdBak] == currentFrmCrc)
-            {// may missed the command
+            { // may missed the command
                 if (currentFrmId != 0)
                 {
                     return 1; // lastFrm matched. Re-send Setstored/Display frame
@@ -153,6 +178,9 @@ int Slave::CheckCurrent()
 
 int Slave::CheckNext()
 {
+#ifdef SLAVE_EMULATOR
+    return 0;
+#endif
     if (rxStatus == 0)
     {
         return -1;

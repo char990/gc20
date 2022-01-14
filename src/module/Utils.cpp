@@ -677,6 +677,7 @@ time_t Time::SetLocalTime(struct tm & stm)
 {
     char buf[64];
     snprintf(buf, 63, "date '%d-%d-%d %d:%d:%d'",
+            // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
              stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
     auto t = mktime(&stm);
     system(buf);

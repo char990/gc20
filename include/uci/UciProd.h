@@ -78,6 +78,7 @@ public:
     uint8_t DimmingAdjTime() { return dimmingAdjTime; };
 
     char *ColourLeds() { return colourLeds; };
+    uint8_t GetColourXbit(uint8_t colour);
 
     bool IsResetLogAllowed() { return isResetLogAllowed != 0; };
     bool IsUpgradeAllowed() { return isUpgradeAllowed != 0; };
@@ -181,9 +182,9 @@ private:
 
     PRODUCT prodType;
 
-    char mfcCode[11];
+    char mfcCode[11]{};
 
-    Font *fonts[MAX_FONT + 1];
+    Font *fonts[MAX_FONT + 1]{};
 
     std::vector<SignCfg> signCfg;
 
@@ -232,9 +233,10 @@ private:
 
     uint8_t *groupCfg;
 
-    char colourLeds[5];
+    char colourLeds[5]{}; // with end '\0'
 
-    uint8_t mappedColoursTable[10]{0};
+    uint8_t mappedColoursTable[10]{};
+    uint8_t mappedColoursBitTable[10]{};
 
     Utils::Bits bFont{8};
     Utils::Bits bConspicuity{8};

@@ -120,9 +120,21 @@ void Sign::RefreshSlaveStatusAtSt()
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
     chainFault.Check(check_chain_fault > 0);
-    DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure);
+    sprintf(buf, "ChainFault=0x%02X", check_chain_fault);
+    DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
     selftestFault.Check(check_selftest > 0);
+    if(check_selftest > 0)
+    {
+        int len=sprintf(buf, "Slave in Selftest:");
+        for (auto &s : vsSlaves)
+        {
+            if(s->selfTest & 1)
+            {
+                len+=snprintf(buf+len, 63-len, " %d", s->SlaveId());
+            }
+        }
+    }
     DbncFault(selftestFault, DEV::ERROR::UnderLocalControl);
 
     lanternFault.Check(check_lantern > 0);

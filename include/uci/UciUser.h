@@ -124,7 +124,7 @@ private:
 
     int baudrate;
 
-    char shakehandsPassword[11];
+    char shakehandsPassword[11]{};
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 

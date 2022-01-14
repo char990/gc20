@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <module/Utils.h>
 
+#define SLAVE_EMULATOR
+
 class Sign;
 class Slave
 {

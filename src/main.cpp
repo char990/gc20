@@ -79,10 +79,15 @@ public:
     time_t UpdateSysTime()
     {
         time_t t1 = pDS3231->GetTimet();
-        time_t t2 = time(nullptr);
         if (t1 > 0)
         {
-            if (t1 != t2)
+            struct timeval t2; 
+            gettimeofday(&t2, nullptr);
+            if(t2.tv_usec>500000)
+            {
+                t2.tv_sec++;
+            }
+            if (t1 != t2.tv_sec)
             {
                 struct tm stm;
                 localtime_r(&t1, &stm);

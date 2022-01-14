@@ -1867,7 +1867,11 @@ void Group::MakeFrameForSlave(Frame *frm)
     }
     else if (msgOverlay == 4)
     {
+        #ifdef HALF_BYTE
+        *p++ = (uint8_t)FRMCOLOUR::HalfByte;
+        #else
         *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
+        #endif
     }
     *p++ = frm->conspicuity;
     int frmlen = TransFrmWithOrBuf(frm, p + 2);
@@ -1911,18 +1915,20 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     }
     else
     { // gfx/hrg
-        if ((msgOverlay == 1 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished)) ||
-            (msgOverlay == 4 && frm->colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours)))
+        if (msgOverlay == 1 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         { // overlay but no need to trans or copy
             orsrc = frm->stFrm.rawData + frm->frmOffset;
         }
-        else if (msgOverlay == 4 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
+        else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
         { //frame is mono but should transfer from 1-bit to 4-bit
             buf = new uint8_t[frmlen];
             frm->ToBitmap(msgOverlay, buf);
             orsrc = buf;
         }
-        // TODO 24-bit
+        else
+        {
+            // TODO 24-bit
+        }
     }
     // frame is ready in orsrc, then OR with orbuf if overlay
     if (msgOverlay == 1)

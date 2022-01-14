@@ -154,9 +154,12 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
     {
         *(buf + offset / 8) |= 1 << (offset & 0x07);
     }
-    else
+    else if (colourbit == 4)
     {
-        *(buf + offset / 2) |= (offset & 1) ? (monocolour*0x10) : monocolour;
+#ifdef HALF_BYTE
+        monocolour = prod.GetColourXbit(monocolour);
+#endif
+        *(buf + offset / 2) |= (offset & 1) ? (monocolour * 0x10) : monocolour;
     }
 }
 
@@ -165,37 +168,49 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
     auto &prod = DbHelper::Instance().GetUciProd();
     int frmLen = (colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen();
     memset(buf, 0, frmLen);
-    auto mappedcolour = prod.GetMappedColour(colour);
-    uint8_t mappedcolourH = mappedcolour * 0x10;
     auto p = stFrm.rawData + frmOffset;
-    if (mappedcolour < (uint8_t)FRMCOLOUR::MonoFinished)
+    if (colour < (uint8_t)FRMCOLOUR::MonoFinished)
     { // 1-bit frame
         if (colourbit == 4)
-        { // to 4-bit
+        { // mono to 4-bit/half-byte
+#ifdef HALF_BYTE
+            auto mappedcolour = prod.GetColourXbit(colour);
+#else
+            auto mappedcolour = prod.GetMappedColour(colour);
+#endif
+            uint8_t mappedcolourH = mappedcolour * 0x10;
             for (int i = 0; i < frmBytes; i++)
             {
                 auto data = *p++;
                 for (int j = 0; j < 4; j++)
                 {
-                    if (data & 1)
-                    {
-                        *buf |= mappedcolour;
-                    }
-                    if (data & 2)
-                    {
-                        *buf |= mappedcolourH;
-                    }
+                    *buf++ = ((data & 0x02) ? mappedcolourH : 0) + ((data & 0x01) ? mappedcolour : 0);
                     data <<= 2;
-                    buf++;
                 }
             }
+        }
+        else // TODO 24-bit
+        {
+        }
+    }
+    else if (colour == (uint8_t)FRMCOLOUR::MultipleColours)
+    { // MultipleColours -> 4-bit/half-byte
+        if (colourbit == 4)
+        { // to 4-bit
+#ifdef HALF_BYTE
+            for (int i = 0; i < frmBytes; i++)
+            {
+                auto data = *p++;
+                *buf++ = prod.GetColourXbit((data & 0xF0) >> 4) * 0x10 + prod.GetColourXbit(data & 0x0F);
+            }
+#else
+            memcpy(buf, p, frmLen);
+#endif
+// TODO : 24-bit 
         }
         else // to 24-bit
         {
         }
-    }
-    else if (mappedcolour == (uint8_t)FRMCOLOUR::MultipleColours)
-    { // TODO : 4-bit frame -> 24-bit
     }
     else
     { // 24-bit should not be here
@@ -334,13 +349,7 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
     auto line_space = pFont->LineSpacing();
     int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
     int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
-    char **text = new char *[rows];
-    for (int i = 0; i < rows; i++)
-    {
-        text[i] = new char[columns + 1];
-        memset(text[i], '\0', columns + 1);
-    }
-
+    std::vector<std::vector<char>> text(rows, std::vector<char>(columns + 1, 0));
     char *p = (char *)(stFrm.rawData + frmOffset);
     int rx = 0;
     int cx = 0;
@@ -348,7 +357,7 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
     {
         if (*p != ' ')
         {
-            text[rx][cx] = *p;
+            text.at(rx).at(cx) = *p;
             cx++;
             if (cx == columns)
             {
@@ -377,17 +386,12 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
     int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * rx - pFont->LineSpacing())) / 2;
     for (int i = 0; i < rows; i++)
     {
-        int width = pFont->GetWidth(text[i]);
+        int width = pFont->GetWidth(text.at(i).data());
         int start_x = (prod.PixelColumns() - width) / 2;
-        StrToBitmap(colourbit, buf, start_x, start_y, monocolour, text[i], pFont);
+        StrToBitmap(colourbit, buf, start_x, start_y, monocolour, text.at(i).data(), pFont);
         start_y += pFont->CharHeightWS();
     }
     // finish
-    for (int i = 0; i < rows; i++)
-    {
-        delete[] text[i];
-    }
-    delete[] text;
     return frmLen;
 }
 

@@ -149,7 +149,7 @@ public:
     int GetWidth(char *s);
 
 private:
-    char fontName[16];
+    char fontName[16]{};
     uint16_t bytesPerCell;
     uint8_t columnsPerCell;
     uint8_t rowsPerCell;

@@ -53,6 +53,10 @@ UciProd::~UciProd()
             }
         }
     }
+    if (groupCfg != nullptr)
+    {
+        delete[] groupCfg;
+    }
 }
 
 void UciProd::LoadConfig()
@@ -86,7 +90,7 @@ void UciProd::LoadConfig()
     pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
     tilesPerSlave = GetInt(uciSec, _TilesPerSlave, 1, 255);
     slavesPerSign = GetInt(uciSec, _SlavesPerSign, 1, 16);
-    
+
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
     groupCfg = new uint8_t[numberOfSigns];
@@ -163,7 +167,7 @@ void UciProd::LoadConfig()
         // VMS should configured as 1 sign per group
         for (int i = 0; i < numberOfSigns; i++)
         {
-            if(groupCfg[i] != i + 1)
+            if (groupCfg[i] != i + 1)
             {
                 MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
             }
@@ -173,7 +177,7 @@ void UciProd::LoadConfig()
     {
         prodType = PRODUCT::ISLUS;
         // ISLUS should configured as 1 slave per Sign
-        if(slavesPerSign != 1)
+        if (slavesPerSign != 1)
         {
             MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
         }
@@ -285,7 +289,7 @@ void UciProd::LoadConfig()
     {
         MyThrow("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits);
     }
-    if (strlen(colourLeds) != colourBits)
+    if (strlen(colourLeds) > colourBits)
     {
         MyThrow("UciProd Error: %s(%d) not matched with %s('%s')", _ColourBits, colourBits, _ColourLeds, colourLeds);
     }
@@ -377,6 +381,19 @@ void UciProd::LoadConfig()
     Close();
     Dump();
 
+    int cblen = strlen(colourLeds);
+    for (int i = 0; i < cblen; i++)
+    {
+        for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
+        {
+            if (colourLeds[i] == COLOUR_NAME[cnt][0])
+            { // matched with first letter of colour
+                mappedColoursBitTable[cnt] = 1 << i;
+                break;
+            }
+        }
+    }
+
     Slave::numberOfTiles = tilesPerSlave;
     Slave::numberOfColours = strlen(colourLeds);
 
@@ -456,7 +473,7 @@ void UciProd::Dump()
     PrintOption_d(_PixelColumns, PixelColumns());
     PrintOption_d(_TilesPerSlave, TilesPerSlave());
     PrintOption_d(_SlavesPerSign, SlavesPerSign());
-    
+
     PrintOption_d(_SlaveRqstInterval, SlaveRqstInterval());
     PrintOption_d(_SlaveRqstStTo, SlaveRqstStTo());
     PrintOption_d(_SlaveRqstExtTo, SlaveRqstExtTo());
@@ -522,7 +539,7 @@ void UciProd::Dump()
 
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
-	PrintDash('>', "\n");
+    PrintDash('>', "\n");
 }
 
 uint8_t UciProd::CharRows(int i)
@@ -535,4 +552,10 @@ uint8_t UciProd::CharColumns(int i)
 {
     return (bFont.GetBit(i)) ? (pixelColumns + fonts[i]->CharSpacing()) / (fonts[i]->ColumnsPerCell() + fonts[i]->CharSpacing())
                              : 0;
+}
+
+uint8_t UciProd::GetColourXbit(uint8_t c)
+{
+    auto c1 = (c > 9) ? mappedColoursTable[0] : mappedColoursTable[c];
+    return mappedColoursBitTable[c1];
 }

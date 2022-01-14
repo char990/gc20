@@ -199,6 +199,7 @@ public:
     static const char *ToStr(enum ERROR err);
 };
 
+//#define HALF_BYTE
 enum class FRMCOLOUR : uint8_t
 {
     Default = 0,
@@ -214,6 +215,9 @@ enum class FRMCOLOUR : uint8_t
     MonoFinished,
     MultipleColours = 0x0D,
     RGB24 = 0x0E,
+    #ifdef HALF_BYTE
+    HalfByte = 0xF1,   // Brightway Master-Slave poctocol
+    #endif
     UNDEFINED = 0xFF
 };
 
