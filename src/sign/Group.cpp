@@ -21,11 +21,11 @@ Group::Group(uint8_t groupId)
     busLockTmr.Setms(0);
     dimmingAdjTimer.Setms(0);
     UciProd &prod = db.GetUciProd();
-    int signCnt = prod.NumberOfSigns();
+    int totalSign = prod.NumberOfSigns();
     switch (prod.ExtStsRplSignType())
     {
     case SESR_SIGN_TYPE::TEXT:
-        for (int i = 1; i <= signCnt; i++)
+        for (int i = 1; i <= totalSign; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
             {
@@ -34,7 +34,7 @@ Group::Group(uint8_t groupId)
         }
         break;
     case SESR_SIGN_TYPE::GFX:
-        for (int i = 1; i <= signCnt; i++)
+        for (int i = 1; i <= totalSign; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
             {
@@ -43,7 +43,7 @@ Group::Group(uint8_t groupId)
         }
         break;
     case SESR_SIGN_TYPE::ADVGFX:
-        for (int i = 1; i <= signCnt; i++)
+        for (int i = 1; i <= totalSign; i++)
         {
             if (prod.GetGroupIdOfSign(i) == groupId)
             {
@@ -52,14 +52,14 @@ Group::Group(uint8_t groupId)
         }
         break;
     }
-    if (vSigns.size() == 0)
+    if (SignCnt() == 0)
     {
         MyThrow("Error:There is no sign in Group[%d]", groupId);
     }
-    dsBak = new DispStatus(vSigns.size());
-    dsCurrent = new DispStatus(vSigns.size());
-    dsNext = new DispStatus(vSigns.size());
-    dsExt = new DispStatus(vSigns.size());
+    dsBak = new DispStatus(SignCnt());
+    dsCurrent = new DispStatus(SignCnt());
+    dsNext = new DispStatus(SignCnt());
+    dsExt = new DispStatus(SignCnt());
     // defult dsNext is BLANK
     dsNext->dispType = DISP_TYPE::BLK;
     dsNext->fmpid[0] = 0;
@@ -141,13 +141,39 @@ Group::~Group()
     delete dsCurrent;
     delete dsNext;
     delete dsExt;
-    for (int i = 0; i < vSigns.size(); i++)
+    for (int i = 0; i < SignCnt(); i++)
     {
         delete vSigns[i];
     }
-    for (int i = 0; i < vSlaves.size(); i++)
+    for (int i = 0; i < SlaveCnt(); i++)
     {
         delete vSlaves[i];
+    }
+}
+
+void Group::LoadLastDisp()
+{    // load disp
+    if (db.GetUciProd().LoadLastDisp())
+    {
+        auto disp = db.GetUciProcess().GetDisp(groupId);
+        if (disp[0] > 0)
+        {
+            switch (disp[1])
+            {
+            case static_cast<uint8_t>(MI::CODE::SignDisplayFrame):
+                DispFrm(disp[3], false);
+                break;
+            case static_cast<uint8_t>(MI::CODE::SignDisplayMessage):
+                DispMsg(disp[3], false);
+                break;
+            case static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames):
+                DispAtmFrm(disp+1, false);
+                break;
+            default:
+                MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
+                break;
+            }
+        }
     }
 }
 
@@ -757,16 +783,19 @@ bool Group::TaskFrm(int *_ptLine)
             onDispFrmId = 1; // set onDispFrmId as 'NOT 0'
             activeMsg.ClrAll();
             activeFrm.ClrAll();
-            activeFrm.SetBit(1);
-            // TODO all frames in ATF
+            for (int i = 0; i < SignCnt(); i++)
+            {
+                activeFrm.SetBit(dsCurrent->fmpid[i]);
+                vSigns.at(i)->SetReportDisp(dsCurrent->fmpid[i], 0, 0);
+            }
             TaskSetATFReset();
-            PT_WAIT_UNTIL(TaskSetATF(&taskATFLine));
+            PT_WAIT_TASK(TaskSetATF(&taskATFLine));
             {
                 char buf[128];
                 int len = 0;
-                for (int i = 0; i < vSlaves.size(); i++)
+                for (int i = 0; i < SlaveCnt(); i++)
                 {
-                    snprintf(buf + len, 127 - len, " %d-%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
+                    len += snprintf(buf + len, 127 - len, " %d-%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
                 }
                 PrintDbg(DBG_LOG, "Group[%d]-TaskFrm:Display ATF:(signId-frmId)%s", groupId, buf);
             }
@@ -862,7 +891,8 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
                 {
                     auto &s = vSlaves.at(rqstSt_slvindex);
-                    if (s->rxStatus == 0)
+
+                    if (s->GetRxStatus() == 0)
                     { // no reply
                         if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
                         {
@@ -897,7 +927,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
                     }
                 }
             } while (rqstNoRplCnt > 0);
-            if (rqstSt_slvindex == vSlaves.size() - 1)
+            if (rqstSt_slvindex == SlaveCnt() - 1)
             {
                 auto &s = vSlaves.at(rqstSt_slvindex);
                 if (s->sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
@@ -917,7 +947,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
         RqstExtStatus(rqstExtSt_slvindex);
         vSlaves.at(rqstExtSt_slvindex)->rxExtSt = 0;
         PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
-        if (++rqstExtSt_slvindex == vSlaves.size())
+        if (++rqstExtSt_slvindex == SlaveCnt())
         {
             rqstExtSt_slvindex = 0;
         }
@@ -966,7 +996,7 @@ bool Group::AllSlavesGotStatus()
 {
     for (auto &s : vSlaves)
     {
-        if (s->rxStatus == 0)
+        if (s->GetRxStatus() == 0)
         {
             return false;
         }
@@ -1314,15 +1344,18 @@ void Group::DispBackup()
     }
 }
 
-APP::ERROR Group::DispFrm(uint8_t id)
+APP::ERROR Group::DispFrm(uint8_t id, bool chk)
 {
-    if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
+    if (chk)
     {
-        return APP::ERROR::PowerIsOff;
-    }
-    if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
-    {
-        return APP::ERROR::FacilitySwitchOverride;
+        if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
+        {
+            return APP::ERROR::PowerIsOff;
+        }
+        if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+        {
+            return APP::ERROR::FacilitySwitchOverride;
+        }
     }
     for (auto &sign : vSigns)
     {
@@ -1336,28 +1369,51 @@ APP::ERROR Group::DispFrm(uint8_t id)
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = id;
-    db.GetUciProcess().SetDisp(groupId, buf, 3);
+    if(chk)
+    {
+        db.GetUciProcess().SetDisp(groupId, buf, 3);
+    }
     DispNext(DISP_TYPE::FRM, id);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DispMsg(uint8_t id)
+APP::ERROR Group::DispMsg(uint8_t id, bool chk)
 {
-    if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
+    if (chk)
     {
-        return APP::ERROR::PowerIsOff;
-    }
-    if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
-    {
-        return APP::ERROR::FacilitySwitchOverride;
+        if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
+        {
+            return APP::ERROR::PowerIsOff;
+        }
+        if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+        {
+            return APP::ERROR::FacilitySwitchOverride;
+        }
     }
     uint8_t buf[3];
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
     buf[1] = groupId;
     buf[2] = id;
-    db.GetUciProcess().SetDisp(groupId, buf, 3);
+    if(chk)
+    {
+        db.GetUciProcess().SetDisp(groupId, buf, 3);
+    }
     DispNext(DISP_TYPE::MSG, id);
     return APP::ERROR::AppNoError;
+}
+
+APP::ERROR Group::DispAtmFrm(uint8_t *cmd, bool chk)
+{
+    if (chk && FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+    {
+        return APP::ERROR::FacilitySwitchOverride;
+    }
+    auto atm = DispAtomicFrm(cmd);
+    if (chk && atm == APP::ERROR::AppNoError)
+    {
+        db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
+    }
+    return atm;
 }
 
 APP::ERROR Group::SetDimming(uint8_t dimming)
@@ -1508,7 +1564,7 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
 {
     if (len != 14)
         return;
-    for (int i = 0; i < vSlaves.size(); i++)
+    for (int i = 0; i < SlaveCnt(); i++)
     {
         if (vSlaves[i]->DecodeStRpl(data, len) == 0)
         {
@@ -1522,7 +1578,7 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 {
     if (len < 22)
         return;
-    for (int i = 0; i < vSlaves.size(); i++)
+    for (int i = 0; i < SlaveCnt(); i++)
     {
         if (vSlaves[i]->DecodeExtStRpl(data, len) == 0)
         {
@@ -1867,11 +1923,11 @@ void Group::MakeFrameForSlave(Frame *frm)
     }
     else if (msgOverlay == 4)
     {
-        #ifdef HALF_BYTE
+#ifdef HALF_BYTE
         *p++ = (uint8_t)FRMCOLOUR::HalfByte;
-        #else
+#else
         *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
-        #endif
+#endif
     }
     *p++ = frm->conspicuity;
     int frmlen = TransFrmWithOrBuf(frm, p + 2);
@@ -1977,17 +2033,6 @@ void Group::SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len)
         *dst++ = d;
     };
 }
-
-/*
-void Group::ReadyToLoad(uint8_t v)
-{
-    if (readyToLoad != v)
-    {
-        PrintDbg(DBG_PRT, "Group[%d]-readyToLoad(%d)->%d", groupId, readyToLoad, v);
-        readyToLoad = v;
-    }
-}
-*/
 
 void Group::PrintOrBuf()
 {

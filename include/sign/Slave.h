@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <module/Utils.h>
 
-#define SLAVE_EMULATOR
-
 class Sign;
 class Slave
 {
@@ -26,6 +24,7 @@ public:
     bool isOffline{false};
     // ------------------------- status reply
     uint8_t rxStatus{0};
+    uint8_t GetRxStatus();
     // uint8_t slaveId; check rxbuf[0]
     uint8_t panelFault;
     bool IsChainFault(int i) { return (panelFault & (1<<i))!=0; };
@@ -55,7 +54,7 @@ public:
     // -------------------------- ext-status reply
     uint8_t rxExtSt{0};
     uint8_t controlByte;
-    uint16_t dimming[4];    // [0]:R [1]:G [2]:B/W [3]:A
+    uint16_t dimming[4];    // [0]:Colour1 [1]:Colour2 [2]:Colour3 [3]:Colour4
     uint16_t voltage;       // mV
     uint16_t hours;
     uint16_t temperature;   // 0.1'C

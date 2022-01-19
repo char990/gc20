@@ -165,11 +165,6 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
 {
-	if (db.GetUciProd().ProdType() == PRODUCT::ISLUS)
-    {
-        Reject(APP::ERROR::MiNotSupported);
-        return;
-    }
     auto r = APP::ERROR::AppNoError;
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
@@ -185,7 +180,12 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
         SetRejectStr("Frame[%d] is locked", id);
-        r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
+        r = APP::ERROR::OverlaysNotSupported; // locked frame
+    }
+	else if (db.GetUciProd().ProdType() == PRODUCT::ISLUS && db.GetUciProd().IsIslusSpFrm(id))
+    {
+        SetRejectStr("Frame[%d] is special ISLUS frame, can't be changed", id);
+        r = APP::ERROR::OverlaysNotSupported; // pre-defined ISLUS special framaes and can't be changed
     }
     else
     {
@@ -252,11 +252,6 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
 {
     if (!CheckOnline_RejectIfFalse())
     {
-        return;
-    }
-	if (db.GetUciProd().ProdType() == PRODUCT::ISLUS)
-    {
-        Reject(APP::ERROR::MiNotSupported);
         return;
     }
     auto r = APP::ERROR::AppNoError;

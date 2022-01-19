@@ -87,9 +87,10 @@ public:
     APP::ERROR EnablePlan(uint8_t id);
     APP::ERROR DisablePlan(uint8_t id);
 
-    APP::ERROR DispFrm(uint8_t id);
-    APP::ERROR DispMsg(uint8_t id);
-    virtual APP::ERROR DispAtomicFrm(uint8_t *id) = 0;
+    APP::ERROR DispFrm(uint8_t id, bool chk=true);
+    APP::ERROR DispMsg(uint8_t id, bool chk=true);
+    APP::ERROR DispAtmFrm(uint8_t *cmd, bool chk=true);
+    virtual APP::ERROR DispAtomicFrm(uint8_t *cmd) = 0;
 
     APP::ERROR SetDimming(uint8_t v);
     APP::ERROR SetPower(uint8_t v);
@@ -113,6 +114,8 @@ protected:
     int maxTxSize;
     uint8_t *txBuf;
     int txLen;
+
+    void LoadLastDisp();
 
     void SlaveStatusRpl(uint8_t *data, int len);
     void SlaveExtStatusRpl(uint8_t *data, int len);
@@ -155,7 +158,6 @@ protected:
     void SetWithOrBuf1(uint8_t *dst, uint8_t *src, int len);
     void SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len);
 
-protected:
     FacilitySwitch fcltSw;
 
     enum SLVCMD
@@ -173,6 +175,9 @@ protected:
     };
 
     bool IsBusFree();
+
+    // for Display command except for ATF
+    void DispNext(DISP_TYPE type, uint8_t id);
 
 private:
     uint8_t grpTick{0};
@@ -195,9 +200,6 @@ private:
     PWR_STATE cmdPwr /*load in constructor*/, fsPwr{PWR_STATE::NA}, mainPwr{PWR_STATE::NA};
     bool IsPowerOn() { return cmdPwr == PWR_STATE::ON && fsPwr == PWR_STATE::ON && mainPwr == PWR_STATE::ON; };
     void PowerFunc();
-
-    // for Display command except for ATF
-    void DispNext(DISP_TYPE type, uint8_t id);
 
     void DispBackup();
 

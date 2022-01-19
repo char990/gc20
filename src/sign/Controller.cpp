@@ -433,7 +433,7 @@ APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    return GetGroup(grpId)->DispAtomicFrm(cmd);
+    return GetGroup(grpId)->DispAtmFrm(cmd);
 }
 
 APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)

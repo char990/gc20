@@ -112,6 +112,8 @@ public:
 
     //uint8_t *GroupCfg() { return groupCfg; };
 
+    uint8_t LoadLastDisp() {return loadLastDisp;};
+
 private:
     ///  ---------- option -----------
     // string
@@ -169,6 +171,8 @@ private:
     const char *_ColourRatio = "ColourRatio";
     const char *_Dimming = "Dimming";
     const char *_DimmingAdjTime = "DimmingAdjTime";
+    const char *_LoadLastDisp = "LoadLastDisp";
+    
 
     // float
     const char *_LightSensorScale = "LightSensorScale";
@@ -226,7 +230,8 @@ private:
         slavesPerSign,
         powerOnDelay,
         dimmingAdjTime,
-        driverMode;
+        driverMode,
+        loadLastDisp;
 
     uint8_t dimming[16];
     uint8_t colourRatio[4];

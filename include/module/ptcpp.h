@@ -92,7 +92,7 @@ bool Pt_Task::Task2(int *_ptLine)
 #define PT_NEW_ENTRY() PT_WAIT_UNTIL(true)
 
 // Cause protothread to wait until given child protothread completes.
-//#define PT_WAIT_THREAD(child) PT_WAIT_WHILE((child).Run())
+#define PT_WAIT_TASK(child) PT_WAIT_UNTIL(!(child))
 
 // Restart and spawn given child protothread and wait until it completes.
 //#define PT_SPAWN(child) \

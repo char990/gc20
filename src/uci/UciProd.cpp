@@ -185,8 +185,8 @@ void UciProd::LoadConfig()
         {
             sprintf(cbuf, "%s%d", _RjctFrmSign, i);
             ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm, false);
-            ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
         }
+        ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
     }
     else
     {
@@ -296,6 +296,7 @@ void UciProd::LoadConfig()
 
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
+    loadLastDisp = GetInt(uciSec, _LoadLastDisp, 0, 1);
 
     ReadBits(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
@@ -539,6 +540,18 @@ void UciProd::Dump()
 
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
+    PrintOption_d(_LoadLastDisp, LoadLastDisp());
+    
+    if (prodType == PRODUCT::ISLUS)
+    {
+        char cbuf[32];
+        for (int i = 1; i <= numberOfSigns; i++)
+        {
+            sprintf(cbuf, "%s%d", _RjctFrmSign, i);
+            PrintOption_str(cbuf, signCfg[i - 1].rjctFrm.ToString().c_str());
+        }
+        PrintOption_str(_IslusSpFrm, bIslusSpFrm.ToString().c_str());
+    }
     PrintDash('>', "\n");
 }
 

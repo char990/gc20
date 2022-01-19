@@ -16,19 +16,11 @@ using namespace Utils;
 UciFrm::UciFrm()
 {
 	frms.fill(nullptr);
-	islus_frms.fill(nullptr);
 }
 
 UciFrm::~UciFrm()
 {
 	for (auto &s : frms)
-	{
-		if (s != nullptr)
-		{
-			delete s;
-		}
-	}
-	for (auto &s : islus_frms)
 	{
 		if (s != nullptr)
 		{
@@ -43,22 +35,7 @@ void UciFrm::LoadConfig()
 	auto & db = DbHelper::Instance();
 	PATH = db.Path();
 	auto prodtype = db.GetUciProd().ProdType();
-	if (prodtype == PRODUCT::ISLUS)
-	{
-		LoadFrms("%s/islus_frm_%03d");								   // load islus frames to frms
-		memcpy(islus_frms.data(), frms.data(), sizeof(Frame *) * 255); // copy frms to islus_frm
-	}
 	LoadFrms("%s/frm_%03d");
-	if (prodtype == PRODUCT::ISLUS)
-	{
-		for(int i=0;i<255;i++)
-		{
-			if(islus_frms[i] == nullptr)	// if islus_frm[i] is not defined, clear frms[i]
-			{
-				frms[i] = nullptr;
-			}
-		}
-	}
 }
 
 void UciFrm::LoadFrms(const char *FMT)
@@ -147,11 +124,6 @@ StFrm *UciFrm::GetStFrm(uint8_t i)
 Frame *UciFrm::GetFrm(uint8_t i)
 {
 	return (i != 0) ? frms[i - 1] : nullptr;
-}
-
-Frame *UciFrm::GetIslusFrm(uint8_t i)
-{
-	return (i != 0) ? islus_frms[i - 1] : nullptr;
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)

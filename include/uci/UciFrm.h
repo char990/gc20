@@ -51,9 +51,6 @@ public:
     /// \brief  Get frms[i-1], check frm->micode to get type, frms[0] is nullptr
     Frame* GetFrm(uint8_t i);
 
-    /// \brief  Get islus_frms[i-1], check frm->micode to get type, frms[0] is nullptr
-    Frame* GetIslusFrm(uint8_t i);    // this is for ISLUS only
-
     bool IsFrmDefined(uint8_t i);
 
     /// \brief  Get stFrms[i-1]->frmRev, stFrms[0] is 0
@@ -81,7 +78,6 @@ private:
     int maxFrmSize{0};
     uint16_t chksum{0};
     std::array<Frame *, 255> frms;
-    std::array<Frame *, 255> islus_frms;   // this is for ISLUS only
     void Dump();
 };
 

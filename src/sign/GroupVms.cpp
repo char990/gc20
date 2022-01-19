@@ -12,36 +12,19 @@ using namespace Utils;
 GroupVms::GroupVms(uint8_t id)
     : Group(id)
 {
-    if (vSigns.size() != 1)
+    if (SignCnt() != 1)
     {
         MyThrow("VMS: Group can only have ONE sign");
     }
     UciProd &prod = db.GetUciProd();
+    vSlaves.resize(prod.SlavesPerSign());
     for (int i = 0; i < prod.SlavesPerSign(); i++)
     { // slave id = 1~n
         auto s = new Slave(i + 1);
-        vSlaves.push_back(s);
-        vSigns[0]->AddSlave(s);
+        vSlaves.at(i) = s;
+        vSigns.at(0)->AddSlave(s);
     }
-    // load process
-    auto disp = db.GetUciProcess().GetDisp(groupId);
-    if (disp[0] > 0)
-    {
-        switch (disp[1])
-        {
-        case static_cast<uint8_t>(MI::CODE::SignDisplayFrame):
-            dsNext->dispType = DISP_TYPE::FRM;
-            dsNext->fmpid[0] = disp[3];
-            break;
-        case static_cast<uint8_t>(MI::CODE::SignDisplayMessage):
-            dsNext->dispType = DISP_TYPE::MSG;
-            dsNext->fmpid[0] = disp[3];
-            break;
-        default:
-            MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
-            break;
-        }
-    }
+    LoadLastDisp();
 }
 
 GroupVms::~GroupVms()
@@ -70,7 +53,7 @@ void GroupVms::IMakeFrameForSlave(uint8_t uciFrmId)
     {
         MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
     }
-    return MakeFrameForSlave(frm);
+    MakeFrameForSlave(frm);
 }
 
 int GroupVms::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)

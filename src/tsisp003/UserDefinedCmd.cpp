@@ -277,12 +277,14 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
     }
     if (*(pd + 21) >= NUMBER_OF_TZ)
         return APP::ERROR::SyntaxError;
+    /* obsolete feature 
     v = *(pd + 22); // default font
     if (v == 0 || v > 5)
         return APP::ERROR::SyntaxError;
     v = *(pd + 23); // default colour
     if (v == 0 || v > 9)
         return APP::ERROR::SyntaxError;
+    */
     memset(shakehands_passwd, 0, 11);
     for (int i = 0; i < 10; i++)
     {

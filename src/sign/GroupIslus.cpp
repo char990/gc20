@@ -28,32 +28,17 @@ GroupIslus::GroupIslus(uint8_t id)
     {
         MyThrow("ISLUS: Sign can only have ONE slave");
     }
+    vSlaves.resize(SignCnt());
+    for (int i = 0; i < SignCnt(); i++)
+    {
+        auto sign = vSigns.at(i);
+        auto slv = new Slave(sign->SignId()); // slave id = Sign Id
+        vSlaves.at(i) = slv;
+        sign->AddSlave(slv);
+    }
 
-    for (int i = 0; i < vSigns.size(); i++)
-    {
-        vSlaves.push_back(new Slave(vSigns[i]->SignId())); // slave id = Sign Id
-    }
-    atfSt.assign(vSigns.size(), 1); // resize atfSt and init
-    // load process
-    auto disp = db.GetUciProcess().GetDisp(groupId);
-    if (disp[0] > 0)
-    {
-        switch (disp[1])
-        {
-        case static_cast<uint8_t>(MI::CODE::SignDisplayFrame):
-            DispFrm(disp[3]);
-            break;
-        case static_cast<uint8_t>(MI::CODE::SignDisplayMessage):
-            DispMsg(disp[3]);
-            break;
-        case static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames):
-            DispAtomicFrm(&disp[1]);
-            break;
-        default:
-            MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
-            break;
-        }
-    }
+    atfSt.assign(SignCnt(), 1); // resize atfSt and init
+    LoadLastDisp();
 }
 
 GroupIslus::~GroupIslus()
@@ -64,15 +49,10 @@ void GroupIslus::PeriodicHook()
 {
 }
 
-// TODO
 APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
-    if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
-    {
-        return APP::ERROR::FacilitySwitchOverride;
-    }
     uint8_t signCnt = cmd[2];
-    if (signCnt != vSigns.size())
+    if (signCnt != SignCnt())
     {
         return APP::ERROR::SyntaxError;
     }
@@ -151,7 +131,6 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
         }
     }
     dsNext->Clone(&ds);
-    db.GetUciProcess().SetDisp(groupId, cmd, 3 + signCnt * 2);
     return APP::ERROR::AppNoError;
 }
 
@@ -178,7 +157,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
     PT_BEGIN();
     while (1)
     {
-        for (sATF = 0; sATF < vSlaves.size(); sATF++)
+        for (sATF = 0; sATF < SlaveCnt(); sATF++)
         {
             if (atfSt.at(sATF) != 0)
             {
@@ -192,7 +171,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
         { // finished
             PT_EXIT();
         }
-        for (int i = 0; i < vSlaves.size(); i++)
+        for (int i = 0; i < SlaveCnt(); i++)
         { // mark atfSt
             atfSt.at(i) = vSlaves.at(i)->CheckNext();
         }
@@ -202,11 +181,6 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
-    if (frm == nullptr)
-    {
-        MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
-    }
     if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
     {
         auto &prod = db.GetUciProd();
@@ -219,6 +193,11 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
     }
     else
     {
+        auto frm = db.GetUciFrm().GetFrm(uciFrmId);
+        if (frm == nullptr)
+        {
+            MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+        }
         MakeFrameForSlave(frm);
     }
 }
@@ -231,7 +210,7 @@ int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
     }
     else
     {
-        Frame *frm = db.GetUciFrm().GetIslusFrm(uciFrmId);
+        auto frm = db.GetUciFrm().GetFrm(uciFrmId);
         if (frm == nullptr)
         {
             MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId);

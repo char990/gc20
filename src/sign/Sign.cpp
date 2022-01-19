@@ -60,7 +60,6 @@ void Sign::InitFaults()
 
 void Sign::ClearFaults()
 {
-    signErr.Clear();
     chainFault.SetState(false);
     multiLedFault.SetState(false);
     singleLedFault.SetState(false);

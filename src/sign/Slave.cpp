@@ -5,6 +5,8 @@
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
 
+#define SLAVE_EMULATOR
+
 using namespace Utils;
 
 uint8_t Slave::numberOfTiles = 0;
@@ -24,6 +26,7 @@ Slave::Slave(uint8_t id)
     numberOfFaultyLed = new uint8_t[numberOfTiles * numberOfColours];
     Reset();
 #ifdef SLAVE_EMULATOR
+    printf("SLAVE[%d] EMULATOR\n", id);
     panelFault = 0;
     overTemp = 0;
     selfTest = 0;
@@ -37,13 +40,13 @@ Slave::Slave(uint8_t id)
     controlByte = 0;
     for (int i = 0; i < 4; i++)
     {
-        dimming[i] = 0;
+        dimming[i] = 1;
     }
-    voltage = 12055;
+    voltage = 12055;    // 12.055V
     hours = 0;
-    temperature = 370;
-    humidity = 49;
-    lux = 12345;
+    temperature = 490;  // 49'C
+    humidity = 67;      // 67%
+    lux = 54321;
 #endif
 }
 
@@ -67,6 +70,9 @@ void Slave::Reset()
 
 int Slave::DecodeStRpl(uint8_t *buf, int len)
 {
+#ifdef SLAVE_EMULATOR
+    return 0;
+#endif
     if (*buf != slaveId)
     {
         return -1;
@@ -98,6 +104,9 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
 
 int Slave::DecodeExtStRpl(uint8_t *buf, int len)
 {
+#ifdef SLAVE_EMULATOR
+    return 0;
+#endif
     if (buf[0] != slaveId)
     {
         return -1;
@@ -137,6 +146,14 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
     buf += 4;
     memcpy(numberOfFaultyLed, buf, numberOfTiles * numberOfColours);
     return 0;
+}
+
+uint8_t Slave::GetRxStatus()
+{
+#ifdef SLAVE_EMULATOR
+    return 1;
+#endif
+    return rxStatus;
 }
 
 int Slave::CheckCurrent()
