@@ -302,13 +302,13 @@ private:
     BootTimer taskRqstSlaveTmr;
     uint8_t rqstSt_slvindex{0};
     uint8_t rqstExtSt_slvindex{0};
-    uint8_t rqstNoRplCnt{0};
+    BootTimer rqstNoRplTmr;
     void TaskRqstSlaveReset()
     {
         taskRqstSlaveLine = 0;
         rqstSt_slvindex = 0;
         rqstExtSt_slvindex = 0;
-        rqstNoRplCnt = 0;
+        rqstNoRplTmr.Clear();
         //taskRqstSlaveTmr.Setms(0);
     }
 

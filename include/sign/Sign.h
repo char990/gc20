@@ -95,10 +95,14 @@ protected:
 
     uint8_t tflag{255};
     uint8_t lasthour{255};
-    DebounceByTime lsConnectionFault;
-    DebounceByTime ls18hoursFault;
-    DebounceByTime lsMidnightFault;
-    DebounceByTime lsMiddayFault;
+    Debounce lsConnectionFault;
+    Debounce ls18hoursFault;
+    Debounce lsMidnightFault;
+    Debounce lsMiddayFault;
+//    DebounceByTime lsConnectionFault;
+//    DebounceByTime ls18hoursFault;
+//    DebounceByTime lsMidnightFault;
+//    DebounceByTime lsMiddayFault;
 
     int8_t curTemp{0}, maxTemp{0};
 
@@ -109,4 +113,8 @@ protected:
     void DbncFault(Debounce &dbc, DEV::ERROR err, const char *info = nullptr);
 
     void RefreshFatalError();
+
+private:
+    time_t timeSt{-1};
+    time_t timeExtSt{-1};
 };

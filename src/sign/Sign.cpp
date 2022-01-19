@@ -101,7 +101,17 @@ void Sign::RefreshSlaveStatusAtSt()
             return;
         }
     }
-
+    auto t1 = GetTime(nullptr);
+    auto t2 = t1 - timeSt;
+    timeSt = t1;
+    if(t2==0)
+    {
+        return;
+    }
+    else if(t2<0||t2>10)
+    {
+        t2=1;
+    }
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
@@ -118,11 +128,11 @@ void Sign::RefreshSlaveStatusAtSt()
     // lanterns installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
-    chainFault.Check(check_chain_fault > 0);
+    chainFault.Check(check_chain_fault > 0, t2);
     sprintf(buf, "ChainFault=0x%02X", check_chain_fault);
     DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
-    selftestFault.Check(check_selftest > 0);
+    selftestFault.Check(check_selftest > 0, t2);
     if(check_selftest > 0)
     {
         int len=sprintf(buf, "Slave in Selftest:");
@@ -136,7 +146,7 @@ void Sign::RefreshSlaveStatusAtSt()
     }
     DbncFault(selftestFault, DEV::ERROR::UnderLocalControl);
 
-    lanternFault.Check(check_lantern > 0);
+    lanternFault.Check(check_lantern > 0, t2);
     sprintf(buf, "LanternFault=0x%02X", check_lantern);
     DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
 
@@ -152,7 +162,17 @@ void Sign::RefreshSlaveStatusAtExtSt()
             return;
         }
     }
-
+    auto t1 = GetTime(nullptr);
+    auto t2 = t1 - timeExtSt;
+    timeExtSt = t1;
+    if(t2==0)
+    {
+        return;
+    }
+    else if(t2<0||t2>10)
+    {
+        t2=1;
+    }
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
@@ -196,17 +216,17 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // *** voltage
     if (minvoltage < prod.SlaveVoltageLow())
     {
-        voltageFault.Check(true);
+        voltageFault.Check(true, t2);
         voltage = minvoltage;
     }
     else if (maxvoltage > prod.SlaveVoltageHigh())
     {
-        voltageFault.Check(true);
+        voltageFault.Check(true, t2);
         voltage = maxvoltage;
     }
     else
     {
-        voltageFault.Check(false);
+        voltageFault.Check(false, t2);
         voltage = v / vcnt;
     }
     sprintf(buf, "%dmv", voltage);
@@ -221,7 +241,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     auto ot = user.OverTemp();
     if (curTemp > ot)
     {
-        overtempFault.Check(1);
+        overtempFault.Check(true, t2);
         if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsHigh())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
@@ -231,7 +251,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
     else if (curTemp < (ot - 3))
     {
-        overtempFault.Check(0);
+        overtempFault.Check(false, t2);
         if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsLow())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
@@ -243,18 +263,18 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // *** single/multi led
     if (faultLeds == 0)
     {
-        singleLedFault.Check(0);
-        multiLedFault.Check(0);
+        singleLedFault.Check(false, t2);
+        multiLedFault.Check(false, t2);
     }
     else if (faultLeds == 1)
     {
-        singleLedFault.Check(1);
-        multiLedFault.Check(0);
+        singleLedFault.Check(true, t2);
+        multiLedFault.Check(false, t2);
     }
     else
     {
-        singleLedFault.Check(1);
-        multiLedFault.Check(faultLeds > user.MultiLedFaultThreshold());
+        singleLedFault.Check(true, t2);
+        multiLedFault.Check(faultLeds > user.MultiLedFaultThreshold(), t2);
     }
     if (multiLedFault.IsRising() || multiLedFault.IsFalling())
     {
@@ -287,7 +307,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
     else
     {
-        lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1, t);
+        lsConnectionFault.Check(vsSlaves[0]->lightSensorFault & 1, t2);
     }
     if (lsConnectionFault.IsRising())
     {
@@ -308,7 +328,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     if (lsConnectionFault.IsLow())
     {
         auto &prod = DbHelper::Instance().GetUciProd();
-        ls18hoursFault.Check(lux < prod.LightSensor18Hours(), t);
+        ls18hoursFault.Check(lux < prod.LightSensor18Hours(), t2);
         struct tm stm;
         localtime_r(&t, &stm);
         if (stm.tm_hour >= 11 && stm.tm_hour < 15)
@@ -317,7 +337,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             {
                 lsMiddayFault.ResetCnt();
             }
-            lsMiddayFault.Check(lux < prod.LightSensorMidday(), t);
+            lsMiddayFault.Check(lux < prod.LightSensorMidday(), t2);
         }
         if (stm.tm_hour < 3 || stm.tm_hour >= 23)
         { // mid-night
@@ -325,7 +345,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             {
                 lsMidnightFault.ResetCnt();
             }
-            lsMidnightFault.Check(lux > prod.LightSensorMidnight(), t);
+            lsMidnightFault.Check(lux > prod.LightSensorMidnight(), t2);
         }
         lasthour = stm.tm_hour;
         if (ls18hoursFault.IsHigh() ||

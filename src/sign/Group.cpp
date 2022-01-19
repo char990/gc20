@@ -12,6 +12,8 @@
 
 #define MS_SHIFT 5
 
+extern time_t GetTime(time_t *);
+
 using namespace Utils;
 
 Group::Group(uint8_t groupId)
@@ -152,7 +154,7 @@ Group::~Group()
 }
 
 void Group::LoadLastDisp()
-{    // load disp
+{ // load disp
     if (db.GetUciProd().LoadLastDisp())
     {
         auto disp = db.GetUciProcess().GetDisp(groupId);
@@ -167,7 +169,7 @@ void Group::LoadLastDisp()
                 DispMsg(disp[3], false);
                 break;
             case static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames):
-                DispAtmFrm(disp+1, false);
+                DispAtmFrm(disp + 1, false);
                 break;
             default:
                 MyThrow("Syntax Error: UciProcess.Group%d.Display", groupId);
@@ -454,7 +456,6 @@ bool Group::TaskPln(int *_ptLine)
     PT_END();
 }
 
-extern time_t GetTime(time_t *);
 PlnMinute &Group::GetCurrentMinPln()
 {
     time_t t = GetTime(nullptr);
@@ -882,7 +883,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // Request status 1-n
         do
         {
-            rqstNoRplCnt = 0;
+            rqstNoRplTmr.Setms(db.GetUciProd().OfflineDebounce() * 1000);
             do
             {
                 taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
@@ -891,42 +892,28 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
                 {
                     auto &s = vSlaves.at(rqstSt_slvindex);
-
-                    if (s->GetRxStatus() == 0)
-                    { // no reply
-                        if (rqstNoRplCnt < db.GetUciProd().OfflineDebounce())
-                        {
-                            rqstNoRplCnt++;
-                        }
-                        else if (rqstNoRplCnt == db.GetUciProd().OfflineDebounce())
-                        { // offline
-                            rqstNoRplCnt++;
-                            oprSp->ReOpen();
-                        }
-                        else if (rqstNoRplCnt < (db.GetUciProd().OfflineDebounce() + 3))
-                        {
-                            rqstNoRplCnt++;
-                        }
-                        else if (rqstNoRplCnt == (db.GetUciProd().OfflineDebounce() + 3))
-                        {
-                            rqstNoRplCnt++;
-                            if (!s->isOffline)
-                            {
-                                s->ReportOffline(true);
-                            }
-                        }
-                    }
-                    else
+                    if (s->GetRxStatus())
                     {
-                        rqstNoRplCnt = 0;
+                        rqstNoRplTmr.Clear();
                         if (s->isOffline)
                         {
                             s->ReportOffline(false);
                             rqstSt_slvindex = 0;
                         }
                     }
+                    else
+                    {
+                        if (rqstNoRplTmr.IsExpired())
+                        {
+                            if (!s->isOffline)
+                            {
+                                s->ReportOffline(true);
+                            }
+                        }
+                    }
                 }
-            } while (rqstNoRplCnt > 0);
+            } while (!rqstNoRplTmr.IsClear());
+
             if (rqstSt_slvindex == SlaveCnt() - 1)
             {
                 auto &s = vSlaves.at(rqstSt_slvindex);
@@ -1369,7 +1356,7 @@ APP::ERROR Group::DispFrm(uint8_t id, bool chk)
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = id;
-    if(chk)
+    if (chk)
     {
         db.GetUciProcess().SetDisp(groupId, buf, 3);
     }
@@ -1394,7 +1381,7 @@ APP::ERROR Group::DispMsg(uint8_t id, bool chk)
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
     buf[1] = groupId;
     buf[2] = id;
-    if(chk)
+    if (chk)
     {
         db.GetUciProcess().SetDisp(groupId, buf, 3);
     }

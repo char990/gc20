@@ -5,7 +5,7 @@
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
 
-#define SLAVE_EMULATOR
+//#define SLAVE_EMULATOR
 
 using namespace Utils;
 

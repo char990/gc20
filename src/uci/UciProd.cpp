@@ -221,6 +221,7 @@ void UciProd::LoadConfig()
     lightSensor18Hours = GetInt(uciSec, _LightSensor18Hours, 1, 65535);
     driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 1, 65535);
     overTempDebounce = GetInt(uciSec, _OverTempDebounce, 1, 65535);
+    ledFaultDebounce = GetInt(uciSec, _LedFaultDebounce, 1, 65535);
     selftestDebounce = GetInt(uciSec, _SelftestDebounce, 1, 65535);
     offlineDebounce = GetInt(uciSec, _OfflineDebounce, 1, 65535);
     lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 1, 65535);
