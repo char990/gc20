@@ -883,7 +883,8 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // Request status 1-n
         do
         {
-            rqstNoRplTmr.Setms(db.GetUciProd().OfflineDebounce() * 1000);
+            rqstNoRplTmr.Setms((db.GetUciProd().OfflineDebounce()-1) * 1000);
+            reopen=0;
             do
             {
                 taskRqstSlaveTmr.Setms(db.GetUciProd().SlaveRqstInterval() - MS_SHIFT);
@@ -898,16 +899,24 @@ bool Group::TaskRqstSlave(int *_ptLine)
                         if (s->isOffline)
                         {
                             s->ReportOffline(false);
-                            rqstSt_slvindex = 0;
                         }
                     }
                     else
                     {
                         if (rqstNoRplTmr.IsExpired())
                         {
-                            if (!s->isOffline)
+                            if(reopen==0)
                             {
-                                s->ReportOffline(true);
+                                reopen=1;
+                                oprSp->ReOpen();
+                                rqstNoRplTmr.Setms(1000);
+                            }
+                            else
+                            {
+                                if (!s->isOffline)
+                                {
+                                    s->ReportOffline(true);
+                                }
                             }
                         }
                     }

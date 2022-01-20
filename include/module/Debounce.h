@@ -72,8 +72,6 @@ public:
             cnt1 += cnt;
             if (cnt1 >= CNT1)
             {
-                cnt0 = 0;
-                cnt1 = CNT1;
                 Set();
             }
         }
@@ -82,8 +80,6 @@ public:
             cnt0 += cnt;
             if (cnt0 >= CNT0)
             {
-                cnt1 = 0;
-                cnt0 = CNT0;
                 Clr();
             }
         }
@@ -98,6 +94,20 @@ public:
     void State()
     {
         printf("CNT0:%d CNT1:%d cnt0=%d cnt1=%d State=%s\n", CNT0, CNT1, cnt0, cnt1, Utils::State5::State());
+    }
+
+    void Clr()
+    {
+        cnt1 = 0;
+        cnt0 = CNT0;
+        Utils::State5::Clr();
+    }
+
+    void Set()
+    {
+        cnt0 = 0;
+        cnt1 = CNT1;
+        Utils::State5::Set();
     }
 
 private:

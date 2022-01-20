@@ -219,16 +219,16 @@ void UciProd::LoadConfig()
     lightSensorMidday = GetInt(uciSec, _LightSensorMidday, 1, 65535);
     lightSensorMidnight = GetInt(uciSec, _LightSensorMidnight, 1, 65535);
     lightSensor18Hours = GetInt(uciSec, _LightSensor18Hours, 1, 65535);
-    driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 1, 65535);
-    overTempDebounce = GetInt(uciSec, _OverTempDebounce, 1, 65535);
-    ledFaultDebounce = GetInt(uciSec, _LedFaultDebounce, 1, 65535);
-    selftestDebounce = GetInt(uciSec, _SelftestDebounce, 1, 65535);
-    offlineDebounce = GetInt(uciSec, _OfflineDebounce, 1, 65535);
-    lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 1, 65535);
-    lanternFaultDebounce = GetInt(uciSec, _LanternFaultDebounce, 1, 65535);
+    driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 3, 65535);
+    overTempDebounce = GetInt(uciSec, _OverTempDebounce, 3, 65535);
+    ledFaultDebounce = GetInt(uciSec, _LedFaultDebounce, 3, 65535);
+    selftestDebounce = GetInt(uciSec, _SelftestDebounce, 3, 65535);
+    offlineDebounce = GetInt(uciSec, _OfflineDebounce, 3, 65535);
+    lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 60, 65535);
+    lanternFaultDebounce = GetInt(uciSec, _LanternFaultDebounce, 3, 65535);
     slaveVoltageLow = GetInt(uciSec, _SlaveVoltageLow, 1, 65535);
     slaveVoltageHigh = GetInt(uciSec, _SlaveVoltageHigh, 1, 65535);
-    slaveVoltageDebounce = GetInt(uciSec, _SlaveVoltageDebounce, 1, 65535);
+    slaveVoltageDebounce = GetInt(uciSec, _SlaveVoltageDebounce, 3, 65535);
 
     if (slaveVoltageLow > slaveVoltageHigh)
     {

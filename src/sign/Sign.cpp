@@ -19,7 +19,9 @@ Sign::Sign(uint8_t id)
     lanternFault.SetCNT(prod.LanternFaultDebounce());
     overtempFault.SetCNT(prod.OverTempDebounce());
 
-    lsConnectionFault.SetCNT(2 * 60, 3 * 60); // fault debounce 1 minute in slave, so set true_cnt as 2*60 = 3 minutes
+    lsConnectionFault.SetCNT(prod.LightSensorFaultDebounce());
+    // light sensor fault debounce 1 minute in slave. If true_cnt - prod.LightSensorFaultDebounce() is 120, report after 3 minutes
+    // If receive LightsensorFault=0 && Lux>0, clear lsConnectionFault immediately
     ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
     lsMidnightFault.SetCNT(15 * 60);
     lsMiddayFault.SetCNT(15 * 60);
@@ -164,7 +166,6 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
     auto t1 = GetTime(nullptr);
     auto t2 = t1 - timeExtSt;
-    timeExtSt = t1;
     if(t2==0)
     {
         return;
@@ -173,6 +174,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     {
         t2=1;
     }
+    timeExtSt = t1;
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st

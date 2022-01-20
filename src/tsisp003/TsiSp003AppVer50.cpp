@@ -60,11 +60,11 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
     *p++ = groups.size();
     for (auto &g : groups)
     {
+        *p++ = g->GroupId();
         auto &signs = g->GetSigns();
         *p++ = signs.size();
         for (auto &s : signs)
         {
-            *p++ = s->SignId();
             p = s->GetConfig(p);
         }
         *p++ = 0; // signature data bytes
