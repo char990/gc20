@@ -615,14 +615,46 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
         txbuf[1] = FACMD_RPL_USER_EXT;
         auto pt = txbuf + 2;
+        auto &prod = db.GetUciProd();
         auto &ctrl = Controller::Instance();
-        auto sign = ctrl.GetGroup(1)->GetSign(1);
-        *pt++ = sign->MaxTemp();
-        *pt++ = sign->CurTemp();
+        auto &groups = ctrl.GetGroups();
+        int voltage = 0;
+        int voltagemin = 0xFFFF;
+        int voltagemax = 0;
+        int maxTemp = 0;
+        int curTemp = 0;
+        int lux = 0;
+        int cnt = prod.NumberOfSigns();
+        for (auto &g : groups)
+        {
+            auto &signs = g->GetSigns();
+            for (auto &s : signs)
+            {
+                auto v = s->Voltage();
+                voltage += v;
+                if (v < voltagemin)
+                {
+                    voltagemin = v;
+                }
+                if (v > voltagemax)
+                {
+                    voltagemax = v;
+                }
+                if (s->MaxTemp() > maxTemp)
+                {
+                    maxTemp = s->MaxTemp();
+                }
+                curTemp += s->CurTemp();
+                lux += s->Lux();
+            }
+        }
+        *pt++ = maxTemp;
+        *pt++ = curTemp / cnt; // avg of all current temperatures
         *pt++ = ctrl.MaxTemp();
         *pt++ = ctrl.CurTemp();
-        pt = Cnvt::PutU16(sign->Voltage(), pt);
-        pt = Cnvt::PutU16(sign->Lux(), pt);
+        voltage = (voltagemin < prod.SlaveVoltageLow()) ? voltagemin : ((voltagemax > prod.SlaveVoltageHigh()) ? voltagemax : (voltage / cnt));
+        pt = Cnvt::PutU16(voltage, pt);
+        pt = Cnvt::PutU16(lux / cnt, pt);
         char *mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
@@ -964,6 +996,7 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
                          user.DisplayTimeout(), displayt);
                 user.DisplayTimeout(displayt);
             }
+            // after DisplayTimeout, there are 4 bytes, don't know the meaning
             Ack();
         }
     }
@@ -989,11 +1022,29 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = user.Humidity();                     // Humidity
         *p++ = user.BroadcastId();                  // broadcast address
         p = Cnvt::PutU16(user.SessionTimeout(), p); // session time out
-        auto sign = Controller::Instance().GetGroup(1)->GetSign(1);
-        *p++ = sign->CurTemp();           // current temperature
-        p = Cnvt::PutU16(sign->Lux(), p); // light sensor 1
-        *p++ = sign->MaxTemp();           // max temperature
-        uint16_t faultleds = sign->FaultLedCnt();
+        auto &groups = Controller::Instance().GetGroups();
+        int faultleds = 0;
+        int maxTemp = 0;
+        int curTemp = 0;
+        int lux = 0;
+        int cnt = db.GetUciProd().NumberOfSigns();
+        for (auto &g : groups)
+        {
+            auto &signs = g->GetSigns();
+            for (auto &s : signs)
+            {
+                faultleds += s->FaultLedCnt();
+                if (s->MaxTemp() > maxTemp)
+                {
+                    maxTemp = s->MaxTemp();
+                }
+                curTemp += s->CurTemp();
+                lux += s->Lux();
+            }
+        }
+        *p++ = curTemp / cnt;                       // avg of all current temperatures
+        p = Cnvt::PutU16(lux / cnt, p);             // avg of all
+        *p++ = maxTemp;                             // max of all max temperatures
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
         *p++ = 0;                                   //user.DefaultFont();                  //
         p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out

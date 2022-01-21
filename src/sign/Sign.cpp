@@ -159,7 +159,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
 {
     for (auto &s : vsSlaves)
     {
-        if (s->rxExtSt == 0)
+        if (s->GetRxExtSt() == 0)
         {
             return;
         }

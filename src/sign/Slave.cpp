@@ -40,13 +40,13 @@ Slave::Slave(uint8_t id)
     controlByte = 0;
     for (int i = 0; i < 4; i++)
     {
-        dimming[i] = 1;
+        dimming[i] = 0; // no use, reported dimming level in SESR is controller's setting
     }
-    voltage = 12055;    // 12.055V
-    hours = 0;
-    temperature = 490;  // 49'C
-    humidity = 67;      // 67%
-    lux = 54321;
+    voltage = 12000 + slaveId*100;
+    hours = 0x99;
+    temperature = 300 + slaveId*10; 
+    humidity = 50 + slaveId;
+    lux = 12000 + slaveId*100;
 #endif
 }
 
@@ -151,9 +151,19 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
 uint8_t Slave::GetRxStatus()
 {
 #ifdef SLAVE_EMULATOR
+    sign->RefreshSlaveStatusAtSt();
+    sign->RefreshSlaveStatusAtExtSt();
     return 1;
 #endif
     return rxStatus;
+}
+
+uint8_t Slave::GetRxExtSt()
+{
+#ifdef SLAVE_EMULATOR
+    return 1;
+#endif
+    return rxExtSt;
 }
 
 int Slave::CheckCurrent()

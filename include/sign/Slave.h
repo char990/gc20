@@ -53,6 +53,7 @@ public:
 
     // -------------------------- ext-status reply
     uint8_t rxExtSt{0};
+    uint8_t GetRxExtSt();
     uint8_t controlByte;
     uint16_t dimming[4];    // [0]:Colour1 [1]:Colour2 [2]:Colour3 [3]:Colour4
     uint16_t voltage;       // mV

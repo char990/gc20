@@ -1013,7 +1013,7 @@ bool Group::AllSlavesGotExtSt()
 {
     for (auto &s : vSlaves)
     {
-        if (s->rxExtSt == 0)
+        if (s->GetRxExtSt() == 0)
         {
             return false;
         }
@@ -1794,6 +1794,7 @@ bool Group::DimmingAdjust()
                 }
             }
             lux = (luxCnt == 0) ? -1 /*all lightsensors are faulty*/ : lux / luxCnt /*average*/;
+            groupLux = lux;
             tgt = db.GetUciUser().GetLuxLevel(lux) - 1; // 0-15
         }
         else

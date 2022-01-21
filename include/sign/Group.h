@@ -49,7 +49,7 @@ public:
     /// \brief      call TranslateFrame and send txBuf by SetTextFrame/SetGfxFrm
     int SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId);
 
-    int SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId);
+    int SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId);      // same part of SlaveDisplayFrame & SlaveSetStoredFrame
     int SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId);
     int SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId);
 
@@ -103,6 +103,8 @@ public:
 
     int CmdToSlave(uint8_t id, uint8_t *data, int len); // to slave[id]
     int CmdToSlave(uint8_t *data, int len);             // broadcast
+
+    uint16_t GroupLux() { return groupLux; };
 
 protected:
     DbHelper &db;
@@ -178,6 +180,8 @@ protected:
 
     // for Display command except for ATF
     void DispNext(DISP_TYPE type, uint8_t id);
+
+    uint16_t groupLux{65535};
 
 private:
     uint8_t grpTick{0};
