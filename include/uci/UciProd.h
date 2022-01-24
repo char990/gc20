@@ -59,6 +59,7 @@ public:
     uint16_t SlaveVoltageHigh() { return slaveVoltageHigh; };
     uint16_t SlaveVoltageDebounce() { return slaveVoltageDebounce; };
     uint16_t LightSensorScale() { return lightSensorScale; };
+    uint16_t TcpTimeout() { return tcpTimeout;};    // seconds
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver; };
     PRODUCT ProdType() { return prodType; };
@@ -153,6 +154,7 @@ private:
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
     const char *_PixelRows = "PixelRows";
     const char *_PixelColumns = "PixelColumns";
+    const char *_TcpTimeout="TcpTimeout";
 
     /// uint8_t
     const char *_TcpServerNTS = "TcpServerNTS";
@@ -193,6 +195,7 @@ private:
     std::vector<SignCfg> signCfg;
 
     uint16_t
+        tcpTimeout,
         pixelRows,
         pixelColumns,
         slaveRqstInterval,

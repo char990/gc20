@@ -387,7 +387,7 @@ bool Group::TaskPln(int *_ptLine)
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
                     PrintDbg(DBG_LOG, "Group[%d]-TaskPln:Display:BLANK", groupId);
-                    db.GetUciEvent().Push(0, "Display:BLANK");
+                    db.GetUciEvent().Push(0, "Group%d Display:BLANK", groupId);
                     TaskFrmReset();
                     TaskMsgReset();
                     onDispPlnId = 0;
@@ -405,7 +405,7 @@ bool Group::TaskPln(int *_ptLine)
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
                     PrintDbg(DBG_LOG, "Group[%d]-TaskPln:Plan%d start", groupId, plnmin.plnId);
-                    db.GetUciEvent().Push(0, "Plan%d start", plnmin.plnId);
+                    db.GetUciEvent().Push(0, "Group%d Plan%d start", groupId, plnmin.plnId);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
                     auto pln = db.GetUciPln().GetPln(plnmin.plnId);

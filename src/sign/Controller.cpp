@@ -366,7 +366,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         {
             if(db.GetUciProd().ProdType() == PRODUCT::VMS)
             {   // Clearing all frame/msg is for VMS only
-                // ISLUS's frame/msg/plan can not be changed
+                // ISLUS's frame/msg can not be changed
                 db.GetUciFrm().Reset();
                 db.GetUciMsg().Reset();
             }

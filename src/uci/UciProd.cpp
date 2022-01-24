@@ -74,6 +74,7 @@ void UciProd::LoadConfig()
 
     tcpServerNTS = GetInt(uciSec, _TcpServerNTS, 1, 8);
     tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
+    tcpTimeout = GetInt(uciSec, _TcpTimeout, 60, 0xFFFF);
 
     tsiSp003Ver = GetIntFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
     str = GetStr(uciSec, _MfcCode);
@@ -452,6 +453,7 @@ void UciProd::Dump()
 
     PrintOption_d(_TcpServerNTS, TcpServerNTS());
     PrintOption_d(_TcpServerWEB, TcpServerWEB());
+    PrintOption_d(_TcpTimeout, TcpTimeout());
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);

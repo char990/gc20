@@ -87,11 +87,11 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        int len = sprintf(buf, "DisplayAtomic:Grp%d", data[1]);
+        int len = sprintf(buf, "DispAtm: Group%d,", data[1]);
         uint8_t *p = data + 3;
         for (int i = 0; i < data[2] && len < 63; i++)
         {
-            len += snprintf(buf + len, 63 - len, ":S%d,F%d", p[0], p[1]);
+            len += snprintf(buf + len, 63 - len, " %d-%d", p[0], p[1]);
             p += 2;
         }
         db.GetUciEvent().Push(0, buf);

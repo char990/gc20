@@ -51,7 +51,7 @@ void PrintVersion()
 {
     char sbuf[256];
     int len = snprintf(sbuf, 255, "* Version: %s, %s. Build time: %s *",
-                       FirmwareVer, MAKE, __BUILDTIME__);   // __BUILDTIME__ is defined in Makefile
+                       FirmwareVer, MAKE, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';
@@ -81,9 +81,9 @@ public:
         time_t t1 = pDS3231->GetTimet();
         if (t1 > 0)
         {
-            struct timeval t2; 
+            struct timeval t2;
             gettimeofday(&t2, nullptr);
-            if(t2.tv_usec>500000)
+            if (t2.tv_usec > 500000)
             {
                 t2.tv_sec++;
             }
@@ -132,21 +132,18 @@ private:
 
 void LogResetTime()
 {
-    if (access(".lrt", F_OK) != 0)
+    //if (access(".lrt", F_OK) != 0)
     { // there is no ".lrt"
         time_t t;
-        t = GetTime(nullptr);
         pDS3231->ReadTimeAlarm(&t);
         auto &db = DbHelper::Instance();
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
         db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
         db.GetUciAlarm().Push(0, "<--- Reset --->");
         db.GetUciEvent().Push(0, "<--- Reset --->");
+        return;
     }
-    else
-    { // ".lrt" exists
-        remove(".lrt");
-    }
+    //remove(".lrt");
 }
 
 void GpioInit()
