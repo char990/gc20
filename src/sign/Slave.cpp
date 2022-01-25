@@ -42,11 +42,11 @@ Slave::Slave(uint8_t id)
     {
         dimming[i] = 0; // no use, reported dimming level in SESR is controller's setting
     }
-    voltage = 12000 + slaveId*100;
+    voltage = 12000 + slaveId * 100;
     hours = 0x99;
-    temperature = 300 + slaveId*10; 
+    temperature = 300 + slaveId * 10;
     humidity = 50 + slaveId;
-    lux = 12000 + slaveId*100;
+    lux = 12000 + slaveId * 100;
 #endif
 }
 

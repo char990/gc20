@@ -11,9 +11,9 @@
 class SignCfg
 {
 public:
+    uint8_t groupId;
     uint32_t com_ip;
-    int bps_port;
-    std::string ToString();
+    static int bps_port;
     Utils::Bits rjctFrm{256};
 };
 
@@ -59,7 +59,7 @@ public:
     uint16_t SlaveVoltageHigh() { return slaveVoltageHigh; };
     uint16_t SlaveVoltageDebounce() { return slaveVoltageDebounce; };
     uint16_t LightSensorScale() { return lightSensorScale; };
-    uint16_t TcpTimeout() { return tcpTimeout;};    // seconds
+    uint16_t TcpTimeout() { return tcpTimeout; }; // seconds
 
     uint8_t TsiSp003Ver() { return tsiSp003Ver; };
     PRODUCT ProdType() { return prodType; };
@@ -67,7 +67,7 @@ public:
     uint8_t ColourBits() { return colourBits; };
     uint8_t NumberOfSigns() { return numberOfSigns; };
     uint8_t NumberOfGroups() { return numberOfGroups; };
-    uint8_t GetGroupIdOfSign(uint8_t signId) { return groupCfg[signId - 1]; };
+    uint8_t GetGroupIdOfSign(uint8_t signId) { return signCfg.at(signId - 1).groupId; };
     uint16_t PixelRows() { return pixelRows; };
     uint16_t PixelColumns() { return pixelColumns; };
     uint8_t TilesPerSlave() { return tilesPerSlave; };
@@ -111,11 +111,13 @@ public:
     int Gfx4FrmLen() { return gfx4FrmLen; };   // bytes
     int Gfx24FrmLen() { return gfx24FrmLen; }; // bytes
 
-    //uint8_t *GroupCfg() { return groupCfg; };
-
-    uint8_t LoadLastDisp() {return loadLastDisp;};
+    uint8_t LoadLastDisp() { return loadLastDisp; };
 
 private:
+    ///  ---------- section -----------
+    const char *_SectionCtrller = "ctrller_cfg";
+    const char *_SectionSign = "Sign";
+
     ///  ---------- option -----------
     // string
     const char *_MfcCode = "MfcCode";
@@ -128,7 +130,7 @@ private:
     const char *_TxtFrmColour = "TxtFrmColour";
     const char *_GfxFrmColour = "GfxFrmColour";
     const char *_HrgFrmColour = "HrgFrmColour";
-    const char *_GroupCfg = "GroupCfg";
+    //const char *_GroupCfg = "GroupCfg";
 
     /// int
     const char *_SlaveRqstInterval = "SlaveRqstInterval";
@@ -137,6 +139,7 @@ private:
     const char *_SlaveSetStFrmDly = "SlaveSetStFrmDly";
     const char *_SlaveDispDly = "SlaveDispDly";
     const char *_SlaveCmdDly = "SlaveCmdDly";
+    const char *_SlaveBpsPort = "SlaveBpsPort";
 
     /// uint16_t
     const char *_LightSensorMidday = "LightSensorMidday";
@@ -154,7 +157,7 @@ private:
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
     const char *_PixelRows = "PixelRows";
     const char *_PixelColumns = "PixelColumns";
-    const char *_TcpTimeout="TcpTimeout";
+    const char *_TcpTimeout = "TcpTimeout";
 
     /// uint8_t
     const char *_TcpServerNTS = "TcpServerNTS";
@@ -174,16 +177,19 @@ private:
     const char *_Dimming = "Dimming";
     const char *_DimmingAdjTime = "DimmingAdjTime";
     const char *_LoadLastDisp = "LoadLastDisp";
-    
 
     // float
     const char *_LightSensorScale = "LightSensorScale";
 
     // items : 1-n
-    const char *_Sign = "Sign";               // Sign1-x
-    const char *_RjctFrmSign = "RjctFrmSign"; // Reject frames of Sign1-x
-
     const char *_IslusSpFrm = "IslusSpFrm"; // Islus specila frame
+
+    // for SignX
+    const char *_GroupId = "GroupId";
+    const char *_IP = "IP";
+    const char *_COM = "COM";
+    const char *_RjctFrm = "RjctFrm"; // Reject frames
+
     Utils::Bits bIslusSpFrm{256};
 
     PRODUCT prodType;
@@ -238,8 +244,6 @@ private:
 
     uint8_t dimming[16];
     uint8_t colourRatio[4];
-
-    uint8_t *groupCfg;
 
     char colourLeds[5]{}; // with end '\0'
 

@@ -151,7 +151,6 @@ void GroupIslus::TaskSetATFReset()
     atfSt.assign(atfSt.size(), 1);
 }
 
-// TODO set slave frame, active frm, reprot frm
 bool GroupIslus::TaskSetATF(int *_ptLine)
 {
     PT_BEGIN();

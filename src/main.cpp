@@ -236,8 +236,26 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485
         IUpperLayer *uiLayer = new UI_LayerManager(gSpConfig[user.ComPort()].name, "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
-        // Slaves of Groups on RS485
-        for (int i = 1; i <= prod.NumberOfSigns(); i++)
+        // Slaves
+        if (SignCfg::bps_port > 0)
+        { // Slaves of Groups on RS485
+            for (int i = 1; i <= prod.NumberOfSigns(); i++)
+            {
+                auto & cn = prod.GetSignCfg(i);
+                if (oprSp[cn.com_ip]==nullptr)
+                {
+                    auto g = Controller::Instance().GetGroup(cn.groupId);
+                    IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn.com_ip].name, g);
+                    oprSp[cn.com_ip] = new OprSp{(uint8_t)cn.com_ip, SignCfg::bps_port, upperLayer};
+                    g->SetOprSp(oprSp[cn.com_ip]);
+                }
+            }
+        }
+        else
+        { // ip
+            MyThrow("TODO: Slave on IP:Port");
+        }
+        /*for (int i = 1; i <= prod.NumberOfSigns(); i++)
         {
             auto &cn = prod.GetSignCfg(i);
             if (cn.com_ip < COMPORT_SIZE)
@@ -265,7 +283,7 @@ int main(int argc, char *argv[])
             else
             { // ip
             }
-        }
+        }*/
 
         // TSI-SP-003 Web
         TcpServer tcpServerWeb{user.WebPort(), "WEB", prod.TcpServerWEB(), &tmrEvt1Sec};

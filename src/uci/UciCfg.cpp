@@ -43,26 +43,33 @@ struct uci_section *UciCfg::GetSection(const char *type, const char *name)
 	return uciSec;
 }
 
-const char *UciCfg::GetStr(struct uci_section *section, const char *option)
+const char *UciCfg::GetStr(struct uci_section *section, const char *option, bool ex)
 {
 	if (ctx == nullptr || section == nullptr)
 	{
 		MyThrow("OPEN '%s/%s' and get *section before calling", PATH, PACKAGE);
 	}
 	const char * str = uci_lookup_option_string(ctx, section, option);
-	if(str==NULL)
+	if(str==NULL && ex)
 	{
-	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+		MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
 	}
 	return str;
 }
 
-int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int max)
+int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int max, bool ex)
 {
-	const char *str = GetStr(section, option);
+	const char *str = GetStr(section, option, ex);
 	if(str==NULL)
 	{
-	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+	    if(ex)
+	    {
+			MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+		}
+		else
+		{
+			return 0;
+		}
 	}
 	errno=0;
 	int x = strtol(str, NULL, 0);
@@ -73,12 +80,19 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	return x;
 }
 
-uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max)
+uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max, bool ex)
 {
-	const char *str = GetStr(section, option);
+	const char *str = GetStr(section, option, ex);
 	if(str==NULL)
 	{
-	    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+	    if(ex)
+	    {
+		    MyThrow("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option);
+		}
+		else
+		{
+			return 0;
+		}
 	}
 	errno=0;
 	uint32_t x = strtoul(str, NULL, 0);

@@ -12,21 +12,7 @@ extern const char *FirmwareVer;
 
 using namespace Utils;
 
-std::string SignCfg::ToString()
-{
-    char buf[64];
-    if (com_ip < COMPORT_SIZE)
-    {
-        snprintf(buf, 255, "%s:%d", gSpConfig[com_ip].name, bps_port);
-    }
-    else
-    {
-        sprintf(buf, "%d.%d.%d.%d:%d",
-                (com_ip >> 24) & 0xFF, (com_ip >> 16) & 0xFF, (com_ip >> 8) & 0xFF, com_ip & 0xFF, bps_port);
-    }
-    std::string s{buf};
-    return s;
-}
+int SignCfg::bps_port = 0;
 
 UciProd::UciProd()
 {
@@ -53,10 +39,11 @@ UciProd::~UciProd()
             }
         }
     }
+    /*
     if (groupCfg != nullptr)
     {
         delete[] groupCfg;
-    }
+    }*/
 }
 
 void UciProd::LoadConfig()
@@ -64,13 +51,14 @@ void UciProd::LoadConfig()
     PrintDbg(DBG_LOG, ">>> Loading 'prod'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciProd";
-    SECTION = "ctrller_cfg";
-    Open();
-    struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
     int ibuf[16];
     const char *str;
     int cnt;
+    Open();
+
+    SECTION = _SectionCtrller;
+    struct uci_section *uciSec = GetSection(SECTION);
 
     tcpServerNTS = GetInt(uciSec, _TcpServerNTS, 1, 8);
     tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
@@ -94,99 +82,15 @@ void UciProd::LoadConfig()
 
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
-    groupCfg = new uint8_t[numberOfSigns];
-    str = GetStr(uciSec, _GroupCfg);
-    cnt = Cnvt::GetIntArray(str, numberOfSigns, ibuf, 1, numberOfSigns);
-    if (cnt == numberOfSigns)
-    {
-        for (cnt = 0; cnt < numberOfSigns; cnt++)
-        {
-            if (ibuf[cnt] == 0 || ibuf[cnt] > numberOfGroups)
-            {
-                MyThrow("UciProd::GroupCfg Error: illegal group id : %d", ibuf[cnt]);
-            }
-            groupCfg[cnt] = ibuf[cnt];
-        }
-    }
-    else
-    {
-        MyThrow("UciProd::GroupCfg Error: cnt!=%d", numberOfSigns);
-    }
-
-    signCfg.resize(numberOfSigns);
-    for (int i = 1; i <= numberOfSigns; i++)
-    {
-        sprintf(cbuf, "%s%d", _Sign, i);
-        str = GetStr(uciSec, cbuf);
-        uint32_t x1, x2, x3, x4, x5;
-        if (sscanf(str, "%u.%u.%u.%u:%u", &x1, &x2, &x3, &x4, &x5) == 5)
-        {
-            if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255 && x5 > 1024 && x5 < 65536)
-            {
-                signCfg[i - 1].com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
-                signCfg[i - 1].bps_port = x5;
-                continue;
-            }
-        }
-        else
-        {
-            for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
-            {
-                if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
-                    break;
-            }
-            if (cnt < COMPORT_SIZE)
-            {
-                signCfg[i - 1].com_ip = cnt;
-                const char *bps = strchr(str, ':');
-                if (bps != NULL)
-                {
-                    bps++;
-                    if (sscanf(bps, "%u", &x5) == 1)
-                    {
-                        for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
-                        {
-                            if (ALLOWEDBPS[cnt] == x5)
-                                break;
-                        }
-                        if (cnt < EXTENDEDBPS_SIZE)
-                        {
-                            signCfg[i - 1].bps_port = x5;
-                            continue;
-                        }
-                    }
-                }
-            }
-        }
-        MyThrow("UciProd Error: %s '%s'", cbuf, str);
-    }
 
     int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
     if (_prodT == 0)
     {
         prodType = PRODUCT::VMS;
-        // VMS should configured as 1 sign per group
-        for (int i = 0; i < numberOfSigns; i++)
-        {
-            if (groupCfg[i] != i + 1)
-            {
-                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
-            }
-        }
     }
     else if (_prodT == 1)
     {
         prodType = PRODUCT::ISLUS;
-        // ISLUS should configured as 1 slave per Sign
-        if (slavesPerSign != 1)
-        {
-            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
-        }
-        for (int i = 1; i <= numberOfSigns; i++)
-        {
-            sprintf(cbuf, "%s%d", _RjctFrmSign, i);
-            ReadBits(uciSec, cbuf, signCfg[i - 1].rjctFrm, false);
-        }
         ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
     }
     else
@@ -381,6 +285,123 @@ void UciProd::LoadConfig()
         }
     }
 
+    /********************* SignX ******************/
+    signCfg.resize(numberOfSigns);
+    SignCfg::bps_port = GetInt(uciSec, _SlaveBpsPort, INT32_MIN, INT32_MAX);
+    if (SignCfg::bps_port > 0)
+    { // COM:Bps
+        for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
+        {
+            if (ALLOWEDBPS[cnt] == SignCfg::bps_port)
+                break;
+        }
+        if (cnt == EXTENDEDBPS_SIZE)
+        {
+            MyThrow("UciProd Error: %s '%d'(Not standard Bps)", _SlaveBpsPort, SignCfg::bps_port);
+        }
+    }
+    else
+    { // IP:Port
+        int port = -SignCfg::bps_port;
+        if (port < 1024 || port > 0xFFFF)
+        {
+            MyThrow("UciProd Error: %s '%d'(Port should be '-'1024~65535)", _SlaveBpsPort, SignCfg::bps_port);
+        }
+    }
+    char signx[8];
+    SECTION = signx;
+    for (int i = 0; i < numberOfSigns; i++)
+    {
+        auto &_sign = signCfg.at(i);
+        sprintf(signx, "%s%d", _SectionSign, i + 1);
+        uciSec = GetSection(SECTION);
+        _sign.groupId = GetInt(uciSec, _GroupId, 1, numberOfGroups);
+        ReadBits(uciSec, _RjctFrm, _sign.rjctFrm, false);
+        if (SignCfg::bps_port > 0)
+        { // COM
+            str = GetStr(uciSec, _COM);
+            for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
+            {
+                if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
+                    break;
+            }
+            if (cnt == COMPORT_SIZE)
+            {
+                MyThrow("UciProd Error: %s: %s '%s'", signx, _COM, str);
+            }
+            _sign.com_ip = cnt;
+        }
+        else
+        { // IP
+            str = GetStr(uciSec, _IP);
+            uint32_t x1, x2, x3, x4;
+            if (sscanf(str, "%u.%u.%u.%u", &x1, &x2, &x3, &x4) == 4)
+            {
+                if (x1 != 0 && x1 < 256 && x2 < 256 && x3 < 256 && x4 != 0 && x4 < 255)
+                {
+                    _sign.com_ip = ((x1 * 0x100 + x2) * 0x100 + x3) * 0x100 + x4;
+                }
+                else
+                {
+                    MyThrow("UciProd Error: %s: %s '%s'", signx, _IP, str);
+                }
+            }
+        }
+    }
+
+    if (SignCfg::bps_port > 0)
+    { // check COM
+        for (int g = 1; g <= numberOfGroups; g++)
+        {
+            int com = -1;
+            for (int i = 0; i < numberOfSigns; i++)
+            {
+                auto &_sign = signCfg.at(i);
+                if (_sign.groupId == g)
+                {
+                    if (com < 0)
+                    {
+                        com = _sign.com_ip;
+                    }
+                    else
+                    {
+                        if (com != _sign.com_ip)
+                        {
+                            MyThrow("UciProd Error: Signs in Group[%d] should have same COM", g);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (_prodT == 0)
+    {
+        prodType = PRODUCT::VMS;
+        // VMS should configured as 1 sign per group
+        for (int i = 0; i < numberOfSigns; i++)
+        {
+            if (signCfg.at(i).groupId != (i + 1))
+            {
+                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
+            }
+        }
+    }
+    else if (_prodT == 1)
+    {
+        prodType = PRODUCT::ISLUS;
+        // ISLUS should configured as 1 slave per Sign
+        if (slavesPerSign != 1)
+        {
+            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
+        }
+        ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
+    }
+    else
+    {
+        MyThrow("UciProd Error: %s: unknown", _ProdType);
+    }
+
     Close();
     Dump();
 
@@ -449,7 +470,7 @@ void UciProd::LoadConfig()
 void UciProd::Dump()
 {
     PrintDash('<');
-    printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
+    printf("%s/%s.%s\n", PATH, PACKAGE, _SectionCtrller);
 
     PrintOption_d(_TcpServerNTS, TcpServerNTS());
     PrintOption_d(_TcpServerWEB, TcpServerWEB());
@@ -458,20 +479,6 @@ void UciProd::Dump()
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);
     PrintOption_str(_MfcCode, MfcCode());
-
-    PrintOption_d(_NumberOfSigns, NumberOfSigns());
-    for (int i = 1; i <= NumberOfSigns(); i++)
-    {
-        printf("\t%s%d \t'%s'\n", _Sign, i, GetSignCfg(i).ToString().c_str());
-    }
-
-    PrintOption_d(_NumberOfGroups, NumberOfGroups());
-    printf("\t%s \t'%u", _GroupCfg, groupCfg[0]);
-    for (int i = 1; i < numberOfSigns; i++)
-    {
-        printf(",%u", groupCfg[i]);
-    }
-    printf("'\n");
 
     PrintOption_d(_PixelRows, PixelRows());
     PrintOption_d(_PixelColumns, PixelColumns());
@@ -544,17 +551,36 @@ void UciProd::Dump()
     PrintOption_d(_IsResetLogAllowed, IsResetLogAllowed());
     PrintOption_d(_IsUpgradeAllowed, IsUpgradeAllowed());
     PrintOption_d(_LoadLastDisp, LoadLastDisp());
-    
+
     if (prodType == PRODUCT::ISLUS)
     {
-        char cbuf[32];
-        for (int i = 1; i <= numberOfSigns; i++)
-        {
-            sprintf(cbuf, "%s%d", _RjctFrmSign, i);
-            PrintOption_str(cbuf, signCfg[i - 1].rjctFrm.ToString().c_str());
-        }
         PrintOption_str(_IslusSpFrm, bIslusSpFrm.ToString().c_str());
     }
+
+    PrintOption_d(_SlaveBpsPort, SignCfg::bps_port);
+    PrintOption_d(_NumberOfGroups, NumberOfGroups());
+    PrintOption_d(_NumberOfSigns, NumberOfSigns());
+
+    char ipbuf[16];
+    for (int i = 1; i <= NumberOfSigns(); i++)
+    {
+        printf("\n%s/%s.%s%d\n", PATH, PACKAGE, _SectionSign, i);
+        auto &cfg = GetSignCfg(i);
+        PrintOption_d(_GroupId, cfg.groupId);
+        auto com_ip = cfg.com_ip;
+        if (com_ip < COMPORT_SIZE)
+        {
+            PrintOption_str(_COM, gSpConfig[com_ip].name);
+        }
+        else
+        {
+            uint8_t *p = (uint8_t *)(&com_ip);
+            sprintf(ipbuf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
+            PrintOption_str(_IP, ipbuf);
+        }
+        PrintOption_str(_RjctFrm, cfg.rjctFrm.ToString().c_str());
+    }
+
     PrintDash('>', "\n");
 }
 
