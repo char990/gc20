@@ -55,20 +55,44 @@ void DebugConsole::EventsHandle(uint32_t events)
     }
 }
 
-extern bool ticktock;
 void DebugConsole::Process()
 {
+    int len = strlen(inbuf);
+    if(len==0 || len>=DC_INBUF_SIZE)
+    {
+        printf("\n");
+        return;
+    }
     printf("Console got '%s'\n", inbuf);
-    bool hit = false;
     if (strcmp(inbuf, "t") == 0)
     {
-        hit = true;
-        printf("Ticktock %s\n", ticktock ? "OFF" : "ON");
-        ticktock = !ticktock;
+        Cmd_t();
     }
-    if (hit == false)
+    else if(strcmp(inbuf, "?") == 0)
+    {
+        Cmd_help();
+    }
+    else
     {
         printf("Unknown command\nPlease use command from the Command list:\n");
-        printf("t = Ticktock ON/OFF\n");
+        Cmd_help();
     }
 }
+
+void DebugConsole::Cmd_help()
+{
+    PrintDash('-');
+    printf("CMD\t| Comments\n");
+    PrintDash('-');
+    printf("?\t| This help\n");
+    printf("t\t| Ticktock ON/OFF\n");
+    PrintDash('-');
+}
+
+extern bool ticktock;
+void DebugConsole::Cmd_t()
+{
+    printf("Ticktock %s\n", ticktock ? "OFF" : "ON");
+    ticktock = !ticktock;
+}
+

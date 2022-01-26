@@ -64,7 +64,7 @@ void UciProd::LoadConfig()
     tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
     tcpTimeout = GetInt(uciSec, _TcpTimeout, 60, 0xFFFF);
 
-    tsiSp003Ver = GetIntFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
+    tsiSp003Ver = GetIndexFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
@@ -83,7 +83,7 @@ void UciProd::LoadConfig()
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
 
-    int _prodT = GetIntFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
+    int _prodT = GetIndexFromStrz(uciSec, _ProdType, PRODTYPE, PRODTYPE_SIZE);
     if (_prodT == 0)
     {
         prodType = PRODUCT::VMS;

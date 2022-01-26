@@ -14,4 +14,8 @@ private:
     int cnt{0};
     void Process();
     int _fcntl;
+
+    // command list
+    void Cmd_help();
+    void Cmd_t();
 };

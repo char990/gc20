@@ -27,7 +27,7 @@ public:
 	int GetInt(struct uci_section *section, const char *option, int min, int max, bool ex=true);
 	uint32_t GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max, bool ex=true);
 	void ReadBits(struct uci_section *section, const char *option, Utils::Bits &bo, bool ex=true);
-	int GetIntFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize);
+	int GetIndexFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize);
 
 protected:
 	struct uci_context *ctx;

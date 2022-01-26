@@ -207,7 +207,7 @@ void UciUser::LoadConfig()
         COM_NAME[i] = gSpConfig[i].name;
     }
     str = GetStr(uciSec, _ComPort);
-    comPort = GetIntFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
+    comPort = GetIndexFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
     for (uint8_t i = 1; i <= numberOfSigns; i++)
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)

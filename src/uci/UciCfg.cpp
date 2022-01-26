@@ -318,7 +318,7 @@ void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bit
 	}
 }
 
-int UciCfg::GetIntFromStrz(struct uci_section * uciSec, const char *option, const char **collection, int cSize)
+int UciCfg::GetIndexFromStrz(struct uci_section * uciSec, const char *option, const char **collection, int cSize)
 {
     const char *str = GetStr(uciSec, option);
     for (int cnt = 0; cnt < cSize; cnt++)
