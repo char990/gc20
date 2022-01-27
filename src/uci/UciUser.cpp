@@ -214,6 +214,10 @@ void UciUser::LoadConfig()
         {
             MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i - 1], i);
         }
+        if (comPort == uciProd.MonitoringPort())
+        {
+            MyThrow("UciUser::%s: %s used by Prod.MonitoringPort", _ComPort, COM_NAME[i - 1]);
+        }
     }
 
     Close();

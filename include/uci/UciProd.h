@@ -113,6 +113,9 @@ public:
 
     uint8_t LoadLastDisp() { return loadLastDisp; };
 
+    uint8_t MonitoringPort() {return monitoringPort;};
+    uint8_t MonitoringBps() {return monitoringBps;};
+
 private:
     ///  ---------- section -----------
     const char *_SectionCtrller = "ctrller_cfg";
@@ -265,4 +268,9 @@ private:
     int gfx1FrmLen;
     int gfx4FrmLen;
     int gfx24FrmLen;
+
+    uint8_t monitoringPort;
+    const char *_MonitoringPort = "MonitoringPort";
+    int monitoringBps;
+    const char *_MonitoringBps = "MonitoringBps";
 };

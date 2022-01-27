@@ -1,12 +1,48 @@
 #include <3rdparty/catch2/enable_test.h>
 #ifdef CATCH2TEST
 #define CATCH_CONFIG_MAIN
+#include <time.h>
 #include <3rdparty/catch2/catch.hpp>
 #include <module/Utils.h>
 #include <module/Debounce.h>
-#include <time.h>
+#include <module/RingBuf.h>
 
 using namespace Utils;
+
+TEST_CASE("Class RingBuf", "[RingBuf]")
+{
+#define RB_SIZE 1024
+#define RB_BYTE1 343
+#define RB_BYTE2 486
+    RingBuf rb(RB_SIZE);
+    char inbuf[RB_SIZE];
+    auto p = (int *)(inbuf);
+    for(int i=0;i<RB_SIZE/4;i++)
+    {
+        *p=i;
+    }
+    char outbuf[RB_SIZE];
+    SECTION("basic push pop")
+    {
+        REQUIRE(rb.Size() == RB_SIZE);
+        rb.Push(inbuf, RB_BYTE1);
+        REQUIRE(rb.Cnt() == RB_BYTE1);
+        rb.Push(inbuf, RB_BYTE2);
+        REQUIRE(rb.Cnt() == (RB_BYTE1 + RB_BYTE2));
+        rb.Pop(outbuf, RB_BYTE1);
+        REQUIRE(rb.Cnt() == RB_BYTE2);
+        rb.Pop(outbuf, RB_BYTE2);
+        REQUIRE(rb.Cnt() == 0);
+        rb.Push(inbuf, RB_BYTE2);
+        rb.Push(inbuf, RB_BYTE1);
+        memset(outbuf, 0, RB_SIZE);
+        rb.Pop(outbuf, RB_BYTE2);
+        REQUIRE(memcmp(inbuf, outbuf, RB_BYTE2) == 0);
+        memset(outbuf, 0, RB_SIZE);
+        rb.Pop(outbuf, RB_BYTE1);
+        REQUIRE(memcmp(inbuf, outbuf, RB_BYTE1) == 0);
+    }
+}
 
 TEST_CASE("Class Utils::Bits", "[Bits]")
 {
@@ -251,33 +287,31 @@ TEST_CASE("Class Utils::Bits", "[Bits]")
     }
 }
 
-
-
 TEST_CASE("Class DebounceByTime", "[DebounceByTime]")
 {
 #define DBNC_TIME_START 10000
-#define SET_DBNC_TIMET(a) ((time_t)(a+DBNC_TIME_START))
+#define SET_DBNC_TIMET(a) ((time_t)(a + DBNC_TIME_START))
     DebounceByTime dbnc;
     int RISING_CNT = 50;
     int FALING_CNT = 20;
-    
+
     dbnc.SetCNT(RISING_CNT, FALING_CNT);
     dbnc.Reset();
     SECTION("dbnc by time start")
     {
-        int t=0;
+        int t = 0;
         dbnc.Check(1, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.Value() == Utils::STATE5::S5_NA);
-        t+=RISING_CNT-1;
+        t += RISING_CNT - 1;
         dbnc.Check(1, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.Value() == Utils::STATE5::S5_NA);
         t++;
         dbnc.Check(1, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.IsRising() == true);
-        
+
         dbnc.Check(0, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.IsRising() == true);
-        t+=FALING_CNT-1;
+        t += FALING_CNT - 1;
         dbnc.Check(0, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.IsRising() == true);
         t++;
@@ -287,7 +321,7 @@ TEST_CASE("Class DebounceByTime", "[DebounceByTime]")
         dbnc.Check(1, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.IsFalling() == true);
 
-        t+=RISING_CNT-1;
+        t += RISING_CNT - 1;
         dbnc.Check(1, SET_DBNC_TIMET(t));
         REQUIRE(dbnc.IsFalling() == true);
         t++;
@@ -318,7 +352,7 @@ TEST_CASE("Class Debounce", "[Debounce]")
 
     SECTION("N/A->Rising")
     {
-        for(int i=0;i<RISING_CNT-1;i++)
+        for (int i = 0; i < RISING_CNT - 1; i++)
         {
             test.Check(1);
             REQUIRE(test.Value() == Utils::STATE5::S5_NA);
@@ -326,10 +360,10 @@ TEST_CASE("Class Debounce", "[Debounce]")
         test.Check(1);
         REQUIRE(test.IsRising() == true);
     }
-    
+
     SECTION("N/A->Falling")
     {
-        for(int i=0;i<FALING_CNT-1;i++)
+        for (int i = 0; i < FALING_CNT - 1; i++)
         {
             test.Check(0);
             REQUIRE(test.Value() == Utils::STATE5::S5_NA);
@@ -342,7 +376,7 @@ TEST_CASE("Class Debounce", "[Debounce]")
     {
         test.Check(1, RISING_CNT);
         REQUIRE(test.IsRising() == true);
-        for(int i=0;i<FALING_CNT-1;i++)
+        for (int i = 0; i < FALING_CNT - 1; i++)
         {
             test.Check(0);
             REQUIRE(test.IsRising() == true);
@@ -355,7 +389,7 @@ TEST_CASE("Class Debounce", "[Debounce]")
     {
         test.Check(0, FALING_CNT);
         REQUIRE(test.IsFalling() == true);
-        for(int i=0;i<RISING_CNT-1;i++)
+        for (int i = 0; i < RISING_CNT - 1; i++)
         {
             test.Check(1);
             REQUIRE(test.IsFalling() == true);
@@ -364,6 +398,5 @@ TEST_CASE("Class Debounce", "[Debounce]")
         REQUIRE(test.IsRising() == true);
     }
 }
-
 
 #endif

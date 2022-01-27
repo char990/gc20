@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485
         IUpperLayer *uiLayer = new UI_LayerManager(gSpConfig[user.ComPort()].name, "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
+        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), user.Baudrate(), uiLayer};
         // Slaves
         if (SignCfg::bps_port > 0)
         { // Slaves of Groups on RS485

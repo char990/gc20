@@ -285,6 +285,28 @@ void UciProd::LoadConfig()
         }
     }
 
+    str = GetStr(uciSec, _MonitoringPort);
+    for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
+    {
+        if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
+            break;
+    }
+    if (cnt == COMPORT_SIZE)
+    {
+        MyThrow("UciProd Error: %s '%s'", _MonitoringPort, str);
+    }
+    monitoringPort = cnt;
+    monitoringBps = GetInt(uciSec, _MonitoringBps, INT32_MIN, INT32_MAX);
+    for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
+    {
+        if (ALLOWEDBPS[cnt] == monitoringBps)
+            break;
+    }
+    if (cnt == EXTENDEDBPS_SIZE)
+    {
+        MyThrow("UciProd Error: %s '%d'(Not standard Bps)", _MonitoringBps, monitoringBps);
+    }
+
     /********************* SignX ******************/
     signCfg.resize(numberOfSigns);
     SignCfg::bps_port = GetInt(uciSec, _SlaveBpsPort, INT32_MIN, INT32_MAX);
@@ -327,7 +349,11 @@ void UciProd::LoadConfig()
             }
             if (cnt == COMPORT_SIZE)
             {
-                MyThrow("UciProd Error: %s: %s '%s'", signx, _COM, str);
+                MyThrow("UciProd Error: %s: %s '%s' - unknown COM", signx, _COM, str);
+            }
+            if (cnt == monitoringPort)
+            {
+                MyThrow("UciProd Error: %s: %s '%s' - Used by MonitoringPort", signx, _COM, str);
             }
             _sign.com_ip = cnt;
         }
@@ -556,6 +582,9 @@ void UciProd::Dump()
     {
         PrintOption_str(_IslusSpFrm, bIslusSpFrm.ToString().c_str());
     }
+
+    PrintOption_str(_MonitoringPort, gSpConfig[monitoringPort].name);
+    PrintOption_d(_MonitoringBps, MonitoringBps());
 
     PrintOption_d(_SlaveBpsPort, SignCfg::bps_port);
     PrintOption_d(_NumberOfGroups, NumberOfGroups());
