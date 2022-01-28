@@ -285,45 +285,16 @@ void UciProd::LoadConfig()
         }
     }
 
-    str = GetStr(uciSec, _MonitoringPort);
-    for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
-    {
-        if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
-            break;
-    }
-    if (cnt == COMPORT_SIZE)
-    {
-        MyThrow("UciProd Error: %s '%s'", _MonitoringPort, str);
-    }
-    monitoringPort = cnt;
-    monitoringBps = GetInt(uciSec, _MonitoringBps, INT32_MIN, INT32_MAX);
-    for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
-    {
-        if (ALLOWEDBPS[cnt] == monitoringBps)
-            break;
-    }
-    if (cnt == EXTENDEDBPS_SIZE)
-    {
-        MyThrow("UciProd Error: %s '%d'(Not standard Bps)", _MonitoringBps, monitoringBps);
-    }
+    monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
+
+    monitoringBps = GetInt(uciSec, _MonitoringBps, ALLOWEDBPS, STANDARDBPS_SIZE);
 
     /********************* SignX ******************/
     signCfg.resize(numberOfSigns);
-    SignCfg::bps_port = GetInt(uciSec, _SlaveBpsPort, INT32_MIN, INT32_MAX);
-    if (SignCfg::bps_port > 0)
-    { // COM:Bps
-        for (cnt = 0; cnt < EXTENDEDBPS_SIZE; cnt++)
-        {
-            if (ALLOWEDBPS[cnt] == SignCfg::bps_port)
-                break;
-        }
-        if (cnt == EXTENDEDBPS_SIZE)
-        {
-            MyThrow("UciProd Error: %s '%d'(Not standard Bps)", _SlaveBpsPort, SignCfg::bps_port);
-        }
-    }
-    else
+    SignCfg::bps_port = GetInt(uciSec, _SlaveBpsPort, ALLOWEDBPS, STANDARDBPS_SIZE, false);
+    if (SignCfg::bps_port == 0)
     { // IP:Port
+        SignCfg::bps_port = GetInt(uciSec, _SlaveBpsPort, INT_MIN, INT_MAX);
         int port = -SignCfg::bps_port;
         if (port < 1024 || port > 0xFFFF)
         {
@@ -341,21 +312,11 @@ void UciProd::LoadConfig()
         ReadBits(uciSec, _RjctFrm, _sign.rjctFrm, false);
         if (SignCfg::bps_port > 0)
         { // COM
-            str = GetStr(uciSec, _COM);
-            for (cnt = 1; cnt < COMPORT_SIZE; cnt++)
-            {
-                if (memcmp(str, gSpConfig[cnt].name, 4) == 0)
-                    break;
-            }
-            if (cnt == COMPORT_SIZE)
-            {
-                MyThrow("UciProd Error: %s: %s '%s' - unknown COM", signx, _COM, str);
-            }
-            if (cnt == monitoringPort)
+            _sign.com_ip = GetIndexFromStrz(uciSec, _COM, COM_NAME, COMPORT_SIZE);
+            if (_sign.com_ip == monitoringPort)
             {
                 MyThrow("UciProd Error: %s: %s '%s' - Used by MonitoringPort", signx, _COM, str);
             }
-            _sign.com_ip = cnt;
         }
         else
         { // IP
@@ -583,7 +544,7 @@ void UciProd::Dump()
         PrintOption_str(_IslusSpFrm, bIslusSpFrm.ToString().c_str());
     }
 
-    PrintOption_str(_MonitoringPort, gSpConfig[monitoringPort].name);
+    PrintOption_str(_MonitoringPort, COM_NAME[monitoringPort]);
     PrintOption_d(_MonitoringBps, MonitoringBps());
 
     PrintOption_d(_SlaveBpsPort, SignCfg::bps_port);
@@ -599,7 +560,7 @@ void UciProd::Dump()
         auto com_ip = cfg.com_ip;
         if (com_ip < COMPORT_SIZE)
         {
-            PrintOption_str(_COM, gSpConfig[com_ip].name);
+            PrintOption_str(_COM, COM_NAME[com_ip]);
         }
         else
         {

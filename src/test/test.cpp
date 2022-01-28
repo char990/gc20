@@ -26,21 +26,35 @@ TEST_CASE("Class RingBuf", "[RingBuf]")
     {
         REQUIRE(rb.Size() == RB_SIZE);
         rb.Push(inbuf, RB_BYTE1);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(rb.Cnt() == RB_BYTE1);
         rb.Push(inbuf, RB_BYTE2);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(rb.Cnt() == (RB_BYTE1 + RB_BYTE2));
         rb.Pop(outbuf, RB_BYTE1);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(rb.Cnt() == RB_BYTE2);
         rb.Pop(outbuf, RB_BYTE2);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(rb.Cnt() == 0);
         rb.Push(inbuf, RB_BYTE2);
+        printf("%s", rb.ToString().c_str());
         rb.Push(inbuf, RB_BYTE1);
+        printf("%s", rb.ToString().c_str());
         memset(outbuf, 0, RB_SIZE);
         rb.Pop(outbuf, RB_BYTE2);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(memcmp(inbuf, outbuf, RB_BYTE2) == 0);
         memset(outbuf, 0, RB_SIZE);
         rb.Pop(outbuf, RB_BYTE1);
+        printf("%s", rb.ToString().c_str());
         REQUIRE(memcmp(inbuf, outbuf, RB_BYTE1) == 0);
+        rb.Push(inbuf, RB_BYTE1);
+        printf("%s", rb.ToString().c_str());
+        int x = rb.Pop(outbuf, RB_BYTE2);
+        printf("%s", rb.ToString().c_str());
+        REQUIRE(x == RB_BYTE1);
+        REQUIRE(rb.Cnt() == 0);
     }
 }
 

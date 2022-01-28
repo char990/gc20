@@ -16,15 +16,26 @@ int ALLOWEDBPS[EXTENDEDBPS_SIZE]={
 	300,600,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600
 };
 
+const char *COM_NAME[COMPORT_SIZE]=
+{
+	"MODEM",
+	"COM1",
+	"COM2",
+	"COM3",
+	"COM4",
+	"COM5",
+	"COM6"
+};
+
 SpConfig gSpConfig [COMPORT_SIZE] =
 {
-	SpConfig{"MODEM", "/dev/ttymxc3", SpConfig::SpMode::RS232},
-	SpConfig{"COM1", "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM2", "/dev/ttymxc1", SpConfig::SpMode::RS232},
-	SpConfig{"COM3", "/dev/ttymxc5", SpConfig::SpMode::RS232},
-	SpConfig{"COM4", "/dev/ttymxc4", SpConfig::SpMode::RS232},
-	SpConfig{"COM5", "/dev/ttySC0", SpConfig::SpMode::RS485_01},
-	SpConfig{"COM6", "/dev/ttySC1", SpConfig::SpMode::RS485_01},
+	SpConfig{COM_NAME[0], "/dev/ttymxc3", SpConfig::SpMode::RS232},
+	SpConfig{COM_NAME[1], "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
+	SpConfig{COM_NAME[2], "/dev/ttymxc1", SpConfig::SpMode::RS232},
+	SpConfig{COM_NAME[3], "/dev/ttymxc5", SpConfig::SpMode::RS232},
+	SpConfig{COM_NAME[4], "/dev/ttymxc4", SpConfig::SpMode::RS232},
+	SpConfig{COM_NAME[5], "/dev/ttySC0", SpConfig::SpMode::RS485_01},
+	SpConfig{COM_NAME[6], "/dev/ttySC1", SpConfig::SpMode::RS485_01},
 };
 
 SerialPort::SerialPort(SpConfig & config)

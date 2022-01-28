@@ -54,6 +54,7 @@ public:
 };
 
 #define COMPORT_SIZE 7
+extern const char *COM_NAME[COMPORT_SIZE];
 extern SpConfig gSpConfig[COMPORT_SIZE];
 
 /// \brief		SerialPort object is used to perform rx/tx serial communication.

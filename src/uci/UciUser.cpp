@@ -82,18 +82,7 @@ void UciUser::LoadConfig()
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
-    baudrate = GetInt(uciSec, _Baudrate, ALLOWEDBPS[0], ALLOWEDBPS[STANDARDBPS_SIZE - 1]);
-    {
-        for (cnt = 0; cnt < STANDARDBPS_SIZE; cnt++)
-        {
-            if (baudrate == ALLOWEDBPS[cnt])
-                break;
-        }
-        if (cnt == STANDARDBPS_SIZE)
-        {
-            MyThrow("UciUser::Unknown Baudrate");
-        }
-    }
+    baudrate = GetInt(uciSec, _Baudrate, ALLOWEDBPS, STANDARDBPS_SIZE);
 
     str = GetStr(uciSec, _ShakehandsPassword);
     if (str == NULL)
@@ -201,23 +190,17 @@ void UciUser::LoadConfig()
 
     int numberOfSigns = uciProd.NumberOfSigns();
 
-    const char *COM_NAME[COMPORT_SIZE];
-    for (int i = 0; i < COMPORT_SIZE; i++)
-    {
-        COM_NAME[i] = gSpConfig[i].name;
-    }
-    str = GetStr(uciSec, _ComPort);
     comPort = GetIndexFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
     for (uint8_t i = 1; i <= numberOfSigns; i++)
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
-            MyThrow("UciUser::%s: %s assigned to Sign%d", _ComPort, COM_NAME[i - 1], i);
+            MyThrow("UciUser::%s: %s used by UciProd.Sign%d", _ComPort, COM_NAME[comPort], i);
         }
-        if (comPort == uciProd.MonitoringPort())
-        {
-            MyThrow("UciUser::%s: %s used by Prod.MonitoringPort", _ComPort, COM_NAME[i - 1]);
-        }
+    }
+    if (comPort == uciProd.MonitoringPort())
+    {
+        MyThrow("UciUser::%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]);
     }
 
     Close();
@@ -261,7 +244,7 @@ void UciUser::Dump()
     PrintOption_d(_LastFrmOn, LastFrmOn());
 
     PrintOption_str(_TZ, TZ());
-    PrintOption_str(_ComPort, gSpConfig[ComPort()].name);
+    PrintOption_str(_ComPort, COM_NAME[ComPort()]);
 
     char buf[256];
 
@@ -451,7 +434,7 @@ void UciUser::ComPort(uint8_t v)
     if (comPort != v)
     {
         comPort = v;
-        OpenSaveClose(SECTION, _ComPort, gSpConfig[comPort].name);
+        OpenSaveClose(SECTION, _ComPort, COM_NAME[comPort]);
     }
 }
 

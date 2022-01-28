@@ -25,6 +25,7 @@ public:
 	/// Get option in section, must call Open() before using
 	const char *GetStr(struct uci_section *section, const char *option, bool ex=true);
 	int GetInt(struct uci_section *section, const char *option, int min, int max, bool ex=true);
+	int GetInt(struct uci_section * uciSec, const char *option, const int *collection, int cSize, bool ex=true);
 	uint32_t GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max, bool ex=true);
 	void ReadBits(struct uci_section *section, const char *option, Utils::Bits &bo, bool ex=true);
 	int GetIndexFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize);

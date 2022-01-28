@@ -9,6 +9,7 @@
 #include <layer/ILayer.h>
 #include <layer/ISession.h>
 #include <tsisp003/TsiSp003Const.h>
+#include <module/OprSp.h>
 
 /// \brief  LayerNTS is Network+Transport+Session Layer of TsiSp003
 ///         It's the upper of DataLink Layer and lower of Presentation Layer
@@ -19,6 +20,8 @@ public:
     LayerNTS(std::string name_);
     ~LayerNTS();
     
+    static OprSp * monitor;
+
     static std::vector<LayerNTS *> storage; 
     static bool IsAnySessionTimeout();
     static void ClearAllSessionTimeout();

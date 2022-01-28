@@ -17,6 +17,7 @@
 #include <module/TcpServer.h>
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
+#include <layer/LayerNTS.h>
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
@@ -234,9 +235,10 @@ int main(int argc, char *argv[])
             oprSp[i] = nullptr;
         }
         // TSI-SP-003 RS232/485
-        IUpperLayer *uiLayer = new UI_LayerManager(gSpConfig[user.ComPort()].name, "NTS");
+        IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[user.ComPort()], "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
-        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), user.Baudrate(), uiLayer};
+        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr};
+        LayerNTS::monitor = oprSp[prod.MonitoringPort()];
         // Slaves
         if (SignCfg::bps_port > 0)
         { // Slaves of Groups on RS485
@@ -246,7 +248,7 @@ int main(int argc, char *argv[])
                 if (oprSp[cn.com_ip]==nullptr)
                 {
                     auto g = Controller::Instance().GetGroup(cn.groupId);
-                    IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn.com_ip].name, g);
+                    IUpperLayer *upperLayer = new SLV_LayerManager(COM_NAME[cn.com_ip], g);
                     oprSp[cn.com_ip] = new OprSp{(uint8_t)cn.com_ip, SignCfg::bps_port, upperLayer};
                     g->SetOprSp(oprSp[cn.com_ip]);
                 }
@@ -256,35 +258,6 @@ int main(int argc, char *argv[])
         { // ip
             MyThrow("TODO: Slave on IP:Port");
         }
-        /*for (int i = 1; i <= prod.NumberOfSigns(); i++)
-        {
-            auto &cn = prod.GetSignCfg(i);
-            if (cn.com_ip < COMPORT_SIZE)
-            { // com port
-                if (oprSp[cn.com_ip] == nullptr)
-                {
-                    for (uint8_t g = 1; g <= Controller::Instance().GroupCnt(); g++)
-                    {
-                        if (Controller::Instance().GetGroup(g)->IsSignInGroup(i))
-                        {
-                            IUpperLayer *upperLayer = new SLV_LayerManager(gSpConfig[cn.com_ip].name, Controller::Instance().GetGroup(g));
-                            oprSp[cn.com_ip] = new OprSp{(uint8_t)cn.com_ip, cn.bps_port, upperLayer};
-                            Controller::Instance().GetGroup(g)->SetOprSp(oprSp[cn.com_ip]);
-                        }
-                    }
-                }
-                else
-                {
-                    if (oprSp[cn.com_ip]->Bps() != cn.bps_port)
-                    {
-                        MyThrow("Sign%d baudrate error. Baudrate on %s should be same", i + 1, oprSp[cn.com_ip]->Name());
-                    }
-                }
-            }
-            else
-            { // ip
-            }
-        }*/
 
         // TSI-SP-003 Web
         TcpServer tcpServerWeb{user.WebPort(), "WEB", prod.TcpServerWEB(), &tmrEvt1Sec};

@@ -71,6 +71,14 @@ public:
     int Cnt() { return cnt; };
     int Cap() { return size - cnt; };
 
+    std::string ToString()
+    {
+        char str[256];
+        sprintf(str, "\nthis=%p\nsize=%d\ncnt=%d\ncap=%d\npPush=%p\npPop=%p\nbuf=%p\nbufEnd=%p\n",
+                this, size, cnt, Cap(), pPush, pPop, buf, bufEnd);
+        return std::string(str);
+    };
+
 private:
     int size;
     int cnt;

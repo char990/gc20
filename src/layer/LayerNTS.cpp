@@ -29,6 +29,8 @@ const MI::CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
 
 std::vector<LayerNTS *> LayerNTS::storage;
 
+OprSp * LayerNTS::monitor = nullptr;
+
 LayerNTS::LayerNTS(std::string name_)
 {
     name = name_ + ":" + "NTS";
@@ -48,7 +50,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
         PrintDbg(DBG_LOG, "NOT my addr: %d", addr);
         return 0;
     }
-    if(data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
+    if (data[7] != static_cast<uint8_t>(CTRL_CHAR::STX))
     {
         PrintDbg(DBG_LOG, "Missing STX at [7]");
         return 0;
@@ -56,12 +58,12 @@ int LayerNTS::Rx(uint8_t *data, int len)
     if (len < 15 || (len & 1) == 0)
     {
         uint8_t data[3];
-        data[0]=0;
-        data[1]=Cnvt::ParseToU8((char *)data + 8);
-        data[2]=3;
+        data[0] = 0;
+        data[1] = Cnvt::ParseToU8((char *)data + 8);
+        data[2] = 3;
         char dst[6];
         Cnvt::ParseToAsc(data, dst, 3);
-        Tx((uint8_t *)dst,6);
+        Tx((uint8_t *)dst, 6);
         return 0;
     }
     uint16_t crc1 = Crc::Crc16_1021(data, len - 5);
@@ -70,6 +72,10 @@ int LayerNTS::Rx(uint8_t *data, int len)
     {
         MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
         lowerLayer->Tx(txbuf, 10);
+        if (monitor != nullptr)
+        {
+            monitor->Tx(txbuf, 10);
+        }
         return 0;
     }
     _addr = addr;
@@ -101,6 +107,10 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 { // ns nr not matched
                     MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
                     lowerLayer->Tx(txbuf, 10);
+                    if (monitor != nullptr)
+                    {
+                        monitor->Tx(txbuf, 10);
+                    }
                     return 0;
                 }
             }
@@ -117,7 +127,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 {
                     if (i == BROADCAST_MI_SIZE - 1)
                     {
-                        PrintDbg(DBG_LOG, "Unsupported broadcast cmd:%d",mi);
+                        PrintDbg(DBG_LOG, "Unsupported broadcast cmd:%d", mi);
                         return 0;
                     }
                 }
@@ -128,7 +138,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     {
         if (addr == user.BroadcastId())
         { // ignore broadcast when off-line
-            PrintDbg(DBG_LOG, "Ignore broadcast when off-line:cmd=%d",mi);
+            PrintDbg(DBG_LOG, "Ignore broadcast when off-line:cmd=%d", mi);
             return 0;
         }
     }
@@ -137,7 +147,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     if (session == ISession::SESSION::ON_LINE)
     {
         long ms = user.SessionTimeout();
-        if(ms==0)
+        if (ms == 0)
         {
             ntsSessionTimeout.Clear();
         }
@@ -178,6 +188,10 @@ int LayerNTS::Tx(uint8_t *data, int len)
     memcpy(p, data, len);
     EndOfBlock(txbuf + NON_DATA_PACKET_SIZE, len + DATA_PACKET_HEADER_SIZE);
     lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE + DATA_PACKET_HEADER_SIZE + len + DATA_PACKET_EOB_SIZE);
+    if (monitor != nullptr)
+    {
+        monitor->Tx(txbuf, NON_DATA_PACKET_SIZE + DATA_PACKET_HEADER_SIZE + len + DATA_PACKET_EOB_SIZE);
+    }
     if (session == ISession::SESSION::ON_LINE)
     {
         _ns = IncN(_ns);
@@ -194,6 +208,10 @@ void LayerNTS::ClrRx()
 void LayerNTS::ClrTx()
 {
     lowerLayer->ClrTx();
+    if (monitor != nullptr)
+    {
+        monitor->ClrTx();
+    }
 }
 
 /// -------------------------------------------------------

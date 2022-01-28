@@ -332,6 +332,23 @@ int UciCfg::GetIndexFromStrz(struct uci_section * uciSec, const char *option, co
 	return 0; // avoid warning
 }
 
+int UciCfg::GetInt(struct uci_section * uciSec, const char *option, const int *collection, int cSize, bool ex)
+{
+    int x = GetInt(uciSec, option, INT_MIN, INT_MAX, ex);
+    for (int cnt = 0; cnt < cSize; cnt++)
+    {
+        if (x ==  collection[cnt])
+        {
+            return x;
+        }
+    }
+	if(ex)
+	{
+	    MyThrow("Uci Error: option %s.%s '%d' is not a valid value", uciSec->e.name, option, x);
+	}
+	return 0;
+}
+
 void UciCfg::ClrSECTION()
 {
     char dst[256];

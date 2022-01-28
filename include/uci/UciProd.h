@@ -114,7 +114,7 @@ public:
     uint8_t LoadLastDisp() { return loadLastDisp; };
 
     uint8_t MonitoringPort() {return monitoringPort;};
-    uint8_t MonitoringBps() {return monitoringBps;};
+    int MonitoringBps() {return monitoringBps;};
 
 private:
     ///  ---------- section -----------
