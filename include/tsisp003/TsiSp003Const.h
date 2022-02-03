@@ -310,6 +310,7 @@ enum class DISP_TYPE : uint8_t
 
 /// \brief Data packet size
 #define MAX_DATA_PACKET_SIZE (DATA_PACKET_HEADER_SIZE + MAX_APP_PACKET_SIZE * 2 + DATA_PACKET_EOB_SIZE)
+#define POWEROF2_MAX_DATA_PACKET_SIZE (2*65536)
 
 /// \brief Data packet size
 #define NON_DATA_PACKET_SIZE 10

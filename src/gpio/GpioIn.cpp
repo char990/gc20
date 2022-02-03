@@ -28,6 +28,6 @@ void GpioIn::PeriodicRun()
     }
     else
     {
-        MyThrow("Read Pin[%d] failed", pin);
+        throw std::runtime_error(FmtException("Read Pin[%d] failed", pin));
     }
 }

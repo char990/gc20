@@ -7,8 +7,14 @@
 #include <uci/DbHelper.h>
 
 OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer)
-    : comX(comX)
+    : OprSp(comX, bps, upperLayer, POWEROF2_MAX_DATA_PACKET_SIZE)
 {
+}
+
+OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer, int rxbufsize)
+    : IOperator(rxbufsize)
+{
+    this->comX = comX; 
     SpConfig &spCfg = gSpConfig[comX];
     spCfg.baudrate = bps;
     sp = new SerialPort(spCfg);
@@ -23,7 +29,7 @@ OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer)
         char buf[64];
         snprintf(buf, 63, "Open %s failed", sp->Config().name);
         DbHelper::Instance().GetUciAlarm().Push(0, buf);
-        MyThrow(buf);
+        throw std::runtime_error(buf);
     }
     events = ((upperLayer != nullptr) ? EPOLLIN : 0) | EPOLLRDHUP;
     eventFd = sp->GetFd();
@@ -66,7 +72,7 @@ void OprSp::EventsHandle(uint32_t events)
         DbHelper::Instance().GetUciAlarm().Push(0, buf);
         if (ReOpen() == -1)
         {
-            MyThrow("%s closed: events=0x%08X and reopen failed", sp->Config().name, events);
+            throw std::runtime_error(FmtException("%s closed: events=0x%08X and reopen failed", sp->Config().name, events));
         }
     }
     else if (events & EPOLLIN)

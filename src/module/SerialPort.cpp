@@ -12,33 +12,31 @@
 
 using namespace std;
 
-int ALLOWEDBPS[EXTENDEDBPS_SIZE]={
-	300,600,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600
+int ALLOWEDBPS[EXTENDEDBPS_SIZE] = {
+	300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+
+const char *COM_NAME[COMPORT_SIZE] =
+	{
+		"MODEM",
+		"COM1",
+		"COM2",
+		"COM3",
+		"COM4",
+		"COM5",
+		"COM6"};
+
+SpConfig gSpConfig[COMPORT_SIZE] =
+	{
+		SpConfig{COM_NAME[0], "/dev/ttymxc3", SpConfig::SpMode::RS232},
+		SpConfig{COM_NAME[1], "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
+		SpConfig{COM_NAME[2], "/dev/ttymxc1", SpConfig::SpMode::RS232},
+		SpConfig{COM_NAME[3], "/dev/ttymxc5", SpConfig::SpMode::RS232},
+		SpConfig{COM_NAME[4], "/dev/ttymxc4", SpConfig::SpMode::RS232},
+		SpConfig{COM_NAME[5], "/dev/ttySC0", SpConfig::SpMode::RS485_01},
+		SpConfig{COM_NAME[6], "/dev/ttySC1", SpConfig::SpMode::RS485_01},
 };
 
-const char *COM_NAME[COMPORT_SIZE]=
-{
-	"MODEM",
-	"COM1",
-	"COM2",
-	"COM3",
-	"COM4",
-	"COM5",
-	"COM6"
-};
-
-SpConfig gSpConfig [COMPORT_SIZE] =
-{
-	SpConfig{COM_NAME[0], "/dev/ttymxc3", SpConfig::SpMode::RS232},
-	SpConfig{COM_NAME[1], "/dev/ttymxc2", SpConfig::SpMode::RS485_01},
-	SpConfig{COM_NAME[2], "/dev/ttymxc1", SpConfig::SpMode::RS232},
-	SpConfig{COM_NAME[3], "/dev/ttymxc5", SpConfig::SpMode::RS232},
-	SpConfig{COM_NAME[4], "/dev/ttymxc4", SpConfig::SpMode::RS232},
-	SpConfig{COM_NAME[5], "/dev/ttySC0", SpConfig::SpMode::RS485_01},
-	SpConfig{COM_NAME[6], "/dev/ttySC1", SpConfig::SpMode::RS485_01},
-};
-
-SerialPort::SerialPort(SpConfig & config)
+SerialPort::SerialPort(SpConfig &config)
 	: spConfig(config), spFileDesc(-1)
 {
 	spConfig.Bytebits();
@@ -74,7 +72,7 @@ void SerialPort::ConfigureTermios()
 	// Get current settings (will be stored in termios structure)
 	if (tcgetattr(spFileDesc, &tty) != 0)
 	{
-		MyThrow("tcgetattr() failed: %s(%s)", spConfig.name, spConfig.dev);
+		throw std::runtime_error(FmtException("tcgetattr() failed: %s(%s)", spConfig.name, spConfig.dev));
 	}
 	//================= (.c_cflag) ===============//
 
@@ -129,7 +127,8 @@ void SerialPort::ConfigureTermios()
 		tty.c_cflag |= B921600;
 		break;
 	default:
-		MyThrow("%s(%s) baudrate unrecognized: %d", spConfig.name, spConfig.dev, spConfig.baudrate);
+		throw std::invalid_argument(FmtException("%s(%s) baudrate unrecognized: %d",
+												 spConfig.name, spConfig.dev, spConfig.baudrate));
 	}
 
 	//===================== (.c_oflag) =================//
@@ -172,32 +171,35 @@ void SerialPort::ConfigureTermios()
 	tcflush(spFileDesc, TCIOFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		MyThrow("tcsetattr() failed: %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+		throw std::runtime_error(FmtException("tcsetattr() failed: %s(%s): (%d): %s\n",
+											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
-
 
 	struct serial_rs485 rs485conf;
-	if (ioctl (spFileDesc, TIOCGRS485, &rs485conf) < 0)
+	if (ioctl(spFileDesc, TIOCGRS485, &rs485conf) < 0)
 	{
-		MyThrow("Error reading ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+		throw std::runtime_error(FmtException("Error reading ioctl %s(%s): (%d): %s\n",
+											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
-	rs485conf.flags=0;
-	if(spConfig.mode==SpConfig::SpMode::RS232)
+	rs485conf.flags = 0;
+	if (spConfig.mode == SpConfig::SpMode::RS232)
 	{
-        rs485conf.flags &= ~SER_RS485_ENABLED;
+		rs485conf.flags &= ~SER_RS485_ENABLED;
 	}
 	else
 	{
-        rs485conf.flags |= SER_RS485_ENABLED |
-			(spConfig.mode==SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);
-    }
-	if (ioctl (spFileDesc, TIOCSRS485, &rs485conf) < 0)
-	{
-		MyThrow("Error writing ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+		rs485conf.flags |= SER_RS485_ENABLED |
+						   (spConfig.mode == SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);
 	}
-	if (ioctl (spFileDesc, TIOCGRS485, &rs485conf) < 0)
+	if (ioctl(spFileDesc, TIOCSRS485, &rs485conf) < 0)
 	{
-		MyThrow("Error reading ioctl %s(%s): (%d): %s\n", spConfig.name, spConfig.dev, errno, strerror( errno ));
+		throw std::runtime_error(FmtException("Error writing ioctl %s(%s): (%d): %s\n",
+											  spConfig.name, spConfig.dev, errno, strerror(errno)));
+	}
+	if (ioctl(spFileDesc, TIOCGRS485, &rs485conf) < 0)
+	{
+		throw std::runtime_error(FmtException("Error reading ioctl %s(%s): (%d): %s\n",
+											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 	/*
 	if(spConfig.mode!=SpConfig::SpMode::RS232)
@@ -214,7 +216,7 @@ int SerialPort::Close()
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
-			MyThrow("Close() failed: %s(%s)", spConfig.name, spConfig.dev);
+			throw std::runtime_error(FmtException("Close() failed: %s(%s)", spConfig.name, spConfig.dev));
 		}
 		spFileDesc = -1;
 	}

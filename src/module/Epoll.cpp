@@ -7,17 +7,17 @@ void Epoll::Init(int max)
 {
     if (max <= 0)
     {
-        MyThrow("Epoll size must be greater than 0");
+        throw std::invalid_argument("Epoll size must be greater than 0");
     }
     if (MAX > 0)
     {
-        MyThrow("Epoll Re-Init is not allowed");
+        throw std::runtime_error("Epoll Re-Init is not allowed");
     }
     MAX = max;
     epollfd = epoll_create(MAX);
     if (epollfd < 0)
     {
-        MyThrow("Epoll create failed");
+        throw std::runtime_error("Epoll create failed");
     }
     events = new epoll_event[MAX];
 }
@@ -36,7 +36,7 @@ void Epoll::AddEvent(IGcEvent *event, uint32_t events)
 {
     if (evtSize >= MAX)
     {
-        MyThrow("Epoll overflow. Can't add event.");
+        throw std::overflow_error("Epoll overflow. Can't add event.");
     }
     struct epoll_event ev;
     ev.events = events;
@@ -49,7 +49,7 @@ void Epoll::DeleteEvent(IGcEvent *event, uint32_t events)
 {
     if (evtSize == 0)
     {
-        MyThrow("Epoll is empty. Can't delete event.");
+        throw std::runtime_error("Epoll is empty. Can't delete event.");
     }
     struct epoll_event ev;
     ev.events = events;
@@ -73,7 +73,7 @@ void Epoll::EventsHandle()
     {
         if (errno != EINTR)
         {
-            MyThrow("epoll_wait() error:%d", errno);
+            throw std::runtime_error(FmtException("epoll_wait() error:%d", errno));
         }
     }
     for (int i = 0; i < num; i++)

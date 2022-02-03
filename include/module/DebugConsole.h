@@ -18,4 +18,5 @@ private:
     // command list
     void Cmd_help();
     void Cmd_t();
+    void Cmd_ver();
 };

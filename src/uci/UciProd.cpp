@@ -72,7 +72,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("UciProd Error: MfcCode length should be 6");
+        throw std::invalid_argument(FmtException("UciProd Error: MfcCode length should be 6"));
     }
 
     pixelRows = GetInt(uciSec, _PixelRows, 8, 4096);
@@ -91,11 +91,11 @@ void UciProd::LoadConfig()
     else if (_prodT == 1)
     {
         prodType = PRODUCT::ISLUS;
-        ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
+        ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm);
     }
     else
     {
-        MyThrow("UciProd Error: %s: unknown", _ProdType);
+        throw std::invalid_argument(FmtException("UciProd Error: %s: unknown", _ProdType));
     }
 
     slaveRqstInterval = GetInt(uciSec, _SlaveRqstInterval, 10, 5000);
@@ -103,22 +103,26 @@ void UciProd::LoadConfig()
     slaveRqstExtTo = GetInt(uciSec, _SlaveRqstExtTo, 10, 5000);
     if (slaveRqstStTo > slaveRqstInterval)
     {
-        MyThrow("UciProd Error: SlaveRqstStTo(%d) > SlaveRqstInterval(%d)", slaveRqstStTo, slaveRqstInterval);
+        throw std::invalid_argument(FmtException("UciProd Error: SlaveRqstStTo(%d) > SlaveRqstInterval(%d)",
+                                                 slaveRqstStTo, slaveRqstInterval));
     }
     if (slaveRqstExtTo > slaveRqstInterval)
     {
-        MyThrow("UciProd Error: SlaveRqstExtTo(%d) > SlaveRqstInterval(%d)", slaveRqstExtTo, slaveRqstInterval);
+        throw std::invalid_argument(FmtException("UciProd Error: SlaveRqstExtTo(%d) > SlaveRqstInterval(%d)",
+                                                 slaveRqstExtTo, slaveRqstInterval));
     }
     slaveSetStFrmDly = GetInt(uciSec, _SlaveSetStFrmDly, 10, 1000);
     slaveDispDly = GetInt(uciSec, _SlaveDispDly, 10, 1000);
     slaveCmdDly = GetInt(uciSec, _SlaveCmdDly, 10, 1000);
     if (slaveCmdDly > slaveSetStFrmDly)
     {
-        MyThrow("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)", slaveCmdDly, slaveSetStFrmDly);
+        throw std::invalid_argument(FmtException("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)",
+                                                 slaveCmdDly, slaveSetStFrmDly));
     }
     if (slaveCmdDly > slaveDispDly)
     {
-        MyThrow("UciProd Error: SlaveCmdDly(%d) > SlaveDispDly(%d)", slaveCmdDly, slaveDispDly);
+        throw std::invalid_argument(FmtException("UciProd Error: SlaveCmdDly(%d) > SlaveDispDly(%d)",
+                                                 slaveCmdDly, slaveDispDly));
     }
 
     lightSensorMidday = GetInt(uciSec, _LightSensorMidday, 1, 65535);
@@ -137,7 +141,8 @@ void UciProd::LoadConfig()
 
     if (slaveVoltageLow > slaveVoltageHigh)
     {
-        MyThrow("UciProd Error: SlaveVoltageLow(%d) > SlaveVoltageHigh(%d)", slaveVoltageLow, slaveVoltageHigh);
+        throw std::invalid_argument(FmtException("UciProd Error: SlaveVoltageLow(%d) > SlaveVoltageHigh(%d)",
+                                                 slaveVoltageLow, slaveVoltageHigh));
     }
     lightSensorScale = GetInt(uciSec, _LightSensorScale, 1, 65535);
 
@@ -156,7 +161,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("UciProd::ColourRatio Error: cnt!=4");
+        throw std::invalid_argument(FmtException("UciProd::ColourRatio Error: cnt!=4"));
     }
     str = GetStr(uciSec, _Dimming);
     cnt = Cnvt::GetIntArray(str, 16, ibuf, 1, 255);
@@ -166,7 +171,7 @@ void UciProd::LoadConfig()
         {
             if (ibuf[cnt] > ibuf[cnt + 1])
             {
-                MyThrow("UciProd::Dimming Error: Level:[%d]>[%d]", cnt, cnt + 1);
+                throw std::invalid_argument(FmtException("UciProd::Dimming Error: Level:[%d]>[%d]", cnt, cnt + 1));
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -176,7 +181,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("UciProd::Dimming Error: cnt!=16");
+        throw std::invalid_argument(FmtException("UciProd::Dimming Error: cnt!=16"));
     }
 
     str = GetStr(uciSec, _ColourLeds);
@@ -187,17 +192,18 @@ void UciProd::LoadConfig()
     }
     else
     {
-        MyThrow("UciProd Error: %s(%s)", _ColourLeds, str);
+        throw std::invalid_argument(FmtException("UciProd Error: %s(%s)", _ColourLeds, str));
     }
 
     colourBits = GetInt(uciSec, _ColourBits, 1, 24);
     if (colourBits != 1 && colourBits != 4) // && colourBits != 24)
     {
-        MyThrow("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits);
+        throw std::invalid_argument(FmtException("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits));
     }
     if (strlen(colourLeds) > colourBits)
     {
-        MyThrow("UciProd Error: %s(%d) not matched with %s('%s')", _ColourBits, colourBits, _ColourLeds, colourLeds);
+        throw std::invalid_argument(FmtException("UciProd Error: %s(%d) not matched with %s('%s')",
+                                                 _ColourBits, colourBits, _ColourLeds, colourLeds));
     }
 
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
@@ -207,33 +213,36 @@ void UciProd::LoadConfig()
     ReadBits(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
     {
-        MyThrow("UciProd Error: Font : Default(0) is not enabled");
+        throw std::invalid_argument("UciProd Error: Font : Default(0) is not enabled");
     }
     if (bFont.GetMaxBit() > 5)
     {
-        MyThrow("UciProd Error: Font : Only 0-5 allowed");
+        throw std::invalid_argument("UciProd Error: Font : Only 0-5 allowed");
     }
     ReadBits(uciSec, _Conspicuity, bConspicuity);
     if (!bConspicuity.GetBit(0))
     {
-        MyThrow("UciProd Error: Conspicuity : OFF(0) is not enabled");
+        throw std::invalid_argument("UciProd Error: Conspicuity : OFF(0) is not enabled");
     }
     if (bConspicuity.GetMaxBit() > 5)
     {
-        MyThrow("UciProd Error: Conspicuity : Only 0-5 allowed");
+        throw std::invalid_argument("UciProd Error: Conspicuity : Only 0-5 allowed");
     }
     ReadBits(uciSec, _Annulus, bAnnulus);
     if (!bAnnulus.GetBit(0))
     {
-        MyThrow("UciProd Error: Annulus : OFF(0) is not enabled");
+        throw std::invalid_argument("UciProd Error: Annulus : OFF(0) is not enabled");
     }
     if (bAnnulus.GetMaxBit() > 2)
     {
-        MyThrow("UciProd Error: Annulus : Only 0-2 allowed");
+        throw std::invalid_argument("UciProd Error: Annulus : Only 0-2 allowed");
     }
     ReadBits(uciSec, _TxtFrmColour, bTxtFrmColour);
     ReadBits(uciSec, _GfxFrmColour, bGfxFrmColour);
     ReadBits(uciSec, _HrgFrmColour, bHrgFrmColour);
+
+    ReadBits(uciSec, _SimSlaves, bSimSlaves, false);
+
     // check colourLeds & b___FrmColour
 
     // Font0 'P5X7'
@@ -247,7 +256,7 @@ void UciProd::LoadConfig()
             str = GetStr(uciSec, cbuf);
             if (strlen(str) > 8)
             {
-                MyThrow("UciProd Error: %s '%s'(file name length too long >8)", cbuf, str);
+                throw std::invalid_argument(FmtException("UciProd Error: %s '%s'(file name length too long >8)", cbuf, str));
             }
             int j;
             for (j = 0; j < i; j++)
@@ -281,8 +290,21 @@ void UciProd::LoadConfig()
         }
         if (cnt == COLOUR_NAME_SIZE)
         {
-            MyThrow("UciProd Error: colour map %s undefined", COLOUR_NAME[i]);
+            throw std::invalid_argument(FmtException("UciProd Error: colour map %s undefined", COLOUR_NAME[i]));
         }
+    }
+
+    if (!IsTxtFrmColourValid(mappedColoursTable[0]))
+    {
+        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in TextFrameColour", mappedColoursTable[0]));
+    }
+    if (!IsGfxFrmColourValid(mappedColoursTable[0]))
+    {
+        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in GfxFrameColour", mappedColoursTable[0]));
+    }
+    if (!IsHrgFrmColourValid(mappedColoursTable[0]))
+    {
+        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in HrgFrameColour", mappedColoursTable[0]));
     }
 
     monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
@@ -298,7 +320,8 @@ void UciProd::LoadConfig()
         int port = -SignCfg::bps_port;
         if (port < 1024 || port > 0xFFFF)
         {
-            MyThrow("UciProd Error: %s '%d'(Port should be '-'1024~65535)", _SlaveBpsPort, SignCfg::bps_port);
+            throw std::invalid_argument(FmtException("UciProd Error: %s '%d'(Port should be '-'1024~65535)",
+                                                     _SlaveBpsPort, SignCfg::bps_port));
         }
     }
     char signx[8];
@@ -309,13 +332,13 @@ void UciProd::LoadConfig()
         sprintf(signx, "%s%d", _SectionSign, i + 1);
         uciSec = GetSection(SECTION);
         _sign.groupId = GetInt(uciSec, _GroupId, 1, numberOfGroups);
-        ReadBits(uciSec, _RjctFrm, _sign.rjctFrm, false);
+        ReadBits(uciSec, _RejectFrms, _sign.rejectFrms, false);
         if (SignCfg::bps_port > 0)
         { // COM
             _sign.com_ip = GetIndexFromStrz(uciSec, _COM, COM_NAME, COMPORT_SIZE);
             if (_sign.com_ip == monitoringPort)
             {
-                MyThrow("UciProd Error: %s: %s '%s' - Used by MonitoringPort", signx, _COM, str);
+                throw std::invalid_argument(FmtException("UciProd Error: %s: %s '%s' - Used by MonitoringPort", signx, _COM, str));
             }
         }
         else
@@ -330,7 +353,7 @@ void UciProd::LoadConfig()
                 }
                 else
                 {
-                    MyThrow("UciProd Error: %s: %s '%s'", signx, _IP, str);
+                    throw std::invalid_argument(FmtException("UciProd Error: %s: %s '%s'", signx, _IP, str));
                 }
             }
         }
@@ -354,7 +377,7 @@ void UciProd::LoadConfig()
                     {
                         if (com != _sign.com_ip)
                         {
-                            MyThrow("UciProd Error: Signs in Group[%d] should have same COM", g);
+                            throw std::invalid_argument(FmtException("UciProd Error: Signs in Group[%d] should have same COM", g));
                         }
                     }
                 }
@@ -362,31 +385,28 @@ void UciProd::LoadConfig()
         }
     }
 
-    if (_prodT == 0)
+    if (prodType == PRODUCT::VMS)
     {
-        prodType = PRODUCT::VMS;
         // VMS should configured as 1 sign per group
         for (int i = 0; i < numberOfSigns; i++)
         {
             if (signCfg.at(i).groupId != (i + 1))
             {
-                MyThrow("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
+                throw std::invalid_argument("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
             }
         }
     }
-    else if (_prodT == 1)
+    else if (prodType == PRODUCT::ISLUS)
     {
-        prodType = PRODUCT::ISLUS;
         // ISLUS should configured as 1 slave per Sign
         if (slavesPerSign != 1)
         {
-            MyThrow("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign);
+            throw std::invalid_argument(FmtException("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign));
         }
-        ReadBits(uciSec, _IslusSpFrm, bIslusSpFrm, false);
     }
     else
     {
-        MyThrow("UciProd Error: %s: unknown", _ProdType);
+        throw std::invalid_argument(FmtException("UciProd Error: %s: unknown", _ProdType));
     }
 
     Close();
@@ -444,13 +464,13 @@ void UciProd::LoadConfig()
             maxFrmLen = gfx24FrmLen;
             break;
         default:
-            MyThrow("Unknown ColourBits in UciProd");
+            throw std::invalid_argument("Unknown ColourBits in UciProd");
             break;
         }
     }
     else
     {
-        MyThrow("Unknown extStSignType:%d(MfcCode error?)", sesrtype);
+        throw std::invalid_argument(FmtException("Unknown extStSignType:%d(MfcCode error?)", sesrtype));
     }
 }
 
@@ -568,7 +588,7 @@ void UciProd::Dump()
             sprintf(ipbuf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
             PrintOption_str(_IP, ipbuf);
         }
-        PrintOption_str(_RjctFrm, cfg.rjctFrm.ToString().c_str());
+        PrintOption_str(_RejectFrms, cfg.rejectFrms.ToString().c_str());
     }
 
     PrintDash('>', "\n");

@@ -5,8 +5,6 @@
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
 
-//#define SLAVE_EMULATOR
-
 using namespace Utils;
 
 uint8_t Slave::numberOfTiles = 0;
@@ -17,37 +15,39 @@ Slave::Slave(uint8_t id)
 {
     if (numberOfTiles == 0)
     {
-        MyThrow("Error: Slave::numberOfTiles is 0");
+        throw std::invalid_argument("Error: Slave::numberOfTiles is 0");
     }
     if (numberOfColours == 0)
     {
-        MyThrow("Error: Slave::numberOfColours is 0");
+        throw std::invalid_argument("Error: Slave::numberOfColours is 0");
     }
     numberOfFaultyLed = new uint8_t[numberOfTiles * numberOfColours];
     Reset();
-#ifdef SLAVE_EMULATOR
-    printf("SLAVE[%d] EMULATOR\n", id);
-    panelFault = 0;
-    overTemp = 0;
-    selfTest = 0;
-    singleLedFault = 0;
-    lanternFan = 0;
-    lightSensorFault = 0;
-    currentFrmId = 0;
-    currentFrmCrc = 0x55AA;
-    nextFrmId = 0;
-    nextFrmCrc = 0xAA55;
-    controlByte = 0;
-    for (int i = 0; i < 4; i++)
+    isSimSlave = DbHelper::Instance().GetUciProd().IsSimSlave(id);
+    if (isSimSlave)
     {
-        dimming[i] = 0; // no use, reported dimming level in SESR is controller's setting
+        printf("SLAVE[%d] EMULATOR\n", id);
+        panelFault = 0;
+        overTemp = 0;
+        selfTest = 0;
+        singleLedFault = 0;
+        lanternFan = 0;
+        lightSensorFault = 0;
+        currentFrmId = 0;
+        currentFrmCrc = 0x55AA;
+        nextFrmId = 0;
+        nextFrmCrc = 0xAA55;
+        controlByte = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            dimming[i] = 0; // no use, reported dimming level in SESR is controller's setting
+        }
+        voltage = 12000 + slaveId * 100;
+        hours = 0x99;
+        temperature = 300 + slaveId * 10;
+        humidity = 50 + slaveId;
+        lux = 12000 + slaveId * 100;
     }
-    voltage = 12000 + slaveId * 100;
-    hours = 0x99;
-    temperature = 300 + slaveId * 10;
-    humidity = 50 + slaveId;
-    lux = 12000 + slaveId * 100;
-#endif
 }
 
 Slave::~Slave()
@@ -70,9 +70,10 @@ void Slave::Reset()
 
 int Slave::DecodeStRpl(uint8_t *buf, int len)
 {
-#ifdef SLAVE_EMULATOR
-    return 0;
-#endif
+    if (isSimSlave)
+    {
+        return 0;
+    }
     if (*buf != slaveId)
     {
         return -1;
@@ -104,9 +105,10 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
 
 int Slave::DecodeExtStRpl(uint8_t *buf, int len)
 {
-#ifdef SLAVE_EMULATOR
-    return 0;
-#endif
+    if (isSimSlave)
+    {
+        return 0;
+    }
     if (buf[0] != slaveId)
     {
         return -1;
@@ -150,27 +152,30 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
 
 uint8_t Slave::GetRxStatus()
 {
-#ifdef SLAVE_EMULATOR
-    sign->RefreshSlaveStatusAtSt();
-    sign->RefreshSlaveStatusAtExtSt();
-    return 1;
-#endif
+    if (isSimSlave)
+    {
+        sign->RefreshSlaveStatusAtSt();
+        sign->RefreshSlaveStatusAtExtSt();
+        return 1;
+    }
     return rxStatus;
 }
 
 uint8_t Slave::GetRxExtSt()
 {
-#ifdef SLAVE_EMULATOR
-    return 1;
-#endif
+    if (isSimSlave)
+    {
+        return 1;
+    }
     return rxExtSt;
 }
 
 int Slave::CheckCurrent()
 {
-#ifdef SLAVE_EMULATOR
-    return 0;
-#endif
+    if (isSimSlave)
+    {
+        return 0;
+    }
     if (rxStatus == 0)
     {
         return -1;
@@ -205,9 +210,10 @@ int Slave::CheckCurrent()
 
 int Slave::CheckNext()
 {
-#ifdef SLAVE_EMULATOR
-    return 0;
-#endif
+    if (isSimSlave)
+    {
+        return 0;
+    }
     if (rxStatus == 0)
     {
         return -1;

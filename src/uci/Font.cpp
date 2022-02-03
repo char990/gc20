@@ -11,7 +11,7 @@ Font::Font(const char *fontname)
     int fnlen = strlen(fontname);
     if(fnlen>8)
     {
-        MyThrow("fontname(%s) too long", fontname);
+        throw std::invalid_argument(FmtException("fontname(%s) too long", fontname));
     }
     memcpy(fontName, fontname, fnlen);
     fontName[fnlen]='\0';
@@ -20,7 +20,7 @@ Font::Font(const char *fontname)
     int fd = open(fn, O_RDONLY);
     if (fd < 0)
     {
-        MyThrow("Can't open file %s", fn);
+        throw std::runtime_error(FmtException("Can't open file %s", fn));
     }
     uint8_t buf[MAX_FONT_DOT / 8 + 1];
     int n;
@@ -28,7 +28,7 @@ Font::Font(const char *fontname)
     if (n != 8)
     {
         close(fd);
-        MyThrow("Read file %s failed", fn);
+        throw std::runtime_error(FmtException("Read file %s failed", fn));
     }
     uint8_t *p = buf;
     bytesPerCell = Utils::Cnvt::GetU16(p);
@@ -49,7 +49,7 @@ Font::Font(const char *fontname)
         descender > lineSpacing)
     {
         close(fd);
-        MyThrow("Corrupt data in file %s", fontName);
+        throw std::runtime_error(FmtException("Corrupt data in file %s", fontName));
     }
     for (int i = 0; i < cellPtr.size(); i++)
     {
@@ -58,7 +58,7 @@ Font::Font(const char *fontname)
         if (n != bytesPerCell)
         {
             close(fd);
-            MyThrow("Corrupt data in file %s", fontName);
+            throw std::runtime_error(FmtException("Corrupt data in file %s", fontName));
         }
     }
     close(fd);

@@ -14,6 +14,7 @@ public:
     void Reset();
 
     uint8_t SlaveId() {return slaveId; };
+    bool isSimSlave;
 
     Sign * sign;
 

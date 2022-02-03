@@ -578,12 +578,12 @@ void Exec::CopyFile(const char *src, const char *dst)
     int srcfd = open(src, O_RDONLY);
     if (srcfd < 0)
     {
-        MyThrow("Can't open %s to read", src);
+        throw std::runtime_error(FmtException("Can't open %s to read", src));
     }
     int dstfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
     if (dstfd < 0)
     {
-        MyThrow("Can't open %s to write", dst);
+        throw std::runtime_error(FmtException("Can't open %s to write", dst));
     }
     uint8_t buf[1024];
     while (1)
@@ -593,7 +593,7 @@ void Exec::CopyFile(const char *src, const char *dst)
         {
             close(srcfd);
             close(dstfd);
-            MyThrow("Read %s error", src);
+            throw std::runtime_error(FmtException("Read %s error", src));
         }
         if (rd == 0)
             break;
@@ -602,7 +602,7 @@ void Exec::CopyFile(const char *src, const char *dst)
         {
             close(srcfd);
             close(dstfd);
-            MyThrow("Write %s error", dst);
+            throw std::runtime_error(FmtException("Write %s error", dst));
         }
     }
     fdatasync(dstfd);
@@ -817,7 +817,7 @@ void Bits::Check(int bitOffset)
 {
     if (bitOffset >= size)
     {
-        MyThrow("Bits(size=%d):out_of_range: bit[%d]", size, bitOffset);
+        throw std::out_of_range(FmtException("Bits(size=%d):out_of_range: bit[%d]", size, bitOffset));
     }
 }
 

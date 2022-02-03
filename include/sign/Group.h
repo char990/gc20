@@ -87,9 +87,9 @@ public:
     APP::ERROR EnablePlan(uint8_t id);
     APP::ERROR DisablePlan(uint8_t id);
 
-    APP::ERROR DispFrm(uint8_t id, bool chk=true);
-    APP::ERROR DispMsg(uint8_t id, bool chk=true);
-    APP::ERROR DispAtmFrm(uint8_t *cmd, bool chk=true);
+    APP::ERROR DispFrm(uint8_t id, bool chk);
+    APP::ERROR DispMsg(uint8_t id, bool chk);
+    APP::ERROR DispAtmFrm(uint8_t *cmd, bool chk);
     virtual APP::ERROR DispAtomicFrm(uint8_t *cmd) = 0;
 
     APP::ERROR SetDimming(uint8_t v);
@@ -108,6 +108,8 @@ public:
 
 protected:
     DbHelper &db;
+    UciProd & prod;
+    UciUser & user;
     uint8_t groupId;
     OprSp *oprSp;
     std::vector<Sign *> vSigns;
@@ -300,6 +302,19 @@ private:
         taskATFLine = 0;
     }
 
+    /******************** Task AdjustDimming ********************/
+    uint8_t targetDimmingLvl; // bit[7] is first time setting flag
+    uint8_t tdl;
+    uint8_t currentDimmingLvl;
+    bool TaskAdjustDimming(int *_ptLine);
+    uint8_t GetTargetDimmingLvl();
+    int taskAdjustDimmingLine{0};
+    uint8_t setDimming;
+    int targetDimmingV;
+    int currentDimmingV;
+    uint8_t adjDimmingSteps{0};
+    BootTimer dimmingAdjTimer;
+
     /******************** Task Rqst ********************/
     bool TaskRqstSlave(int *_ptLine);
     int taskRqstSlaveLine{0};
@@ -329,14 +344,6 @@ private:
     Utils::Bits activeMsg{256};
     // will set activeMsg & activeFrm
     void SetActiveMsg(uint8_t mid);
-
-    // dimming value in RqstExtStatus
-    uint8_t setDimming{0x10};
-    uint8_t targetDimmingLvl; // bit[7] is new setting flag
-    uint8_t currentDimmingLvl;
-    uint8_t adjDimmingSteps;
-    bool DimmingAdjust();
-    BootTimer dimmingAdjTimer;
 
     void SystemReset0();
     void SystemReset1();

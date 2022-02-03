@@ -589,7 +589,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = user.Humidity();
         *pt++ = user.Tz();
         *pt++ = 0; //user.DefaultFont();
-        *pt++ = 0; //user.DefaultColour();
+        *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); //DefaultColour();
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
@@ -1046,7 +1046,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         p = Cnvt::PutU16(lux / cnt, p);             // avg of all
         *p++ = maxTemp;                             // max of all max temperatures
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
-        *p++ = 0;                                   //user.DefaultFont();                  //
+        *p++ = 0;                                   //DefaultFont                  //
         p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
         *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                     // light sensor 2
@@ -1054,7 +1054,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = 'B';                                 //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
         *p++ = prod.MaxConspicuity();               // conspicuity
         *p++ = prod.MaxFont();                      // max. number of fonts
-        *p++ = 0;                                   //user.DefaultColour();                // 09
+        *p++ = prod.GetMappedColour(0);             //user.DefaultColour();                // 09
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.max_template=0;		// 00
         *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk1=1;                // 01
         *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_offset=0;		// 00

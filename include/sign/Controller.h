@@ -52,7 +52,8 @@ public:
     bool IsPlnActive(uint8_t i);
     bool IsPlnEnabled(uint8_t id);
 
-    // cmaand from TSI-SP-003
+    // command from TSI-SP-003
+    APP::ERROR CheckAdjacentLane(std::vector<uint8_t> & frms);
     APP::ERROR CmdDispFrm(uint8_t *cmd);
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
@@ -87,6 +88,7 @@ private:
     ~Controller();
     DbHelper &db;
     std::vector<Group *> groups;
+    std::vector<Sign *> signs;
 
     TimerEvent *tmrEvt{nullptr};
 

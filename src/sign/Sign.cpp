@@ -121,13 +121,13 @@ void Sign::RefreshSlaveStatusAtSt()
     uint8_t check_chain_fault = 0;
     uint8_t check_selftest = 0;
     uint8_t check_lantern = 0;
-
+/*
     for (auto &s : vsSlaves)
     {
         check_chain_fault |= s->panelFault & 0x0F;
         check_selftest |= s->selfTest & 1;
     }
-    // lanterns installed at first&last slaves
+*/    // lanterns installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
     chainFault.Check(check_chain_fault > 0, t2);

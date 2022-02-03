@@ -10,7 +10,7 @@ UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
         appFactory = new AppFactory();
         appLayer = appFactory->GetApp();
         prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
-        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
+        dlLayer = new LayerDL(name_, POWEROF2_MAX_DATA_PACKET_SIZE);
         LayerNTS *layerNTS = new LayerNTS(name_);
         midLayer = layerNTS;
         //ISession *s = layerNTS;
@@ -21,12 +21,12 @@ UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
         appFactory = new AppFactory();
         appLayer = appFactory->GetApp();
         prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
-        dlLayer = new LayerDL(name_, MAX_DATA_PACKET_SIZE);
+        dlLayer = new LayerDL(name_, POWEROF2_MAX_DATA_PACKET_SIZE);
         midLayer = new LayerWeb(name_);
     }
     else
     {
-        MyThrow ("Unkown adaptor type:%s", aType.c_str());
+        throw std::invalid_argument(FmtException ("Unkown adaptor type:%s", aType.c_str()));
     }
     // lowerLayer<->dlLayer<->midLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer

@@ -12,7 +12,9 @@
 #include <layer/LayerNTS.h>
 
 Controller::Controller()
-    : db(DbHelper::Instance()), groups(DbHelper::Instance().GetUciProd().NumberOfGroups())
+    : db(DbHelper::Instance()),
+      groups(DbHelper::Instance().GetUciProd().NumberOfGroups()),
+      signs(DbHelper::Instance().GetUciProd().NumberOfSigns())
 {
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
@@ -53,8 +55,16 @@ Controller::Controller()
         }
         break;
     default:
-        MyThrow("Unknown ProdType:%d", static_cast<int>(prod.ProdType()));
+        throw std::invalid_argument(FmtException("Unknown ProdType:%d", static_cast<int>(prod.ProdType())));
         break;
+    }
+    for (int i = 0; i < groups.size(); i++)
+    {
+        auto &gs = groups.at(i)->GetSigns();
+        for (auto &s : gs)
+        {
+            signs[s->SignId() - 1] = s;
+        }
     }
 }
 
@@ -81,7 +91,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
 {
     if (tmrEvt != nullptr)
     {
-        MyThrow("Re-invoke Controller::Init()");
+        throw std::runtime_error("Re-invoke Controller::Init() is not allowed");
     }
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
@@ -115,14 +125,14 @@ void Controller::PeriodicRun()
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
                 PrintDbg(DBG_LOG, "\n%s...", _re);
-                MyThrow("\n%s...\n", _re);
+                exit(2);
             }
             if (rr_flag & RQST_RESTART)
             {
                 const char *_re = " -> -> -> restart";
                 evt.Push(0, _re);
                 PrintDbg(DBG_LOG, "\n%s...", _re);
-                MyThrow("\n%s...\n", _re);
+                exit(1);
             }
             rr_flag = 0;
             rrTmr.Clear();
@@ -146,7 +156,7 @@ void Controller::PeriodicRun()
                 ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
                 for (auto &g : groups)
                 {
-                    g->DispFrm(0);
+                    g->DispFrm(0, true);
                 }
             }
             displayTimeout.Clear();
@@ -236,9 +246,9 @@ void Controller::ExtInputFunc()
         {
             gin->ClearRising();
             uint8_t msg = i + 3;
-            const char * fmt = "Leading edge of external input[%d]";
+            const char *fmt = "Leading edge of external input[%d]";
             DbHelper::Instance().GetUciEvent().Push(0, fmt, i + 1);
-            PrintDbg(DBG_LOG, fmt, i+1);
+            PrintDbg(DBG_LOG, fmt, i + 1);
             for (auto &g : groups)
             {
                 g->DispExt(msg);
@@ -354,7 +364,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         auto &db = DbHelper::Instance();
         if (lvl >= 2)
         {
-            if(db.GetUciProd().IsResetLogAllowed())
+            if (db.GetUciProd().IsResetLogAllowed())
             {
                 db.GetUciFault().Reset();
             }
@@ -364,8 +374,8 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
         }
         if (lvl >= 3)
         {
-            if(db.GetUciProd().ProdType() == PRODUCT::VMS)
-            {   // Clearing all frame/msg is for VMS only
+            if (db.GetUciProd().ProdType() == PRODUCT::VMS)
+            { // Clearing all frame/msg is for VMS only
                 // ISLUS's frame/msg can not be changed
                 db.GetUciFrm().Reset();
                 db.GetUciMsg().Reset();
@@ -382,40 +392,45 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
 
 APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
 {
-    uint8_t grpId = cmd[1];
-    uint8_t frmId = cmd[2];
-    if (grpId == 0 || grpId > groups.size())
+    auto grpId = cmd[1];
+    auto frmId = cmd[2];
+    auto grp = GetGroup(grpId);
+    if (grp == nullptr)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (frmId != 0)
     {
-        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frmId))
+        if (!db.GetUciFrm().IsFrmDefined(frmId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
-        // reject frames
-        auto signs = GetGroup(grpId)->GetSigns();
-        for(auto & sign : signs)
+        auto &prod = db.GetUciProd();
+        if (prod.ProdType() == PRODUCT::ISLUS)
         {
-            if(db.GetUciProd().GetSignCfg(sign->SignId()).rjctFrm.GetBit(frmId))
+            std::vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+            auto &gs = grp->GetSigns();
+            for (auto &s : gs)
             {
-                return APP::ERROR::SyntaxError;
+                frms.at(s->SignId() - 1) = frmId;
+            }
+            if (CheckAdjacentLane(frms) != APP::ERROR::AppNoError)
+            {
+                return APP::ERROR::OverlaysNotSupported;
             }
         }
     }
-    return GetGroup(grpId)->DispFrm(frmId);
+    return grp->DispFrm(frmId, true);
 }
 
 APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
 {
-    uint8_t grpId = cmd[1];
-    uint8_t msgId = cmd[2];
-    if (grpId == 0 || grpId > Controller::Instance().GroupCnt())
+    auto grp = GetGroup(cmd[1]);
+    if (grp == nullptr)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    Message *msg;
+    uint8_t msgId = cmd[2];
     if (msgId != 0)
     {
         if (!DbHelper::Instance().GetUciMsg().IsMsgDefined(msgId))
@@ -423,17 +438,48 @@ APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    return GetGroup(grpId)->DispMsg(msgId);
+    return grp->DispMsg(msgId, true);
 }
 
 APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
 {
-    uint8_t grpId = cmd[1];
-    if (grpId == 0 || grpId > groups.size())
+    auto grp = GetGroup(cmd[1]);
+    if (grp == nullptr)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    return GetGroup(grpId)->DispAtmFrm(cmd);
+    auto gsCnt = cmd[2];
+    if (gsCnt != grp->SignCnt())
+    {
+        return APP::ERROR::SyntaxError;
+    }
+    auto &prod = db.GetUciProd();
+    if (prod.ProdType() == PRODUCT::ISLUS)
+    {
+        std::vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+        auto pnext = cmd + 3;
+        for (int i = 0; i < gsCnt; i++)
+        {
+            auto sign_id = *pnext++;
+            auto frm_id = *pnext++;
+            // sign is in this group
+            if (!grp->IsSignInGroup(sign_id))
+            {
+                return APP::ERROR::UndefinedDeviceNumber;
+            }
+            // frm is defined
+            if (!db.GetUciFrm().IsFrmDefined(frm_id))
+            {
+                return APP::ERROR::FrmMsgPlnUndefined;
+            }
+            frms.at(sign_id - 1) = frm_id;
+        }
+        if (CheckAdjacentLane(frms) != APP::ERROR::AppNoError)
+        {
+            return APP::ERROR::OverlaysNotSupported;
+        }
+    }
+    return grp->DispAtmFrm(cmd, true);
 }
 
 APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
@@ -584,4 +630,48 @@ int Controller::CmdRequestEnabledPlans(uint8_t *txbuf)
     int bytes = p - txbuf;
     txbuf[1] = (bytes - 2) / 2;
     return bytes;
+}
+
+APP::ERROR Controller::CheckAdjacentLane(std::vector<uint8_t> &frms)
+{
+// ISLUS lane checking
+#define UP_LEFT_0 182
+#define UP_RIGHT_0 183
+#define DN_LEFT_0 184
+#define DN_RIGHT_0 185
+#define RED_CROSS_0 189
+
+#define UP_LEFT_1 192
+#define UP_RIGHT_1 193
+#define DN_LEFT_1 194
+#define DN_RIGHT_1 195
+#define RED_CROSS_1 199
+
+#define IS_LEFT(frm) (frm == DN_LEFT_0 || frm == DN_LEFT_1)
+#define IS_RIGHT(frm) (frm == DN_RIGHT_0 || frm == DN_RIGHT_1)
+#define IS_CROSS(frm) (frm == RED_CROSS_0 || frm == RED_CROSS_1)
+
+    auto signCnt = frms.size();
+    for (int i = 0; i < signCnt; i++)
+    {
+        auto frm_id = frms.at(i);
+        if (frm_id == 0)
+        {
+            frms.at(i) = frm_id = signs.at(i)->ReportFrm();
+        }
+        // check lane merge
+        if (i > 0)
+        {
+            auto frm_left = frms.at(i - 1);
+            if ((IS_RIGHT(frm_left) && (IS_CROSS(frm_id) || IS_LEFT(frm_id))) ||
+                (IS_CROSS(frm_left) && IS_LEFT(frm_id)))
+            { // merge to closed lane
+                return APP::ERROR::OverlaysNotSupported;
+            }
+        }
+    }
+    return APP::ERROR::AppNoError;
+#undef IS_CROSS
+#undef IS_RIGHT
+#undef IS_LEFT
 }

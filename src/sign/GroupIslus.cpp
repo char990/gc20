@@ -6,17 +6,6 @@
 #include <module/ptcpp.h>
 #include <module/Utils.h>
 
-#define UP_LEFT_0 182
-#define UP_RIGHT_0 183
-#define DN_LEFT_0 184
-#define DN_RIGHT_0 185
-#define RED_CROSS_0 189
-
-#define UP_LEFT_1 192
-#define UP_RIGHT_1 193
-#define DN_LEFT_1 194
-#define DN_RIGHT_1 195
-#define RED_CROSS_1 199
 
 using namespace Utils;
 
@@ -26,7 +15,7 @@ GroupIslus::GroupIslus(uint8_t id)
     UciProd &prod = db.GetUciProd();
     if (prod.SlavesPerSign() != 1)
     {
-        MyThrow("ISLUS: Sign can only have ONE slave");
+        throw std::invalid_argument("ISLUS: Sign can only have ONE slave");
     }
     vSlaves.resize(SignCnt());
     for (int i = 0; i < SignCnt(); i++)
@@ -51,12 +40,8 @@ void GroupIslus::PeriodicHook()
 
 APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
 {
-    uint8_t signCnt = cmd[2];
-    if (signCnt != SignCnt())
-    {
-        return APP::ERROR::SyntaxError;
-    }
-    uint8_t *pnext = cmd + 3;
+    auto pnext = cmd + 3;
+    uint8_t signCnt = SignCnt();
     uint8_t speed_frm_id = 0;
     DispStatus ds{signCnt};
     ds.dispType = DISP_TYPE::ATF;
@@ -74,16 +59,6 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             }
             p2 += 2;
         }
-        // sign is in this group
-        if (!IsSignInGroup(sign_id))
-        {
-            return APP::ERROR::UndefinedDeviceNumber;
-        }
-        // frm is defined
-        if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(frm_id))
-        {
-            return APP::ERROR::FrmMsgPlnUndefined;
-        }
         // check if same speed
         if (IsSpeedFrame(frm_id))
         {
@@ -100,25 +75,9 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             }
         }
         // reject frames => check exit
-        if (db.GetUciProd().GetSignCfg(sign_id).rjctFrm.GetBit(frm_id))
+        if (db.GetUciProd().GetSignCfg(sign_id).rejectFrms.GetBit(frm_id))
         {
             return APP::ERROR::SyntaxError;
-        }
-        // check lane merge
-        if (i < signCnt - 1)
-        {
-#define IS_LEFT(frm) (frm == DN_LEFT_0 || frm == DN_LEFT_1)
-#define IS_RIGHT(frm) (frm == DN_RIGHT_0 || frm == DN_RIGHT_1)
-#define IS_CROSS(frm) (frm == RED_CROSS_0 || frm == RED_CROSS_1)
-            uint8_t frm_next = pnext[1];
-            if ((IS_RIGHT(frm_id) && (IS_CROSS(frm_next) || IS_LEFT(frm_next))) ||
-                (IS_CROSS(frm_id) && IS_LEFT(frm_next)))
-            { // merge to closed lane
-                return APP::ERROR::SyntaxError;
-            }
-#undef IS_CROSS
-#undef IS_RIGHT
-#undef IS_LEFT
         }
         // all good
         for (int j = 0; j < signCnt; j++)
@@ -195,7 +154,7 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
         auto frm = db.GetUciFrm().GetFrm(uciFrmId);
         if (frm == nullptr)
         {
-            MyThrow("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId);
+            throw std::runtime_error(FmtException("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId));
         }
         MakeFrameForSlave(frm);
     }
@@ -212,7 +171,7 @@ int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
         auto frm = db.GetUciFrm().GetFrm(uciFrmId);
         if (frm == nullptr)
         {
-            MyThrow("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId);
+            throw std::runtime_error(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId));
         }
         return TransFrmWithOrBuf(frm, dst);
     }

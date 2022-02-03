@@ -24,7 +24,7 @@ bool DeviceError::DevError(DEV::ERROR code, bool v)
     }
     if (i == size)
     {
-        MyThrow("Incorrect DEV::ERROR 0x%02X", code);
+        throw std::invalid_argument(FmtException("Invalid DEV::ERROR 0x%02X", code));
     }
     if (v != errBit.GetBit(i))
     {
@@ -57,7 +57,7 @@ bool DeviceError::IsSet(DEV::ERROR code)
             return errBit.GetBit(i);
         }
     }
-    MyThrow("Illegal DEV::ERROR:%d", code);
+    throw std::invalid_argument(FmtException("Invalid DEV::ERROR:%d", code));
     return false; // avoid warning
 }
 

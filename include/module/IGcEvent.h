@@ -15,12 +15,12 @@ public:
 
     virtual void UnknownEvents(const char *name, uint32_t events)
     {
-        MyThrow("[%s]Unkown events=0x%08X", name, events);
+        throw std::runtime_error(FmtException("[%s]Unkown events=0x%08X", name, events));
     }
 
     virtual void UnknownEvents(std::string name, uint32_t events)
     {
-        MyThrow("[%s]Unkown events=0x%08X", name.c_str(), events);
+        throw std::runtime_error(FmtException("[%s]Unkown events=0x%08X", name.c_str(), events));
     }
 
     /// \brief  This is the events set to Epoll, could be used for DeleteEvent()

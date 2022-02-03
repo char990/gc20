@@ -2,24 +2,24 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <vector>
 #include <cstring>
+#include <string>
 
 class RingBuf
 {
 public:
-    RingBuf(int s) : size(s), cnt(0)
+    RingBuf(int s) : size(s)
     {
-        buf = new char[s];
-        pPush = pPop = buf;
+        buf = new uint8_t[s];
         bufEnd = buf + s;
+        Reset();
     };
     ~RingBuf()
     {
         delete[] buf;
     }
 
-    int Push(char *inbuf, int len)
+    int Push(uint8_t *inbuf, int len)
     {
         if (len > (size - cnt) || len <= 0)
         {
@@ -41,7 +41,7 @@ public:
         return len;
     }
 
-    int Pop(char *outbuf, int len)
+    int Pop(uint8_t *outbuf, int len)
     {
         if (cnt == 0 || len == 0)
         {
@@ -71,6 +71,12 @@ public:
     int Cnt() { return cnt; };
     int Cap() { return size - cnt; };
 
+    void Reset()
+    {
+        cnt = 0;
+        pPush = pPop = buf;
+    };
+
     std::string ToString()
     {
         char str[256];
@@ -82,8 +88,8 @@ public:
 private:
     int size;
     int cnt;
-    char *pPush;
-    char *pPop;
-    char *buf;
-    char *bufEnd;
+    uint8_t *pPush;
+    uint8_t *pPop;
+    uint8_t *buf;
+    uint8_t *bufEnd;
 };

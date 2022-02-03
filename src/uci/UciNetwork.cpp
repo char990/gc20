@@ -45,7 +45,7 @@ void UciNetwork::LoadIp(struct uci_section *uciSec, const char *_option, uint8_t
             return;
         }
     }
-    MyThrow("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str);
+    throw std::invalid_argument(FmtException("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str));
 }
 
 void UciNetwork::Ipaddr(uint8_t * ip)

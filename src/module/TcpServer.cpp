@@ -23,7 +23,7 @@ TcpServer::TcpServer(int listenPort, std::string serverType, int poolsize, Timer
     {
         ipool[i]->Init(serverType + std::to_string(i), serverType);
     }
-    eventFd=-1;
+    eventFd = -1;
     Open();
 }
 
@@ -35,13 +35,13 @@ TcpServer::~TcpServer()
 
 void TcpServer::Open()
 {
-    if(eventFd>0)
+    if (eventFd > 0)
     {
         return;
     }
     if ((eventFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
-        MyThrow("%s:socket() failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:socket() failed", name.c_str()));
     }
     SetNonblocking(eventFd);
 
@@ -53,21 +53,21 @@ void TcpServer::Open()
     int reuse = 1;
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof(reuse)) < 0)
     {
-        MyThrow("%s:setsockopt(SO_REUSEADDR) failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:setsockopt(SO_REUSEADDR) failed", name.c_str()));
     }
     if (setsockopt(eventFd, SOL_SOCKET, SO_REUSEPORT, (const char *)&reuse, sizeof(reuse)) < 0)
     {
-        MyThrow("%s:setsockopt(SO_REUSEPORT) failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:setsockopt(SO_REUSEPORT) failed", name.c_str()));
     }
 
     if (bind(eventFd, (sockaddr *)&myserver, sizeof(myserver)) < 0)
     {
-        MyThrow("%s:bind() failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:bind() failed", name.c_str()));
     }
 
     if (listen(eventFd, objPool->Size()) < 0)
     {
-        MyThrow("%s:listen() failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:listen() failed", name.c_str()));
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
@@ -75,19 +75,19 @@ void TcpServer::Open()
 
 void TcpServer::Close()
 {
-    if(eventFd>0)
+    if (eventFd > 0)
     {
-        auto & busy = objPool->BusyObj();
-        for(auto & s : busy)
+        auto &busy = objPool->BusyObj();
+        for (auto &s : busy)
         {
-            if(s!=nullptr)
+            if (s != nullptr)
             {
-                s->Release();   // s is OprTcp*
+                s->Release(); // s is OprTcp*
             }
         }
         Epoll::Instance().DeleteEvent(this, events);
         close(eventFd);
-        eventFd=-1;
+        eventFd = -1;
     }
 }
 
@@ -111,7 +111,7 @@ void TcpServer::Accept()
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
-        MyThrow("%s:accept() failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:accept() failed", name.c_str()));
     }
     OprTcp *tcpOperator = objPool->Pop();
     if (tcpOperator == nullptr)
@@ -133,11 +133,11 @@ void TcpServer::SetNonblocking(int sock)
     opts = fcntl(sock, F_GETFL);
     if (opts < 0)
     {
-        MyThrow("%s:SetNonblocking()-fcntl(sock, F_GETFL) failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:SetNonblocking()-fcntl(sock, F_GETFL) failed", name.c_str()));
     }
     opts = opts | O_NONBLOCK;
     if (fcntl(sock, F_SETFL, opts) < 0)
     {
-        MyThrow("%s:SetNonblocking()-fcntl(sock, F_SETFL) failed", name.c_str());
+        throw std::runtime_error(FmtException("%s:SetNonblocking()-fcntl(sock, F_SETFL) failed", name.c_str()));
     }
 }

@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
         mainpath = get_current_dir_name();
         if (strlen(mainpath) > 64)
         {
-            MyThrow("path is longer than 64 bytes.\n");
+            throw std::invalid_argument("path is longer than 64 bytes.\n");
         }
         PrintVersion();
         PrintDbg(DBG_LOG, "\n>>> %s START... >>>", argv[0]);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485
         IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[user.ComPort()], "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
-        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr};
+        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024*1024};
         LayerNTS::monitor = oprSp[prod.MonitoringPort()];
         // Slaves
         if (SignCfg::bps_port > 0)
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
         }
         else
         { // ip
-            MyThrow("TODO: Slave on IP:Port");
+            throw std::runtime_error("TODO: Slave on IP:Port");
         }
 
         // TSI-SP-003 Web
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
         Controller::Instance().SetTcpServer(&tcpServerNts);
 
         PrintDbg(DBG_LOG, ">>> DONE >>>");
-
+        printf("\n=>Input '?<Enter>' to get console help.\n\n");
         /*************** Start ****************/
         while (1)
         {

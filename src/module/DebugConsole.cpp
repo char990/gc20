@@ -57,26 +57,29 @@ void DebugConsole::EventsHandle(uint32_t events)
 
 void DebugConsole::Process()
 {
-    int len = strlen(inbuf);
-    if(len==0 || len>=DC_INBUF_SIZE)
-    {
-        printf("\n");
-        return;
-    }
-    printf("Console got '%s'\n", inbuf);
     if (strcmp(inbuf, "t") == 0)
     {
         Cmd_t();
     }
-    else if(strcmp(inbuf, "?") == 0)
+    else if (strcmp(inbuf, "?") == 0)
     {
         Cmd_help();
+    }
+    else if (strcmp(inbuf, "ver") == 0)
+    {
+        Cmd_ver();
     }
     else
     {
-        printf("Unknown command\nPlease use command from the Command list:\n");
-        Cmd_help();
+        int len = strlen(inbuf);
+        if (len > 0 && len < DC_INBUF_SIZE)
+        {
+            printf("Unknown command\nPlease use command from the Command list:\n");
+            Cmd_help();
+        }
     }
+    printf("\n=>");
+    fflush(stdout);
 }
 
 void DebugConsole::Cmd_help()
@@ -84,8 +87,10 @@ void DebugConsole::Cmd_help()
     PrintDash('-');
     printf("CMD\t| Comments\n");
     PrintDash('-');
-    printf("?\t| This help\n");
-    printf("t\t| Ticktock ON/OFF\n");
+    printf(
+        "?       | This help\n"
+        "t       | Ticktock ON/OFF\n"
+        "ver     | Version\n");
     PrintDash('-');
 }
 
@@ -96,3 +101,8 @@ void DebugConsole::Cmd_t()
     ticktock = !ticktock;
 }
 
+extern void PrintVersion();
+void DebugConsole::Cmd_ver()
+{
+    PrintVersion();
+}

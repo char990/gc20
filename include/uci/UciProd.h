@@ -14,7 +14,7 @@ public:
     uint8_t groupId;
     uint32_t com_ip;
     static int bps_port;
-    Utils::Bits rjctFrm{256};
+    Utils::Bits rejectFrms{256};
 };
 
 class UciProd : public UciCfg
@@ -74,6 +74,7 @@ public:
     uint8_t SlavesPerSign() { return slavesPerSign; };
 
     uint8_t *Dimming() { return &dimming[0]; };
+    uint8_t Dimming(uint8_t lvl) { return dimming[lvl-1]; };
     uint8_t *ColourRatio() { return &colourRatio[0]; };
     uint8_t DriverMode() { return driverMode; };
     uint8_t DimmingAdjTime() { return dimmingAdjTime; };
@@ -92,6 +93,8 @@ public:
     bool IsHrgFrmColourValid(int i) { return bHrgFrmColour.GetBit(i); };
 
     bool IsIslusSpFrm(int i) { return bIslusSpFrm.GetBit(i); };
+
+    bool IsSimSlave(int i) { return bSimSlaves.GetBit(i); };
 
     uint8_t MaxConspicuity() { return bConspicuity.GetMaxBit(); };
     uint8_t MaxFont() { return bConspicuity.GetMaxBit(); };
@@ -191,7 +194,7 @@ private:
     const char *_GroupId = "GroupId";
     const char *_IP = "IP";
     const char *_COM = "COM";
-    const char *_RjctFrm = "RjctFrm"; // Reject frames
+    const char *_RejectFrms = "RejectFrms"; // Reject frames
 
     Utils::Bits bIslusSpFrm{256};
 
@@ -273,4 +276,8 @@ private:
     const char *_MonitoringPort = "MonitoringPort";
     int monitoringBps;
     const char *_MonitoringBps = "MonitoringBps";
+
+
+    Utils::Bits bSimSlaves{16};
+    const char * _SimSlaves = "SimSlaves";
 };

@@ -10,6 +10,7 @@ class OprSp : public IOperator
 {
 public:
     OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer);
+    OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer, int rxbufsize);
     ~OprSp();
 
     const char* Name() { return sp->Config().name; };

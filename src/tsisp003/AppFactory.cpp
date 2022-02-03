@@ -22,7 +22,7 @@ AppFactory::AppFactory()
     }
     else
     {
-        MyThrow("Unknow TsiSp003Ver %d",ver);
+        throw std::invalid_argument(FmtException("Unknow TsiSp003Ver %d",ver));
     }
 }
 

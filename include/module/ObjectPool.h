@@ -80,11 +80,11 @@ public:
     {
         if (freeCnt >= size)
         {
-            MyThrow("Pool is full, can't push a new obj in it");
+            throw std::overflow_error("Pool is full, can't push a new obj in it");
         }
         if (pObj == nullptr)
         {
-            MyThrow("pObj is nullptr, can't push it into the pool");
+            throw std::runtime_error("pObj is nullptr, can't push it into the pool");
         }
         if (std::is_base_of<Poolable<T>, T>::value)
         {

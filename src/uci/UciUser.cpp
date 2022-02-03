@@ -41,7 +41,8 @@ void UciUser::LoadConfig()
     broadcastId = GetInt(uciSec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
-        MyThrow("UciUser::DeviceId(%d) should not be same as BroadcastId(%d)", deviceId, broadcastId);
+        throw std::invalid_argument(FmtException("UciUser::DeviceId(%d) should not be same as BroadcastId(%d)",
+                                                 deviceId, broadcastId));
     }
     seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
     fan1OnTemp = GetInt(uciSec, _Fan1OnTemp, 0, 100);
@@ -52,21 +53,10 @@ void UciUser::LoadConfig()
     defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
     if (!uciProd.IsFont(defaultFont))
     {
-        MyThrow("UciUser::DefaultFont(%d) is not valid", defaultFont);
+        throw std::invalid_argument(FmtException("UciUser::DefaultFont(%d) is not valid", defaultFont));
     }
     defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
-    if (!uciProd.IsTxtFrmColourValid(defaultColour))
-    {
-        MyThrow("UciUser::DefaultColour(%d) is not valid in TextFrameColour", defaultColour);
-    }
-    if (!uciProd.IsGfxFrmColourValid(defaultColour))
-    {
-        MyThrow("UciUser::DefaultColour(%d) is not valid in GfxFrameColour", defaultColour);
-    }
-    if (!uciProd.IsHrgFrmColourValid(defaultColour))
-    {
-        MyThrow("UciUser::DefaultColour(%d) is not valid in HrgFrameColour", defaultColour);
-    }*/
+    */
 
     lastFrmOn = GetInt(uciSec, _LastFrmOn, 1, 60);
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
@@ -78,7 +68,7 @@ void UciUser::LoadConfig()
     webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)
     {
-        MyThrow("UciUser::SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort);
+        throw std::invalid_argument(FmtException("UciUser::SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
@@ -105,7 +95,7 @@ void UciUser::LoadConfig()
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if (cnt == 4)
         {
-            auto & ext = extSw.at(m); 
+            auto &ext = extSw.at(m);
             ext.dispTime = ibuf[0];
             ext.reserved = ibuf[1];
             ext.emergency = ibuf[2];
@@ -113,7 +103,7 @@ void UciUser::LoadConfig()
         }
         else
         {
-            MyThrow("UciUser::%s error: %s", cbuf, str);
+            throw std::invalid_argument(FmtException("UciUser::%s error: %s", cbuf, str));
         }
     }
 
@@ -132,7 +122,7 @@ void UciUser::LoadConfig()
     }
     if (cnt == NUMBER_OF_TZ)
     {
-        MyThrow("UciUser::TZ error:%s", str);
+        throw std::invalid_argument(FmtException("UciUser::TZ error:%s", str));
     }
 
     str = GetStr(uciSec, _DawnDusk);
@@ -143,7 +133,7 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] > 23)
             {
-                MyThrow("UciUser::DawnDusk Error: Hour>23");
+                throw std::invalid_argument("UciUser::DawnDusk Error: Hour>23");
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -153,7 +143,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        MyThrow("UciUser::DawnDusk Error: cnt!=16");
+        throw std::invalid_argument("UciUser::DawnDusk Error: cnt!=16");
     }
     if (tz_AU != nullptr)
     {
@@ -175,7 +165,8 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] >= ibuf[cnt + 1])
             {
-                MyThrow("UciUser::Luminance Error: [%d]%d>[%d]%d", cnt, ibuf[cnt], cnt + 1, ibuf[cnt + 1]);
+                throw std::invalid_argument(FmtException("UciUser::Luminance Error: [%d]%d>[%d]%d",
+                                                         cnt, ibuf[cnt], cnt + 1, ibuf[cnt + 1]));
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -185,7 +176,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        MyThrow("UciUser::Luminance Error: cnt!=16");
+        throw std::invalid_argument("UciUser::Luminance Error: cnt!=16");
     }
 
     int numberOfSigns = uciProd.NumberOfSigns();
@@ -195,12 +186,12 @@ void UciUser::LoadConfig()
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
-            MyThrow("UciUser::%s: %s used by UciProd.Sign%d", _ComPort, COM_NAME[comPort], i);
+            throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.Sign%d", _ComPort, COM_NAME[comPort], i));
         }
     }
     if (comPort == uciProd.MonitoringPort())
     {
-        MyThrow("UciUser::%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]);
+        throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]));
     }
 
     Close();
@@ -259,12 +250,12 @@ void UciUser::Dump()
 
     PrintDawnDusk(buf);
     printf("\t%s \t'%s'\n", _DawnDusk, buf);
-	PrintDash('>', "\n");
+    PrintDash('>', "\n");
 }
 
 void UciUser::PrintExtSw(int i, char *buf)
 {
-    auto & exswcfg = ExtSwCfgX(i);
+    auto &exswcfg = ExtSwCfgX(i);
     sprintf(buf, "%d,%d,%d,%d",
             exswcfg.dispTime, exswcfg.reserved, exswcfg.emergency, exswcfg.flashingOv);
 }
@@ -342,7 +333,7 @@ void UciUser::SeedOffset(uint8_t v)
     {
         seedOffset = v;
         char buf[8];
-        sprintf(buf,"0x%02X",v);
+        sprintf(buf, "0x%02X", v);
         OpenSaveClose(SECTION, _SeedOffset, buf);
     }
 }
@@ -453,7 +444,7 @@ void UciUser::PasswordOffset(uint16_t v)
     {
         passwordOffset = v;
         char buf[8];
-        sprintf(buf,"0x%04X",v);
+        sprintf(buf, "0x%04X", v);
         OpenSaveClose(SECTION, _PasswordOffset, buf);
     }
 }
@@ -545,7 +536,7 @@ void UciUser::Luminance(uint16_t *p)
     }
 }
 
-void UciUser::ExtSwCfgX(int i, ExtSw & cfg)
+void UciUser::ExtSwCfgX(int i, ExtSw &cfg)
 {
     if (i >= 0 && i < extSw.size() && !extSw.at(i).Equal(cfg))
     {
@@ -559,15 +550,15 @@ void UciUser::ExtSwCfgX(int i, ExtSw & cfg)
     }
 }
 
-void UciUser::ShakehandsPassword(const char * shake)
+void UciUser::ShakehandsPassword(const char *shake)
 {
-    for(int i=0;i<10;i++)
+    for (int i = 0; i < 10; i++)
     {
-        shakehandsPassword[i]=shake[i];
-        if(shake[i]=='\0')
+        shakehandsPassword[i] = shake[i];
+        if (shake[i] == '\0')
         {
             return;
         }
     }
-    shakehandsPassword[10]='\0';
+    shakehandsPassword[10] = '\0';
 }

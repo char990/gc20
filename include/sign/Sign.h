@@ -32,7 +32,7 @@ public:
 
     // set
     void SignErr(DEV::ERROR err, bool v) { signErr.Push(signId, err, v); };
-    void SignErr(Utils::Bits & v) { signErr.SetV(v); };
+    void SignErr(Utils::Bits &v) { signErr.SetV(v); };
     void DimmingSet(uint8_t v) { dimmingSet = v; };
     void DimmingV(uint8_t v) { dimmingV = v; };
     void Device(uint8_t v) { device = v; };
@@ -50,6 +50,8 @@ public:
         reportMsg = m;
         reportFrm = f;
     };
+
+    uint8_t ReportFrm() { return reportFrm; };
 
     void RefreshSlaveStatusAtSt();
     void RefreshSlaveStatusAtExtSt();
@@ -90,19 +92,16 @@ protected:
 
     uint8_t reportPln{0}, reportMsg{0}, reportFrm{0};
 
-    uint8_t setFrm{0};
-    uint8_t dispFrm{0};
-
     uint8_t tflag{255};
     uint8_t lasthour{255};
     Debounce lsConnectionFault;
     Debounce ls18hoursFault;
     Debounce lsMidnightFault;
     Debounce lsMiddayFault;
-//    DebounceByTime lsConnectionFault;
-//    DebounceByTime ls18hoursFault;
-//    DebounceByTime lsMidnightFault;
-//    DebounceByTime lsMiddayFault;
+    //    DebounceByTime lsConnectionFault;
+    //    DebounceByTime ls18hoursFault;
+    //    DebounceByTime lsMidnightFault;
+    //    DebounceByTime lsMiddayFault;
 
     int8_t curTemp{0}, maxTemp{0};
 

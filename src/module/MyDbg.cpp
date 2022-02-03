@@ -11,17 +11,20 @@
 
 using namespace Utils;
 
-#define MyDbgBuf_SIZE 1024
-static char MyDbgBuf[MyDbgBuf_SIZE];
 
-void MyThrow(const char *fmt, ...)
+std::string FmtException(const char * fmt, ...)
 {
+	char buf[256];
 	va_list args;
 	va_start(args, fmt);
-	int len = vsnprintf(MyDbgBuf, MyDbgBuf_SIZE - 1, fmt, args);
+	vsnprintf(buf, 255, fmt, args);
 	va_end(args);
-	throw std::runtime_error(&MyDbgBuf[0]);
+	return std::string(buf);
 }
+
+
+#define MyDbgBuf_SIZE 1024
+static char MyDbgBuf[MyDbgBuf_SIZE];
 
 void Log(int);
 
@@ -83,7 +86,7 @@ void Log(int len)
 	int log_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 	if (log_fd < 0)
 	{
-		MyThrow("Open log file failed:%s", filename);
+		throw std::runtime_error(FmtException("Open log file failed:%s", filename));
 	}
 	write(log_fd, MyDbgBuf, len);
 	close(log_fd);

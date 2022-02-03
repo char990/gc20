@@ -4,14 +4,16 @@
 #include <module/IGcEvent.h>
 #include <tsisp003/TsiSp003Const.h>
 #include <layer/ILayer.h>
+#include <module/RingBuf.h>
 
 class IOperator : public IGcEvent, public ILowerLayer
 {
 public:
-    IOperator() : IOperator(MAX_DATA_PACKET_SIZE){};
-    IOperator(int buf_size) : bufsize(buf_size) { optxbuf = new uint8_t[buf_size]; };
+    IOperator() : IOperator(POWEROF2_MAX_DATA_PACKET_SIZE){};
+    //    IOperator(int buf_size) : bufsize(buf_size) { optxbuf = new uint8_t[buf_size]; };
+    IOperator(int buf_size) : ringBuf(buf_size){};
     virtual ~IOperator() { delete[] optxbuf; };
-    bool IsTxRdy() { return txsize == 0; };
+    bool IsTxRdy() { return ringBuf.Cnt()==0 && txsize == 0; };
 
     int TxBytes(uint8_t *data, int len);
     int TxHandle();
@@ -22,4 +24,5 @@ protected:
     int bufsize;
     int txsize{0};
     int txcnt{0};
+    RingBuf ringBuf;
 };

@@ -7,7 +7,7 @@ LayerPrst::LayerPrst(int maxlen)
 {
     if(maxlen<=0)
     {
-        MyThrow("LayerPrst::maxlen error : %d",maxlen);
+        throw std::invalid_argument(FmtException("LayerPrst::maxlen error : %d",maxlen));
     }
     buf = new uint8_t[maxlen*2];
 }

@@ -208,7 +208,7 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
 #endif
 // TODO : 24-bit 
         }
-        else // to 24-bit
+        else // TODO : to 24-bit
         {
         }
     }
