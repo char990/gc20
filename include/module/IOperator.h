@@ -10,9 +10,8 @@ class IOperator : public IGcEvent, public ILowerLayer
 {
 public:
     IOperator() : IOperator(POWEROF2_MAX_DATA_PACKET_SIZE){};
-    //    IOperator(int buf_size) : bufsize(buf_size) { optxbuf = new uint8_t[buf_size]; };
     IOperator(int buf_size) : ringBuf(buf_size){};
-    virtual ~IOperator() { delete[] optxbuf; };
+    virtual ~IOperator() {};
     bool IsTxRdy() { return ringBuf.Cnt()==0 && txsize == 0; };
 
     int TxBytes(uint8_t *data, int len);
@@ -20,7 +19,7 @@ public:
     void ClrTx() override;
 
 protected:
-    uint8_t *optxbuf;
+    uint8_t optxbuf[4096];
     int bufsize;
     int txsize{0};
     int txcnt{0};

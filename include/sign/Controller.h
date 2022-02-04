@@ -99,14 +99,14 @@ private:
     GpioIn *pMainPwr;
     GpioIn *pBatLow;
     GpioIn *pBatOpen;
-    uint8_t cnt100ms{0};
+    BootTimer ms100Tmr;
     unsigned int EXTIN_PINS[4]{PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
     std::vector<GpioIn *> extInput{4};
     void ExtInputFunc();
 
+    BootTimer tempTmr;
     int8_t curTemp{0};
     int8_t maxTemp{0};
-    uint16_t msTemp{UINT16_MAX - 1};
     Debounce overtempFault;
 
     // restart/reboot/network flag

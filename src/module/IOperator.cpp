@@ -28,24 +28,6 @@ int IOperator::TxBytes(uint8_t *data, int len)
         }
     }
     return len;
-    if (txsize != 0 || len <= 0 || len > bufsize || eventFd < 0)
-    {
-        return -1;
-    }
-    int n = write(eventFd, data, len);
-    if (n < 0)
-    {
-        return -1;
-    }
-    else if (n < len)
-    {
-        txsize = len - n;
-        txcnt = 0;
-        memcpy(optxbuf, data + n, txsize);
-        events = ((upperLayer != nullptr) ? EPOLLIN : 0) | EPOLLOUT | EPOLLRDHUP;
-        Epoll::Instance().ModifyEvent(this, events);
-    }
-    return len;
 }
 
 void IOperator::ClrTx()
@@ -69,8 +51,7 @@ int IOperator::TxHandle()
         }
         else
         {
-            ringBuf.Pop(optxbuf, 4096);
-            txsize = 4096;
+            txsize = ringBuf.Pop(optxbuf, 4096);
             txcnt = 0;
         }
     }
@@ -82,35 +63,10 @@ int IOperator::TxHandle()
         ClrTx();
         r = -1;
     }
-    else if (n < len)
+    else if (n <= len)
     {
         txcnt += n;
         r = txsize - txcnt;
-    }
-    return r;
-
-    if (txcnt == txsize)
-    {
-        ClrTx();
-    }
-    else
-    {
-        int len = txsize - txcnt;
-        int n = write(eventFd, optxbuf + txcnt, len);
-        if (n < 0)
-        {
-            ClrTx();
-            r = -1;
-        }
-        else if (n < len)
-        {
-            txcnt += n;
-            r = txsize - txcnt;
-        }
-        else
-        {
-            ClrTx();
-        }
     }
     return r;
 }

@@ -5,6 +5,8 @@
 
 #include <layer/LayerWeb.h>
 
+OprSp * LayerWeb::monitor = nullptr;
+
 LayerWeb::LayerWeb(std::string name_)
 {
     name = name_ + ":" + "WEB";
@@ -38,6 +40,10 @@ bool LayerWeb::IsTxReady()
 
 int LayerWeb::Tx(uint8_t * data, int len)
 {
+    if (monitor != nullptr)
+    {
+        monitor->Tx(data, len);
+    }
     return lowerLayer->Tx(data, len);
 }
 
@@ -47,5 +53,9 @@ void LayerWeb::ClrRx()
 }
 void LayerWeb::ClrTx()
 {
+    if (monitor != nullptr)
+    {
+        monitor->ClrTx();
+    }
     lowerLayer->ClrTx();
 }

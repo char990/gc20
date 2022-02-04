@@ -216,7 +216,7 @@ enum class FRMCOLOUR : uint8_t
     MultipleColours = 0x0D,
     RGB24 = 0x0E,
     #ifdef HALF_BYTE
-    HalfByte = 0xF1,   // Brightway Master-Slave poctocol
+    HalfByte = 0xF1,   // Brightway Master-Slave poctocol V2.2
     #endif
     UNDEFINED = 0xFF
 };

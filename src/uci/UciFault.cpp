@@ -175,7 +175,15 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
     OpenSaveClose(SECTION, option, v);
     if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)
     {
-        PrintDbg(DBG_LOG, "Fault:%s:%s", DEV::ToStr(errorCode), onset?"onset":"clear");
+        if(id==0)
+        {
+            sprintf(v, "Controller");
+        }
+        else
+        {
+            sprintf(v, "Sign[%d]", id);
+        }
+        PrintDbg(DBG_LOG, "%s - Fault=%s : %s", v, DEV::ToStr(errorCode), onset?"onset":"clear");
     }
 }
 

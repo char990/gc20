@@ -59,5 +59,7 @@ private:
     uint8_t txbuf[MAX_ACK_DATA_PACKET_SIZE];
     #define BROADCAST_MI_SIZE 16
     static const MI::CODE broadcastMi[BROADCAST_MI_SIZE];
+
+    int LowerLayerTx(uint8_t * buf, int len);
 };
 

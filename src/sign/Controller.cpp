@@ -29,6 +29,7 @@ Controller::Controller()
     ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
     overtempFault.SetCNT(3); // set as 3 minutes
     overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
+    tempTmr.Setms(60*1000);
     long dt = db.GetUciUser().DisplayTimeout();
     if (dt == 0)
     {
@@ -66,6 +67,7 @@ Controller::Controller()
             signs[s->SignId() - 1] = s;
         }
     }
+    ms100Tmr.Setms(100);
 }
 
 Controller::~Controller()
@@ -144,9 +146,9 @@ void Controller::PeriodicRun()
         g->PeriodicRun();
     }
 
-    if (++cnt100ms >= CTRLLER_MS(100))
+    if (ms100Tmr.IsExpired())
     { // 100ms
-        cnt100ms = 0;
+        ms100Tmr.Setms(100);
         ExtInputFunc();
         PowerMonitor();
         if (displayTimeout.IsExpired())
@@ -172,9 +174,9 @@ void Controller::PeriodicRun()
         }
     }
 
-    if (++msTemp >= CTRLLER_MS(60 * 1000))
+    if (tempTmr.IsExpired())
     { // every 60s
-        msTemp = 0;
+        tempTmr.Setms(60*1000);
         maxTemp = 0;
         curTemp = 0;
         int t;

@@ -18,6 +18,7 @@
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
 #include <layer/LayerNTS.h>
+#include <layer/LayerWeb.h>
 #include <layer/UI_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
@@ -51,8 +52,8 @@ const char *MAKE = "Release";
 void PrintVersion()
 {
     char sbuf[256];
-    int len = snprintf(sbuf, 255, "* Version: %s, %s. Build time: %s *",
-                       FirmwareVer, MAKE, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
+    int len = snprintf(sbuf, 255, "* %s version: %s. Build time: %s *",
+                       MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
     char buf[256];
     memset(buf, '*', len);
     buf[len] = '\0';
@@ -133,18 +134,14 @@ private:
 
 void LogResetTime()
 {
-    //if (access(".lrt", F_OK) != 0)
-    { // there is no ".lrt"
-        time_t t;
-        pDS3231->ReadTimeAlarm(&t);
-        auto &db = DbHelper::Instance();
-        db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
-        db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
-        db.GetUciAlarm().Push(0, "<--- Reset --->");
-        db.GetUciEvent().Push(0, "<--- Reset --->");
-        return;
-    }
-    //remove(".lrt");
+    time_t t;
+    pDS3231->ReadTimeAlarm(&t);
+    auto &db = DbHelper::Instance();
+    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
+    db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
+    db.GetUciAlarm().Push(0, "<--- NEW START --->");
+    db.GetUciEvent().Push(0, "<--- NEW START --->");
+    return;
 }
 
 void GpioInit()
@@ -237,15 +234,15 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485
         IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[user.ComPort()], "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
-        oprSp[prod.MonitoringPort()] = new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024*1024};
-        LayerNTS::monitor = oprSp[prod.MonitoringPort()];
+        LayerWeb::monitor = LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
+            new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024 * 1024};
         // Slaves
         if (SignCfg::bps_port > 0)
         { // Slaves of Groups on RS485
             for (int i = 1; i <= prod.NumberOfSigns(); i++)
             {
-                auto & cn = prod.GetSignCfg(i);
-                if (oprSp[cn.com_ip]==nullptr)
+                auto &cn = prod.GetSignCfg(i);
+                if (oprSp[cn.com_ip] == nullptr)
                 {
                     auto g = Controller::Instance().GetGroup(cn.groupId);
                     IUpperLayer *upperLayer = new SLV_LayerManager(COM_NAME[cn.com_ip], g);

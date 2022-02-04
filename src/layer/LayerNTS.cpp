@@ -29,7 +29,7 @@ const MI::CODE LayerNTS::broadcastMi[BROADCAST_MI_SIZE] = {
 
 std::vector<LayerNTS *> LayerNTS::storage;
 
-OprSp * LayerNTS::monitor = nullptr;
+OprSp *LayerNTS::monitor = nullptr;
 
 LayerNTS::LayerNTS(std::string name_)
 {
@@ -71,11 +71,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     if (crc1 != crc2)
     {
         MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
-        lowerLayer->Tx(txbuf, 10);
-        if (monitor != nullptr)
-        {
-            monitor->Tx(txbuf, 10);
-        }
+        LowerLayerTx(txbuf, 10);
         return 0;
     }
     _addr = addr;
@@ -106,11 +102,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
                 else
                 { // ns nr not matched
                     MakeNondata(static_cast<uint8_t>(CTRL_CHAR::NAK));
-                    lowerLayer->Tx(txbuf, 10);
-                    if (monitor != nullptr)
-                    {
-                        monitor->Tx(txbuf, 10);
-                    }
+                    LowerLayerTx(txbuf, 10);
                     return 0;
                 }
             }
@@ -187,11 +179,7 @@ int LayerNTS::Tx(uint8_t *data, int len)
     p++;
     memcpy(p, data, len);
     EndOfBlock(txbuf + NON_DATA_PACKET_SIZE, len + DATA_PACKET_HEADER_SIZE);
-    lowerLayer->Tx(txbuf, NON_DATA_PACKET_SIZE + DATA_PACKET_HEADER_SIZE + len + DATA_PACKET_EOB_SIZE);
-    if (monitor != nullptr)
-    {
-        monitor->Tx(txbuf, NON_DATA_PACKET_SIZE + DATA_PACKET_HEADER_SIZE + len + DATA_PACKET_EOB_SIZE);
-    }
+    LowerLayerTx(txbuf, NON_DATA_PACKET_SIZE + DATA_PACKET_HEADER_SIZE + len + DATA_PACKET_EOB_SIZE);
     if (session == ISession::SESSION::ON_LINE)
     {
         _ns = IncN(_ns);
@@ -307,4 +295,13 @@ void LayerNTS::EndOfBlock(uint8_t *p, int len)
     uint16_t crc = Crc::Crc16_1021(p, len);
     Cnvt::ParseU16ToAsc(crc, (char *)p + len);
     *(p + len + 4) = static_cast<uint8_t>(CTRL_CHAR::ETX);
+}
+
+int LayerNTS::LowerLayerTx(uint8_t *buf, int len)
+{
+    if (monitor != nullptr)
+    {
+        monitor->Tx(buf, len);
+    }
+    return lowerLayer->Tx(buf, len);
 }
