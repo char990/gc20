@@ -294,19 +294,6 @@ void UciProd::LoadConfig()
         }
     }
 
-    if (!IsTxtFrmColourValid(mappedColoursTable[0]))
-    {
-        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in TextFrameColour", mappedColoursTable[0]));
-    }
-    if (!IsGfxFrmColourValid(mappedColoursTable[0]))
-    {
-        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in GfxFrameColour", mappedColoursTable[0]));
-    }
-    if (!IsHrgFrmColourValid(mappedColoursTable[0]))
-    {
-        throw std::invalid_argument(FmtException("UciProd::DefaultColour(%d) is not valid in HrgFrameColour", mappedColoursTable[0]));
-    }
-
     monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
 
     monitoringBps = GetInt(uciSec, _MonitoringBps, ALLOWEDBPS, STANDARDBPS_SIZE);

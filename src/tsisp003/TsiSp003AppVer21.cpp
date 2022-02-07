@@ -533,7 +533,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         }
         else
         {
-            Tx(frm->rawData, frm->dataLen);
+            Tx(frm->rawData.data(), frm->rawData.size());
         }
     }
     break;

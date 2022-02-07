@@ -177,9 +177,9 @@ void UciFrm::SaveFrm(uint8_t i)
 	}
 	char filename[256];
 	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
-	int len = frm->dataLen * 2;
+	int len = frm->rawData.size() * 2;
 	char *v = new char[len + 1]; // 1 bytes space for '\n'
-	Cnvt::ParseToStr(frm->rawData, v, frm->dataLen);
+	Cnvt::ParseToStr(frm->rawData.data(), v, frm->rawData.size());
 	v[len++] = '\n';
 	char buf[64];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -201,7 +201,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		fdatasync(frm_fd);
 		close(frm_fd);
 	}
-	delete v;
+	delete [] v;
 }
 
 void UciFrm::Reset()

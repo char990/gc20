@@ -168,7 +168,6 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
     auto &prod = DbHelper::Instance().GetUciProd();
     int frmLen = (colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen();
     memset(buf, 0, frmLen);
-    auto p = stFrm.rawData + frmOffset;
     if (colour < (uint8_t)FRMCOLOUR::MonoFinished)
     { // 1-bit frame
         if (colourbit == 4)
@@ -179,9 +178,10 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
             auto mappedcolour = prod.GetMappedColour(colour);
 #endif
             uint8_t mappedcolourH = mappedcolour * 0x10;
-            for (int i = 0; i < frmBytes; i++)
+            auto offset = frmOffset;
+            for (int i = 0; i < frmBytes; i++, offset++)
             {
-                auto data = *p++;
+                auto data = stFrm.rawData.at(offset);
                 for (int j = 0; j < 4; j++)
                 {
                     *buf++ = ((data & 0x02) ? mappedcolourH : 0) + ((data & 0x01) ? mappedcolour : 0);
@@ -204,7 +204,7 @@ int Frame::ToBitmap(uint8_t colourbit, uint8_t *buf)
                 *buf++ = prod.GetColourXbit((data & 0xF0) >> 4) * 0x10 + prod.GetColourXbit(data & 0x0F);
             }
 #else
-            memcpy(buf, p, frmLen);
+            memcpy(buf, stFrm.rawData.data() + frmOffset, frmLen);
 #endif
 // TODO : 24-bit 
         }
@@ -350,14 +350,15 @@ int FrmTxt::ToBitmap(uint8_t colourbit, uint8_t *buf)
     int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
     int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
     std::vector<std::vector<char>> text(rows, std::vector<char>(columns + 1, 0));
-    char *p = (char *)(stFrm.rawData + frmOffset);
+    auto offset = frmOffset;
     int rx = 0;
     int cx = 0;
-    for (auto pe = p + frmBytes; p < pe; p++)
+    for(int i=0;i<frmBytes;i++, offset++)
     {
-        if (*p != ' ')
+        auto v = stFrm.rawData.at(offset);
+        if (v != ' ')
         {
-            text.at(rx).at(cx) = *p;
+            text.at(rx).at(cx) = v;
             cx++;
             if (cx == columns)
             {

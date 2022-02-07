@@ -9,8 +9,8 @@ int IOperator::TxBytes(uint8_t *data, int len)
     {
         return -1;
     }
-    if(ringBuf.Cnt()>0 || txcnt<txsize)
-    {// tx is busy
+    if (ringBuf.Cnt() > 0 || txcnt < txsize)
+    { // tx is busy
         ringBuf.Push(data, len);
     }
     else
@@ -22,7 +22,15 @@ int IOperator::TxBytes(uint8_t *data, int len)
         }
         else if (n < len)
         {
-            ringBuf.Push(data+n, len-n);
+            txcnt = 0;
+            int left = len - n;
+            txsize = (left < OPTXBUF_SIZE) ? left : OPTXBUF_SIZE;
+            left -= txsize;
+            memcpy(optxbuf, data + n, txsize);
+            if (left > 0)
+            {
+                ringBuf.Push(data + n + txsize, left);
+            }
             events = ((upperLayer != nullptr) ? EPOLLIN : 0) | EPOLLOUT | EPOLLRDHUP;
             Epoll::Instance().ModifyEvent(this, events);
         }
@@ -44,14 +52,14 @@ int IOperator::TxHandle()
     int r = 0;
     if (txcnt == txsize)
     {
-        if(ringBuf.Cnt()==0)
+        if (ringBuf.Cnt() == 0)
         {
             ClrTx();
             return 0;
         }
         else
         {
-            txsize = ringBuf.Pop(optxbuf, 4096);
+            txsize = ringBuf.Pop(optxbuf, OPTXBUF_SIZE);
             txcnt = 0;
         }
     }

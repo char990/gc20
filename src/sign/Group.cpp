@@ -315,11 +315,13 @@ void Group::PowerFunc()
                 // power-up done
                 pwrUpTmr.Clear();
                 extDispTmr.Clear();
+                rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
                 fsPwr = PWR_STATE::ON;
                 ReadyToLoad(1);
                 RqstExtStatus(0xFF);
+                PrintDbg(DBG_LOG, "Group[%d]-PowerUp done", groupId);
             }
         }
     }
@@ -1313,6 +1315,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
+    PrintDbg(DBG_LOG, "Group[%d]-%sable plan:%d", groupId, endis == 0 ? "Dis" : "En", id);
     //PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
@@ -1523,11 +1526,13 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
     {
         sign->DimmingSet(dimming);
     }
+    PrintDbg(DBG_LOG, "Group[%d]-SetDimming:%d", groupId, dimming);
     return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Group::SetPower(uint8_t v)
 {
+    PrintDbg(DBG_LOG, "Group[%d]-Power:%s", groupId, v == 0 ? "OFF" : "ON");
     if (v == 0)
     { // PowerOff
         if (cmdPwr != PWR_STATE::OFF)
@@ -1575,6 +1580,7 @@ void Group::EnDisDevice()
         {
             s->Device(deviceEnDisSet);
         }
+        PrintDbg(DBG_LOG, "Group[%d]-%sable device", groupId, deviceEnDisCur == 0 ? "Dis" : "En");
     }
 }
 
@@ -1871,6 +1877,7 @@ void Group::PrintPlnMin()
 
 APP::ERROR Group::SystemReset(uint8_t v)
 {
+    PrintDbg(DBG_LOG, "SystemReset:Group[%d]-Level:%d", groupId, v);
     switch (v)
     {
     case 0:
@@ -1968,7 +1975,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         }
         else
         {
-            memcpy(dst, frm->stFrm.rawData + frm->frmOffset, frm->frmBytes);
+            memcpy(dst, frm->stFrm.rawData.data() + frm->frmOffset, frm->frmBytes);
             return frm->frmBytes;
         }
     }
@@ -1986,7 +1993,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     { // gfx/hrg
         if (msgOverlay == 1 && frm->colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         { // overlay but no need to trans or copy
-            orsrc = frm->stFrm.rawData + frm->frmOffset;
+            orsrc = frm->stFrm.rawData.data() + frm->frmOffset;
         }
         else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
         { //frame is mono but should transfer from 1-bit to 4-bit

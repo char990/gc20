@@ -6,6 +6,7 @@
 #include <layer/ILayer.h>
 #include <module/RingBuf.h>
 
+#define OPTXBUF_SIZE 1024
 class IOperator : public IGcEvent, public ILowerLayer
 {
 public:
@@ -19,7 +20,7 @@ public:
     void ClrTx() override;
 
 protected:
-    uint8_t optxbuf[4096];
+    uint8_t optxbuf[OPTXBUF_SIZE];
     int bufsize;
     int txsize{0};
     int txcnt{0};

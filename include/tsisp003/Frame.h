@@ -10,24 +10,13 @@ class StFrm
 {
 public:
     StFrm(){};
-    ~StFrm()
-    {
-        if (rawData != nullptr)
-        {
-            delete[] rawData;
-        }
-    };
-    int dataLen{0};
-    uint8_t *rawData{nullptr};
+    ~StFrm(){};
+    std::vector<uint8_t> rawData;
     void Init(uint8_t *buf, int len)
     {
-        if (rawData != nullptr)
-        {
-            delete[] rawData;
-        }
-        dataLen = len;
-        rawData = new uint8_t[len];
-        memcpy(rawData, buf, len);
+        rawData.clear();
+        rawData.resize(len);
+        memcpy(rawData.data(), buf, len);
     }
 };
 

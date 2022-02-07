@@ -21,7 +21,6 @@ Slave::Slave(uint8_t id)
     {
         throw std::invalid_argument("Error: Slave::numberOfColours is 0");
     }
-    numberOfFaultyLed = new uint8_t[numberOfTiles * numberOfColours];
     Reset();
     isSimSlave = DbHelper::Instance().GetUciProd().IsSimSlave(id);
     if (isSimSlave)
@@ -52,7 +51,6 @@ Slave::Slave(uint8_t id)
 
 Slave::~Slave()
 {
-    delete[] numberOfFaultyLed;
 }
 
 void Slave::Reset()
@@ -65,7 +63,7 @@ void Slave::Reset()
     }
     expectCurrentFrmId = 0; // display frame command
     expectNextFrmId = 0;    // set frame command
-    memset(numberOfFaultyLed, 0, numberOfTiles * numberOfColours);
+    numberOfFaultyLed.assign(numberOfTiles * numberOfColours, 0);
 }
 
 int Slave::DecodeStRpl(uint8_t *buf, int len)
@@ -146,7 +144,7 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
     humidity = *buf++;
     lux = Cnvt::GetU16(buf);
     buf += 4;
-    memcpy(numberOfFaultyLed, buf, numberOfTiles * numberOfColours);
+    memcpy(numberOfFaultyLed.data(), buf, numberOfTiles * numberOfColours);
     return 0;
 }
 

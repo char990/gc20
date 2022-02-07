@@ -62,7 +62,7 @@ public:
     uint16_t temperature;   // 0.1'C
     uint8_t humidity;
     uint16_t lux;
-    uint8_t *numberOfFaultyLed;
+    std::vector<uint8_t> numberOfFaultyLed;
 
     int DecodeExtStRpl(uint8_t * buf, int len);
 

@@ -106,13 +106,13 @@ void Sign::RefreshSlaveStatusAtSt()
     auto t1 = GetTime(nullptr);
     auto t2 = t1 - timeSt;
     timeSt = t1;
-    if(t2==0)
+    if (t2 == 0)
     {
         return;
     }
-    else if(t2<0||t2>10)
+    else if (t2 < 0 || t2 > 10)
     {
-        t2=1;
+        t2 = 1;
     }
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
@@ -121,13 +121,14 @@ void Sign::RefreshSlaveStatusAtSt()
     uint8_t check_chain_fault = 0;
     uint8_t check_selftest = 0;
     uint8_t check_lantern = 0;
-/*
+    /*
     for (auto &s : vsSlaves)
     {
         check_chain_fault |= s->panelFault & 0x0F;
         check_selftest |= s->selfTest & 1;
     }
-*/    // lanterns installed at first&last slaves
+*/
+    // lanterns installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
     chainFault.Check(check_chain_fault > 0, t2);
@@ -135,14 +136,14 @@ void Sign::RefreshSlaveStatusAtSt()
     DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
     selftestFault.Check(check_selftest > 0, t2);
-    if(check_selftest > 0)
+    if (check_selftest > 0)
     {
-        int len=sprintf(buf, "Slave in Selftest:");
+        int len = sprintf(buf, "Slave in Selftest:");
         for (auto &s : vsSlaves)
         {
-            if(s->selfTest & 1)
+            if (s->selfTest & 1)
             {
-                len+=snprintf(buf+len, 63-len, " %d", s->SlaveId());
+                len += snprintf(buf + len, 63 - len, " %d", s->SlaveId());
             }
         }
     }
@@ -166,13 +167,13 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
     auto t1 = GetTime(nullptr);
     auto t2 = t1 - timeExtSt;
-    if(t2==0)
+    if (t2 == 0)
     {
         return;
     }
-    else if(t2<0||t2>10)
+    else if (t2 < 0 || t2 > 10)
     {
-        t2=1;
+        t2 = 1;
     }
     timeExtSt = t1;
     // ----------------------Check status
@@ -188,7 +189,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     uint32_t v = 0;
     uint8_t vcnt = 0;
     int16_t temperature = 0; // 0.1'C
-    uint16_t faultLeds = 0;
+    int faultLeds = 0;
     for (auto &s : vsSlaves)
     {
         if (s->voltage > 3000 && s->voltage < 15000)
@@ -208,13 +209,15 @@ void Sign::RefreshSlaveStatusAtExtSt()
         {
             temperature = s->temperature;
         }
-        uint8_t *p = s->numberOfFaultyLed;
-        for (int i = 0; i < Slave::numberOfTiles * Slave::numberOfColours; i++)
+        for (auto x : s->numberOfFaultyLed)
         {
-            faultLeds += *p++;
+            faultLeds += x;
         }
     }
-
+    if (faultLeds > 65535)
+    {
+        faultLeds = 65535;
+    }
     // *** voltage
     if (minvoltage < prod.SlaveVoltageLow())
     {
@@ -442,7 +445,7 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
         {
             for (int j = 0; j < s->numberOfColours; j++)
             {
-                if (*(s->numberOfFaultyLed + j * s->numberOfTiles + i) > 0)
+                if (s->numberOfFaultyLed.at(j * s->numberOfTiles + i) > 0)
                 {
                     BitOffset::SetBit(buf, bitOffset);
                     break;
