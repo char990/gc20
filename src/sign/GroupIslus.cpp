@@ -128,6 +128,8 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
         if (allSlavesNext == 0)
         { // finished
             PT_EXIT();
+            // Here, use PT_EXIT() to terminate TaskSetATF
+            // Must call TaskSetATFReset() before calling of TaskSetATF
         }
         for (int i = 0; i < SlaveCnt(); i++)
         { // mark atfSt

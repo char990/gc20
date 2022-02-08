@@ -39,20 +39,19 @@ public:
     void SaveCtrllerErr(Utils::Bits & v);
 
     /******************** SignX ***********************/
-    Utils::Bits *SignErr()
+    std::vector<Utils::Bits> & SignErr()
     {
-        return &signErr[0];
+        return signErr;
     };
-    Utils::Bits *SignErr(uint8_t signId)
+    Utils::Bits & SignErr(uint8_t signId)
     {
-        return (signId == 0 || signId > signCnt) ? nullptr : &signErr[signId - 1];
+        return signErr.at(signId - 1);
     };
     void SaveSignErr(uint8_t signId, Utils::Bits & v);
 
 private:
-    GrpProc *grpProc;
+    std::vector<GrpProc> grpProc;
     uint8_t grpCnt;
-    GrpProc *GetGrpProc(uint8_t gid);
 
     int PrintGrpPln(uint8_t gid, char *buf);
     void SaveGrpPln(uint8_t gid);
@@ -70,7 +69,7 @@ private:
     const char *_CtrllerError = "CtrllerError";
 
     const char *_Sign = "Sign";
-    Utils::Bits *signErr;
+    std::vector<Utils::Bits> signErr;
     uint8_t signCnt;
     const char *_SignError = "SignError";
 };

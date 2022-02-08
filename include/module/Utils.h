@@ -365,12 +365,11 @@ namespace Utils
         int GetMaxBit();
         std::string ToString();
         void Clone(Bits & v);
-        uint8_t *Data() { return data; };
+        std::vector<uint8_t> & Data() { return data; };
 
     private:
         int size{0};
-        int bytes{0};
-        uint8_t *data{nullptr};
+        std::vector<uint8_t> data;
         void Check(int bitOffset);
     };
 

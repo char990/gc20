@@ -9,22 +9,12 @@ using namespace Utils;
 
 UciProcess::UciProcess()
 {
-	grpProc = nullptr;
 	grpCnt = 0;
-	signErr = nullptr;
 	signCnt = 0;
 }
 
 UciProcess::~UciProcess()
 {
-	if (grpProc != nullptr)
-	{
-		delete[] grpProc;
-	}
-	if (signErr != nullptr)
-	{
-		delete[] signErr;
-	}
 }
 
 void UciProcess::LoadConfig()
@@ -43,69 +33,53 @@ void UciProcess::LoadConfig()
 
 	/************************** GroupX *************************/
 	grpCnt = db.GetUciProd().NumberOfGroups();
-	grpProc = new GrpProc[grpCnt];
-	GrpProc *p;
-	for (int i = 1; i <= grpCnt; i++)
+	grpProc.resize(grpCnt);
+	for (int i = 0; i < grpCnt; i++)
 	{
-		sprintf(sectionBuf, "%s%d", _Group, i);
+		sprintf(sectionBuf, "%s%d", _Group, i + 1);
 		uciSec = GetSection(SECTION);
-		p = GetGrpProc(i);
+		auto & p = grpProc.at(i);
 		// _EnabledPlan
-		try
+		auto &enp = p.EnabledPln();
+		ReadBits(uciSec, _EnabledPlan, enp, false);
+		for (int k = 1; k <= 255; k++)
 		{
-			auto & enp = p->EnabledPln();
-			ReadBits(uciSec, _EnabledPlan, enp);
-			for (int k = 1; k <= 255; k++)
+			if (!db.GetUciPln().IsPlnDefined(k))
 			{
-				if (!db.GetUciPln().IsPlnDefined(k))
-				{
-					enp.ClrBit(k);
-				}
+				enp.ClrBit(k);
 			}
 		}
-		catch (...){};
 		// _Display
-		uint8_t *plen = p->ProcDisp();
-		*plen = 0;
+		uint8_t *plen = p.ProcDisp();
+		plen[0] = 0;
 		str = GetStr(uciSec, _Display);
 		if (str != NULL)
 		{
 			int len = strlen(str);
 			if (len <= (255 * 2) && Cnvt::ParseToU8(str, plen + 1, len) == 0)
 			{
-				*plen = len / 2;
+				plen[0] = len / 2;
 			}
 		}
 		// _Dimming, _Power, _Device
-		d = GetInt(uciSec, _Dimming, 0, 16);
-		p->Dimming(d);
-		d = GetInt(uciSec, _Power, 0, 1);
-		p->Power(d);
-		d = GetInt(uciSec, _Device, 0, 1);
-		p->Device(d);
+		p.Dimming(GetInt(uciSec, _Dimming, 0, 16));
+		p.Power(GetInt(uciSec, _Power, 0, 1));
+		p.Device(GetInt(uciSec, _Device, 0, 1));
 	}
 
 	/************************** Ctrller *************************/
 	sprintf(sectionBuf, _Ctrller);
 	uciSec = GetSection(SECTION);
-	try
-	{
-		ReadBits(uciSec, _CtrllerError, ctrllerErr);
-	}
-	catch (...){};
+	ReadBits(uciSec, _CtrllerError, ctrllerErr, false);
 	/************************** SignX *************************/
 	signCnt = db.GetUciProd().NumberOfSigns();
-	signErr = new Utils::Bits[signCnt];
-	for (int i = 1; i <= signCnt; i++)
+	signErr.resize(signCnt);
+	for (int i = 0; i < signCnt; i++)
 	{
-		signErr[i - 1].Init(32);
-		sprintf(sectionBuf, "%s%d", _Sign, i);
+		signErr.at(i).Init(32);
+		sprintf(sectionBuf, "%s%d", _Sign, i + 1);
 		uciSec = GetSection(SECTION);
-		try
-		{
-			ReadBits(uciSec, _SignError, signErr[i - 1]);
-		}
-		catch (...){};
+		ReadBits(uciSec, _SignError, signErr.at(i), false);
 	}
 	Close();
 	Dump();
@@ -116,25 +90,25 @@ void UciProcess::Dump()
 	PrintDash('<');
 	printf("%s/%s\n", PATH, PACKAGE);
 	char buf[1024];
-	for (int i = 1; i <= grpCnt; i++)
+	for (int i = 0; i < grpCnt; i++)
 	{
-		printf("%s%d:\n", _Group, i);
-		auto p = GetGrpProc(i);
+		printf("%s%d:\n", _Group, i+1);
+		auto & p = grpProc.at(i);
 		PrintGrpPln(i, buf);
 		printf("\t%s \t'%s'\n", _EnabledPlan, buf);
-		uint8_t *disp = p->ProcDisp();
-		if (*disp == 0)
+		uint8_t *disp = p.ProcDisp();
+		if (disp[0] == 0)
 		{
 			printf("\t%s \t''\n", _Display);
 		}
 		else
 		{
-			Cnvt::ParseToStr(disp + 1, buf, *disp);
+			Cnvt::ParseToStr(disp + 1, buf, disp[0]);
 			printf("\t%s \t'%s'\n", _Display, buf);
 		}
-		printf("\t%s \t'%d'\n", _Dimming, p->Dimming());
-		printf("\t%s \t'%d'\n", _Power, p->Power());
-		printf("\t%s \t'%d'\n", _Device, p->Device());
+		printf("\t%s \t'%d'\n", _Dimming, p.Dimming());
+		printf("\t%s \t'%d'\n", _Power, p.Power());
+		printf("\t%s \t'%d'\n", _Device, p.Device());
 	}
 
 	printf("%s:\n", _Ctrller);
@@ -146,11 +120,6 @@ void UciProcess::Dump()
 		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
 	PrintDash('>', "\n");
-}
-
-GrpProc *UciProcess::GetGrpProc(uint8_t gid)
-{
-	return (gid == 0 || gid > grpCnt) ? nullptr : &grpProc[gid - 1];
 }
 
 bool UciProcess::IsPlanEnabled(uint8_t gid, uint8_t pid)
@@ -185,11 +154,11 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 	if (gid == 0 || gid > grpCnt)
 		return 0;
 	buf[0] = '\0';
-	auto p = GetGrpProc(gid);
+	auto & p = grpProc.at(gid - 1);
 	int len = 0;
 	for (int i = 1; i <= 255; i++)
 	{
-		if (p->IsPlanEnabled(i))
+		if (p.IsPlanEnabled(i))
 		{
 			if (len > 0)
 			{

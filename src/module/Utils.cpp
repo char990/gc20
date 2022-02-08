@@ -666,23 +666,23 @@ long Time::Interval()
 }
 
 extern time_t GetTime(time_t *);
-time_t Time::GetLocalTime(struct tm & stm)
+time_t Time::GetLocalTime(struct tm &stm)
 {
     time_t t = GetTime(nullptr);
     localtime_r(&t, &stm);
     return t;
 }
 
-time_t Time::SetLocalTime(struct tm & stm)
+time_t Time::SetLocalTime(struct tm &stm)
 {
     char buf[64];
     snprintf(buf, 63, "date '%d-%d-%d %d:%d:%d'",
-            // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
+             // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
              stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
     auto t = mktime(&stm);
     system(buf);
     auto newt = GetTime(nullptr);
-    auto sec =  newt - t;
+    auto sec = newt - t;
     if (sec < 0 || sec > 3)
     {
         return -1;
@@ -690,7 +690,7 @@ time_t Time::SetLocalTime(struct tm & stm)
     return newt;
 }
 
-bool Time::IsTmValid(struct tm & stm)
+bool Time::IsTmValid(struct tm &stm)
 {
     if (stm.tm_mday < 1 ||
         stm.tm_mon < 0 || stm.tm_mon > 11 ||
@@ -751,52 +751,42 @@ bool BitOffset::GetBit(uint8_t *buf, int bitOffset)
 Bits::Bits(int size)
     : size(size)
 {
-    bytes = (size + 7) / 8;
-    data = new uint8_t[bytes];
+    data.resize((size + 7) / 8);
     ClrAll();
 }
 
 void Bits::Init(int size)
 {
-    if (data != nullptr)
-    {
-        delete[] data;
-    }
     this->size = size;
-    bytes = (size + 7) / 8;
-    data = new uint8_t[bytes];
+    data.resize((size + 7) / 8);
     ClrAll();
 }
 
 Bits::~Bits()
 {
-    if (data != nullptr)
-    {
-        delete[] data;
-    }
 }
 
 void Bits::SetBit(int bitOffset)
 {
     Check(bitOffset);
-    BitOffset::SetBit(data, bitOffset);
+    BitOffset::SetBit(data.data(), bitOffset);
 }
 
 void Bits::ClrBit(int bitOffset)
 {
     Check(bitOffset);
-    BitOffset::ClrBit(data, bitOffset);
+    BitOffset::ClrBit(data.data(), bitOffset);
 }
 
 void Bits::ClrAll()
 {
-    memset(data, 0, bytes);
+    data.assign(data.size(), 0);
 }
 
 bool Bits::GetBit(int bitOffset)
 {
     Check(bitOffset);
-    return BitOffset::GetBit(data, bitOffset);
+    return BitOffset::GetBit(data.data(), bitOffset);
 }
 
 std::string Bits::ToString()
@@ -805,7 +795,7 @@ std::string Bits::ToString()
     int len = 0;
     for (int i = 0; i < size && i < 256; i++)
     {
-        if (BitOffset::GetBit(data, i))
+        if (BitOffset::GetBit(data.data(), i))
         {
             len += sprintf(buf + len, (len == 0) ? "%d" : ",%d", i);
         }
@@ -826,7 +816,7 @@ int Bits::GetMaxBit()
     int max = -1;
     for (int i = 0; i < size; i++)
     {
-        if (BitOffset::GetBit(data, i))
+        if (BitOffset::GetBit(data.data(), i))
         {
             max = i;
         }
@@ -836,6 +826,6 @@ int Bits::GetMaxBit()
 
 void Bits::Clone(Bits &v)
 {
-    Init(v.Size());
-    memcpy(data, v.Data(), bytes);
+    size = v.Size();
+    data = v.Data();
 }

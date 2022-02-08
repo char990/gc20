@@ -140,13 +140,13 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     uint8_t level = data[2];
     if (level > 3 && level < 255)
     {
-        SetRejectStr("Invalid reset level[%d]",level);
+        SetRejectStr("Invalid SystemReset level[%d]",level);
         Reject(APP::ERROR::SyntaxError);
         return;
     }
     if (level > 1 && gid != 0)
     {
-        SetRejectStr("GroupID=%d. Level[%d] is only for Group[0])", gid, level);
+        SetRejectStr("GroupID[%d] - SystemReset Level[%d] is only for Group[0])", gid, level);
         Reject(APP::ERROR::UndefinedDeviceNumber);
         return;
     }
@@ -158,7 +158,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]Level[%d])", gid, level);
+        SetRejectStr("Group[%d] - Invalid SystemReset level[%d])", gid, level);
         Reject(r);
     }
 }
@@ -243,7 +243,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]Frame[%d]",data[1],data[2]);
+        SetRejectStr("Group[%d] - DispFrm : Frame[%d]",data[1],data[2]);
         Reject(r);
     }
 }
@@ -329,7 +329,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]Msg[%d]",data[1],data[2]);
+        SetRejectStr("Group[%d] - DispMsg : Msg[%d]",data[1],data[2]);
         Reject(r);
     }
 }
@@ -383,21 +383,15 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdEnDisPlan(data);
+    const char * endis = data[0] == static_cast<uint8_t>(MI::CODE::EnablePlan)?"En":"Dis";
     if (r == APP::ERROR::AppNoError)
     {
-        if (data[0] == static_cast<uint8_t>(MI::CODE::EnablePlan))
-        {
-            db.GetUciEvent().Push(0, "EnablePlan: Group%d, Plan%d", data[1], data[2]);
-        }
-        else
-        {
-            db.GetUciEvent().Push(0, "DisablePlan: Group%d, Plan%d", data[1], data[2]);
-        }
+        db.GetUciEvent().Push(0, "%sablePlan: Group%d, Plan%d", endis, data[1], data[2]);
         Ack();
     }
     else
     {
-        SetRejectStr("Group[%d]Plan[%d]", data[1], data[2]);
+        SetRejectStr("Group[%d] - %sable Plan[%d]", endis, data[1], data[2]);
         Reject(r);
     }
 }
