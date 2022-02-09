@@ -119,7 +119,7 @@ void UciProcess::Dump()
 		printf("%s%d:\n", _Sign, i);
 		PrintOption_str(_SignError, signErr[i - 1].ToString().c_str());
 	}
-	PrintDash('>', "\n");
+	PrintDash('>');
 }
 
 bool UciProcess::IsPlanEnabled(uint8_t gid, uint8_t pid)
@@ -142,11 +142,9 @@ void UciProcess::SaveGrpPln(uint8_t gid)
 	if (gid == 0 || gid > grpCnt)
 		return;
 	sprintf(sectionBuf, "%s%d", _Group, gid);
-	//char * buf = new char[1024];
 	char buf[1024];
 	PrintGrpPln(gid, buf);
 	OpenSaveClose(SECTION, _EnabledPlan, buf);
-	//delete [] buf;
 }
 
 int UciProcess::PrintGrpPln(uint8_t gid, char *buf)

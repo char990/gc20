@@ -588,7 +588,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = user.Fan1OnTemp();
         *pt++ = user.Humidity();
         *pt++ = user.Tz();
-        *pt++ = 0; //user.DefaultFont();
+        *pt++ = 0;                                                    //user.DefaultFont();
         *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); //DefaultColour();
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
@@ -624,28 +624,32 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         int maxTemp = 0;
         int curTemp = 0;
         int lux = 0;
-        int cnt = prod.NumberOfSigns();
+        int cnt = 0;
         for (auto &g : groups)
         {
             auto &signs = g->GetSigns();
             for (auto &s : signs)
             {
-                auto v = s->Voltage();
-                voltage += v;
-                if (v < voltagemin)
+                if (!s->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
                 {
-                    voltagemin = v;
+                    auto v = s->Voltage();
+                    voltage += v;
+                    if (v < voltagemin)
+                    {
+                        voltagemin = v;
+                    }
+                    if (v > voltagemax)
+                    {
+                        voltagemax = v;
+                    }
+                    if (s->MaxTemp() > maxTemp)
+                    {
+                        maxTemp = s->MaxTemp();
+                    }
+                    curTemp += s->CurTemp();
+                    lux += s->Lux();
+                    cnt++;
                 }
-                if (v > voltagemax)
-                {
-                    voltagemax = v;
-                }
-                if (s->MaxTemp() > maxTemp)
-                {
-                    maxTemp = s->MaxTemp();
-                }
-                curTemp += s->CurTemp();
-                lux += s->Lux();
             }
         }
         *pt++ = maxTemp;

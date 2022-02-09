@@ -250,7 +250,7 @@ void UciUser::Dump()
 
     PrintDawnDusk(buf);
     printf("\t%s \t'%s'\n", _DawnDusk, buf);
-    PrintDash('>', "\n");
+    PrintDash('>');
 }
 
 void UciUser::PrintExtSw(int i, char *buf)

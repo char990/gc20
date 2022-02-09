@@ -92,15 +92,11 @@ void Log(int len)
 	close(log_fd);
 }
 
-void PrintDash(char c, const char *str)
+void PrintDash(char c)
 {
 #define DASH_LEN 80
 	char buf[DASH_LEN + 1];
 	memset(buf, c, DASH_LEN);
 	buf[DASH_LEN] = '\0';
 	puts(buf);
-	if (str != nullptr)
-	{
-		puts(str);
-	}
 }

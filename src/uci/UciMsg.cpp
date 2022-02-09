@@ -64,7 +64,7 @@ void UciMsg::Dump()
 			printf("\t%s\n", m.ToString().c_str());
 		}
 	}
-	PrintDash('>', "\n");
+	PrintDash('>');
 }
 
 uint16_t UciMsg::ChkSum()
@@ -124,6 +124,7 @@ void UciMsg::Reset()
 	{
 		m.micode = 0;
 	}
+	chksum = 0;
 	UciCfg::ClrSECTION();
 }
 

@@ -32,7 +32,7 @@ UciFrm::~UciFrm()
 void UciFrm::LoadConfig()
 {
 	PrintDbg(DBG_LOG, ">>> Loading 'frames'");
-	auto & db = DbHelper::Instance();
+	auto &db = DbHelper::Instance();
 	PATH = db.Path();
 	auto prodtype = db.GetUciProd().ProdType();
 	LoadFrms("%s/frm_%03d");
@@ -103,7 +103,7 @@ void UciFrm::Dump()
 			printf("\tfrm_%03d: %s\n", i + 1, frms[i]->ToString().c_str());
 		}
 	}
-	PrintDash('>', "\n");
+	PrintDash('>');
 }
 
 uint16_t UciFrm::ChkSum()
@@ -157,14 +157,14 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 		return r;
 	}
 	// refresh all-frame crc
-	auto vFrm = GetFrm(pFrm->frmId);
+	auto &vFrm = frms.at(pFrm->frmId - 1);
 	if (vFrm != nullptr)
 	{
 		chksum -= vFrm->crc;
 		delete vFrm;
 	}
-	chksum -= pFrm->crc;
-	frms.at(pFrm->frmId - 1) = pFrm;
+	vFrm = pFrm;
+	chksum += vFrm->crc;
 	return APP::ERROR::AppNoError;
 }
 
@@ -183,11 +183,11 @@ void UciFrm::SaveFrm(uint8_t i)
 	v[len++] = '\n';
 	char buf[64];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
-	DbHelper &db = DbHelper::Instance();
+	auto &alm = DbHelper::Instance().GetUciAlarm();
 	if (frm_fd < 0)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
-		db.GetUciAlarm().Push(0, buf);
+		alm.Push(0, buf);
 		PrintDbg(DBG_LOG, "%s", buf);
 	}
 	else
@@ -195,13 +195,13 @@ void UciFrm::SaveFrm(uint8_t i)
 		if (write(frm_fd, v, len) != len)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
-			db.GetUciAlarm().Push(0, buf);
+			alm.Push(0, buf);
 			PrintDbg(DBG_LOG, "%s", buf);
 		}
 		fdatasync(frm_fd);
 		close(frm_fd);
 	}
-	delete [] v;
+	delete[] v;
 }
 
 void UciFrm::Reset()
@@ -214,6 +214,7 @@ void UciFrm::Reset()
 		}
 	}
 	frms.fill(nullptr);
+	chksum = 0;
 	char buf[256];
 	snprintf(buf, 255, "rm %s/frm* > /dev/null 2>&1", PATH);
 	system(buf);

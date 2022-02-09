@@ -79,6 +79,8 @@ public:
     uint16_t Lux() { return lsConnectionFault.IsLow() ? lux : 65535; };
     uint16_t FaultLedCnt() { return faultLedCnt; };
 
+    void RefreshDevErr(DEV::ERROR err);
+
 protected:
     uint8_t signId;
     std::vector<Slave *> vsSlaves;

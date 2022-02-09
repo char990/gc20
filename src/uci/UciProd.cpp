@@ -578,7 +578,7 @@ void UciProd::Dump()
         PrintOption_str(_RejectFrms, cfg.rejectFrms.ToString().c_str());
     }
 
-    PrintDash('>', "\n");
+    PrintDash('>');
 }
 
 uint8_t UciProd::CharRows(int i)

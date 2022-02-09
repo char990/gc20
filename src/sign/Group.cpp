@@ -302,7 +302,8 @@ void Group::PowerFunc()
                 // power-up done
                 pwrUpTmr.Clear();
                 extDispTmr.Clear();
-                rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
+                //rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
+                TaskRqstSlaveReset();
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
                 fsPwr = PWR_STATE::ON;
@@ -984,55 +985,43 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // Request status 1-n
         do
         {
-            rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
-            reopen = 0;
-            do
+            taskRqstSlaveTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+            RqstStatus(rqstSt_slvindex);
             {
-                taskRqstSlaveTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
-                RqstStatus(rqstSt_slvindex);
-                vSlaves.at(rqstSt_slvindex)->rxStatus = 0;
-                PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
+                auto slave = vSlaves.at(rqstSt_slvindex);
+                slave->rxStatus = 0;
+                if (slave->rqstNoRplTmr.IsClear())
                 {
-                    auto &s = vSlaves.at(rqstSt_slvindex);
-                    if (s->GetRxStatus())
+                    slave->rqstNoRplTmr.Setms(prod.OfflineDebounce() * 1000);
+                }
+            }
+            PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
+            {
+                auto s = vSlaves.at(rqstSt_slvindex);
+                if (s->GetRxStatus())
+                {
+                    s->rqstNoRplTmr.Clear();
+                    if (s->isOffline)
                     {
-                        rqstNoRplTmr.Clear();
-                        if (s->isOffline)
-                        {
-                            s->ReportOffline(false);
-                        }
+                        s->ReportOffline(false);
+                        s->sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
                     }
-                    else
+                }
+                else
+                {
+                    if (s->rqstNoRplTmr.IsExpired())
                     {
-                        if (rqstNoRplTmr.IsExpired())
+                        if (!s->isOffline)
                         {
-                            if (reopen == 0)
-                            {
-                                reopen = 1;
-                                oprSp->ReOpen();
-                                rqstNoRplTmr.Setms(1000);
-                            }
-                            else
-                            {
-                                if (!s->isOffline)
-                                {
-                                    s->ReportOffline(true);
-                                }
-                            }
+                            s->ReportOffline(true);
+                            s->sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
                         }
                     }
                 }
-            } while (!rqstNoRplTmr.IsClear());
+            }
 
             if (rqstSt_slvindex == SlaveCnt() - 1)
             {
-                for (auto sign : vSigns)
-                {
-                    if (sign->SignErr().IsSet(DEV::ERROR::InternalCommunicationsFailure))
-                    {
-                        sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, false);
-                    }
-                }
                 rqstSt_slvindex = 0;
             }
             else

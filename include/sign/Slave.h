@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <module/Utils.h>
+#include <module/BootTimer.h>
 
 class Sign;
 class Slave
@@ -72,6 +73,7 @@ public:
     uint8_t expectCurrentFrmId{0};       // display frame command
     uint8_t expectNextFrmId{0};       // set frame command
 
+    BootTimer rqstNoRplTmr;
 
     void ReportOffline(bool v);
 private:

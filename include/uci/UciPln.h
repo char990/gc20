@@ -14,15 +14,14 @@ Note : CRC is uint16_t of HEX
 --- Start ---
 config UciPln pln
 
-    # pln_xxx : xxx is plan ID, 1-255, 0 is not allowed
+    # pln_xxx : xxx is plan ID, 001-255, 0 is not allowed
 
     # mostly same as SetPlan
-    # min = 11(4+6*1+1) + crc(2) + "enable_flag"(1)
-    # max = 40(4+6*6) + crc(2) + "enable_flag"(1)
-    # enabled(01), 88 chars
-    option pln_1  "0D01......CRC01"
+    # min = 11(4+6*1+1) + crc(2)
+    # max = 40(4+6*6) + crc(2)
+    option pln_001  "0D01......CRC"
     # disabled(00), 88 chars
-    option pln_2  "0D02......CRC00"
+    option pln_002  "0D02......CRC"
 
     # If plan CRC is not matched, discard plan
 --- End ---
@@ -69,7 +68,7 @@ public:
 private:
     std::array<Plan,255> plns;  // 255 plans
     uint16_t chksum;
-    const char * _Option = "pln_%d";
+    const char * _Option = "pln_%03d";
 };
 
 

@@ -486,3 +486,23 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         DbHelper::Instance().GetUciAlarm().Push(signId, buf);
     }
 }
+
+void Sign::RefreshDevErr(DEV::ERROR err)
+{
+    bool result = false;
+    if (err == DEV::ERROR::InternalCommunicationsFailure)
+    {
+        for (auto s : vsSlaves)
+        {
+            if (s->isOffline)
+            {
+                result = true;
+                break;
+            }
+        }
+    }
+    if (signErr.IsSet(err) != result)
+    {
+        SignErr(err, result);
+    }
+}

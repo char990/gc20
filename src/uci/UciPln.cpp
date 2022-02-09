@@ -63,7 +63,7 @@ void UciPln::Dump()
             printf("\t%s\n", m.ToString().c_str());
         }
     }
-	PrintDash('>', "\n");
+	PrintDash('>');
 }
 
 uint16_t UciPln::ChkSum()
@@ -121,5 +121,6 @@ void UciPln::Reset()
 {
     Plan p;
     plns.fill(p);
+    chksum = 0;
     UciCfg::ClrSECTION();
 }

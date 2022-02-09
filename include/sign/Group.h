@@ -49,7 +49,7 @@ public:
     /// \brief      call TranslateFrame and send txBuf by SetTextFrame/SetGfxFrm
     int SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId);
 
-    int SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId);      // same part of SlaveDisplayFrame & SlaveSetStoredFrame
+    int SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId); // same part of SlaveDisplayFrame & SlaveSetStoredFrame
     int SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId);
     int SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId);
 
@@ -108,8 +108,8 @@ public:
 
 protected:
     DbHelper &db;
-    UciProd & prod;
-    UciUser & user;
+    UciProd &prod;
+    UciUser &user;
     uint8_t groupId;
     OprSp *oprSp;
     std::vector<Sign *> vSigns;
@@ -321,15 +321,15 @@ private:
     BootTimer taskRqstSlaveTmr;
     uint8_t rqstSt_slvindex{0};
     uint8_t rqstExtSt_slvindex{0};
-    BootTimer rqstNoRplTmr;
-    uint8_t reopen;
     void TaskRqstSlaveReset()
     {
         taskRqstSlaveLine = 0;
         rqstSt_slvindex = 0;
         rqstExtSt_slvindex = 0;
-        //rqstNoRplTmr.Clear();
-        //taskRqstSlaveTmr.Setms(0);
+        for (auto &s : vSlaves)
+        {
+            s->rqstNoRplTmr.Clear();
+        }
     }
 
     void GroupSetReportDisp(uint8_t onDispFrmId, uint8_t onDispMsgId, uint8_t onDispPlnId);

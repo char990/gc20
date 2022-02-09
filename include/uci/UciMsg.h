@@ -12,12 +12,12 @@ Format: UCI
 --- Start ---
 config UciMsg msg
 
-    # msg_xxx : xxx is message ID, 1-255, 0 is not allowed
+    # msg_xxx : xxx is message ID, 001-255, 0 is not allowed
 
     # mostly same as SetMessage
     # min = 7(4+2*1+1) + crc(2)
     # max = 16(4+2*6) + crc(2)
-    option msg_1  "0C01000A011E021E031E041E051E0055AA"
+    option msg_001  "0C01000A011E021E031E041E051E0055AA"
 
     # If msg CRC is not matched, discard msg
 --- End ---
@@ -64,6 +64,6 @@ public:
 private:
     std::array<Message, 255> msgs;  // 255 msgs
     uint16_t chksum;
-    const char * _Option = "msg_%d";
+    const char * _Option = "msg_%03d";
 };
 
