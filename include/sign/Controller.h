@@ -100,7 +100,7 @@ private:
     GpioIn *pBatLow;
     GpioIn *pBatOpen;
     BootTimer ms100Tmr;
-    unsigned int EXTIN_PINS[4]{PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
+    const unsigned int EXTIN_PINS[4]{PIN_MSG3, PIN_MSG4, PIN_MSG5, PIN_MSG6};
     std::vector<GpioIn *> extInput{4};
     void ExtInputFunc();
 

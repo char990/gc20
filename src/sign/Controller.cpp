@@ -29,7 +29,7 @@ Controller::Controller()
     ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
     overtempFault.SetCNT(3); // set as 3 minutes
     overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
-    tempTmr.Setms(60*1000);
+    tempTmr.Setms(0);
     long dt = db.GetUciUser().DisplayTimeout();
     if (dt == 0)
     {
