@@ -135,9 +135,7 @@ int Upgrade::Start()
         PrintDbg(DBG_LOG, "Upgrade::CheckMD5: Can't change path to '%s'", GDIR);
         return 4;
     }
-    char cmd[256];
-    snprintf(cmd, 255, "unzip -o -q %s", UFILE);
-    int r = system(cmd);
+    int r = Exec::Shell("unzip -o -q %s", UFILE);
     if (r != 0)
     {
         PrintDbg(DBG_LOG, "Upgrade::Start: Fail to unzip '%s'", UFILE);
@@ -158,8 +156,7 @@ int Upgrade::Start()
         else
         {
             PrintDbg(DBG_LOG, "Upgrade::Start: unzip '%s' success", UFILE);
-            snprintf(cmd, 255, "md5sum -c %s", GMD5FILE);
-            r = system(cmd);
+            r = Exec::Shell("md5sum -c %s", GMD5FILE);
             if (r != 0)
             {
                 PrintDbg(DBG_LOG, "Upgrade::Start: MD5 NOT matched");

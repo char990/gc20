@@ -311,6 +311,9 @@ namespace Utils
         /// \brief      Check if a file/dir exists
         static bool FileExists(const char *path);
         static bool DirExists(const char *path);
+
+        // run shell command
+        static int Shell(const char * fmt, ...);
     };
 
     class Time

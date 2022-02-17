@@ -1,8 +1,22 @@
 #include <fcntl.h>
 #include <unistd.h>
+#include <argz.h>
+#include <cstdarg>
 #include <cstring>
 #include <module/DebugConsole.h>
 #include <module/Epoll.h>
+
+const Command DebugConsole::CMD_LIST[] = {
+    {"?",
+     "This help",
+     DebugConsole::Cmd_help},
+    {"t",
+     "Set ticktock ON/OFF",
+     DebugConsole::Cmd_t},
+    {"ver",
+     "Print version",
+     DebugConsole::Cmd_ver},
+};
 
 DebugConsole::DebugConsole()
 {
@@ -33,7 +47,7 @@ void DebugConsole::EventsHandle(uint32_t events)
                 return;
             }
             cnt += numRead;
-            if (cnt == DC_INBUF_SIZE - 1)
+            if (cnt >= DC_INBUF_SIZE - 1)
             {
                 cnt = 0;
             }
@@ -57,52 +71,72 @@ void DebugConsole::EventsHandle(uint32_t events)
 
 void DebugConsole::Process()
 {
-    if (strcmp(inbuf, "t") == 0)
+    int len = strlen(inbuf);
+    if (len == 0 || len >= DC_INBUF_SIZE)
     {
-        Cmd_t();
+        return;
     }
-    else if (strcmp(inbuf, "?") == 0)
+    char *argz;
+    size_t argz_len;
+    if (argz_create_sep(inbuf, ' ', &argz, &argz_len) != 0)
     {
-        Cmd_help();
+        return;
     }
-    else if (strcmp(inbuf, "ver") == 0)
+    if (argz == nullptr || argz_len == 0)
     {
-        Cmd_ver();
+        return;
     }
-    else
+    int argc = argz_count(argz, argz_len);
+    if (argc == 0)
     {
-        int len = strlen(inbuf);
-        if (len > 0 && len < DC_INBUF_SIZE)
+        return;
+    }
+    char **argv = new char *[argc + 1];
+    argz_extract(argz, argz_len, argv);
+    int i = 0;
+    int j = sizeof(CMD_LIST) / sizeof(CMD_LIST[0]);
+    do
+    {
+        if (strcmp(argv[0], CMD_LIST[i].cmd) == 0)
         {
-            printf("Unknown command\nPlease use command from the Command list:\n");
-            Cmd_help();
+            (*CMD_LIST[i].function)(argc, argv);
+            break;
         }
+        i++;
+    } while (i < j);
+    if (i == j)
+    {
+        printf("Unknown command\nPlease use command from the Command list:\n");
+        Cmd_help(argc, argv);
     }
     printf("\n=>");
     fflush(stdout);
+    free(argz);
+    delete (argv);
 }
 
-void DebugConsole::Cmd_help()
+void DebugConsole::Cmd_help(int argc, char *argv[])
 {
     PrintDash('-');
     printf("CMD\t| Comments\n");
     PrintDash('-');
-    printf(
-        "?       | This help\n"
-        "t       | Ticktock ON/OFF\n"
-        "ver     | Version\n");
+    for (int i = 0; i < sizeof(CMD_LIST) / sizeof(CMD_LIST[0]); i++)
+    {
+        printf("%s\t| %s\n", CMD_LIST[i].cmd, CMD_LIST[i].help);
+    }
     PrintDash('-');
 }
 
 extern bool ticktock;
-void DebugConsole::Cmd_t()
+void DebugConsole::Cmd_t(int argc, char *argv[])
 {
     printf("Ticktock %s\n", ticktock ? "OFF" : "ON");
     ticktock = !ticktock;
 }
 
 extern void PrintVersion();
-void DebugConsole::Cmd_ver()
+void DebugConsole::Cmd_ver(int argc, char *argv[])
 {
     PrintVersion();
 }
+

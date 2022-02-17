@@ -9,6 +9,7 @@
 #include <ctime>
 #include <string>
 #include <sstream>
+#include <cstdarg>
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 
@@ -272,7 +273,7 @@ char *Cnvt::ParseTmToLocalStr(struct timeval *t, char *p)
     {
         ClearTm(&tp);
     }
-    int len = sprintf(p, "%d/%d/%d %d:%02d:%02d.%03d",
+    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d.%03d",
                       tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec, t->tv_usec / 1000);
     return p + len;
 }
@@ -284,7 +285,7 @@ char *Cnvt::ParseTmToLocalStr(time_t t, char *p)
     {
         ClearTm(&tp);
     }
-    int len = sprintf(p, "%d/%d/%d %d:%02d:%02d",
+    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
                       tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
     return p + len;
 }
@@ -638,6 +639,20 @@ bool Exec::DirExists(const char *dirname)
     return true;
 }
 
+int Exec::Shell(const char * fmt, ...)
+{
+	char buf[256];
+	va_list args;
+	va_start(args, fmt);
+	int len = vsnprintf(buf, 256, fmt, args);
+	va_end(args);
+    if(len==256)
+    {
+        throw std::out_of_range(FmtException("Shell command is too long:%s", buf));
+    }
+    return system(buf);
+}
+
 uint8_t Time::monthday[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 void Time::PrintBootTime()
@@ -675,12 +690,10 @@ time_t Time::GetLocalTime(struct tm &stm)
 
 time_t Time::SetLocalTime(struct tm &stm)
 {
-    char buf[64];
-    snprintf(buf, 63, "date '%d-%d-%d %d:%d:%d'",
+    Exec::Shell("date '%d-%d-%d %d:%d:%d'",
              // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
              stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
     auto t = mktime(&stm);
-    system(buf);
     auto newt = GetTime(nullptr);
     auto sec = newt - t;
     if (sec < 0 || sec > 3)
@@ -829,3 +842,4 @@ void Bits::Clone(Bits &v)
     size = v.Size();
     data = v.Data();
 }
+

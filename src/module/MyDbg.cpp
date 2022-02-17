@@ -78,9 +78,7 @@ void Log(int len)
 	int today = ((y * 0x100) + m) * 0x100 + d;
 	if (days != 0 && days != today)
 	{
-		char rm[256];
-		snprintf(rm, 255, "rm %s/log/*_%02d > /dev/null 2>&1", mainpath, d);
-		system(rm);
+		Exec::Shell("rm %s/log/*_%02d > /dev/null 2>&1", mainpath, d);
 	}
 	days = today;
 	int log_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);

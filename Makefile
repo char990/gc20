@@ -4,8 +4,9 @@ LDFLAGS  := -luci -lcrypto
 
 #CXX      := -c++
 #CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror -std=c++11
-CFLAGS 	 := -std=c99 -D '__BUILDTIME__="$(shell date)"'
-CXXFLAGS := -std=c++11 -D '__BUILDTIME__="$(shell date)"'
+BUILDTIME := $(shell date +"%b %d %Y %T %Z")
+CFLAGS 	 := -std=gnu11 -D '__BUILDTIME__="$(BUILDTIME)"'
+CXXFLAGS := -std=c++11 -D '__BUILDTIME__="$(BUILDTIME)"'
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
@@ -35,20 +36,29 @@ $(APP_DIR)/$(TARGET): $(OBJECTS)
 
 -include $(DEPENDENCIES)
 
-.PHONY: all build clean debug release info
+.PHONY: all build clean debug release info zip
 
 build:
 	@touch $(SRC_ROOT)/main.cpp
 	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)
 
+zip:
+	-@./gz
+
+debug: 
+	@echo "debug : $(BUILDTIME)" > buildtime
 debug: CXXFLAGS += -DDEBUG -g -O0
 debug: CFLAGS += -DDEBUG -g -O0
 debug: all
+debug: zip
 
+release: 
+	@echo "release : $(BUILDTIME)" > buildtime
 release: CXXFLAGS += -O2
 release: CFLAGS += -O2
 release: all
+release: zip
 
 clean:
 	-@rm -rvf $(OBJ_DIR)/*
@@ -60,3 +70,4 @@ info:
 	@echo "[*] Sources:         ${SRC}         "
 	@echo "[*] Objects:         ${OBJECTS}     "
 	@echo "[*] Dependencies:    ${DEPENDENCIES}"
+

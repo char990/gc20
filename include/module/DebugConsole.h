@@ -3,6 +3,15 @@
 #include <module/IGcEvent.h>
 
 #define DC_INBUF_SIZE 256
+
+class Command
+{
+public:
+    const char * cmd;
+    const char * help;
+    void (*function)(int argc, char *argv[]);
+};
+
 class DebugConsole : public IGcEvent
 {
 public:
@@ -16,7 +25,9 @@ private:
     int _fcntl;
 
     // command list
-    void Cmd_help();
-    void Cmd_t();
-    void Cmd_ver();
+    static void Cmd_help(int argc, char *argv[]);
+    static void Cmd_t(int argc, char *argv[]);
+    static void Cmd_ver(int argc, char *argv[]);
+
+    static const Command CMD_LIST[];
 };

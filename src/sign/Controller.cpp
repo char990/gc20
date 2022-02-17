@@ -1,3 +1,5 @@
+#include <fcntl.h>
+
 #include <sign/Controller.h>
 #include <sign/GroupVms.h>
 #include <sign/GroupIslus.h>
@@ -30,6 +32,8 @@ Controller::Controller()
     overtempFault.SetCNT(3); // set as 3 minutes
     overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
     tempTmr.Setms(0);
+    ms100Tmr.Setms(0);
+
     long dt = db.GetUciUser().DisplayTimeout();
     if (dt == 0)
     {
@@ -67,7 +71,6 @@ Controller::Controller()
             signs[s->SignId() - 1] = s;
         }
     }
-    ms100Tmr.Setms(100);
 }
 
 Controller::~Controller()
@@ -122,28 +125,51 @@ void Controller::PeriodicRun()
                 PrintDbg(DBG_LOG, "Done.");
                 tcpServer->Open();
             }
-            if (rr_flag & RQST_REBOOT)
+            if (rr_flag & (RQST_REBOOT|RQST_RESTART))
             {
-                const char *_re = " -> -> -> reboot";
+                const char *_re;
+                int x;
+                if (rr_flag & RQST_RESTART)
+                {
+                    x=0xF5;
+                    _re = " -> -> -> restart";
+                }
+                else
+                {
+                    x=0xFB;
+                    _re = " -> -> -> reboot";
+                }
                 evt.Push(0, _re);
                 PrintDbg(DBG_LOG, "\n%s...", _re);
-                exit(2);
-            }
-            if (rr_flag & RQST_RESTART)
-            {
-                const char *_re = " -> -> -> restart";
-                evt.Push(0, _re);
-                PrintDbg(DBG_LOG, "\n%s...", _re);
-                exit(1);
+                system("sync");
+                throw x;
             }
             rr_flag = 0;
             rrTmr.Clear();
         }
     }
 
-    for (auto &g : groups)
+    if (displayTimeout.IsExpired())
     {
-        g->PeriodicRun();
+        if (!IsPlnActive(0))
+        {
+            ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
+            for (auto &g : groups)
+            {
+                g->DispFrm(0, true);
+            }
+        }
+        displayTimeout.Clear();
+    }
+
+    if (sessionTimeout.IsExpired())
+    {
+        if (LayerNTS::IsAnySessionTimeout())
+        {
+            LayerNTS::ClearAllSessionTimeout();
+            ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+        }
+        sessionTimeout.Clear();
     }
 
     if (ms100Tmr.IsExpired())
@@ -151,27 +177,6 @@ void Controller::PeriodicRun()
         ms100Tmr.Setms(100);
         ExtInputFunc();
         PowerMonitor();
-        if (displayTimeout.IsExpired())
-        {
-            if (!IsPlnActive(0))
-            {
-                ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
-                for (auto &g : groups)
-                {
-                    g->DispFrm(0, true);
-                }
-            }
-            displayTimeout.Clear();
-        }
-        if (sessionTimeout.IsExpired())
-        {
-            if (LayerNTS::IsAnySessionTimeout())
-            {
-                LayerNTS::ClearAllSessionTimeout();
-                ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
-            }
-            sessionTimeout.Clear();
-        }
     }
 
     if (tempTmr.IsExpired())
@@ -209,6 +214,21 @@ void Controller::PeriodicRun()
                 }
             }
         }
+    }
+    
+    for (auto &g : groups)
+    {
+        g->PeriodicRun();
+    }
+}
+
+void Controller::WriteFifo(char c)
+{
+    int fifo_fd = open("/tmp/goblin_fifo", O_WRONLY | O_NONBLOCK);
+    if(fifo_fd!=-1)
+    {
+        write(fifo_fd, &c, 1);
+        close(fifo_fd);
     }
 }
 

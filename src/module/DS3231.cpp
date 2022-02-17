@@ -260,7 +260,7 @@ int DS3231::Print()
 
 void DS3231::PrintTm(struct tm *tm)
 {
-    printf("\t%d/%02d/%02d %d:%02d:%02d%s\n",
+    printf("\t%2d/%02d/%02d %2d:%02d:%02d%s\n",
            tm->tm_mday,
            tm->tm_mon + 1,
            tm->tm_year + 1900,
@@ -287,7 +287,7 @@ int DS3231::WriteTimeAlarm(time_t t)
         reg[4] = hex2bcd(utctm.tm_year - 100);
         reg[5] = hex2bcd(utctm.tm_mon);
         reg[6] = ALARM_FLAG; // flag
-                             /*printf("WriteAlarm : t=%ld %d/%d/%d %d:%d:%d\nRegs:", t,
+                             /*printf("WriteAlarm : t=%ld %2d/%02d/%d %2d:%02d:%02d\nRegs:", t,
 			utctm.tm_mday, utctm.tm_mon, utctm.tm_year-100, utctm.tm_hour, utctm.tm_min, utctm.tm_sec) ;
 		for(int i=0;i<7;i++)
 		{

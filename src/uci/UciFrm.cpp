@@ -215,9 +215,7 @@ void UciFrm::Reset()
 	}
 	frms.fill(nullptr);
 	chksum = 0;
-	char buf[256];
-	snprintf(buf, 255, "rm %s/frm* > /dev/null 2>&1", PATH);
-	system(buf);
+	Exec::Shell("rm %s/frm* > /dev/null 2>&1", PATH);
 }
 
 bool UciFrm::IsFrmFlashing(uint8_t i)

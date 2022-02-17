@@ -46,15 +46,20 @@ const char *MAKE = "Release";
 #endif
 
 #ifndef __BUILDTIME__
-#define __BUILDTIME__ ("UTC:" __DATE__ " " __TIME__)
+#define __BUILDTIME__ (__DATE__ " " __TIME__ " UTC")
 #endif
+
+int PrintfVersion_(char * buf)
+{
+    return snprintf(buf, 63, "* %s ver:%s @ %s *",
+                       MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
+}
 
 void PrintVersion()
 {
-    char sbuf[256];
-    int len = snprintf(sbuf, 255, "* %s version: %s. Build time: %s *",
-                       MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
-    char buf[256];
+    char sbuf[64];
+    int len = PrintfVersion_(sbuf);
+    char buf[64];
     memset(buf, '*', len);
     buf[len] = '\0';
     printf("%s\n", buf);
@@ -93,7 +98,7 @@ public:
             {
                 struct tm stm;
                 localtime_r(&t1, &stm);
-                PrintDbg(DBG_LOG, "DS3231 updates system time->%d/%d/%d %d:%02d:%02d",
+                PrintDbg(DBG_LOG, "DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
                          stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
                 Utils::Time::SetLocalTime(stm);
             }
@@ -139,8 +144,11 @@ void LogResetTime()
     auto &db = DbHelper::Instance();
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
-    db.GetUciAlarm().Push(0, "<--- NEW START --->");
-    db.GetUciEvent().Push(0, "<--- NEW START --->");
+    char buf[64+14];
+    memcpy(buf, ">>> START >>> ", 14);
+    PrintfVersion_(buf+14);
+    db.GetUciAlarm().Push(0, buf);
+    db.GetUciEvent().Push(0, buf);
     return;
 }
 
@@ -272,11 +280,15 @@ int main(int argc, char *argv[])
         }
         /************* Never hit **************/
     }
+    catch(int e)
+    {
+        return e;
+    }
     catch (const std::exception &e)
     {
         //muntrace();
         PrintDbg(DBG_LOG, "\n!!! main exception :%s", e.what());
-        exit(1);
+        return 255;
         // clean
     }
     //muntrace();
