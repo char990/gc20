@@ -5,7 +5,7 @@
 
 int IOperator::TxBytes(uint8_t *data, int len)
 {
-    if (ringBuf.Cap() < len || len <= 0 || eventFd < 0)
+    if (ringBuf.Vacancy() < len || len <= 0 || eventFd < 0)
     {
         return -1;
     }

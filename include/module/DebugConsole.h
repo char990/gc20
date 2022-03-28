@@ -28,6 +28,7 @@ private:
     static void Cmd_help(int argc, char *argv[]);
     static void Cmd_t(int argc, char *argv[]);
     static void Cmd_ver(int argc, char *argv[]);
+    static void Cmd_ws(int argc, char *argv[]);
 
     static const Command CMD_LIST[];
 };

@@ -28,8 +28,10 @@ Controller::Controller()
     }
     groups.assign(groups.size(), nullptr);
 
+    UciProd &prod = db.GetUciProd();
+
     ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
-    overtempFault.SetCNT(3); // set as 3 minutes
+    overtempFault.SetCNT(prod.OverTempDebounce());
     overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
     tempTmr.Setms(0);
     ms100Tmr.Setms(0);
@@ -44,7 +46,6 @@ Controller::Controller()
         displayTimeout.Setms(dt * 60000);
     }
 
-    UciProd &prod = db.GetUciProd();
     switch (prod.ProdType())
     {
     case PRODUCT::VMS:
@@ -125,24 +126,19 @@ void Controller::PeriodicRun()
                 PrintDbg(DBG_LOG, "Done.");
                 tcpServer->Open();
             }
-            if (rr_flag & (RQST_REBOOT|RQST_RESTART))
+            if (rr_flag & RQST_REBOOT)
             {
-                const char *_re;
-                int x;
-                if (rr_flag & RQST_RESTART)
-                {
-                    x=0xF5;
-                    _re = " -> -> -> restart";
-                }
-                else
-                {
-                    x=0xFB;
-                    _re = " -> -> -> reboot";
-                }
+                const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
                 PrintDbg(DBG_LOG, "\n%s...", _re);
+                system("reboot");
+            }
+            if (rr_flag & RQST_RESTART)
+            {
+                const char *_re = " -> -> -> restart";
+                PrintDbg(DBG_LOG, "\n%s...", _re);
                 system("sync");
-                throw x;
+                throw std::runtime_error(_re);
             }
             rr_flag = 0;
             rrTmr.Clear();
@@ -180,8 +176,8 @@ void Controller::PeriodicRun()
     }
 
     if (tempTmr.IsExpired())
-    { // every 60s
-        tempTmr.Setms(60*1000);
+    { // every 1 second
+        tempTmr.Setms(1000);
         maxTemp = 0;
         curTemp = 0;
         int t;
@@ -192,46 +188,47 @@ void Controller::PeriodicRun()
             {
                 maxTemp = curTemp;
             }
-            auto ot = DbHelper::Instance().GetUciUser().OverTemp();
-            if (curTemp > ot)
+            auto ot = db.GetUciUser().OverTemp();
+            if (curTemp >= ot)
             {
                 overtempFault.Check(1);
                 if (!ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature) && overtempFault.IsHigh())
                 {
                     ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, true);
-                    DbHelper::Instance().GetUciAlarm().Push(0, "Controller OverTemperatureAlarm ONSET: %d'C", curTemp);
+                    db.GetUciAlarm().Push(0, "Controller OverTemperatureAlarm ONSET: %d'C", curTemp);
                     overtempFault.ClearEdge();
                 }
             }
-            else if (curTemp < (ot - 3))
+            else
             {
                 overtempFault.Check(0);
                 if (ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature) && overtempFault.IsLow())
                 {
                     ctrllerError.Push(DEV::ERROR::EquipmentOverTemperature, false);
-                    DbHelper::Instance().GetUciAlarm().Push(0, "Controller OverTemperatureAlarm CLEAR: %d'C", curTemp);
+                    db.GetUciAlarm().Push(0, "Controller OverTemperatureAlarm CLEAR: %d'C", curTemp);
                     overtempFault.ClearEdge();
                 }
             }
         }
     }
-    
+
     for (auto &g : groups)
     {
         g->PeriodicRun();
     }
 }
 
+/*
 void Controller::WriteFifo(char c)
 {
     int fifo_fd = open("/tmp/goblin_fifo", O_WRONLY | O_NONBLOCK);
-    if(fifo_fd!=-1)
+    if (fifo_fd != -1)
     {
         write(fifo_fd, &c, 1);
         close(fifo_fd);
     }
 }
-
+*/
 void Controller::PowerMonitor()
 { // 100ms periodic
     pMainPwr->PeriodicRun();
@@ -269,7 +266,7 @@ void Controller::ExtInputFunc()
             gin->ClearRising();
             uint8_t msg = i + 3;
             const char *fmt = "Leading edge of external input[%d]";
-            DbHelper::Instance().GetUciEvent().Push(0, fmt, i + 1);
+            db.GetUciEvent().Push(0, fmt, i + 1);
             PrintDbg(DBG_LOG, fmt, i + 1);
             for (auto &g : groups)
             {
@@ -289,7 +286,7 @@ void Controller::ExtInputFunc()
 
 void Controller::RefreshDispTime()
 {
-    long ms = DbHelper::Instance().GetUciUser().DisplayTimeout();
+    long ms = db.GetUciUser().DisplayTimeout();
     if (ms > 0)
     {
         displayTimeout.Setms(ms * 60000);
@@ -299,7 +296,7 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    long ms = DbHelper::Instance().GetUciUser().SessionTimeout();
+    long ms = db.GetUciUser().SessionTimeout();
     if (ms == 0)
     {
         sessionTimeout.Clear();
@@ -455,7 +452,7 @@ APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
     uint8_t msgId = cmd[2];
     if (msgId != 0)
     {
-        if (!DbHelper::Instance().GetUciMsg().IsMsgDefined(msgId))
+        if (!db.GetUciMsg().IsMsgDefined(msgId))
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
@@ -513,7 +510,7 @@ APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (plnId != 0 && !DbHelper::Instance().GetUciPln().IsPlnDefined(plnId))
+    else if (plnId != 0 && !db.GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }

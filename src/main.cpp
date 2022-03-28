@@ -30,9 +30,11 @@
 
 #include <module/DebugConsole.h>
 
+#include <websocket/WsServer.h>
+
 #include <3rdparty/catch2/enable_test.h>
 
-const char *FirmwareVer = "0150";
+const char *FirmwareVer = "0120";
 const char *CONFIG_PATH = "config";
 
 char *mainpath;
@@ -49,22 +51,23 @@ const char *MAKE = "Release";
 #define __BUILDTIME__ (__DATE__ " " __TIME__ " UTC")
 #endif
 
-int PrintfVersion_(char * buf)
+int PrintfVersion_(bool start, char * buf)
 {
-    return snprintf(buf, 63, "* %s ver:%s @ %s *",
+    return snprintf(buf, 63, "%s* %s ver:%s @ %s *",
+                       start?">>> START >>> ":"", 
                        MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
 }
 
-void PrintVersion()
+void PrintVersion(bool start)
 {
     char sbuf[64];
-    int len = PrintfVersion_(sbuf);
+    int len = PrintfVersion_(start, sbuf);
     char buf[64];
     memset(buf, '*', len);
     buf[len] = '\0';
-    printf("%s\n", buf);
-    printf("%s\n", sbuf);
-    printf("%s\n", buf);
+    PrintDbg(DBG_LOG, "%s", buf);
+    PrintDbg(DBG_LOG, "%s", sbuf);
+    PrintDbg(DBG_LOG, "%s", buf);
 }
 
 // a wrapper for time()
@@ -144,9 +147,8 @@ void LogResetTime()
     auto &db = DbHelper::Instance();
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 1, t);
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
-    char buf[64+14];
-    memcpy(buf, ">>> START >>> ", 14);
-    PrintfVersion_(buf+14);
+    char buf[64];
+    PrintfVersion_(true, buf);
     db.GetUciAlarm().Push(0, buf);
     db.GetUciEvent().Push(0, buf);
     return;
@@ -209,8 +211,7 @@ int main(int argc, char *argv[])
         {
             throw std::invalid_argument("path is longer than 64 bytes.\n");
         }
-        PrintVersion();
-        PrintDbg(DBG_LOG, "\n>>> %s START... >>>", argv[0]);
+        PrintVersion(true);
         pDS3231 = new DS3231{1};
         TickTock *pTickTock = new TickTock{};
 
@@ -219,14 +220,14 @@ int main(int argc, char *argv[])
 
         // 2(tmr) + 1+8*2(nts) + 1+4*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 44
         Epoll::Instance().Init(64);
-        TimerEvent ctrllerTmrEvt{CTRLLER_TICK, "[ctrllerTmrEvt]"};
-        //TimerEvent timerEvt100ms{100, "[tmrEvt100ms:100ms]"};
-        TimerEvent tmrEvt1Sec{1000, "[tmrEvt1Sec]"};
-        tmrEvt1Sec.Add(pTickTock);
+        auto ctrllerTmrEvt = new TimerEvent {CTRLLER_TICK, "[ctrllerTmrEvt]"};
+        auto timerEvt100ms = new TimerEvent {100, "[tmrEvt100ms:100ms]"};
+        auto tmrEvt1Sec = new TimerEvent {1000, "[tmrEvt1Sec]"};
+        tmrEvt1Sec->Add(pTickTock);
         auto console = new DebugConsole();
 
         DbHelper::Instance().Init(CONFIG_PATH);
-        Controller::Instance().Init(&ctrllerTmrEvt);
+        Controller::Instance().Init(ctrllerTmrEvt);
 
         LogResetTime();
         //AllGroupPowerOn();
@@ -265,11 +266,11 @@ int main(int argc, char *argv[])
         }
 
         // TSI-SP-003 Web
-        TcpServer tcpServerWeb{user.WebPort(), "WEB", prod.TcpServerWEB(), &tmrEvt1Sec};
-
+        //auto tcpServerWeb = new TcpServer {user.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
+        auto wsServer = new WsServer{user.WebPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
-        TcpServer tcpServerNts{user.SvcPort(), "NTS", prod.TcpServerNTS(), &tmrEvt1Sec};
-        Controller::Instance().SetTcpServer(&tcpServerNts);
+        auto tcpServerNts = new TcpServer{user.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
+        Controller::Instance().SetTcpServer(tcpServerNts);
 
         PrintDbg(DBG_LOG, ">>> DONE >>>");
         printf("\n=>Input '?<Enter>' to get console help.\n\n");
@@ -279,10 +280,6 @@ int main(int argc, char *argv[])
             Epoll::Instance().EventsHandle();
         }
         /************* Never hit **************/
-    }
-    catch(int e)
-    {
-        return e;
     }
     catch (const std::exception &e)
     {

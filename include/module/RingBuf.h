@@ -21,9 +21,13 @@ public:
 
     int Push(uint8_t *inbuf, int len)
     {
-        if (len > (size - cnt) || len <= 0)
+        if (len <= 0)
         {
             return 0;
+        }
+        if(len > Vacancy())
+        {
+            len = Vacancy();
         }
         int size1 = bufEnd - pPush;
         if (size1 > len)
@@ -69,7 +73,7 @@ public:
 
     int Size() { return size; };
     int Cnt() { return cnt; };
-    int Cap() { return size - cnt; };
+    int Vacancy() { return size - cnt; };
 
     void Reset()
     {
@@ -80,8 +84,8 @@ public:
     std::string ToString()
     {
         char str[256];
-        sprintf(str, "\nthis=%p\nsize=%d\ncnt=%d\ncap=%d\npPush=%p\npPop=%p\nbuf=%p\nbufEnd=%p\n",
-                this, size, cnt, Cap(), pPush, pPop, buf, bufEnd);
+        sprintf(str, "\nthis=%p\nsize=%d\ncnt=%d\nvacancy=%d\npPush=%p\npPop=%p\nbuf=%p\nbufEnd=%p\n",
+                this, size, cnt, Vacancy(), pPush, pPop, buf, bufEnd);
         return std::string(str);
     };
 

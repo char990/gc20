@@ -16,6 +16,9 @@ const Command DebugConsole::CMD_LIST[] = {
     {"ver",
      "Print version",
      DebugConsole::Cmd_ver},
+    {"ws",
+     "Set websocket hexdump ON/OFF",
+     DebugConsole::Cmd_ws},
 };
 
 DebugConsole::DebugConsole()
@@ -74,6 +77,8 @@ void DebugConsole::Process()
     int len = strlen(inbuf);
     if (len == 0 || len >= DC_INBUF_SIZE)
     {
+        printf("\n=>");
+        fflush(stdout);
         return;
     }
     char *argz;
@@ -134,9 +139,15 @@ void DebugConsole::Cmd_t(int argc, char *argv[])
     ticktock = !ticktock;
 }
 
-extern void PrintVersion();
+extern void PrintVersion(bool);
 void DebugConsole::Cmd_ver(int argc, char *argv[])
 {
-    PrintVersion();
+    PrintVersion(false);
 }
 
+extern unsigned int ws_hexdump;
+void DebugConsole::Cmd_ws(int argc, char *argv[])
+{
+    printf("Set websocket hexdump %s\n", ws_hexdump ? "OFF" : "ON");
+    ws_hexdump = !ws_hexdump;
+}

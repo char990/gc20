@@ -71,6 +71,7 @@ void TcpServer::Open()
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
+    PrintDbg(DBG_LOG, "Starting %s listener on 0.0.0.0:%d", serverType.c_str(), listenPort);
 }
 
 void TcpServer::Close()

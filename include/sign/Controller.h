@@ -115,5 +115,5 @@ private:
 
     TcpServer *tcpServer;
 
-    void WriteFifo(char c);
+//    void WriteFifo(char c);
 };
