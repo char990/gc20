@@ -63,7 +63,7 @@ public:
     /// \return APP::ERROR
     APP::ERROR SetFrm(uint8_t * buf, int len);
 
-    /// \brief  Save stFrms[i-1] to "UciFrm"
+    /// \brief  Save stFrms[i-1] to "UciFrm" and frame_xxx.bmp
     ///         When TsiSp003 set a frame, call SetFrm then SaveFrm
     /// \param  i: frm id
     void SaveFrm(uint8_t i);
@@ -80,4 +80,3 @@ private:
     std::array<Frame *, 255> frms;
     void Dump();
 };
-

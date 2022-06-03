@@ -37,6 +37,10 @@ public:
     {
         return (c > 9) ? mappedColoursTable[0] : mappedColoursTable[c];
     }
+    uint32_t GetMappedColourRgb(uint8_t c)
+    {
+        return coloursRgbTable[GetMappedColour(c)];
+    }
 
     uint16_t SlaveRqstInterval() { return slaveRqstInterval; };
     uint16_t SlaveRqstStTo() { return slaveRqstStTo; };
@@ -255,6 +259,7 @@ private:
 
     uint8_t mappedColoursTable[10]{};
     uint8_t mappedColoursBitTable[10]{};
+    uint32_t coloursRgbTable[10]{};
 
     Utils::Bits bFont{8};
     Utils::Bits bConspicuity{8};

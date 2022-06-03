@@ -205,7 +205,7 @@ void Group::PeriodicRun()
         dsNext->N_A();    // avoid to call LoadDsNext()
         dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
         fatalError.ClearRising();
-        PrintDbg(DBG_LOG, "Group[%d] - fatalError Set", groupId);
+        Ldebug("Group[%d] - fatalError Set", groupId);
     }
     else if (fatalError.IsFalling())
     {
@@ -213,7 +213,7 @@ void Group::PeriodicRun()
         dsCurrent->N_A();
         ReadyToLoad(1);
         fatalError.ClearFalling();
-        PrintDbg(DBG_LOG, "Group[%d] - fatalError Clr", groupId);
+        Ldebug("Group[%d] - fatalError Clr", groupId);
     }
 
     if (fatalError.IsLow())
@@ -309,7 +309,7 @@ void Group::PowerFunc()
                 fsPwr = PWR_STATE::ON;
                 ReadyToLoad(1);
                 RqstExtStatus(0xFF);
-                PrintDbg(DBG_LOG, "Group[%d] - PowerUp done", groupId);
+                Ldebug("Group[%d] - PowerUp done", groupId);
             }
         }
     }
@@ -326,7 +326,7 @@ void Group::FcltSwitchFunc()
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[256];
         snprintf(buf, 255, "Group[%d] - %s", groupId, fcltSw.ToStr());
-        PrintDbg(DBG_LOG, "%s", buf);
+        Ldebug("%s", buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
@@ -383,7 +383,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // previouse is not BLANK
                     char buf[256];
                     snprintf(buf, 255, "Group[%d] - TaskPln : Display : BLANK", groupId);
-                    PrintDbg(DBG_LOG, "%s", buf);
+                    Ldebug("%s", buf);
                     db.GetUciEvent().Push(0, buf);
                     TaskFrmReset();
                     TaskMsgReset();
@@ -403,7 +403,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // reset active frm/msg
                     char buf[256];
                     snprintf(buf, 255, "Group[%d] - TaskPln : Plan[%d] start", groupId, plnmin.plnId);
-                    PrintDbg(DBG_LOG, "%s", buf);
+                    Ldebug("%s", buf);
                     db.GetUciEvent().Push(0, buf);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -501,7 +501,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        PrintDbg(DBG_LOG, "Group[%d] - TaskMsg : Display Msg[%d]", groupId, onDispMsgId);
+        Ldebug("Group[%d] - TaskMsg : Display Msg[%d]", groupId, onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -602,14 +602,14 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 if (++msgSlaveErrCnt == 3)
                                 {
-                                    PrintDbg(DBG_LOG, "Group[%d] - TaskMsg : SetStoredFrame : Slave may reset, RESTART", groupId);
+                                    Ldebug("Group[%d] - TaskMsg : SetStoredFrame : Slave may reset, RESTART", groupId);
                                     goto NORMAL_MSG_TASK_START;
                                 }
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            PrintDbg(DBG_LOG, "Group[%d] - TaskMsg : SetStoredFrame : Current NOT matched, RESTART", groupId);
+                            Ldebug("Group[%d] - TaskMsg : SetStoredFrame : Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -658,7 +658,7 @@ bool Group::TaskMsg(int *_ptLine)
                         } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                         if (!taskMsgTmr.IsExpired())
                         { // Currnet is NOT matched, fatal error
-                            PrintDbg(DBG_LOG, "Group[%d] - TaskMsg : Frm-onTime : Current NOT matched, RESTART", groupId);
+                            Ldebug("Group[%d] - TaskMsg : Frm-onTime : Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                     }
@@ -791,13 +791,13 @@ bool Group::TaskFrm(int *_ptLine)
             TaskSetATFReset();
             PT_WAIT_TASK(TaskSetATF(&taskATFLine));
             {
-                char buf[128];
+                char buf[256];
                 int len = 0;
                 for (int i = 0; i < SlaveCnt(); i++)
                 {
-                    len += snprintf(buf + len, 127 - len, " %d-%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
+                    sprintf(buf + len, " %d-%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
                 }
-                PrintDbg(DBG_LOG, "Group[%d] - TaskFrm : Display ATF :(signId-frmId)%s", groupId, buf);
+                Ldebug("Group[%d] - TaskFrm : Display ATF :(signId-frmId)%s", groupId, buf);
             }
         }
         else
@@ -820,7 +820,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            PrintDbg(DBG_LOG, "Group[%d] - TaskFrm : Display Frm[%d]", groupId, onDispFrmId);
+            Ldebug("Group[%d] - TaskFrm : Display Frm[%d]", groupId, onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -924,7 +924,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         }
         currentDimmingV = prod.Dimming(currentDimmingLvl);
 #ifdef DEBUG_ADJ_DIMMING
-        PrintDbg(DBG_LOG, "Group[%d] - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
+        Ldebug("Group[%d] - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
                  groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
 #endif
         for (adjDimmingSteps = 0; adjDimmingSteps < 16; adjDimmingSteps++)
@@ -951,7 +951,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
             {
                 setDimming = dv;
 #ifdef DEBUG_ADJ_DIMMING
-                PrintDbg(DBG_LOG, "Group[%d] - adjDimmingSteps=%d, currentDimmingLvl=%d, setDimming=%d",
+                Ldebug("Group[%d] - adjDimmingSteps=%d, currentDimmingLvl=%d, setDimming=%d",
                          groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
 #endif
                 PT_WAIT_UNTIL(IsBusFree());
@@ -960,7 +960,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
             PT_WAIT_UNTIL(dimmingAdjTimer.IsExpired());
         }
 #ifdef DEBUG_ADJ_DIMMING
-        PrintDbg(DBG_LOG, "Group[%d] - AdjDiming done - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
+        Ldebug("Group[%d] - AdjDiming done - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
                  groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
 #endif
         if (targetDimmingLvl == 0)
@@ -1295,7 +1295,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
-    PrintDbg(DBG_LOG, "Group[%d] - %sable plan[%d]", groupId, endis == 0 ? "Dis" : "En", id);
+    Ldebug("Group[%d] - %sable plan[%d]", groupId, endis == 0 ? "Dis" : "En", id);
     //PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
@@ -1392,7 +1392,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                 if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
                 { // same, reload timer
                     extDispTmr.Setms(time);
-                    PrintDbg(DBG_PRT, "Group[%d] - EXT timer reload: %dms", groupId, time);
+                    Pdebug("Group[%d] - EXT timer reload: %dms", groupId, time);
                 }
                 else if (dsCurrent->dispType == DISP_TYPE::N_A ||
                          dsCurrent->dispType == DISP_TYPE::BLK ||
@@ -1405,7 +1405,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                     extDispTmr.Setms(time);
                     dsExt->dispType = type;
                     dsExt->fmpid[0] = id;
-                    PrintDbg(DBG_PRT, "Group[%d] - EXT timer start: %dms", groupId, time);
+                    Pdebug("Group[%d] - EXT timer start: %dms", groupId, time);
                 }
             }
         }
@@ -1506,13 +1506,13 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
     {
         sign->DimmingSet(dimming);
     }
-    PrintDbg(DBG_LOG, "Group[%d] - SetDimming : %d", groupId, dimming);
+    Ldebug("Group[%d] - SetDimming : %d", groupId, dimming);
     return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Group::SetPower(uint8_t v)
 {
-    PrintDbg(DBG_LOG, "Group[%d] - Power : %s", groupId, v == 0 ? "OFF" : "ON");
+    Ldebug("Group[%d] - Power : %s", groupId, v == 0 ? "OFF" : "ON");
     if (v == 0)
     { // PowerOff
         if (cmdPwr != PWR_STATE::OFF)
@@ -1558,9 +1558,9 @@ void Group::EnDisDevice()
         deviceEnDisCur = deviceEnDisSet;
         for (auto &s : vSigns)
         {
-            s->Device(deviceEnDisSet);
+            s->DeviceOnOff(deviceEnDisSet);
         }
-        PrintDbg(DBG_LOG, "Group[%d] - %sable device", groupId, deviceEnDisCur == 0 ? "Dis" : "En");
+        Ldebug("Group[%d] - %sable device", groupId, deviceEnDisCur == 0 ? "Dis" : "En");
     }
 }
 
@@ -1857,7 +1857,7 @@ void Group::PrintPlnMin()
 
 APP::ERROR Group::SystemReset(uint8_t v)
 {
-    PrintDbg(DBG_LOG, "Group[%d] - SystemReset : Level=%d", groupId, v);
+    Ldebug("Group[%d] - SystemReset : Level=%d", groupId, v);
     switch (v)
     {
     case 0:
@@ -1951,7 +1951,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     { // no overlay
         if (txtfrm != nullptr)
         { // text frame trans to bitmap
-            return txtfrm->ToBitmap(msgOverlay, dst);
+            return txtfrm->ToBit(msgOverlay, dst);
         }
         else
         {
@@ -1966,7 +1966,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     if (txtfrm != nullptr)
     { // text frame trans to bitmap
         buf = new uint8_t[frmlen];
-        txtfrm->ToBitmap(msgOverlay, buf);
+        txtfrm->ToBit(msgOverlay, buf);
         orsrc = buf;
     }
     else
@@ -1978,7 +1978,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
         { //frame is mono but should transfer from 1-bit to 4-bit
             buf = new uint8_t[frmlen];
-            frm->ToBitmap(msgOverlay, buf);
+            frm->ToBit(msgOverlay, buf);
             orsrc = buf;
         }
         else

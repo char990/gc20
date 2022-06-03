@@ -24,7 +24,7 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'user'");
+    Ldebug(">>> Loading 'user'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciUser";
     DEFAULT_FILE = "UciUser.def";

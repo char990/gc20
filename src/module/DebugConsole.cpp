@@ -5,6 +5,7 @@
 #include <cstring>
 #include <module/DebugConsole.h>
 #include <module/Epoll.h>
+#include <module/Utils.h>
 
 const Command DebugConsole::CMD_LIST[] = {
     {"?",
@@ -17,7 +18,7 @@ const Command DebugConsole::CMD_LIST[] = {
      "Print version",
      DebugConsole::Cmd_ver},
     {"ws",
-     "Set websocket hexdump ON/OFF",
+     "websocket debug. Usage: ws X(0:Off; bit0:Print debug; bit1:Hex dump)",
      DebugConsole::Cmd_ws},
 };
 
@@ -99,7 +100,7 @@ void DebugConsole::Process()
     char **argv = new char *[argc + 1];
     argz_extract(argz, argz_len, argv);
     int i = 0;
-    int j = sizeof(CMD_LIST) / sizeof(CMD_LIST[0]);
+    int j = Utils::countof(CMD_LIST);
     do
     {
         if (strcmp(argv[0], CMD_LIST[i].cmd) == 0)
@@ -148,6 +149,17 @@ void DebugConsole::Cmd_ver(int argc, char *argv[])
 extern unsigned int ws_hexdump;
 void DebugConsole::Cmd_ws(int argc, char *argv[])
 {
-    printf("Set websocket hexdump %s\n", ws_hexdump ? "OFF" : "ON");
-    ws_hexdump = !ws_hexdump;
+    if(argc==2)
+    {
+        auto x = strtol(argv[1], nullptr, 10);
+        if(x>=0 && x<=255)
+        {
+            ws_hexdump = x;
+        }
+        else
+        {
+            printf("Wrong parameter, ");
+        }
+    }
+    printf("ws = 0x%02X\n", ws_hexdump);
 }

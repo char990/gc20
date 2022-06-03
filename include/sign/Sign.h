@@ -35,7 +35,8 @@ public:
     void SignErr(Utils::Bits &v) { signErr.SetV(v); };
     void DimmingSet(uint8_t v) { dimmingSet = v; };
     void DimmingV(uint8_t v) { dimmingV = v; };
-    void Device(uint8_t v) { device = v; };
+    void DeviceOnOff(uint8_t v) { device = v; };
+    uint8_t DeviceOnOff() { return device; };
 
     // get
     SignError &SignErr() { return signErr; };
@@ -52,6 +53,8 @@ public:
     };
 
     uint8_t ReportFrm() { return reportFrm; };
+    uint8_t ReportMsg() { return reportMsg; };
+    uint8_t ReportPln() { return reportPln; };
 
     void RefreshSlaveStatusAtSt();
     void RefreshSlaveStatusAtExtSt();
@@ -81,14 +84,15 @@ public:
 
     void RefreshDevErr(DEV::ERROR err);
 
+    uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
+    uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
+
 protected:
     uint8_t signId;
     std::vector<Slave *> vsSlaves;
     SignError signErr;
 
     uint8_t dimmingSet{0}, dimmingV{1};
-    uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
-    uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
 
     uint8_t device{1};
 

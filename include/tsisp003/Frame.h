@@ -3,8 +3,10 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <tsisp003/TsiSp003Const.h>
 #include <uci/Font.h>
+
 
 class StFrm
 {
@@ -47,14 +49,15 @@ public:
 
     /// \brief Convert 1/4-bit Gfx/Hrg frame to 4/24-bit bitmap
     ///         Text frame override this function
-    /// \param  buf: buffer, be cleared in this function 
+    /// \param  buf: buffer, be cleared in this function
     /// \return bytes
-    virtual int ToBitmap(uint8_t colourbit, uint8_t *buf);
+    virtual int ToBit(uint8_t colourbit, uint8_t *buf);
 
 protected:
+
     /// \brief Check item
     /// \return 0:success
-    //int CheckConspicuity();
+    // int CheckConspicuity();
     virtual int CheckColour() = 0;
 
     /// \brief Check subclass items
@@ -90,16 +93,17 @@ public:
 
     /// \brief  trans txt frame to 1/4/24 bits map
     /// \param  colourbit:0/1/4/24
-    /// \param  buf: buffer, be cleared in this function 
-    int ToBitmap(uint8_t colourbit, uint8_t *buf) override;
-    void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font * pfont);
-    void CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font * pfont);
+    /// \param  buf: buffer, be cleared in this function
+    int ToBit(uint8_t colourbit, uint8_t *buf) override;
+    void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font *pfont);
+    void CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font *pfont);
 
 private:
     virtual int CheckColour() override;
     virtual int CheckLength(int len) override;
     virtual int CheckSub(uint8_t *frm, int len) override;
 };
+
 
 class FrmGfx : public Frame
 {

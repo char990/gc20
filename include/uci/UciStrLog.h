@@ -3,6 +3,7 @@
 #include <uci/UciLog.h>
 #include <uci/StrLog.h>
 #include <vector>
+#include <3rdparty/nlohmann/json.hpp>
 
 /*
     # log_xxx : xxx is log ID
@@ -20,6 +21,8 @@ public:
     virtual void LoadConfig() override;
 
     virtual int GetLog(uint8_t *dst);
+    virtual int GetLog(nlohmann::json & reply);
+    
 
     /// \brief  Push a string log into Log and save to Ucixxx
     virtual void Push(uint8_t id, const char *fmt, ...);

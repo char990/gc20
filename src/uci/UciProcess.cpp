@@ -19,7 +19,7 @@ UciProcess::~UciProcess()
 
 void UciProcess::LoadConfig()
 {
-	PrintDbg(DBG_LOG, ">>> Loading 'process'");
+	Ldebug(">>> Loading 'process'");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];
@@ -64,7 +64,7 @@ void UciProcess::LoadConfig()
 		// _Dimming, _Power, _Device
 		p.Dimming(GetInt(uciSec, _Dimming, 0, 16));
 		p.Power(GetInt(uciSec, _Power, 0, 1));
-		p.Device(GetInt(uciSec, _Device, 0, 1));
+		p.DeviceOnOff(GetInt(uciSec, _Device, 0, 1));
 	}
 
 	/************************** Ctrller *************************/
@@ -108,7 +108,7 @@ void UciProcess::Dump()
 		}
 		printf("\t%s \t'%d'\n", _Dimming, p.Dimming());
 		printf("\t%s \t'%d'\n", _Power, p.Power());
-		printf("\t%s \t'%d'\n", _Device, p.Device());
+		printf("\t%s \t'%d'\n", _Device, p.DeviceOnOff());
 	}
 
 	printf("%s:\n", _Ctrller);
@@ -234,13 +234,13 @@ void UciProcess::SetDevice(uint8_t gid, uint8_t v)
 	if (gid == 0 || gid > grpCnt)
 		return;
 	sprintf(sectionBuf, "%s%d", _Group, gid);
-	grpProc[gid - 1].Device(v);
+	grpProc[gid - 1].DeviceOnOff(v);
 	OpenSaveClose(SECTION, _Device, v);
 }
 
 uint8_t UciProcess::GetDevice(uint8_t gid)
 {
-	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].Device();
+	return (gid == 0 || gid > grpCnt) ? 0 : grpProc[gid - 1].DeviceOnOff();
 }
 
 void UciProcess::SaveCtrllerErr(Utils::Bits &v)

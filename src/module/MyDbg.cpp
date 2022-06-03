@@ -11,8 +11,7 @@
 
 using namespace Utils;
 
-
-std::string FmtException(const char * fmt, ...)
+std::string FmtException(const char *fmt, ...)
 {
 	char buf[256];
 	va_list args;
@@ -21,7 +20,6 @@ std::string FmtException(const char * fmt, ...)
 	va_end(args);
 	return std::string(buf);
 }
-
 
 #define MyDbgBuf_SIZE 1024
 static char MyDbgBuf[MyDbgBuf_SIZE];
@@ -42,13 +40,23 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		struct timeval t;
 		gettimeofday(&t, nullptr);
 		MyDbgBuf[0] = '[';
-		char *p = Cnvt::ParseTmToLocalStr(&t, MyDbgBuf + 1);
+		char *p = Time::ParseTimeToLocalStr(&t, MyDbgBuf + 1);
 		*p++ = ']';
 		len = p - MyDbgBuf;
 		va_list args;
 		va_start(args, fmt);
-		len += vsnprintf(p, MyDbgBuf_SIZE - 1 - len, fmt, args);
+		int xs = MyDbgBuf_SIZE - 8 - len;
+		int xlen = vsnprintf(p, xs, fmt, args);
 		va_end(args);
+		if (xlen >= xs)
+		{
+			sprintf(MyDbgBuf + MyDbgBuf_SIZE - 9, " ......");
+			len = MyDbgBuf_SIZE - 2;
+		}
+		else
+		{
+			len += xlen;
+		}
 		if (level > DBG_HB)
 		{
 			MyDbgBuf[len++] = '\n';
@@ -63,7 +71,7 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 	return len;
 }
 
-//BootTimer printTmr;
+// BootTimer printTmr;
 extern char *mainpath;
 int days = 0;
 void Log(int len)

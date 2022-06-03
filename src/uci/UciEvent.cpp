@@ -12,7 +12,7 @@ UciEvent::~UciEvent()
 
 void UciEvent::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'eventlog'");
+    Ldebug(">>> Loading 'eventlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciEvent";
 	SECTION = "evt";

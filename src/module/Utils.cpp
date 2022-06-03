@@ -237,76 +237,6 @@ uint8_t *Cnvt::PutU32(uint32_t v, uint8_t *p)
     return p + 5;
 }
 
-uint8_t *Cnvt::PutLocalTm(time_t t, uint8_t *p)
-{
-    struct tm tp;
-    if (localtime_r(&t, &tp) != &tp)
-    {
-        memset(p, 0, 7);
-        return p + 7;
-    }
-    *p++ = tp.tm_mday;
-    *p++ = tp.tm_mon + 1;
-    int year = tp.tm_year + 1900;
-    *p++ = year / 0x100;
-    *p++ = year & 0xFF;
-    *p++ = tp.tm_hour;
-    *p++ = tp.tm_min;
-    *p++ = tp.tm_sec;
-    return p;
-}
-
-void Cnvt::ClearTm(struct tm *tp)
-{
-    tp->tm_mday = 1;
-    tp->tm_mon = 0;
-    tp->tm_year = 1970 - 1900;
-    tp->tm_hour = 0;
-    tp->tm_min = 0;
-    tp->tm_sec = 0;
-}
-
-char *Cnvt::ParseTmToLocalStr(struct timeval *t, char *p)
-{
-    struct tm tp;
-    if (localtime_r(&(t->tv_sec), &tp) != &tp)
-    {
-        ClearTm(&tp);
-    }
-    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d.%03d",
-                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec, t->tv_usec / 1000);
-    return p + len;
-}
-
-char *Cnvt::ParseTmToLocalStr(time_t t, char *p)
-{
-    struct tm tp;
-    if (localtime_r(&t, &tp) != &tp)
-    {
-        ClearTm(&tp);
-    }
-    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
-                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
-    return p + len;
-}
-
-/*
-time_t Cnvt::ParseLocalStrToTm(char *pbuf)
-{
-    struct tm tp;
-    int len = sscanf(pbuf, "%d/%d/%d %d:%d:%d",
-                     &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
-    if (len != 6)
-    {
-        return -1;
-    }
-    tp.tm_mon--;
-    tp.tm_year -= 1900;
-    tp.tm_isdst = -1;
-    return mktime(&tp);
-}
-*/
-
 void Cnvt::split(const string &s, vector<string> &tokens, const string &delimiters)
 {
     string::size_type lastPos = s.find_first_not_of(delimiters, 0);
@@ -319,9 +249,30 @@ void Cnvt::split(const string &s, vector<string> &tokens, const string &delimite
     }
 }
 
+union si16_
+{
+	uint8_t u8a[2];
+	int16_t i16;
+};
 uint16_t Cnvt::SwapU16(uint16_t v)
 {
     return ((v & 0xFF) * 0x100 + v / 0x100);
+}
+
+int16_t Cnvt::GetS16hl(uint8_t *p)
+{
+    si16_ s;
+    s.u8a[1] = p[0];
+    s.u8a[0] = p[1];
+    return s.i16;
+}
+
+int16_t Cnvt::GetS16lh(uint8_t *p)
+{
+    si16_ s;
+    s.u8a[0] = p[0];
+    s.u8a[1] = p[1];
+    return s.i16;
 }
 
 const uint8_t Crc::crc8_table[256] =
@@ -639,14 +590,14 @@ bool Exec::DirExists(const char *dirname)
     return true;
 }
 
-int Exec::Shell(const char * fmt, ...)
+int Exec::Shell(const char *fmt, ...)
 {
-	char buf[256];
-	va_list args;
-	va_start(args, fmt);
-	int len = vsnprintf(buf, 256, fmt, args);
-	va_end(args);
-    if(len==256)
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(buf, 256, fmt, args);
+    va_end(args);
+    if (len >= 256)
     {
         throw std::out_of_range(FmtException("Shell command is too long:%s", buf));
     }
@@ -691,8 +642,8 @@ time_t Time::GetLocalTime(struct tm &stm)
 time_t Time::SetLocalTime(struct tm &stm)
 {
     Exec::Shell("date '%d-%d-%d %d:%d:%d'",
-             // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
-             stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
+                // Busybox command 'date', FMT: YYYY-MM-DD hh:mm[:ss]. Do not support microseconds.
+                stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
     auto t = mktime(&stm);
     auto newt = GetTime(nullptr);
     auto sec = newt - t;
@@ -724,21 +675,113 @@ bool Time::IsTmValid(struct tm &stm)
 
 int Time::SleepMs(long msec)
 {
-    struct timespec ts;
-    int res;
+    struct timespec req;
+    struct timespec rem;
     if (msec < 0)
     {
         errno = EINVAL;
         return -1;
     }
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
+    rem.tv_sec = msec / 1000;
+    rem.tv_nsec = (msec % 1000) * 1000000;
+    int res;
     do
     {
-        res = nanosleep(&ts, &ts);
+        req = rem;
+        res = nanosleep(&req, &rem);
     } while (res /* && errno == EINTR*/);
     return res;
 }
+
+int64_t Time::TimevalSubtract(struct timeval *x, struct timeval *y)
+{
+    int64_t xt = x->tv_sec * 1000000 + x->tv_usec;
+    int64_t yt = y->tv_sec * 1000000 + y->tv_usec;
+    return xt - yt;
+}
+
+uint8_t *Time::PutLocalTime(time_t t, uint8_t *p)
+{
+    struct tm tp;
+    if (localtime_r(&t, &tp) != &tp)
+    {
+        memset(p, 0, 7);
+        return p + 7;
+    }
+    *p++ = tp.tm_mday;
+    *p++ = tp.tm_mon + 1;
+    int year = tp.tm_year + 1900;
+    *p++ = year / 0x100;
+    *p++ = year & 0xFF;
+    *p++ = tp.tm_hour;
+    *p++ = tp.tm_min;
+    *p++ = tp.tm_sec;
+    return p;
+}
+
+void Time::ClearTm(struct tm *tp)
+{
+    tp->tm_mday = 1;
+    tp->tm_mon = 0;
+    tp->tm_year = 1970 - 1900;
+    tp->tm_hour = 0;
+    tp->tm_min = 0;
+    tp->tm_sec = 0;
+}
+
+char *Time::ParseTimeToLocalStr(struct timeval *t, char *p)
+{
+    struct tm tp;
+    if (localtime_r(&(t->tv_sec), &tp) != &tp)
+    {
+        ClearTm(&tp);
+    }
+    int len = sprintf(p, "%02d/%02d/%d %2d:%02d:%02d.%03d",
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec, t->tv_usec / 1000);
+    return p + len;
+}
+
+char *Time::ParseTimeToLocalStr(time_t t, char *p)
+{
+    struct tm tp;
+    if (localtime_r(&t, &tp) != &tp)
+    {
+        ClearTm(&tp);
+    }
+    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
+    return p + len;
+}
+
+std::string Time::ParseTimeToLocalStr(time_t t)
+{
+    struct tm tp;
+    if (localtime_r(&t, &tp) != &tp)
+    {
+        ClearTm(&tp);
+    }
+    char p[32];
+    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
+                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
+    return std::string(p);
+}
+
+/*
+time_t Time::ParseLocalStrToTm(char *pbuf)
+{
+    struct tm tp;
+    int len = sscanf(pbuf, "%d/%d/%d %d:%d:%d",
+                     &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
+    if (len != 6)
+    {
+        return -1;
+    }
+    tp.tm_mon--;
+    tp.tm_year -= 1900;
+    tp.tm_isdst = -1;
+    return mktime(&tp);
+}
+*/
 
 void BitOffset::SetBit(uint8_t *buf, int bitOffset)
 {
@@ -843,3 +886,293 @@ void Bits::Clone(Bits &v)
     data = v.Data();
 }
 
+vector<string> StrFn::Split(const string &i_str, const string &i_delim)
+{
+    vector<string> result;
+
+    size_t found = i_str.find(i_delim);
+    size_t startIndex = 0;
+
+    while (found != string::npos)
+    {
+        result.push_back(string(i_str.begin() + startIndex, i_str.begin() + found));
+        startIndex = found + i_delim.size();
+        found = i_str.find(i_delim, startIndex);
+    }
+    if (startIndex != i_str.size())
+        result.push_back(string(i_str.begin() + startIndex, i_str.end()));
+    return result;
+}
+
+int StrFn::vsPrint(vector<string> *vs)
+{
+    int len = 0;
+    if (vs == nullptr)
+    {
+        len = printf("\tvs is nil\n");
+    }
+    else if (vs->size() == 0)
+    {
+        len = printf("\tvs.size() is 0\n");
+    }
+    else
+    {
+        for (auto &s : *vs)
+        {
+            len += printf("\t%s\n", s.c_str());
+        }
+    }
+    return len;
+}
+
+#if 0
+#define CATCH_CONFIG_MAIN
+#include <3rdparty/catch2/catch.hpp>
+
+#define TEST_BITS
+
+#ifdef TEST_BITS
+    TEST_CASE("Class Utils::Bits", "[Bits]")
+    {
+        Bits b1(256);
+
+        SECTION("256 bits empty")
+        {
+            REQUIRE(b1.Size() == 256);
+            for (int i = 0; i < 256; i++)
+            {
+                REQUIRE(b1.GetBit(i) == false);
+            }
+            REQUIRE(b1.GetMaxBit() == -1);
+        }
+
+        SECTION("SetBit:0")
+        {
+            b1.SetBit(0);
+            REQUIRE(b1.GetMaxBit() == 0);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            REQUIRE(b1.GetMaxBit() == 7);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 7:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7,255")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            b1.SetBit(255);
+            REQUIRE(b1.GetMaxBit() == 255);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 7:
+                case 255:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7,255 and ClrBit:1")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            b1.SetBit(255);
+            b1.ClrBit(1);
+            REQUIRE(b1.GetMaxBit() == 255);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 7:
+                case 255:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7,255 and ClrBit:7")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            b1.SetBit(255);
+            b1.ClrBit(7);
+            REQUIRE(b1.GetMaxBit() == 255);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 255:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7,255 and ClrBit:7,255")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            b1.SetBit(255);
+            b1.ClrBit(7);
+            b1.ClrBit(255);
+            REQUIRE(b1.GetMaxBit() == 0);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 0:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("SetBit:0,7,255 and ClrBit:7,255,0")
+        {
+            b1.SetBit(0);
+            b1.SetBit(7);
+            b1.SetBit(255);
+            b1.ClrBit(7);
+            b1.ClrBit(255);
+            b1.ClrBit(0);
+            REQUIRE(b1.GetMaxBit() == -1);
+            for (int i = 0; i < 256; i++)
+            {
+                REQUIRE(b1.GetBit(i) == false);
+            }
+        }
+
+        SECTION("SetBit=8,16,63")
+        {
+            b1.SetBit(8);
+            b1.SetBit(16);
+            b1.SetBit(63);
+            REQUIRE(b1.GetMaxBit() == 63);
+            for (int i = 0; i < 256; i++)
+            {
+                switch (i)
+                {
+                case 8:
+                case 16:
+                case 63:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+
+        SECTION("b1.ClrAll")
+        {
+            b1.ClrAll();
+            REQUIRE(b1.GetMaxBit() == -1);
+            for (int i = 0; i < 256; i++)
+            {
+                REQUIRE(b1.GetBit(i) == false);
+            }
+        }
+
+        SECTION("b2=72-bit.SetBit(0,1,7,8,31,32,63)")
+        {
+            Bits b2;
+            b2.Init(72);
+            b2.SetBit(0);
+            b2.SetBit(1);
+            b2.SetBit(7);
+            b2.SetBit(8);
+            b2.SetBit(31);
+            b2.SetBit(32);
+            b2.SetBit(63);
+            REQUIRE(b2.GetMaxBit() == 63);
+            for (int i = 0; i < b2.Size(); i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 1:
+                case 7:
+                case 8:
+                case 31:
+                case 32:
+                case 63:
+                    REQUIRE(b2.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b2.GetBit(i) == false);
+                    break;
+                }
+            }
+            b1.Clone(b2);
+            REQUIRE(b1.GetMaxBit() == 63);
+            REQUIRE(b1.Size() == b2.Size());
+            for (int i = 0; i < b1.Size(); i++)
+            {
+                switch (i)
+                {
+                case 0:
+                case 1:
+                case 7:
+                case 8:
+                case 31:
+                case 32:
+                case 63:
+                    REQUIRE(b1.GetBit(i) == true);
+                    break;
+                default:
+                    REQUIRE(b1.GetBit(i) == false);
+                    break;
+                }
+            }
+        }
+    }
+#endif
+
+#endif

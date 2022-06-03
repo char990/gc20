@@ -83,12 +83,13 @@ public:
         }
     };
 
+    std::vector<Group *> groups;
+    std::vector<Sign *> signs;
+
 private:
     Controller();
     ~Controller();
     DbHelper &db;
-    std::vector<Group *> groups;
-    std::vector<Sign *> signs;
 
     TimerEvent *tmrEvt{nullptr};
 

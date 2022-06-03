@@ -36,6 +36,7 @@
 
 const char *FirmwareVer = "0120";
 const char *CONFIG_PATH = "config";
+const char *FRAME_BMP = "/tmp/sign%d_frame.bmp";
 
 char *mainpath;
 
@@ -65,9 +66,9 @@ void PrintVersion(bool start)
     char buf[64];
     memset(buf, '*', len);
     buf[len] = '\0';
-    PrintDbg(DBG_LOG, "%s", buf);
-    PrintDbg(DBG_LOG, "%s", sbuf);
-    PrintDbg(DBG_LOG, "%s", buf);
+    Ldebug("%s", buf);
+    Ldebug("%s", sbuf);
+    Ldebug("%s", buf);
 }
 
 // a wrapper for time()
@@ -101,13 +102,13 @@ public:
             {
                 struct tm stm;
                 localtime_r(&t1, &stm);
-                PrintDbg(DBG_LOG, "DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
+                Ldebug("DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
                          stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
                 Utils::Time::SetLocalTime(stm);
             }
             else
             {
-                PrintDbg(DBG_LOG, "DS3231 updates system time-> Timestamp matched, ignore this");
+                Ldebug("DS3231 updates system time-> Timestamp matched, ignore this");
             }
         }
         return t1;
@@ -187,6 +188,7 @@ void GpioInit()
     for (int i = 0; i < sizeof(pins) / sizeof(pins[0]); i++)
     {
         GpioEx::Export(pins[i]);
+        Utils::Time::SleepMs(100);
     }
     Utils::Time::SleepMs(1000);
     pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1);  // heartbeat led, yellow
@@ -272,7 +274,7 @@ int main(int argc, char *argv[])
         auto tcpServerNts = new TcpServer{user.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
-        PrintDbg(DBG_LOG, ">>> DONE >>>");
+        Ldebug(">>> DONE >>>");
         printf("\n=>Input '?<Enter>' to get console help.\n\n");
         /*************** Start ****************/
         while (1)
@@ -284,7 +286,7 @@ int main(int argc, char *argv[])
     catch (const std::exception &e)
     {
         //muntrace();
-        PrintDbg(DBG_LOG, "\n!!! main exception :%s", e.what());
+        Ldebug("\n!!! main exception :%s", e.what());
         return 255;
         // clean
     }

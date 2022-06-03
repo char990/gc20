@@ -232,8 +232,8 @@ void UciCfg::CommitCloseSectionForSave()
 {
 	Commit();
 	Close();
-	//Changed(true);
-	//DbHelper::Instance().RefreshSync();
+	// Changed(true);
+	// DbHelper::Instance().RefreshSync();
 }
 
 void UciCfg::OptionSave(const char *option, const char *str)
@@ -364,6 +364,8 @@ void UciCfg::ClrSECTION()
 		throw std::runtime_error(FmtException("Can't open %s to write", dst));
 	}
 	int len = snprintf(dst, 255, "config %s '%s'\n", PACKAGE, SECTION);
+	if (len > 255)
+		len = 255;
 	write(dstfd, &dst[0], len);
 	fdatasync(dstfd);
 	close(dstfd);

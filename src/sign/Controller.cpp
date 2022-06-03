@@ -120,23 +120,23 @@ void Controller::PeriodicRun()
             {
                 tcpServer->Close();
                 evt.Push(0, "ETH1 restart");
-                PrintDbg(DBG_LOG, "ETH1 restart...");
+                Ldebug("ETH1 restart...");
                 system("ifdown ETH1");
                 system("ifup ETH1");
-                PrintDbg(DBG_LOG, "Done.");
+                Ldebug("Done.");
                 tcpServer->Open();
             }
             if (rr_flag & RQST_REBOOT)
             {
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
-                PrintDbg(DBG_LOG, "\n%s...", _re);
+                Ldebug("\n%s...", _re);
                 system("reboot");
             }
             if (rr_flag & RQST_RESTART)
             {
                 const char *_re = " -> -> -> restart";
-                PrintDbg(DBG_LOG, "\n%s...", _re);
+                Ldebug("\n%s...", _re);
                 system("sync");
                 throw std::runtime_error(_re);
             }
@@ -267,7 +267,7 @@ void Controller::ExtInputFunc()
             uint8_t msg = i + 3;
             const char *fmt = "Leading edge of external input[%d]";
             db.GetUciEvent().Push(0, fmt, i + 1);
-            PrintDbg(DBG_LOG, fmt, i + 1);
+            Ldebug(fmt, i + 1);
             for (auto &g : groups)
             {
                 g->DispExt(msg);

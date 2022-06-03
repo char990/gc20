@@ -25,17 +25,17 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (xlen < (PLN_LEN_MIN + PLN_TAIL) || xlen > (PLN_LEN_MAX + PLN_TAIL)) // with crc & enable flag
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:len=%d", plnId, xlen);
+        Ldebug("Plan[%d] Error:len=%d", plnId, xlen);
         return APP::ERROR::LengthError;
     }
     if (plnId == 0)
     {
-        PrintDbg(DBG_LOG, "Plan Error:PlanID=0");
+        Ldebug("Plan Error:PlanID=0");
         return APP::ERROR::SyntaxError;
     }
     if ((weekdays & 0x80) != 0 || (weekdays & 0x7F) == 0)
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:weekdays=0x%02X", plnId, weekdays);
+        Ldebug("Plan[%d] Error:weekdays=0x%02X", plnId, weekdays);
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xpln + 4;
@@ -47,7 +47,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
         {
             if (i == 0)
             {
-                PrintDbg(DBG_LOG, "Plan[%d] Error:type of first entry=0", plnId);
+                Ldebug("Plan[%d] Error:type of first entry=0", plnId);
                 return APP::ERROR::LengthError;
             }
             break;
@@ -72,7 +72,7 @@ APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
     }
     if (p != (xpln + xlen - PLN_TAIL))
     {
-        PrintDbg(DBG_LOG, "Plan[%d] Error:invalid entries", plnId);
+        Ldebug("Plan[%d] Error:invalid entries", plnId);
         return APP::ERROR::LengthError;
     }
     // check time overlap in plan
@@ -136,9 +136,10 @@ std::string Plan::ToString()
     {
         return "Plan undefined";
     }
-    char buf[1024];
+    #define PLAN_TO_STRING_SIZE 4096
+    char *buf = new char[PLAN_TO_STRING_SIZE+16];
     int len = 0;
-    len = snprintf(buf, 1023, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
+    len = snprintf(buf, PLAN_TO_STRING_SIZE, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
                    plnId, micode, plnId, plnRev);
     const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
@@ -146,31 +147,32 @@ std::string Plan::ToString()
     {
         if (k & weekdays)
         {
-            len += snprintf(buf + len, 1023 - len, "%s,", WEEK[i]);
+            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "%s,", WEEK[i]);
         }
         k <<= 1;
     }
-    len += snprintf(buf + len, 1023 - len, " Entries(%d)=", entries);
+    len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, " Entries(%d)=", entries);
     for (int i = 0; i < 6; i++)
     {
         if (plnEntries[i].fmType == PLN_ENTRY_FRM)
         {
-            len += snprintf(buf + len, 1023 - len, "(Frm");
+            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "(Frm");
         }
         else if (plnEntries[i].fmType == PLN_ENTRY_MSG)
         {
-            len += snprintf(buf + len, 1023 - len, "(Msg");
+            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "(Msg");
         }
         else
         {
             break;
         }
-        len += snprintf(buf + len, 1023 - len, "[%d]%d:%02d-%d:%02d)", plnEntries[i].fmId,
+        len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "[%d]%d:%02d-%d:%02d)", plnEntries[i].fmId,
                         plnEntries[i].start.hour, plnEntries[i].start.min,
                         plnEntries[i].stop.hour, plnEntries[i].stop.min);
     }
-    snprintf(buf + len, 1023 - len, ", Crc=0x%04X", crc);
+    snprintf(buf + len, PLAN_TO_STRING_SIZE - len, ", Crc=0x%04X", crc);
     std::string s(buf);
+    delete [] buf;
     return s;
 }
 
@@ -180,12 +182,12 @@ int Plan::CheckEntries()
     {
         if (plnEntries[i].fmType == PLN_ENTRY_FRM && !DbHelper::Instance().GetUciFrm().IsFrmDefined(plnEntries[i].fmId))
         {
-            PrintDbg(DBG_LOG, "Plan[%d] Error:Frame[%d] undefined", plnId, plnEntries[i].fmId);
+            Ldebug("Plan[%d] Error:Frame[%d] undefined", plnId, plnEntries[i].fmId);
             return -1;
         }
         else if (plnEntries[i].fmType == PLN_ENTRY_MSG && !DbHelper::Instance().GetUciMsg().IsMsgDefined(plnEntries[i].fmId))
         {
-            PrintDbg(DBG_LOG, "Plan[%d] Error:Msg[%d] undefined", plnId, plnEntries[i].fmId);
+            Ldebug("Plan[%d] Error:Msg[%d] undefined", plnId, plnEntries[i].fmId);
             return -1;
         }
     }

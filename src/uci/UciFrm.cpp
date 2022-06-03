@@ -4,7 +4,6 @@
 #include <cstring>
 #include <vector>
 #include <exception>
-#include <string>
 #include <uci.h>
 
 #include <uci/DbHelper.h>
@@ -12,6 +11,7 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+using namespace std;
 
 UciFrm::UciFrm()
 {
@@ -31,7 +31,7 @@ UciFrm::~UciFrm()
 
 void UciFrm::LoadConfig()
 {
-	PrintDbg(DBG_LOG, ">>> Loading 'frames'");
+	Ldebug(">>> Loading 'frames'");
 	auto &db = DbHelper::Instance();
 	PATH = db.Path();
 	auto prodtype = db.GetUciProd().ProdType();
@@ -85,7 +85,7 @@ void UciFrm::LoadFrms(const char *FMT)
 	}
 	catch (const std::exception &e)
 	{
-		PrintDbg(DBG_LOG, "%s", e.what());
+		Ldebug("%s", e.what());
 	}
 	delete[] v;
 	delete[] b;
@@ -170,16 +170,17 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 
 void UciFrm::SaveFrm(uint8_t i)
 {
-	auto frm = GetStFrm(i);
-	if (frm == nullptr)
+	auto stfrm = GetStFrm(i);
+	if (stfrm == nullptr)
 	{
 		return;
 	}
 	char filename[256];
+	// save uci format
 	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
-	int len = frm->rawData.size() * 2;
+	int len = stfrm->rawData.size() * 2;
 	char *v = new char[len + 1]; // 1 bytes space for '\n'
-	Cnvt::ParseToStr(frm->rawData.data(), v, frm->rawData.size());
+	Cnvt::ParseToStr(stfrm->rawData.data(), v, stfrm->rawData.size());
 	v[len++] = '\n';
 	char buf[64];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -188,7 +189,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
 		alm.Push(0, buf);
-		PrintDbg(DBG_LOG, "%s", buf);
+		Ldebug("%s", buf);
 	}
 	else
 	{
@@ -196,7 +197,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
 			alm.Push(0, buf);
-			PrintDbg(DBG_LOG, "%s", buf);
+			Ldebug("%s", buf);
 		}
 		fdatasync(frm_fd);
 		close(frm_fd);
@@ -226,3 +227,4 @@ bool UciFrm::IsFrmFlashing(uint8_t i)
 	}
 	return frms[i - 1]->conspicuity != 0;
 }
+

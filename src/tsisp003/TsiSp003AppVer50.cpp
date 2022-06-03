@@ -87,7 +87,7 @@ void TsiSp003AppVer50::SignDisplayAtomicFrames(uint8_t *data, int len)
     if (r == APP::ERROR::AppNoError)
     {
         char buf[64];
-        int len = sprintf(buf, "DispAtm: Group%d,", data[1]);
+        int len = sprintf(buf, "DispAtm: Grp%d,", data[1]);
         uint8_t *p = data + 3;
         for (int i = 0; i < data[2] && len < 63; i++)
         {

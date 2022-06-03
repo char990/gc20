@@ -48,7 +48,7 @@ UciProd::~UciProd()
 
 void UciProd::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'prod'");
+    Ldebug(">>> Loading 'prod'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciProd";
     char cbuf[16];
@@ -293,6 +293,12 @@ void UciProd::LoadConfig()
             throw std::invalid_argument(FmtException("UciProd Error: colour map %s undefined", COLOUR_NAME[i]));
         }
     }
+    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
+    {
+        sprintf(cbuf, "RGB_%s", COLOUR_NAME[i]);
+        coloursRgbTable[i] = GetInt(uciSec, cbuf, 0, 0xFFFFFF);
+    }
+    coloursRgbTable[0] = coloursRgbTable[mappedColoursTable[0]];
 
     monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
 

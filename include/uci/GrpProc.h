@@ -24,8 +24,8 @@ public:
     void Power(uint8_t v) { power = v; };
     uint8_t Power() { return power; };
 
-    void Device(uint8_t v) { device = v; };
-    uint8_t Device() { return device; };
+    void DeviceOnOff(uint8_t v) { device = v; };
+    uint8_t DeviceOnOff() { return device; };
 
 private:
     Utils::Bits enabledPln{256};

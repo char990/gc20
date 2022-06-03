@@ -425,7 +425,7 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
         uint8_t *p = data + 2;
         for (int i = 0; i < data[1] && i < 4; i++)
         {
-            len += snprintf(buf + len, 63 - len, " Group%d(%d-%d)", p[0], p[1], p[2]);
+            len += snprintf(buf + len, 63 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
             p += 3;
         }
         db.GetUciEvent().Push(0, buf);
@@ -456,7 +456,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
         uint8_t *p = data + 2;
         for (int i = 0; i < data[1] && len < 63; i++)
         {
-            len += snprintf(buf + len, 63 - len, " Group%d(%d)", p[0], p[1]);
+            len += snprintf(buf + len, 63 - len, " Grp%d(%d)", p[0], p[1]);
             p += 2;
         }
         db.GetUciEvent().Push(0, buf);
@@ -487,7 +487,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
         uint8_t *p = data + 2;
         for (int i = 0; i < data[1] && len < 63; i++)
         {
-            len += snprintf(buf + len, 63 - len, " Group%d(%d)", p[0], p[1]);
+            len += snprintf(buf + len, 63 - len, " Grp%d(%d)", p[0], p[1]);
             p += 2;
         }
         db.GetUciEvent().Push(0, buf);

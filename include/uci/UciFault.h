@@ -2,8 +2,9 @@
 
 #include <uci/UciLog.h>
 #include <uci/FaultLog.h>
-#include<tsisp003/TsiSp003Const.h>
+#include <tsisp003/TsiSp003Const.h>
 #include <array>
+#include <3rdparty/nlohmann/json.hpp>
 
 
 #define FAULT_LOG_ENTRIES 500
@@ -34,6 +35,8 @@ public:
 
     /// \brief  for TSI-SP-008 Fault log Reply, 500 entries, entry number is 0-499
     int GetLog(uint8_t *dst);
+
+    int GetLog(nlohmann::json &reply);
 
     /// \brief  Push a fault in faultLog and save to UciFault
     /// \param  Generally, t==0, load GetTime in this function

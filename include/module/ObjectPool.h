@@ -122,6 +122,6 @@ private:
 
     void print_status()
     {
-        PrintDbg(DBG_PRT, "Pool status: size:%d, busy:%d, free:%d", size, size-freeCnt, freeCnt);
+        Pdebug("Pool status: size:%d, busy:%d, free:%d", size, size-freeCnt, freeCnt);
     }
 };

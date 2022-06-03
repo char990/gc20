@@ -144,6 +144,10 @@ void Sign::RefreshSlaveStatusAtSt()
             if (s->selfTest & 1)
             {
                 len += snprintf(buf + len, 63 - len, " %d", s->SlaveId());
+                if (len >= 63)
+                {
+                    break;
+                }
             }
         }
     }
@@ -419,7 +423,7 @@ void Sign::RefreshFatalError()
         fatalError.Set();
         if (fatalError.IsRising())
         {
-            PrintDbg(DBG_LOG, "Sign[%d] fatalError Set", signId);
+            Ldebug("Sign[%d] fatalError Set", signId);
         }
     }
     else
@@ -427,7 +431,7 @@ void Sign::RefreshFatalError()
         fatalError.Clr();
         if (fatalError.IsFalling() && (fatalError.PreV() != STATE5::S5_NA))
         {
-            PrintDbg(DBG_LOG, "Sign[%d] fatalError Clr", signId);
+            Ldebug("Sign[%d] fatalError Clr", signId);
         }
     }
     fatalError.ClearEdge();
@@ -477,7 +481,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         }
     }
     dbc.ClearEdge();
-    if (len > 0)
+    if (len > 0 && len < 63)
     {
         if (info != nullptr)
         {

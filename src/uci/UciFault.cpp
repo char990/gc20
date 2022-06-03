@@ -2,13 +2,15 @@
 #include <cstring>
 #include <ctime>
 
-
 #include <uci.h>
 #include <module/Utils.h>
 #include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
 using namespace Utils;
+
+using json = nlohmann::json;
+
 extern time_t GetTime(time_t *);
 
 UciFault::UciFault()
@@ -22,7 +24,7 @@ UciFault::~UciFault()
 
 void UciFault::LoadConfig()
 {
-    PrintDbg(DBG_LOG, ">>> Loading 'faultlog'");
+    Ldebug(">>> Loading 'faultlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciFault";
     SECTION = "flt";
@@ -54,7 +56,7 @@ void UciFault::LoadConfig()
         {
             continue;
         }
-        auto & log = faultLog.at(i);
+        auto &log = faultLog.at(i);
         log.id = id;
         log.logTime = t;
         log.entryNo = entryNo;
@@ -78,20 +80,20 @@ int UciFault::GetFaultLog20(uint8_t *dst)
 {
     if (lastLog < 0)
     {
-        dst[0]=0;
+        dst[0] = 0;
         return 1;
     }
     uint8_t *p = dst + 1;
     int cnt = 0;
     int logi = lastLog;
-    for (int i = 0; i < faultLog.size() && cnt<20; i++)
+    for (int i = 0; i < faultLog.size() && cnt < 20; i++)
     {
         auto &log = faultLog.at(logi);
         if (log.logTime >= 0)
         {
             *p++ = log.id;
-            *p ++ = log.entryNo;
-            p = Cnvt::PutLocalTm(log.logTime, p);
+            *p++ = log.entryNo;
+            p = Time::PutLocalTime(log.logTime, p);
             *p++ = log.errorCode;
             *p++ = log.onset;
             cnt++;
@@ -101,7 +103,7 @@ int UciFault::GetFaultLog20(uint8_t *dst)
             logi = faultLog.size() - 1;
         }
     }
-    dst[0]=cnt;
+    dst[0] = cnt;
     return p - dst;
 }
 
@@ -109,8 +111,8 @@ int UciFault::GetLog(uint8_t *dst)
 {
     if (lastLog < 0)
     {
-        dst[0]=0;
-        dst[1]=0;
+        dst[0] = 0;
+        dst[1] = 0;
         return 2;
     }
     uint8_t *p = dst + 2;
@@ -123,7 +125,7 @@ int UciFault::GetLog(uint8_t *dst)
         {
             *p++ = log.id;
             p = Cnvt::PutU16(log.entryNo, p);
-            p = Cnvt::PutLocalTm(log.logTime, p);
+            p = Time::PutLocalTime(log.logTime, p);
             *p++ = log.errorCode;
             *p++ = log.onset;
             cnt++;
@@ -137,13 +139,44 @@ int UciFault::GetLog(uint8_t *dst)
     return p - dst;
 }
 
+int UciFault::GetLog(json &reply)
+{
+    int logi = lastLog;
+    std::vector<json> items;
+    if (lastLog >= 0)
+    {
+        for (int i = 0; i < faultLog.size(); i++)
+        {
+            auto &log = faultLog.at(logi);
+            if (log.logTime >= 0)
+            {
+                json entry;
+                entry.emplace("id", log.id);
+                entry.emplace("entry_no", log.entryNo);
+                entry.emplace("time", Time::ParseTimeToLocalStr(log.logTime));
+                char buf[256];
+                sprintf(buf, "0x%02X:%s:%s", log.errorCode, DEV::ToStr(static_cast<DEV::ERROR>(log.errorCode)), log.onset ? "Onset" : "Clear");
+                entry.emplace("content", buf);
+                items.push_back(entry);
+            }
+            if (--logi < 0)
+            {
+                logi = faultLog.size() - 1;
+            }
+        }
+    }
+    reply.emplace("number_of_entries", items.size());
+    reply.emplace("logs", items);
+    return 0;
+}
+
 void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
 {
-    if(t<0)
+    if (t < 0)
     {
         return;
     }
-    if(t==0)
+    if (t == 0)
     {
         t = GetTime(nullptr);
     }
@@ -169,13 +202,13 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
 
     char v[128];
     v[0] = '[';
-    char *p = Cnvt::ParseTmToLocalStr(t, v + 1);
-    snprintf(p, 127-(p-v),  _Fmt, t, id, entryNo, log.errorCode, onset, log.crc);
+    char *p = Time::ParseTimeToLocalStr(t, v + 1);
+    snprintf(p, 127 - (p - v), _Fmt, t, id, entryNo, log.errorCode, onset, log.crc);
 
     OpenSaveClose(SECTION, option, v);
-    if(errorCode!=DEV::ERROR::ControllerResetViaWatchdog)
+    if (errorCode != DEV::ERROR::ControllerResetViaWatchdog)
     {
-        if(id==0)
+        if (id == 0)
         {
             sprintf(v, "Controller");
         }
@@ -183,16 +216,16 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
         {
             sprintf(v, "Sign[%d]", id);
         }
-        PrintDbg(DBG_LOG, "%s - Fault=%s : %s", v, DEV::ToStr(errorCode), onset?"onset":"clear");
+        Ldebug("%s - Fault=%s : %s", v, DEV::ToStr(errorCode), onset ? "onset" : "clear");
     }
 }
 
 void UciFault::Reset()
 {
-    lastLog=-1;
-    for(int i=0;i<faultLog.size();i++)
+    lastLog = -1;
+    for (int i = 0; i < faultLog.size(); i++)
     {
-        faultLog.at(i).logTime=-1;
+        faultLog.at(i).logTime = -1;
     }
     UciCfg::ClrSECTION();
 }
