@@ -12,7 +12,7 @@ const char *PRODTYPE[PRODTYPE_SIZE] = {
 };
 
 // index is coulur code
-const char *COLOUR_NAME[10] = {
+const char *FrameColour::COLOUR_NAME[COLOUR_NAME_SIZE] = {
     "DEFAULT",
     "RED",
     "YELLOW",
@@ -23,6 +23,58 @@ const char *COLOUR_NAME[10] = {
     "WHITE",
     "ORANGE",
     "AMBER"};
+
+const int FrameColour::COLOUR_RGB8[COLOUR_NAME_SIZE] = {
+    0x000000, // BLACK
+    0xFF0000, // Red
+    0xFFFF00, // Yellow
+    0x00FF00, // Green
+    0x00FFFF, // Cyan
+    0x0000FF, // Blue
+    0xFF00FF, // Magenta
+    0xFFFFFF, // White
+    0xFFA500, // Orange
+    0xFFBF00  // Amber
+};
+
+const uint8_t FrameColour::COLOUR_RGB1[COLOUR_NAME_SIZE] = {
+    // only get bit-7 of colour value,so there are only 0-7
+    0x00, // 0x000000, // Black
+    0x04, // 0xFF0000, // Red
+    0x06, // 0xFFFF00, // Yellow
+    0x02, // 0x00FF00, // Green
+    0x03, // 0x00FFFF, // Cyan
+    0x01, // 0x0000FF, // Blue
+    0x05, // 0xFF00FF, // Magenta
+    0x07, // 0xFFFFFF, // White
+    0x06, // 0xFFA500, // Orange
+    0x06, // 0xFFBF00  // Amber
+};
+
+uint8_t FrameColour::Rgb2Colour(int32_t rgb)
+{
+    uint8_t c=0;
+    if(rgb&0x000080)
+    {
+        c|=1;
+    }
+    if(rgb&0x008000)
+    {
+        c|=2;
+    }
+    if(rgb&0x800000)
+    {
+        c|=4;
+    }
+    for(int i=0;i<COLOUR_NAME_SIZE;i++)
+    {
+        if(c==COLOUR_RGB1[i])
+        {
+            return i;
+        }
+    }
+    return 0;
+}
 
 std::vector<MI::sMiCodeStr> MI::micode_str{
     {MI::CODE::Reject, "Reject"},
@@ -96,7 +148,7 @@ const char *MI::ToStr(uint8_t code)
 {
     for (auto &s : micode_str)
     {
-        if(code == static_cast<uint8_t>(s.code))
+        if (code == static_cast<uint8_t>(s.code))
         {
             return s.str;
         }
@@ -147,11 +199,11 @@ std::vector<APP::sAppErrorStr> APP::apperror_str{
     {APP::ERROR::UNDEFINED, "UNDEFINED"},
 };
 
-const char * APP::ToStr(uint8_t code)
+const char *APP::ToStr(uint8_t code)
 {
     for (auto &s : apperror_str)
     {
-        if(code == static_cast<uint8_t>(s.code))
+        if (code == static_cast<uint8_t>(s.code))
         {
             return s.str;
         }

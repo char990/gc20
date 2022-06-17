@@ -233,6 +233,7 @@ void LayerNTS::Session(enum ISession::SESSION v)
     {
         pPinStatusLed->SetPinLow();
     }
+    Controller::Instance().SetOnline(IsAnyOnline());
 }
 
 bool LayerNTS::IsThisSessionTimeout()

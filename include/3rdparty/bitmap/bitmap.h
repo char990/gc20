@@ -81,8 +81,17 @@ class Bitmap
      * image.
      *
      * @param a matrix of pixels to represent a bitmap
+     * @return result: 0:success; -1 fail
     **/
     void fromPixelMatrix(const PixelMatrix &);
+
+    /**
+     * Get/Save the current image from/to vector<char> which is binary of BMP file
+     *
+     * @param a vector of char
+    **/
+    int open(std::vector<char> &);
+    int save(std::vector<char> &);
 
 };
 

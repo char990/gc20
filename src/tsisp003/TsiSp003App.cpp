@@ -35,9 +35,6 @@ int TsiSp003App::Rx(uint8_t *data, int len)
     case MI::CODE::EndSession:
         EndSession(data, len);
         break;
-    case MI::CODE::UpdateTime:
-        UpdateTime(data, len);
-        break;
     case MI::CODE::HARStatusReply:
     case MI::CODE::HARSetVoiceDataIncomplete:
     case MI::CODE::HARSetVoiceDataComplete:
@@ -129,7 +126,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
     uint16_t expp = MakePassword();
     if (pass == expp)
     {
-        //SetStatusLed(1);
+        // SetStatusLed(1);
         Ack();
         // !!! first Ack, then set online
         // 'cause nr&ns related to SESSION::ON_LINE
@@ -142,12 +139,12 @@ void TsiSp003App::Password(uint8_t *data, int len)
         Reject(APP::ERROR::SyntaxError);
         //_Session_END();
         /*	Session_StartCount(INT_MAX-1);
-	SetStatusLed(0);
-	protocolp->ClearOnline();
-	protocolp->ClearNRnNS();  // clear NR
-	shake_hands_status = 0;*/
-        //cmd_Reject(p, SNTXERR);	  // 0x02:Syntax error in command
-        //addLogEntry(EVENT, "CMD: Password : Wrong password, start session failed");
+    SetStatusLed(0);
+    protocolp->ClearOnline();
+    protocolp->ClearNRnNS();  // clear NR
+    shake_hands_status = 0;*/
+        // cmd_Reject(p, SNTXERR);	  // 0x02:Syntax error in command
+        // addLogEntry(EVENT, "CMD: Password : Wrong password, start session failed");
     }
 }
 
@@ -182,59 +179,6 @@ bool TsiSp003App::IsOnline()
         return session->Session() == ISession::SESSION::ON_LINE;
     }
     return true;
-}
-
-void TsiSp003App::UpdateTime(uint8_t *data, int len)
-{
-    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 8))
-        return;
-    // set time
-    struct tm stm;
-    data++;
-    stm.tm_mday = *data++;
-    stm.tm_mon = *data - 1;
-    data++;
-    stm.tm_year = Cnvt::GetU16(data) - 1900;
-    data += 2;
-    stm.tm_hour = *data++;
-    stm.tm_min = *data++;
-    stm.tm_sec = *data;
-    stm.tm_isdst = -1;
-    if (Time::IsTmValid(stm))
-    {
-        time_t t = mktime(&stm);
-        if (t > 0)
-        {
-            char buf[64];
-            char *p = buf + sprintf(buf, "UpdateTime:");
-            p = Time::ParseTimeToLocalStr(GetTime(nullptr), p);
-            sprintf(p, "->");
-            Time::ParseTimeToLocalStr(t, p + 2);
-            db.GetUciEvent().Push(0, buf);
-            Ldebug("%s", buf);
-            if (Time::SetLocalTime(stm) < 0)
-            {
-                const char *s = "UpdateTime: Set system time failed(MemoryError)";
-                Ldebug(s);
-                db.GetUciAlarm().Push(0, s);
-                db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
-            }
-            else
-            {
-                if (pDS3231->SetTimet(t) < 0)
-                {
-                    const char *s = "UpdateTime: Set DS3231 time failed(MemoryError)";
-                    Ldebug(s);
-                    db.GetUciAlarm().Push(0, s);
-                    db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
-                }
-            }
-            Ack();
-            return;
-        }
-    }
-    SetRejectStr("Invalid time");
-    Reject(APP::ERROR::SyntaxError);
 }
 
 uint16_t TsiSp003App::MakePassword()

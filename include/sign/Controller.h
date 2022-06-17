@@ -51,24 +51,30 @@ public:
     bool IsMsgActive(uint8_t i);
     bool IsPlnActive(uint8_t i);
     bool IsPlnEnabled(uint8_t id);
+    void SetOnline(bool v){isOnline=v;};
+    bool IsOnline(){return isOnline;};
 
-    // command from TSI-SP-003
+    // command from TSI-SP-003/WebSocket
     APP::ERROR CheckAdjacentLane(std::vector<uint8_t> & frms);
     APP::ERROR CmdDispFrm(uint8_t *cmd);
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
+    APP::ERROR CmdDispTestFrm(uint8_t *cmd);
+
+    APP::ERROR SignSetFrame(uint8_t *data, int len, char *rejectStr);
 
     int CmdRequestEnabledPlans(uint8_t *buf);
     APP::ERROR CmdEnDisPlan(uint8_t *cmd);
 
-    APP::ERROR CmdSetDimmingLevel(uint8_t *cmd);
-    APP::ERROR CmdPowerOnOff(uint8_t *cmd, int len);
-    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, int len);
+    APP::ERROR CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr);
+    APP::ERROR CmdPowerOnOff(uint8_t *cmd, char *rejectStr);
+    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, char * rejectStr);
 
-    APP::ERROR CmdSystemReset(uint8_t *cmd);
+    APP::ERROR CmdSystemReset(uint8_t *cmd, char *rejectStr);
+
+    APP::ERROR CmdUpdateTime(struct tm & stm);
 
     CtrllerError ctrllerError;
-    /// \brief Session timeout timer
     BootTimer sessionTimeout;
 
     int8_t CurTemp() { return curTemp; };
@@ -86,10 +92,14 @@ public:
     std::vector<Group *> groups;
     std::vector<Sign *> signs;
 
+
+
 private:
     Controller();
     ~Controller();
     DbHelper &db;
+
+    bool isOnline{false};
 
     TimerEvent *tmrEvt{nullptr};
 

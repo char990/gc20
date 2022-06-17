@@ -18,11 +18,10 @@ protected:
     void SignSetFrame(uint8_t * data, int len);
 
 private:
+    void UpdateTime(uint8_t *data, int len);
     void HeartbeatPoll(uint8_t * data, int len);
     void SignStatusReply();
     void SystemReset(uint8_t * data, int len);
-    void SignSetTextFrame(uint8_t * data, int len);
-    void SignSetGraphicsFrame(uint8_t * data, int len);
     void SignDisplayFrame(uint8_t * data, int len);
     void SignSetMessage(uint8_t * data, int len);
     void SignDisplayMessage(uint8_t * data, int len);

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <3rdparty/bitmap/bitmap.h>
+#include <cstring>
 
 typedef unsigned char uchar_t;
 typedef unsigned int uint32_t;
@@ -9,9 +10,9 @@ typedef unsigned short int uint16_t;
 typedef signed int int32_t;
 typedef signed short int int16_t;
 
-const int MIN_RGB=0;
-const int MAX_RGB=255;
-const int BMP_MAGIC_ID=2;
+const int MIN_RGB = 0;
+const int MAX_RGB = 255;
+const int BMP_MAGIC_ID = 2;
 
 // --------------------------------------------------------------
 // Windows BMP-specific format data
@@ -30,19 +31,18 @@ struct bmpfile_header
 
 struct bmpfile_dib_info
 {
-  uint32_t header_size;
-  int32_t width;
-  int32_t height;
-  uint16_t num_planes;
-  uint16_t bits_per_pixel;
-  uint32_t compression;
-  uint32_t bmp_byte_size;
-  int32_t hres;
-  int32_t vres;
-  uint32_t num_colors;
-  uint32_t num_important_colors;
+	uint32_t header_size;
+	int32_t width;
+	int32_t height;
+	uint16_t num_planes;
+	uint16_t bits_per_pixel;
+	uint32_t compression;
+	uint32_t bmp_byte_size;
+	int32_t hres;
+	int32_t vres;
+	uint32_t num_colors;
+	uint32_t num_important_colors;
 };
-
 
 // --------------------------------------------------------------
 /**
@@ -51,40 +51,40 @@ struct bmpfile_dib_info
  * empty matrix (with no rows and no columns).
  *
  * @param name of the filename to be opened and read as a matrix of pixels
-**/
+ **/
 void Bitmap::open(std::string filename)
 {
 	std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary);
-        //clear data if already holds information
-        for(int i=0; i<pixels.size(); i++)
-        {
-            pixels[i].clear();
-        }
-        pixels.clear();
+	// clear data if already holds information
+	for (int i = 0; i < pixels.size(); i++)
+	{
+		pixels[i].clear();
+	}
+	pixels.clear();
 
 	if (file.fail())
 	{
-		std::cerr<<filename<<" could not be opened. Does it exist? "
-		         <<"Is it already open by another program?\n";
+		std::cerr << filename << " could not be opened. Does it exist? "
+				  << "Is it already open by another program?\n";
 	}
 	else
 	{
 		bmpfile_magic magic;
-		file.read((char*)(&magic), sizeof(magic));
+		file.read((char *)(&magic), sizeof(magic));
 
 		// Check to make sure that the first two bytes of the file are the "BM"
 		// identifier that identifies a bitmap image.
 		if (magic.magic[0] != 'B' || magic.magic[1] != 'M')
 		{
-			std::cerr<<filename<<" is not in proper BMP format.\n";
+			std::cerr << filename << " is not in proper BMP format.\n";
 		}
 		else
 		{
 			bmpfile_header header;
-			file.read((char*)(&header), sizeof(header));
+			file.read((char *)(&header), sizeof(header));
 
 			bmpfile_dib_info dib_info;
-			file.read((char*)(&dib_info), sizeof(dib_info));
+			file.read((char *)(&dib_info), sizeof(dib_info));
 
 			// Check for this here and so that we know later whether we need to insert
 			// each row at the bottom or top of the image.
@@ -98,15 +98,15 @@ void Bitmap::open(std::string filename)
 			// Only support for 24-bit images
 			if (dib_info.bits_per_pixel != 24)
 			{
-				std::cerr<<filename<<" uses "<<dib_info.bits_per_pixel
-				         <<"bits per pixel (bit depth). Bitmap only supports 24bit.\n";
+				std::cerr << filename << " uses " << dib_info.bits_per_pixel
+						  << "bits per pixel (bit depth). Bitmap only supports 24bit.\n";
 			}
 
 			// No support for compressed images
 			if (dib_info.compression != 0)
 			{
-				std::cerr<<filename<<" is compressed. "
-				         <<"Bitmap only supports uncompressed images.\n";
+				std::cerr << filename << " is compressed. "
+						  << "Bitmap only supports uncompressed images.\n";
 			}
 
 			file.seekg(header.bmp_offset);
@@ -114,7 +114,7 @@ void Bitmap::open(std::string filename)
 			// Read the pixels for each row and column of Pixels in the image.
 			for (int row = 0; row < dib_info.height; row++)
 			{
-				std::vector <Pixel> row_data;
+				std::vector<Pixel> row_data;
 
 				for (int col = 0; col < dib_info.width; col++)
 				{
@@ -122,7 +122,7 @@ void Bitmap::open(std::string filename)
 					int green = file.get();
 					int red = file.get();
 
-					row_data.push_back( Pixel(red, green, blue) );
+					row_data.push_back(Pixel(red, green, blue));
 				}
 
 				// Rows are padded so that they're always a multiple of 4
@@ -140,8 +140,71 @@ void Bitmap::open(std::string filename)
 			}
 
 			file.close();
-		}//end else (is an image)
-	}//end else (can open file)
+		} // end else (is an image)
+	}	  // end else (can open file)
+}
+
+int Bitmap::open(std::vector<char> &vbmp)
+{
+	char *ptr = vbmp.data();
+
+	bmpfile_magic *magic = (bmpfile_magic *)ptr;
+	ptr += sizeof(magic);
+
+	bmpfile_header *header = (bmpfile_header *)ptr;
+	ptr += sizeof(header);
+
+	bmpfile_dib_info *dib_info = (bmpfile_dib_info *)ptr;
+	ptr += sizeof(dib_info);
+
+	auto height = dib_info->height;
+	auto width = dib_info->width;
+	bool flip = true;
+	if (height < 0)
+	{
+		flip = false;
+		height = -height;
+	}
+	// Check to make sure that the first two bytes of the file are the "BM"
+	// identifier that identifies a bitmap image.
+	if (magic->magic[0] != 'B' || magic->magic[1] != 'M' || header->file_size != vbmp.size() ||
+		header->bmp_offset != sizeof(bmpfile_magic) + sizeof(bmpfile_header) + sizeof(bmpfile_dib_info) ||
+		dib_info->header_size != sizeof(bmpfile_dib_info) || dib_info->bits_per_pixel != 24 || dib_info->compression != 0 ||
+		header->file_size != header->bmp_offset + (width * 3 + 3) / 4 * 4 * height)
+	{
+		return -1;
+	}
+	else
+	{
+		// clear data if already holds information
+		for (int i = 0; i < pixels.size(); i++)
+		{
+			pixels[i].clear();
+		}
+		pixels.clear();
+
+		auto padding = (width * 3 + 3) / 4 * 4 - width * 3;
+		pixels.resize(height);
+		for (int i = 0; i < pixels.size(); i++)
+		{
+			pixels[i].resize(width);
+		}
+
+		// Read the pixels for each row and column of Pixels in the image.
+		for (int row = 0; row < height; row++)
+		{
+			auto &r = flip ? pixels[row] : pixels[height - 1 - row];
+			for (int col = 0; col < width; col++)
+			{
+				auto &p = r.at(col);
+				p.blue = *ptr++;
+				p.green = *ptr++;
+				p.red = *ptr++;
+			}
+			ptr += padding;
+		}
+		return 0;
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -152,38 +215,55 @@ void Bitmap::open(std::string filename)
  * attempt to save the file.
  *
  * @param name of the filename to be written as a bmp image
-**/
+ **/
 void Bitmap::save(std::string filename)
 {
 	std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary);
 
 	if (file.fail())
 	{
-		std::cerr<<filename<<" could not be opened for editing. "
-		         <<"Is it already open by another program or is it read-only?\n";
-
+		std::cerr << filename << " could not be opened for editing. "
+				  << "Is it already open by another program or is it read-only?\n";
 	}
-	else if( !isImage() )
+	else if (!isImage())
 	{
-		std::cerr<<"Bitmap cannot be saved. It is not a valid image.\n";
+		std::cerr << "Bitmap cannot be saved. It is not a valid image.\n";
 	}
 	else
 	{
+		std::vector<char> *vbmp = new std::vector<char>();
+		save(*vbmp);
+		file.write(vbmp->data(), vbmp->size());
+		file.close();
+		delete vbmp;
+	}
+}
+
+int Bitmap::save(std::vector<char> &vbmp)
+{
+	if (!isImage())
+	{
+		std::cerr << "Bitmap cannot be saved. It is not a valid image.\n";
+		return -1;
+	}
+	else
+	{
+		auto width = pixels[0].size();
+		auto height = pixels.size();
+		auto padding = (width * 3 + 3) / 4 * 4 - width * 3;
 		// Write all the header information that the BMP file format requires.
 		bmpfile_magic magic;
 		magic.magic[0] = 'B';
 		magic.magic[1] = 'M';
-		file.write((char*)(&magic), sizeof(magic));
-		bmpfile_header header = { 0 };
-		header.bmp_offset = sizeof(bmpfile_magic)
-				+ sizeof(bmpfile_header) + sizeof(bmpfile_dib_info);
-		header.file_size = header.bmp_offset
-				+ (pixels.size() * 3 + pixels[0].size() % 4) * pixels.size();
-		file.write((char*)(&header), sizeof(header));
-		bmpfile_dib_info dib_info = { 0 };
+		// file.write((char*)(&magic), sizeof(magic));
+		bmpfile_header header = {0};
+		header.bmp_offset = sizeof(bmpfile_magic) + sizeof(bmpfile_header) + sizeof(bmpfile_dib_info);
+		header.file_size = header.bmp_offset + (width * 3 + 3) / 4 * 4 * height;
+		// file.write((char*)(&header), sizeof(header));
+		bmpfile_dib_info dib_info = {0};
 		dib_info.header_size = sizeof(bmpfile_dib_info);
-		dib_info.width = pixels[0].size();
-		dib_info.height = pixels.size();
+		dib_info.width = width;
+		dib_info.height = height;
 		dib_info.num_planes = 1;
 		dib_info.bits_per_pixel = 24;
 		dib_info.compression = 0;
@@ -192,67 +272,73 @@ void Bitmap::save(std::string filename)
 		dib_info.vres = 2835;
 		dib_info.num_colors = 0;
 		dib_info.num_important_colors = 0;
-		file.write((char*)(&dib_info), sizeof(dib_info));
+		// file.write((char*)(&dib_info), sizeof(dib_info));
+		vbmp.resize(header.file_size);
+		auto ptr = vbmp.data();
+		memcpy(ptr, (char *)(&magic), sizeof(magic));
+		ptr += sizeof(magic);
+		memcpy(ptr, (char *)(&header), sizeof(header));
+		ptr += sizeof(header);
+		memcpy(ptr, (char *)(&dib_info), sizeof(dib_info));
+		ptr += sizeof(dib_info);
 
 		// Write each row and column of Pixels into the image file -- we write
 		// the rows upside-down to satisfy the easiest BMP format.
-		for (int row = pixels.size() - 1; row >= 0; row--)
+		for (int row = height - 1; row >= 0; row--)
 		{
-			const std::vector <Pixel> & row_data = pixels[row];
+			const std::vector<Pixel> &row_data = pixels[row];
 
-			for (int col = 0; col < row_data.size(); col++)
+			for (int col = 0; col < width; col++)
 			{
-				const Pixel& pix = row_data[col];
-
-				file.put((uchar_t)(pix.blue));
-				file.put((uchar_t)(pix.green));
-				file.put((uchar_t)(pix.red));
+				const Pixel &pix = row_data[col];
+				*ptr++ = pix.blue;
+				*ptr++ = pix.green;
+				*ptr++ = pix.red;
 			}
 
 			// Rows are padded so that they're always a multiple of 4
 			// bytes. This line skips the padding at the end of each row.
-			for (int i = 0; i < row_data.size() % 4; i++)
+			for (int i = 0; i < padding; i++)
 			{
-				file.put(0);
+				*ptr++ = 0;
 			}
 		}
-
-		file.close();
+		return 0;
 	}
 }
 
 // ----------------------------------------------------------------------------
 /**
-  * Validates whether or not the current matrix of pixels represents a
-  * proper image with non-zero-size rows and consistent non-zero-size
-  * columns for each row. In addition, each pixel in the matrix is validated
-  * to have red, green, and blue components with values between 0 and 255
-  *
-  * @return boolean value of whether or not the matrix is a valid image
+ * Validates whether or not the current matrix of pixels represents a
+ * proper image with non-zero-size rows and consistent non-zero-size
+ * columns for each row. In addition, each pixel in the matrix is validated
+ * to have red, green, and blue components with values between 0 and 255
+ *
+ * @return boolean value of whether or not the matrix is a valid image
  **/
 bool Bitmap::isImage()
 {
 	const int height = pixels.size();
 
-	if( height == 0 || pixels[0].size() == 0)
+	if (height == 0 || pixels[0].size() == 0)
 	{
 		return false;
 	}
 
 	const int width = pixels[0].size();
 
-	for(int row=0; row < height; row++)
+	for (int row = 0; row < height; row++)
 	{
-		if( pixels[row].size() != width )
+		if (pixels[row].size() != width)
 		{
 			return false;
 		}
-		for(int column=0; column < width; column++)
+		for (int column = 0; column < width; column++)
 		{
 			Pixel current = pixels[row][column];
-			if( current.red > MAX_RGB || current.red < MIN_RGB ||
-				  current.green > MAX_RGB || current.green < MIN_RGB ||
-				  current.blue > MAX_RGB || current.blue < MIN_RGB )
+			if (current.red > MAX_RGB || current.red < MIN_RGB ||
+				current.green > MAX_RGB || current.green < MIN_RGB ||
+				current.blue > MAX_RGB || current.blue < MIN_RGB)
 				return false;
 		}
 	}
@@ -264,10 +350,10 @@ bool Bitmap::isImage()
  * Provides a vector of vector of pixels representing the bitmap
  *
  * @return the bitmap image, represented by a matrix of RGB pixels
-**/
+ **/
 PixelMatrix Bitmap::toPixelMatrix()
 {
-	if( isImage() )
+	if (isImage())
 	{
 		return pixels;
 	}
@@ -284,8 +370,8 @@ PixelMatrix Bitmap::toPixelMatrix()
  * image.
  *
  * @param a matrix of pixels to represent a bitmap
-**/
-void Bitmap::fromPixelMatrix(const PixelMatrix & values)
+ **/
+void Bitmap::fromPixelMatrix(const PixelMatrix &values)
 {
 	pixels = values;
 }

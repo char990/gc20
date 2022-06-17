@@ -3,11 +3,10 @@
 #include <cstdint>
 #include <vector>
 
-
 class MI
 {
 public:
-    enum class CODE: uint8_t
+    enum class CODE : uint8_t
     {
         Reject = 0x00,
         Ack,
@@ -91,7 +90,7 @@ public:
 class APP
 {
 public:
-    enum class ERROR: uint8_t
+    enum class ERROR : uint8_t
     {
         AppNoError = 0,
         DeviceControllerOffline,
@@ -131,7 +130,7 @@ public:
         InterlockingMissingSigns,
         InterlockingNotActive,
         InterlocckingActive,
-        UserDefinedFE=0xFE,
+        UserDefinedFE = 0xFE,
         UNDEFINED = 0xFF
     };
 
@@ -215,9 +214,9 @@ enum class FRMCOLOUR : uint8_t
     MonoFinished,
     MultipleColours = 0x0D,
     RGB24 = 0x0E,
-    #ifdef HALF_BYTE
-    HalfByte = 0xF1,   // Brightway Master-Slave poctocol V2.2
-    #endif
+#ifdef HALF_BYTE
+    HalfByte = 0xF1, // Brightway Master-Slave poctocol V2.2
+#endif
     UNDEFINED = 0xFF
 };
 
@@ -302,7 +301,7 @@ enum class DISP_TYPE : uint8_t
 
 /// \brief App packet size
 /// max size of app packet is EventLog (1000 entries of event log)
-#define MAX_APP_PACKET_SIZE (4 + (1+2+7+65) * 1000)
+#define MAX_APP_PACKET_SIZE (4 + (1 + 2 + 7 + 65) * 1000)
 
 /// \brief Data packet Header and End of Block size
 #define DATA_PACKET_HEADER_SIZE 8
@@ -310,7 +309,7 @@ enum class DISP_TYPE : uint8_t
 
 /// \brief Data packet size
 #define MAX_DATA_PACKET_SIZE (DATA_PACKET_HEADER_SIZE + MAX_APP_PACKET_SIZE * 2 + DATA_PACKET_EOB_SIZE)
-#define POWEROF2_MAX_DATA_PACKET_SIZE (2*65536)
+#define POWEROF2_MAX_DATA_PACKET_SIZE (2 * 65536)
 
 /// \brief Data packet size
 #define NON_DATA_PACKET_SIZE 10
@@ -351,11 +350,20 @@ extern const char *PRODTYPE[PRODTYPE_SIZE];
 enum class PRODUCT : uint8_t
 {
     VMS,
-    ISLUS    
+    ISLUS
 };
 
+
+class FrameColour
+{
+public:
 #define COLOUR_NAME_SIZE 10
-extern const char *COLOUR_NAME[COLOUR_NAME_SIZE];
+    static const char *COLOUR_NAME[COLOUR_NAME_SIZE];
+    static const int COLOUR_RGB8[COLOUR_NAME_SIZE];
+    static const uint8_t COLOUR_RGB1[COLOUR_NAME_SIZE];
+    // convert int=rgb to colour code(NOT mapped)
+    static uint8_t Rgb2Colour(int32_t);
+};
 
 enum class FCLTSWITCH : uint8_t
 {

@@ -279,10 +279,10 @@ void UciProd::LoadConfig()
 
     for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
-        str = GetStr(uciSec, COLOUR_NAME[i]);
+        str = GetStr(uciSec, FrameColour::COLOUR_NAME[i]);
         for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
         {
-            if (strcmp(str, COLOUR_NAME[cnt]) == 0)
+            if (strcmp(str, FrameColour::COLOUR_NAME[cnt]) == 0)
             {
                 mappedColoursTable[i] = cnt;
                 break;
@@ -290,15 +290,9 @@ void UciProd::LoadConfig()
         }
         if (cnt == COLOUR_NAME_SIZE)
         {
-            throw std::invalid_argument(FmtException("UciProd Error: colour map %s undefined", COLOUR_NAME[i]));
+            throw std::invalid_argument(FmtException("UciProd Error: colour map %s undefined", FrameColour::COLOUR_NAME[i]));
         }
     }
-    for (int i = 1; i < COLOUR_NAME_SIZE; i++)
-    {
-        sprintf(cbuf, "RGB_%s", COLOUR_NAME[i]);
-        coloursRgbTable[i] = GetInt(uciSec, cbuf, 0, 0xFFFFFF);
-    }
-    coloursRgbTable[0] = coloursRgbTable[mappedColoursTable[0]];
 
     monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
 
@@ -410,7 +404,7 @@ void UciProd::LoadConfig()
     {
         for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
         {
-            if (colourLeds[i] == COLOUR_NAME[cnt][0])
+            if (colourLeds[i] == FrameColour::COLOUR_NAME[cnt][0])
             { // matched with first letter of colour
                 mappedColoursBitTable[cnt] = 1 << i;
                 break;
@@ -534,7 +528,7 @@ void UciProd::Dump()
     printf("\tColour map:\n");
     for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
-        PrintOption_str(COLOUR_NAME[i], COLOUR_NAME[mappedColoursTable[i]]);
+        PrintOption_str(FrameColour::COLOUR_NAME[i], FrameColour::COLOUR_NAME[mappedColoursTable[i]]);
     }
 
     PrintOption_str(_Font, bFont.ToString().c_str());

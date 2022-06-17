@@ -42,14 +42,15 @@ int TsiSp003AppVer21::Rx(uint8_t *data, int len)
     case MI::CODE::HeartbeatPoll:
         HeartbeatPoll(data, len);
         break;
+    case MI::CODE::UpdateTime:
+        UpdateTime(data, len);
+        break;
     case MI::CODE::SystemReset:
         SystemReset(data, len);
         break;
     case MI::CODE::SignSetTextFrame:
-        SignSetTextFrame(data, len);
-        break;
     case MI::CODE::SignSetGraphicsFrame:
-        SignSetGraphicsFrame(data, len);
+        SignSetFrame(data, len);
         break;
     case MI::CODE::SignSetMessage:
         SignSetMessage(data, len);
@@ -130,103 +131,51 @@ void TsiSp003AppVer21::SignStatusReply()
     Tx(txbuf, p - txbuf);
 }
 
+void TsiSp003AppVer21::UpdateTime(uint8_t *data, int len)
+{
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 8))
+        return;
+    // set time
+    struct tm stm;
+    data++;
+    stm.tm_mday = *data++;
+    stm.tm_mon = *data - 1;
+    data++;
+    stm.tm_year = Cnvt::GetU16(data) - 1900;
+    data += 2;
+    stm.tm_hour = *data++;
+    stm.tm_min = *data++;
+    stm.tm_sec = *data;
+    stm.tm_isdst = -1;
+    if (ctrller.CmdUpdateTime(stm) == APP::ERROR::AppNoError)
+    {
+        Ack();
+    }
+    else
+    {
+        SetRejectStr("Invalid time");
+        Reject(APP::ERROR::SyntaxError);
+    }
+}
+
 void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
 {
     if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 3))
     {
         return;
     }
-    uint8_t gid = data[1];
-    uint8_t level = data[2];
-    if (level > 3 && level < 255)
-    {
-        SetRejectStr("Invalid SystemReset level[%d]",level);
-        Reject(APP::ERROR::SyntaxError);
-        return;
-    }
-    if (level > 1 && gid != 0)
-    {
-        SetRejectStr("GroupID[%d] - SystemReset Level[%d] is only for Group[0])", gid, level);
-        Reject(APP::ERROR::UndefinedDeviceNumber);
-        return;
-    }
-    auto r = ctrller.CmdSystemReset(data);
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "SystemReset: Group%d, Level%d", gid, level);
-        Ack();
-    }
-    else
-    {
-        SetRejectStr("Group[%d] - Invalid SystemReset level[%d])", gid, level);
-        Reject(r);
-    }
+    auto r = ctrller.CmdSystemReset(data, rejectStr);
+    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
 {
-    auto r = APP::ERROR::AppNoError;
-    uint8_t id = *(data + OFFSET_FRM_ID);
-    if (id == 0)
+    if (!CheckOnline_RejectIfFalse())
     {
-        SetRejectStr("Frame[0] is not valid");
-        r = APP::ERROR::SyntaxError;
+        return;
     }
-    else if (ctrller.IsFrmActive(id))
-    {
-        SetRejectStr("Frame[%d] is active", id);
-        r = APP::ERROR::FrmMsgPlnActive;
-    }
-    else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
-    {
-        SetRejectStr("Frame[%d] is locked", id);
-        r = APP::ERROR::OverlaysNotSupported; // locked frame
-    }
-	else if (db.GetUciProd().ProdType() == PRODUCT::ISLUS && db.GetUciProd().IsIslusSpFrm(id))
-    {
-        SetRejectStr("Frame[%d] is special ISLUS frame, can't be changed", id);
-        r = APP::ERROR::OverlaysNotSupported; // pre-defined ISLUS special framaes and can't be changed
-    }
-    else
-    {
-        UciFrm &frm = db.GetUciFrm();
-        r = frm.SetFrm(data, len);
-        if (r == APP::ERROR::AppNoError)
-        {
-            frm.SaveFrm(id);
-            switch (*data)
-            {
-            case static_cast<uint8_t>(MI::CODE::SignSetTextFrame):
-                db.GetUciEvent().Push(0, "SetTxtFrame: Frame%d", id);
-                break;
-            case static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame):
-                db.GetUciEvent().Push(0, "SetGfxFrame: Frame%d", id);
-                break;
-            default:
-                db.GetUciEvent().Push(0, "SetHiResGfxFrame: Frame%d", id);
-                break;
-            }
-        }
-    }
+    auto r = ctrller.SignSetFrame(data, len, rejectStr);
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
-}
-
-void TsiSp003AppVer21::SignSetTextFrame(uint8_t *data, int len)
-{
-    if (!CheckOnline_RejectIfFalse())
-    {
-        return;
-    }
-    SignSetFrame(data, len);
-}
-
-void TsiSp003AppVer21::SignSetGraphicsFrame(uint8_t *data, int len)
-{
-    if (!CheckOnline_RejectIfFalse())
-    {
-        return;
-    }
-    SignSetFrame(data, len);
 }
 
 void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
@@ -408,95 +357,32 @@ void TsiSp003AppVer21::RequestEnabledPlans(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
 {
-    if (data[1] == 0)
-    {
-        SetRejectStr("number of entries=0");
-        Reject(APP::ERROR::SyntaxError);
-    }
-    else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 3))
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 3))
     {
         return;
     }
-    auto r = ctrller.CmdSetDimmingLevel(data);
-    if (r == APP::ERROR::AppNoError)
-    {
-        char buf[64];
-        int len = sprintf(buf, "SetDimming:");
-        uint8_t *p = data + 2;
-        for (int i = 0; i < data[1] && i < 4; i++)
-        {
-            len += snprintf(buf + len, 63 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
-            p += 3;
-        }
-        db.GetUciEvent().Push(0, buf);
-        Ack();
-    }
-    else
-    {
-        Reject(r);
-    }
+    auto r = ctrller.CmdSetDimmingLevel(data, rejectStr);
+    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
 }
 
 void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
 {
-    if (data[1] == 0)
-    {
-        SetRejectStr("number of entries=0");
-        Reject(APP::ERROR::SyntaxError);
-    }
-    else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
-    auto r = ctrller.CmdPowerOnOff(data, len);
-    if (r == APP::ERROR::AppNoError)
-    {
-        char buf[64];
-        int len = sprintf(buf, "Power:");
-        uint8_t *p = data + 2;
-        for (int i = 0; i < data[1] && len < 63; i++)
-        {
-            len += snprintf(buf + len, 63 - len, " Grp%d(%d)", p[0], p[1]);
-            p += 2;
-        }
-        db.GetUciEvent().Push(0, buf);
-        Ack();
-    }
-    else
-    {
-        Reject(r);
-    }
+    auto r = ctrller.CmdPowerOnOff(data, rejectStr);
+    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
 }
 
 void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
 {
-    if (data[1] == 0)
-    {
-        SetRejectStr("number of entries=0");
-        Reject(APP::ERROR::SyntaxError);
-    }
-    else if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
+    if (!CheckOnline_RejectIfFalse() || !ChkLen(len, 2 + data[1] * 2))
     {
         return;
     }
-    auto r = ctrller.CmdDisableEnableDevice(data, len);
-    if (r == APP::ERROR::AppNoError)
-    {
-        char buf[64];
-        int len = sprintf(buf, "Dis/EnableDevice:");
-        uint8_t *p = data + 2;
-        for (int i = 0; i < data[1] && len < 63; i++)
-        {
-            len += snprintf(buf + len, 63 - len, " Grp%d(%d)", p[0], p[1]);
-            p += 2;
-        }
-        db.GetUciEvent().Push(0, buf);
-        Ack();
-    }
-    else
-    {
-        Reject(r);
-    }
+    auto r = ctrller.CmdDisableEnableDevice(data, rejectStr);
+    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
 }
 
 void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)

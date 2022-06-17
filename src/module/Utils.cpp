@@ -766,22 +766,24 @@ std::string Time::ParseTimeToLocalStr(time_t t)
     return std::string(p);
 }
 
-/*
-time_t Time::ParseLocalStrToTm(char *pbuf)
+int Time::ParseLocalStrToTm(const char *pbuf, struct tm *stm)
 {
-    struct tm tp;
+    int mday, mon, year, hour, min, sec;
     int len = sscanf(pbuf, "%d/%d/%d %d:%d:%d",
-                     &tp.tm_mday, &tp.tm_mon, &tp.tm_year, &tp.tm_hour, &tp.tm_min, &tp.tm_sec);
+                     &mday, &mon, &year, &hour, &min, &sec);
     if (len != 6)
     {
         return -1;
     }
-    tp.tm_mon--;
-    tp.tm_year -= 1900;
-    tp.tm_isdst = -1;
-    return mktime(&tp);
+    stm->tm_mday = mday;
+    stm->tm_mon = mon-1;
+    stm->tm_year = year-1900;
+    stm->tm_hour = hour;
+    stm->tm_min = min;
+    stm->tm_sec = sec;
+    stm->tm_isdst = -1;
+    return IsTmValid(*stm)?0:-1;
 }
-*/
 
 void BitOffset::SetBit(uint8_t *buf, int bitOffset)
 {

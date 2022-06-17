@@ -70,13 +70,13 @@ protected:
     void StartSession(uint8_t *data, int len);
     void Password(uint8_t *data, int len);
     void EndSession(uint8_t *data, int len);
-    void UpdateTime(uint8_t *data, int len);
 
     /// \brief  Make password from seed
     uint16_t MakePassword();
 
-private:
     char rejectStr[64];
+
+private:
     // all UserDefinedCmd functions are in UserDefinedCmd.cpp
     // FACMD list
     enum FACMD : uint8_t

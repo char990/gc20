@@ -98,7 +98,7 @@ Group::Group(uint8_t groupId)
             LoadPlanToPlnMin(i);
         }
     }
-    //PrintPlnMin();
+    // PrintPlnMin();
     for (auto &s : vSigns)
     {
         s->SignErr(proc.SignErr(s->SignId()));
@@ -302,7 +302,7 @@ void Group::PowerFunc()
                 // power-up done
                 pwrUpTmr.Clear();
                 extDispTmr.Clear();
-                //rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
+                // rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
                 TaskRqstSlaveReset();
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
@@ -520,7 +520,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             else
             {
-                //for FSW/EXT, if msg undefined, show BLANK and report msgX+frm0
+                // for FSW/EXT, if msg undefined, show BLANK and report msgX+frm0
                 ClrOrBuf();
                 onDispFrmId = 0;
                 GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
@@ -543,8 +543,8 @@ bool Group::TaskMsg(int *_ptLine)
             NORMAL_MSG_TASK_START:
                 /// #1: init orbuf and counters
                 InitMsgOverlayBuf(pMsg);
-                //printf("\nmsg start\n");
-                //PrintOrBuf();
+                // printf("\nmsg start\n");
+                // PrintOrBuf();
                 msgSetEntry = 0;
                 msgDispEntry = 0;
                 // set & display, TotalRound
@@ -563,9 +563,9 @@ bool Group::TaskMsg(int *_ptLine)
                     } while (allSlavesNext == 1);
                 }
                 msgSetEntry++;
-                //printf("\nAfter 1st entry\n");
-                //PrintOrBuf();
-                // +++++++++ after first round & first frame
+                // printf("\nAfter 1st entry\n");
+                // PrintOrBuf();
+                //  +++++++++ after first round & first frame
                 /// #3: msg loop begin
                 do
                 {
@@ -618,8 +618,8 @@ bool Group::TaskMsg(int *_ptLine)
                     if (msgSetEntry < msgSetEntryMax)
                     {
                         nextEntry = (msgDispEntry == pMsg->entries - 1) ? 0 : (msgDispEntry + 1);
-                        //printf("\nBefore nextEntry=%d\n", nextEntry);
-                        //PrintOrBuf();
+                        // printf("\nBefore nextEntry=%d\n", nextEntry);
+                        // PrintOrBuf();
                         if (pMsg->msgEntries[nextEntry].onTime == 0 && nextEntry != (pMsg->entries - 1))
                         { // onTime==0 and not last entry, trans frame to set orBuf
                             if (msgSetEntry < pMsg->entries)
@@ -638,8 +638,8 @@ bool Group::TaskMsg(int *_ptLine)
                             } while (allSlavesNext == 1);
                         }
                         msgSetEntry++;
-                        //printf("\nAfter nextEntry=%d\n", nextEntry);
-                        //PrintOrBuf();
+                        // printf("\nAfter nextEntry=%d\n", nextEntry);
+                        // PrintOrBuf();
                     }
                     if (msgDispEntry == pMsg->entries - 1 || pMsg->msgEntries[msgDispEntry].onTime != 0)
                     {      // OnTime is for displayed frm only
@@ -925,7 +925,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         currentDimmingV = prod.Dimming(currentDimmingLvl);
 #ifdef DEBUG_ADJ_DIMMING
         Ldebug("Group[%d] - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
-                 groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
+               groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
 #endif
         for (adjDimmingSteps = 0; adjDimmingSteps < 16; adjDimmingSteps++)
         {
@@ -952,7 +952,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
                 setDimming = dv;
 #ifdef DEBUG_ADJ_DIMMING
                 Ldebug("Group[%d] - adjDimmingSteps=%d, currentDimmingLvl=%d, setDimming=%d",
-                         groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
+                       groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
 #endif
                 PT_WAIT_UNTIL(IsBusFree());
                 RqstExtStatus(0xFF);
@@ -961,7 +961,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         }
 #ifdef DEBUG_ADJ_DIMMING
         Ldebug("Group[%d] - AdjDiming done - current:lvl=%d,V=%d; target:lvl=%d,V=%d",
-                 groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
+               groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
 #endif
         if (targetDimmingLvl == 0)
         {
@@ -1091,7 +1091,7 @@ void Group::ClrAllSlavesRxStatus()
     {
         s->rxStatus = 0;
     }
-    //TaskRqstSlaveReset();
+    // TaskRqstSlaveReset();
 }
 
 bool Group::AllSlavesGotExtSt()
@@ -1112,7 +1112,7 @@ void Group::ClrAllSlavesRxExtSt()
     {
         s->rxExtSt = 0;
     }
-    //TaskRqstSlaveReset();
+    // TaskRqstSlaveReset();
 }
 
 bool Group::IsSignInGroup(uint8_t id)
@@ -1296,7 +1296,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
     Ldebug("Group[%d] - %sable plan[%d]", groupId, endis == 0 ? "Dis" : "En", id);
-    //PrintPlnMin();
+    // PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
 
@@ -1494,6 +1494,15 @@ APP::ERROR Group::DispAtmFrm(uint8_t *cmd, bool chk)
     if (chk && atm == APP::ERROR::AppNoError)
     {
         db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
+        char buf[64];
+        int len = sprintf(buf, "DispAtm: Grp%d,", cmd[1]);
+        uint8_t *p = cmd + 3;
+        for (int i = 0; i < cmd[2] && len < 63; i++)
+        {
+            len += snprintf(buf + len, 63 - len, " %d-%d", p[0], p[1]);
+            p += 2;
+        }
+        db.GetUciEvent().Push(0, buf);
     }
     return atm;
 }
@@ -1538,6 +1547,10 @@ APP::ERROR Group::SetPower(uint8_t v)
             }
             cmdPwr = PWR_STATE::RISING;
         }
+    }
+    for (auto &sign : vSigns)
+    {
+        sign->PowerOnOff(v);
     }
     return APP::ERROR::AppNoError;
 }
@@ -1613,7 +1626,7 @@ bool Group::LoadDsNext()
     }
     if (dsCurrent->fmpid[0] == 0 &&
         (dsCurrent->dispType == DISP_TYPE::FRM || dsCurrent->dispType == DISP_TYPE::MSG))
-    { //frm[0] or msg[0], activate plan
+    { // frm[0] or msg[0], activate plan
         dsCurrent->dispType = DISP_TYPE::PLN;
         r = true;
     }
@@ -1777,7 +1790,7 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
         }
     }
     txBuf[0] = slvId;
-    //txBuf[1] = cmd;
+    // txBuf[1] = cmd;
     txBuf[2] = slvFrmId;
     txLen = 3;
     Tx();
@@ -1789,14 +1802,14 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
 // this function is actually for transistion time ONLY
 int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId)
 {
-    //PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]DisplayFrame:%d", slvId, slvFrmId);
+    // PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]DisplayFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::DISPLAY_FRM;
     return SlaveSDFrame(slvId, slvFrmId);
 }
 
 int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
 {
-    //PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]SetStoredFrame:%d", slvId, slvFrmId);
+    // PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]SetStoredFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::SET_STD_FRM;
     return SlaveSDFrame(slvId, slvFrmId);
 }
@@ -1976,7 +1989,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
             orsrc = frm->stFrm.rawData.data() + frm->frmOffset;
         }
         else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
-        { //frame is mono but should transfer from 1-bit to 4-bit
+        { // frame is mono but should transfer from 1-bit to 4-bit
             buf = new uint8_t[frmlen];
             frm->ToBit(msgOverlay, buf);
             orsrc = buf;

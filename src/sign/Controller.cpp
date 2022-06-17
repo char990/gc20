@@ -13,6 +13,9 @@
 #include <module/DS3231.h>
 #include <layer/LayerNTS.h>
 
+using namespace Utils;
+extern time_t GetTime(time_t *);
+
 Controller::Controller()
     : db(DbHelper::Instance()),
       groups(DbHelper::Instance().GetUciProd().NumberOfGroups()),
@@ -362,12 +365,23 @@ bool Controller::IsPlnEnabled(uint8_t id)
     return false;
 }
 
-APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
+APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
 {
     auto grpId = cmd[1];
     auto lvl = cmd[2];
+    if (lvl > 3 && lvl < 255)
+    {
+        snprintf(rejectStr, 63, "Invalid SystemReset level[%d]", lvl);
+        return APP::ERROR::SyntaxError;
+    }
+    if (lvl > 1 && grpId != 0)
+    {
+        snprintf(rejectStr, 63, "GroupID[%d] - SystemReset Level[%d] is only for Group[0])", grpId, lvl);
+        return APP::ERROR::UndefinedDeviceNumber;
+    }
     if (grpId > groups.size())
     {
+        snprintf(rejectStr, 63, "GroupID[%d] undefined", grpId);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
@@ -406,6 +420,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd)
             db.GetUciUser().LoadFactoryDefault();
         }
     }
+    db.GetUciEvent().Push(0, "SystemReset: Group%d, Level%d", grpId, lvl);
     return APP::ERROR::AppNoError;
 }
 
@@ -440,6 +455,59 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
         }
     }
     return grp->DispFrm(frmId, true);
+}
+
+APP::ERROR Controller::CmdDispTestFrm(uint8_t *cmd)
+{
+    auto grpId = cmd[1];
+    auto colourId = cmd[2];
+    auto frmId = cmd[3];
+    auto grp = GetGroup(grpId);
+    if (grp == nullptr)
+    {
+        return APP::ERROR::UndefinedDeviceNumber;
+    }
+    if (colourId >= 0 && colourId <= 9 && frmId >= 1 && frmId <= 9)
+    {
+        APP::ERROR r = APP::ERROR::FrmMsgPlnUndefined;
+        int maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
+        uint16_t chksum = 0;
+        char filename[256];
+        uint8_t *b = new uint8_t[maxFrmSize];
+        char *v = new char[maxFrmSize * 2 + 1]; // with '\n' or '\0' at the end
+        snprintf(filename, 255, "%s/test_0%d%d", db.Path(), colourId, frmId);
+        int frm_fd = open(filename, O_RDONLY);
+        if (frm_fd > 0)
+        {
+            int len = read(frm_fd, v, maxFrmSize * 2 + 1);
+            close(frm_fd);
+            if (len >= 9 * 2)
+            {
+                if (v[len - 1] == '\n')
+                {
+                    len--;
+                }
+                if (Cnvt::ParseToU8(v, b, len) == 0)
+                {
+                    len /= 2;
+                    b[1] = 255;
+                    Cnvt::PutU16(Crc::Crc16_1021(b, len - 2), b + len - 2);
+                    UciFrm &frm = db.GetUciFrm();
+                    r = frm.SetFrm(b, len);
+                }
+            }
+        }
+        delete[] b;
+        if (r != APP::ERROR::AppNoError)
+        {
+            return r;
+        }
+    }
+    else
+    {
+        return APP::ERROR::FrmMsgPlnUndefined;
+    }
+    return grp->DispFrm(255, true);
 }
 
 APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
@@ -521,19 +589,26 @@ APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
     return r;
 }
 
-APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
+APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
 {
     uint8_t entry = cmd[1];
+    if (entry == 0 || entry > groups.size())
+    {
+        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        return (APP::ERROR::SyntaxError);
+    }
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
         if (p[0] > groups.size())
         {
+            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] != 0 && (p[2] == 0 || p[2] > 16))
         {
+            snprintf(rejectStr, 63, "Dimming Level Not Supported:%d", p[2]);
             return APP::ERROR::DimmingLevelNotSupported;
         }
         p += 3;
@@ -555,18 +630,33 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd)
         }
         p += 3;
     }
+    char buf[64];
+    int len = sprintf(buf, "SetDimming:");
+    p = cmd + 2;
+    for (int i = 0; i < cmd[1]; i++)
+    {
+        len += snprintf(buf + len, 63 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
+        p += 3;
+    }
+    db.GetUciEvent().Push(0, buf);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, char *rejectStr)
 {
     uint8_t entry = cmd[1];
+    if (entry == 0 || entry > groups.size())
+    {
+        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        return (APP::ERROR::SyntaxError);
+    }
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
         if (p[0] > groups.size())
         {
+            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
@@ -591,18 +681,33 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, int len)
         }
         p += 2;
     }
+    char buf[64];
+    int slen = sprintf(buf, "Power ON/OFF:");
+    p = cmd + 2;
+    for (int i = 0; i < cmd[1] && slen < 63; i++)
+    {
+        slen += snprintf(buf + slen, 63 - slen, " Grp%d(%d)", p[0], p[1]);
+        p += 2;
+    }
+    db.GetUciEvent().Push(0, buf);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
+APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr)
 {
     uint8_t entry = cmd[1];
+    if (entry == 0 || entry > groups.size())
+    {
+        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        return (APP::ERROR::SyntaxError);
+    }
     uint8_t *p;
     p = cmd + 2;
     for (int i = 0; i < entry; i++)
     {
         if (p[0] > groups.size())
         {
+            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
@@ -627,6 +732,15 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, int len)
         }
         p += 2;
     }
+    char buf[64];
+    int slen = sprintf(buf, "Dis/EnableDevice:");
+    p = cmd + 2;
+    for (int i = 0; i < cmd[1] && slen < 63; i++)
+    {
+        slen += snprintf(buf + slen, 63 - slen, " Grp%d(%d)", p[0], p[1]);
+        p += 2;
+    }
+    db.GetUciEvent().Push(0, buf);
     return APP::ERROR::AppNoError;
 }
 
@@ -693,4 +807,89 @@ APP::ERROR Controller::CheckAdjacentLane(std::vector<uint8_t> &frms)
 #undef IS_CROSS
 #undef IS_RIGHT
 #undef IS_LEFT
+}
+
+APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
+{
+    if (Time::IsTmValid(stm))
+    {
+        time_t t = mktime(&stm);
+        if (t > 0)
+        {
+            char buf[64];
+            char *p = buf + sprintf(buf, "UpdateTime:");
+            p = Time::ParseTimeToLocalStr(GetTime(nullptr), p);
+            sprintf(p, "->");
+            Time::ParseTimeToLocalStr(t, p + 2);
+            db.GetUciEvent().Push(0, buf);
+            Ldebug("%s", buf);
+            if (Time::SetLocalTime(stm) < 0)
+            {
+                const char *s = "UpdateTime: Set system time failed(MemoryError)";
+                Ldebug(s);
+                db.GetUciAlarm().Push(0, s);
+                db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
+            }
+            else
+            {
+                if (pDS3231->SetTimet(t) < 0)
+                {
+                    const char *s = "UpdateTime: Set DS3231 time failed(MemoryError)";
+                    Ldebug(s);
+                    db.GetUciAlarm().Push(0, s);
+                    db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
+                }
+            }
+            return APP::ERROR::AppNoError;
+        }
+    }
+    return APP::ERROR::SyntaxError;
+}
+
+APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
+{
+    auto r = APP::ERROR::AppNoError;
+    uint8_t id = *(data + OFFSET_FRM_ID);
+    if (id == 0)
+    {
+        snprintf(rejectStr, 63, "Frame[0] is not valid");
+        r = APP::ERROR::SyntaxError;
+    }
+    else if (IsFrmActive(id))
+    {
+        snprintf(rejectStr, 63, "Frame[%d] is active", id);
+        r = APP::ERROR::FrmMsgPlnActive;
+    }
+    else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
+    {
+        snprintf(rejectStr, 63, "Frame[%d] is locked", id);
+        r = APP::ERROR::OverlaysNotSupported; // locked frame
+    }
+    else if (db.GetUciProd().ProdType() == PRODUCT::ISLUS && db.GetUciProd().IsIslusSpFrm(id))
+    {
+        snprintf(rejectStr, 63, "Frame[%d] is special ISLUS frame, can't be changed", id);
+        r = APP::ERROR::OverlaysNotSupported; // pre-defined ISLUS special framaes and can't be changed
+    }
+    else
+    {
+        UciFrm &frm = db.GetUciFrm();
+        r = frm.SetFrm(data, len);
+        if (r == APP::ERROR::AppNoError)
+        {
+            frm.SaveFrm(id);
+            switch (*data)
+            {
+            case static_cast<uint8_t>(MI::CODE::SignSetTextFrame):
+                db.GetUciEvent().Push(0, "SetTxtFrame: Frame%d", id);
+                break;
+            case static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame):
+                db.GetUciEvent().Push(0, "SetGfxFrame: Frame%d", id);
+                break;
+            default:
+                db.GetUciEvent().Push(0, "SetHiResGfxFrame: Frame%d", id);
+                break;
+            }
+        }
+    }
+    return r;
 }

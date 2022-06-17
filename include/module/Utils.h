@@ -359,8 +359,8 @@ namespace Utils
         /// \brief  Parse localtime string to tm_t
         /// !!! NOTE !!! When the time is between the override hour of 2:00-3:00, can't get correct time_t, so don not use this function
         ///         string format: d/M/yyyy h:mm:ss
-        /// \retunr -1:fail
-        // static time_t ParseLocalStrToTm(char *pbuf);
+        /// \retunr -1:fail, 0:success
+        static int ParseLocalStrToTm(const char *pbuf, struct tm *stm);
     };
 
     /// \brief  Set/Clr bit in uint8_t *buf

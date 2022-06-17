@@ -37,6 +37,8 @@ public:
     void DimmingV(uint8_t v) { dimmingV = v; };
     void DeviceOnOff(uint8_t v) { device = v; };
     uint8_t DeviceOnOff() { return device; };
+    void PowerOnOff(uint8_t v) { power = v; };
+    uint8_t PowerOnOff() { return power; };
 
     // get
     SignError &SignErr() { return signErr; };
@@ -95,6 +97,7 @@ protected:
     uint8_t dimmingSet{0}, dimmingV{1};
 
     uint8_t device{1};
+    uint8_t power{0};
 
     uint8_t reportPln{0}, reportMsg{0}, reportFrm{0};
 
