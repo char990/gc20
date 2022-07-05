@@ -59,7 +59,7 @@ public:
     APP::ERROR CmdDispFrm(uint8_t *cmd);
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
-    APP::ERROR CmdDispTestFrm(uint8_t *cmd);
+    APP::ERROR CmdSignTest(uint8_t *cmd);
 
     APP::ERROR SignSetFrame(uint8_t *data, int len, char *rejectStr);
 

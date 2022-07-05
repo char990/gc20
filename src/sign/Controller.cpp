@@ -457,7 +457,7 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
     return grp->DispFrm(frmId, true);
 }
 
-APP::ERROR Controller::CmdDispTestFrm(uint8_t *cmd)
+APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
 {
     auto grpId = cmd[1];
     auto colourId = cmd[2];

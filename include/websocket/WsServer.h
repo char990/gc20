@@ -12,15 +12,16 @@ class WsCmd
 {
 public:
     const char *cmd;
-    void (*function)(struct mg_connection *c, nlohmann::json & msg);
+    void(*function)(struct mg_connection *c, nlohmann::json & msg);
 };
 
-class WsMsgBuf
+class WsMsg
 {
     #define WsMsgBuf_SIZE 256*1024
 public:
     int len{0};
     char buf[WsMsgBuf_SIZE];
+    bool login{false};
 };
 class WsServer : public IPeriodicRun
 {
@@ -35,30 +36,42 @@ private:
     struct mg_mgr mgr; // Event manager
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
     TimerEvent *tmrEvt;
-    static std::map<struct mg_connection *, std::unique_ptr<WsMsgBuf>> msgbuf;
+    static std::map<struct mg_connection *, std::unique_ptr<WsMsg>> wsMsg;
     static const char *WS;
-    static const char *ECHO;
     //    static std::vector<ConnUri> conn;
     //    static ConnUri * FindConn(unsigned long id);
     //    static void PushConn(ConnUri & conn);
 
     static void VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm);
     static const WsCmd CMD_LIST[];
-    static void Cmd_Echo(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_ConfigurationRequest(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_HeartbeatPoll(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_SystemReset(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_UpdateTime(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_DisplayTestFrame(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_SetDimmingLevel(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_RetrieveFaultLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_RetrieveAlarmLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_RetrieveEventLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_ResetFaultLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_ResetAlarmLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_ResetEventLog(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_NetworkSettingRequest(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_SetNetwork(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_XableDevice(struct mg_connection *c, nlohmann::json & msg);
-    static void Cmd_Power(struct mg_connection *c, nlohmann::json & msg);
+
+    static void CMD_Login(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetGroupConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetGroupConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_HeartbeatPoll(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetDisplay(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ChangePassword(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetUserConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetUserConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetDimmingConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetDimmingConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetNetworkConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetNetworkConfig(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ControlDimming(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ControlPower(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ControlDevice(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SystemReset(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_UpdateTime(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetFrameSetting(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetStoredFrame(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetStoredMessage(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetStoredPlan(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_RetrieveFaultLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_RetrieveAlarmLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_RetrieveEventLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ResetFaultLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ResetAlarmLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_ResetEventLog(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SignTest(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_DispAtomic(struct mg_connection *c, nlohmann::json & msg);
 };

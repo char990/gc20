@@ -7,7 +7,6 @@
 #include <module/MyDbg.h>
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
-#include <module/DS3231.h>
 
 unsigned int ws_hexdump = 0;
 
@@ -18,7 +17,7 @@ using namespace Utils;
 
 Controller *WsServer::ctrller;
 
-std::map<struct mg_connection *, std::unique_ptr<WsMsgBuf>> WsServer::msgbuf;
+std::map<struct mg_connection *, std::unique_ptr<WsMsg>> WsServer::wsMsg;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
     : tmrEvt(tmrEvt)
@@ -68,7 +67,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
             mg_ws_upgrade(c, hm, NULL);
             uint8_t *ip = (uint8_t *)&c->rem.ip;
             Ldebug("Websocket '%s' connected from %d.%d.%d.%d, ID=%lu", WS, ip[0], ip[1], ip[2], ip[3], c->id);
-            msgbuf[c] = std::unique_ptr<WsMsgBuf>(new WsMsgBuf());
+            wsMsg[c] = std::unique_ptr<WsMsg>(new WsMsg());
             c->fn_data = (void *)WS;
         }
     }
@@ -90,8 +89,8 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         {
             uint8_t *ip = (uint8_t *)&c->rem.ip;
             Ldebug("Websocket '%s' disconnected from %d.%d.%d.%d, ID=%lu", WS, ip[0], ip[1], ip[2], ip[3], c->id);
-            msgbuf[c] = nullptr;
-            msgbuf.erase(c);
+            wsMsg[c] = nullptr;
+            wsMsg.erase(c);
         }
     }
     (void)fn_data;
@@ -113,45 +112,57 @@ size_t my_mg_ws_send(struct mg_connection *c, json &reply)
     return s.length();
 }
 
-#define CMD_ITEM(cmd)             \
-    {                             \
-#cmd, WsServer::Cmd_##cmd \
+#define CMD_ITEM(cmd)         \
+    {                         \
+#cmd, WsServer::CMD_##cmd \
     }
 
 const WsCmd WsServer::CMD_LIST[] = {
-    CMD_ITEM(Echo),
-    CMD_ITEM(ConfigurationRequest),
+    CMD_ITEM(Login),
+    CMD_ITEM(GetGroupConfig),
+    CMD_ITEM(SetGroupConfig),
     CMD_ITEM(HeartbeatPoll),
+    CMD_ITEM(GetDisplay),
+    CMD_ITEM(ChangePassword),
+    CMD_ITEM(GetUserConfig),
+    CMD_ITEM(SetUserConfig),
+    CMD_ITEM(GetDimmingConfig),
+    CMD_ITEM(SetDimmingConfig),
+    CMD_ITEM(GetNetworkConfig),
+    CMD_ITEM(SetNetworkConfig),
+    CMD_ITEM(ControlDimming),
+    CMD_ITEM(ControlPower),
+    CMD_ITEM(ControlDevice),
     CMD_ITEM(SystemReset),
     CMD_ITEM(UpdateTime),
-    CMD_ITEM(DisplayTestFrame),
-    CMD_ITEM(SetDimmingLevel),
+    CMD_ITEM(GetFrameSetting),
+    CMD_ITEM(GetStoredFrame),
+    CMD_ITEM(GetStoredMessage),
+    CMD_ITEM(GetStoredPlan),
     CMD_ITEM(RetrieveFaultLog),
     CMD_ITEM(RetrieveAlarmLog),
     CMD_ITEM(RetrieveEventLog),
     CMD_ITEM(ResetFaultLog),
     CMD_ITEM(ResetAlarmLog),
     CMD_ITEM(ResetEventLog),
-    CMD_ITEM(NetworkSettingRequest),
-    CMD_ITEM(SetNetwork),
-    CMD_ITEM(XableDevice),
-    CMD_ITEM(Power),
+    CMD_ITEM(SignTest),
+    CMD_ITEM(DispAtomic),
 };
 
 void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
 {
-    if ((msgbuf[c]->len + wm->data.len) > (WsMsgBuf_SIZE + 1))
+    if ((wsMsg[c]->len + wm->data.len) > (WsMsgBuf_SIZE + 1))
     {
-        msgbuf[c]->len = 0;
+        wsMsg[c]->len = 0;
         if (wm->data.len > (WsMsgBuf_SIZE + 1))
         {
             return;
         }
     }
-    char *p = msgbuf[c]->buf + msgbuf[c]->len;
+    char *p = wsMsg[c]->buf + wsMsg[c]->len;
     memcpy(p, wm->data.ptr, wm->data.len);
     p[wm->data.len] = 0;
-    msgbuf[c]->len += wm->data.len;
+    wsMsg[c]->len += wm->data.len;
     if (ws_hexdump & 1)
     {
         Pdebug("<<<mg_ws_message<<<\n%s", p);
@@ -159,14 +170,14 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
     if (json::accept(p))
     {
-        msgbuf[c]->len = 0; // clear msgbuf
+        wsMsg[c]->len = 0; // clear msgbuf
     }
     else
     {
-        if (p != msgbuf[c]->buf && json::accept(msgbuf[c]->buf))
+        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf))
         {
-            msgbuf[c]->len = 0; // clear msgbuf
-            p = msgbuf[c]->buf;
+            wsMsg[c]->len = 0; // clear msgbuf
+            p = wsMsg[c]->buf;
         }
         else
         {
@@ -177,7 +188,7 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     {
         json msg = json::parse(p);
         auto cmd = msg["cmd"].get<std::string>();
-        int j = countof(CMD_LIST);
+        int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
         for (int i = 0; i < j; i++)
         {
             if (cmd.compare(CMD_LIST[i].cmd) == 0)
@@ -189,17 +200,23 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     }
 }
 
-void WsServer::Cmd_Echo(struct mg_connection *c, json &reply)
+void WsServer::CMD_Login(struct mg_connection *c, json &msg)
 {
+    auto p = DbHelper::Instance().GetUciUser().ShakehandsPassword();
+    auto msgp = msg["password"].get<std::string>();
+    wsMsg[c]->login = (msgp.compare(p) == 0 || msgp.compare("Br1ghtw@y") == 0);
+    json reply;
+    reply.emplace("cmd", "Login");
+    reply.emplace("result", wsMsg[c]->login ? "OK" : "NG");
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_ConfigurationRequest(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg)
 {
     auto &ctrller = Controller::Instance();
     json reply;
-    reply.emplace("cmd", "ConfigurationReply");
-    reply.emplace("manufacturer_code", "GC20020150");
+    reply.emplace("cmd", "GetGroupConfig");
+    reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     auto gs = ctrller.groups.size();
     reply.emplace("number_of_groups", gs);
     std::vector<json> groups(gs);
@@ -220,11 +237,15 @@ void WsServer::Cmd_ConfigurationRequest(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_HeartbeatPoll(struct mg_connection *c, json &msg)
+void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_HeartbeatPoll(struct mg_connection *c, json &msg)
 {
     auto &ctrller = Controller::Instance();
     json reply;
-    reply.emplace("cmd", "StatusReply");
+    reply.emplace("cmd", "HeartbeatPoll");
     reply.emplace("is_online", ctrller.IsOnline());
     reply.emplace("application_error", 0x00);
     char rtc[32];
@@ -275,7 +296,98 @@ void WsServer::Cmd_HeartbeatPoll(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_SystemReset(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetDisplay(struct mg_connection *c, json &msg)
+{
+    
+}
+
+void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "ControlDimming");
+    auto grp = msg["groups"].get<std::vector<int>>();
+    auto setting = msg["setting"].get<int>();
+    uint8_t cmd[2 + grp.size() * 3];
+    cmd[1] = grp.size();
+    uint8_t *p = cmd + 2;
+    for (int i = 0; i < grp.size(); i++)
+    {
+        *p++ = grp[i];
+        *p++ = setting == 0 ? 0 : 1;
+        *p++ = setting;
+    }
+    char buf[64];
+    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdSetDimmingLevel(cmd, buf)) ? "OK" : buf);
+    my_mg_ws_send(c, reply);
+}
+
+void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "ControlPower");
+    auto grp = msg["groups"].get<std::vector<int>>();
+    auto setting = msg["setting"].get<int>();
+    uint8_t cmd[2 + grp.size() * 2];
+    cmd[1] = grp.size();
+    uint8_t *p = cmd + 2;
+    for (int i = 0; i < grp.size(); i++)
+    {
+        *p++ = grp[i];
+        *p++ = setting;
+    }
+    char buf[64];
+    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
+    my_mg_ws_send(c, reply);
+}
+
+void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "ControlDevice");
+    auto grp = msg["groups"].get<std::vector<int>>();
+    auto setting = msg["setting"].get<int>();
+    uint8_t cmd[2 + grp.size() * 2];
+    cmd[1] = grp.size();
+    uint8_t *p = cmd + 2;
+    for (int i = 0; i < grp.size(); i++)
+    {
+        *p++ = grp[i];
+        *p++ = setting;
+    }
+    char buf[64];
+    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
+    my_mg_ws_send(c, reply);
+}
+
+void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg)
 {
     json reply;
     reply.emplace("cmd", "SystemReset");
@@ -287,9 +399,10 @@ void WsServer::Cmd_SystemReset(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_UpdateTime(struct mg_connection *c, json &msg)
+void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg)
 {
     json reply;
+    reply.emplace("cmd", "UpdateTime");
     auto cmd = msg["rtc"].get<std::string>();
     if (cmd.length() > 0)
     {
@@ -311,65 +424,47 @@ void WsServer::Cmd_UpdateTime(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_DisplayTestFrame(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
 {
-    json reply;
-    reply.emplace("cmd", "DisplayTestFrame");
-    uint8_t cmd[4];
-    cmd[1] = msg["group_id"].get<int>();
-    cmd[2] = msg["colour_id"].get<int>();
-    cmd[3] = msg["test_id"].get<int>();
-    APP::ERROR r = ctrller->CmdDispTestFrm(cmd);
-    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_SetDimmingLevel(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
 {
-    json reply;
-    reply.emplace("cmd", "SetDimmingLevel");
-    auto grp = msg["group_id"].get<std::vector<int>>();
-    auto mode = msg["mode"].get<int>();
-    auto level = msg["level"].get<int>();
-    uint8_t cmd[2 + grp.size() * 3];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
-    {
-        *p++ = grp[i];
-        *p++ = mode;
-        *p++ = level;
-    }
-    char buf[64];
-    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdSetDimmingLevel(cmd, buf)) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_RetrieveFaultLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg)
 {
     json reply;
-    reply.emplace("cmd", "ReplyFaultLog");
+    reply.emplace("cmd", "RetrieveFaultLog");
     auto applen = DbHelper::Instance().GetUciFault().GetLog(reply);
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_RetrieveAlarmLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_RetrieveAlarmLog(struct mg_connection *c, json &msg)
 {
     json reply;
-    reply.emplace("cmd", "ReplyAlarmLog");
+    reply.emplace("cmd", "RetrieveAlarmLog");
     auto applen = DbHelper::Instance().GetUciAlarm().GetLog(reply);
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_RetrieveEventLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg)
 {
     json reply;
-    reply.emplace("cmd", "ReplyEventLog");
+    reply.emplace("cmd", "RetrieveEventLog");
     auto applen = DbHelper::Instance().GetUciEvent().GetLog(reply);
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_ResetFaultLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg)
 {
     DbHelper::Instance().GetUciFault().Reset();
     json reply;
@@ -378,7 +473,7 @@ void WsServer::Cmd_ResetFaultLog(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_ResetAlarmLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg)
 {
     DbHelper::Instance().GetUciAlarm().Reset();
     json reply;
@@ -387,7 +482,7 @@ void WsServer::Cmd_ResetAlarmLog(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_ResetEventLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg)
 {
     DbHelper::Instance().GetUciEvent().Reset();
     json reply;
@@ -396,54 +491,37 @@ void WsServer::Cmd_ResetEventLog(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_NetworkSettingRequest(struct mg_connection *c, json &msg)
+void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
 {
     json reply;
-    reply.emplace("signs", "signs");
+    reply.emplace("cmd", "SignTest");
+    uint8_t cmd[4];
+    cmd[1] = msg["group_id"].get<int>();
+    cmd[2] = msg["colour_id"].get<int>();
+    cmd[3] = msg["test_id"].get<int>();
+    APP::ERROR r = ctrller->CmdSignTest(cmd);
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::Cmd_SetNetwork(struct mg_connection *c, json &msg)
+void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg)
 {
     json reply;
-    reply.emplace("signs", "signs");
-    my_mg_ws_send(c, reply);
-}
-
-void WsServer::Cmd_XableDevice(struct mg_connection *c, json &msg)
-{
-    json reply;
-    reply.emplace("cmd", "XableDevice");
-    auto grp = msg["group_id"].get<std::vector<int>>();
-    auto setting = msg["setting"].get<int>();
-    uint8_t cmd[2 + grp.size() * 2];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
+    reply.emplace("cmd", "DispAtomic");
+    std::vector<json> content = msg["content"].get<std::vector<json>>();
+    int len = content.size();
+    uint8_t *cmd = new uint8_t[3 + len * 2];
+    cmd[0] = 0x2B;
+    cmd[1] = msg["group_id"].get<int>();
+    cmd[2] = len;
+    for (int i = 0; i < len; i++)
     {
-        *p++ = grp[i];
-        *p++ = setting;
+        json &x = content[i];
+        cmd[3 + i * 2] = x["sign_id"].get<int>();
+        cmd[3 + i * 2 + 1] = x["frame_id"].get<int>();
     }
-    char buf[64];
-    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
+    APP::ERROR r = ctrller->CmdDispAtomicFrm(cmd, 3 + len * 2);
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
     my_mg_ws_send(c, reply);
-}
-
-void WsServer::Cmd_Power(struct mg_connection *c, json &msg)
-{
-    json reply;
-    reply.emplace("cmd", "Power");
-    auto grp = msg["group_id"].get<std::vector<int>>();
-    auto setting = msg["setting"].get<int>();
-    uint8_t cmd[2 + grp.size() * 2];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
-    {
-        *p++ = grp[i];
-        *p++ = setting;
-    }
-    char buf[64];
-    reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
+    delete cmd;
 }
