@@ -89,6 +89,8 @@ public:
     uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
     uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
 
+    std::string GetImageBase64();
+
 protected:
     uint8_t signId;
     std::vector<Slave *> vsSlaves;

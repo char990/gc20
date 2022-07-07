@@ -72,6 +72,8 @@ public:
     uint16_t PixelColumns() { return pixelColumns; };
     uint8_t TilesPerSlave() { return tilesPerSlave; };
     uint8_t SlavesPerSign() { return slavesPerSign; };
+    uint16_t CoreOffsetX() { return coreOffsetX; };
+    uint16_t CoreOffsetY() { return coreOffsetY; };
 
     uint8_t *Dimming() { return &dimming[0]; };
     uint8_t Dimming(uint8_t lvl) { return dimming[lvl-1]; };
@@ -163,6 +165,8 @@ private:
     const char *_SlaveVoltageDebounce = "SlaveVoltageDebounce";
     const char *_PixelRows = "PixelRows";
     const char *_PixelColumns = "PixelColumns";
+    const char *_CoreOffsetX = "CoreOffsetX";
+    const char *_CoreOffsetY = "CoreOffsetY";
     const char *_TcpTimeout = "TcpTimeout";
 
     /// uint8_t
@@ -210,6 +214,8 @@ private:
         tcpTimeout,
         pixelRows,
         pixelColumns,
+        coreOffsetX,
+        coreOffsetY,
         slaveRqstInterval,
         slaveRqstStTo,
         slaveRqstExtTo,

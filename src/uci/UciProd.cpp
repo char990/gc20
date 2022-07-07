@@ -79,6 +79,8 @@ void UciProd::LoadConfig()
     pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
     tilesPerSlave = GetInt(uciSec, _TilesPerSlave, 1, 255);
     slavesPerSign = GetInt(uciSec, _SlavesPerSign, 1, 16);
+    coreOffsetX = GetInt(uciSec, _CoreOffsetX, 0, pixelColumns);
+    coreOffsetY = GetInt(uciSec, _CoreOffsetY, 0, pixelRows);
 
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
@@ -478,6 +480,8 @@ void UciProd::Dump()
     PrintOption_d(_PixelColumns, PixelColumns());
     PrintOption_d(_TilesPerSlave, TilesPerSlave());
     PrintOption_d(_SlavesPerSign, SlavesPerSign());
+    PrintOption_d(_CoreOffsetX, CoreOffsetX());
+    PrintOption_d(_CoreOffsetY, CoreOffsetY());
 
     PrintOption_d(_SlaveRqstInterval, SlaveRqstInterval());
     PrintOption_d(_SlaveRqstStTo, SlaveRqstStTo());

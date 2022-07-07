@@ -510,3 +510,9 @@ void Sign::RefreshDevErr(DEV::ERROR err)
         SignErr(err, result);
     }
 }
+
+std::string Sign::GetImageBase64()
+{
+    
+}
+

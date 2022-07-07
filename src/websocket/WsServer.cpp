@@ -112,8 +112,8 @@ size_t my_mg_ws_send(struct mg_connection *c, json &reply)
     return s.length();
 }
 
-#define CMD_ITEM(cmd)         \
-    {                         \
+#define CMD_ITEM(cmd)             \
+    {                             \
 #cmd, WsServer::CMD_##cmd \
     }
 
@@ -121,8 +121,7 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(Login),
     CMD_ITEM(GetGroupConfig),
     CMD_ITEM(SetGroupConfig),
-    CMD_ITEM(HeartbeatPoll),
-    CMD_ITEM(GetDisplay),
+    CMD_ITEM(GetStatus),
     CMD_ITEM(ChangePassword),
     CMD_ITEM(GetUserConfig),
     CMD_ITEM(SetUserConfig),
@@ -216,7 +215,6 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg)
     auto &ctrller = Controller::Instance();
     json reply;
     reply.emplace("cmd", "GetGroupConfig");
-    reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     auto gs = ctrller.groups.size();
     reply.emplace("number_of_groups", gs);
     std::vector<json> groups(gs);
@@ -241,11 +239,14 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg)
 {
 }
 
-void WsServer::CMD_HeartbeatPoll(struct mg_connection *c, json &msg)
+extern const char *FirmwareVer;
+void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
 {
     auto &ctrller = Controller::Instance();
     json reply;
-    reply.emplace("cmd", "HeartbeatPoll");
+    reply.emplace("cmd", "GetStatus");
+    reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
+    reply.emplace("firmware", FirmwareVer);
     reply.emplace("is_online", ctrller.IsOnline());
     reply.emplace("application_error", 0x00);
     char rtc[32];
@@ -255,25 +256,27 @@ void WsServer::CMD_HeartbeatPoll(struct mg_connection *c, json &msg)
     reply.emplace("controller_error", 0x00);
     reply.emplace("max_temperature", 59);
     reply.emplace("current_temperature", 59);
+    int group_cnt = ctrller.groups.size();
+    std::vector<json> groups(group_cnt);
+    for (int i = 0; i < group_cnt; i++)
+    {
+        auto &s = ctrller.groups[i];
+        auto &v = groups[i];
+        v.emplace("group_id", s->GroupId());
+        v.emplace("device", s->IsDevice() ? "Enabled" : "Disabled");
+        v.emplace("power", s->IsPower() ? "On" : "Off");
+    }
+    reply.emplace("groups", groups);
+
     int sign_cnt = ctrller.signs.size();
-    reply.emplace("number_of_signs", sign_cnt);
     std::vector<json> signs(sign_cnt);
     for (int i = 0; i < sign_cnt; i++)
     {
         auto &s = ctrller.signs[i];
         auto &v = signs[i];
         v.emplace("sign_id", s->SignId());
-        v.emplace("error", s->SignErr().GetErrorCode());
-        v.emplace("frame_id", s->ReportFrm());
-        v.emplace("message_id", s->ReportMsg());
-        v.emplace("plan_id", s->ReportPln());
         v.emplace("dimming_mode", s->DimmingMode());
         v.emplace("dimming_level", s->DimmingValue());
-        v.emplace("is_power_on", s->PowerOnOff());
-        v.emplace("is_enabled", s->DeviceOnOff());
-        v.emplace("max_temperature", s->MaxTemp());
-        v.emplace("current_temperature", s->CurTemp());
-        v.emplace("voltage", s->Voltage());
         if (s->luminanceFault.IsValid())
         {
             if (s->luminanceFault.IsLow())
@@ -289,16 +292,20 @@ void WsServer::CMD_HeartbeatPoll(struct mg_connection *c, json &msg)
         }
         else
         {
-            v.emplace("lightsensor", "N/A");
+            v.emplace("light_sensor", "N/A");
         }
+        v.emplace("frame_id", s->ReportFrm());
+        v.emplace("message_id", s->ReportMsg());
+        v.emplace("plan_id", s->ReportPln());
+        v.emplace("current_temperature", s->CurTemp());
+        v.emplace("max_temperature", s->MaxTemp());
+        v.emplace("voltage", s->Voltage());
+        v.emplace("error_code", s->SignErr().GetErrorCode());
+        v.emplace("faulty_pixels", s->FaultLedCnt());
+        v.emplace("image", s->GetImageBase64());
     }
     reply.emplace("signs", signs);
     my_mg_ws_send(c, reply);
-}
-
-void WsServer::CMD_GetDisplay(struct mg_connection *c, json &msg)
-{
-    
 }
 
 void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)

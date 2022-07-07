@@ -48,8 +48,7 @@ private:
     static void CMD_Login(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetGroupConfig(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_SetGroupConfig(struct mg_connection *c, nlohmann::json & msg);
-    static void CMD_HeartbeatPoll(struct mg_connection *c, nlohmann::json & msg);
-    static void CMD_GetDisplay(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_GetStatus(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_ChangePassword(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetUserConfig(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_SetUserConfig(struct mg_connection *c, nlohmann::json & msg);

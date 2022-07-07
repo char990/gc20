@@ -94,7 +94,9 @@ public:
 
     APP::ERROR SetDimming(uint8_t v);
     APP::ERROR SetPower(uint8_t v);
+    bool IsPower() { return cmdPwr == PWR_STATE::ON; };
     APP::ERROR SetDevice(uint8_t v);
+    bool IsDevice() { return deviceEnDisSet == 1;};
 
     APP::ERROR SystemReset(uint8_t v);
 
