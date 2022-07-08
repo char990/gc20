@@ -507,13 +507,13 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             // network settings
             auto &net = DbHelper::Instance().GetUciNetwork();
             uint8_t *pip1 = pd + 36;
-            uint8_t *nip1 = net.Ipaddr();
+            uint8_t *nip1 = net.GetETH(0).ipaddr;
             int m1 = memcmp(pip1, nip1, 4);
             uint8_t *pip2 = pd + 43;
-            uint8_t *nip2 = net.Netmask();
+            uint8_t *nip2 = net.GetETH(0).netmask;
             int m2 = memcmp(pip2, nip2, 4);
             uint8_t *pip3 = pd + 47;
-            uint8_t *nip3 = net.Gateway();
+            uint8_t *nip3 = net.GetETH(0).gateway;
             int m3 = memcmp(pip3, nip3, 4);
             if (m1 != 0 || m2 != 0 || m3 != 0)
             {
@@ -527,19 +527,19 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                 {
                     printip("ipaddr", nip1, pip1);
                     evt.Push(0, ipbuf);
-                    net.Ipaddr(pip1);
+                    net.Ipaddr(0, pip1);
                 }
                 if (m2 != 0)
                 {
                     printip("netmask", nip2, pip2);
                     evt.Push(0, ipbuf);
-                    net.Netmask(pip2);
+                    net.Netmask(0, pip2);
                 }
                 if (m3 != 0)
                 {
                     printip("gateway", nip3, pip3);
                     evt.Push(0, ipbuf);
-                    net.Gateway(pip3);
+                    net.Gateway(0, pip3);
                 }
                 rr_flag |= RQST_NETWORK;
             }
@@ -594,14 +594,14 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         memset(pt, 0, 10);
         pt += 10;
         auto &net = DbHelper::Instance().GetUciNetwork();
-        memcpy(pt, net.Ipaddr(), 4);
+        memcpy(pt, net.GetETH(0).ipaddr, 4);
         pt += 4;
         *pt++ = user.LockedMsg();
         *pt++ = user.LockedFrm();
         *pt++ = user.LastFrmOn();
-        memcpy(pt, net.Netmask(), 4);
+        memcpy(pt, net.GetETH(0).netmask, 4);
         pt += 4;
-        memcpy(pt, net.Gateway(), 4);
+        memcpy(pt, net.GetETH(0).gateway, 4);
         pt += 4;
         Tx(txbuf, pt - txbuf);
     }

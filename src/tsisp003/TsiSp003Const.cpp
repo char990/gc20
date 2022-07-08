@@ -37,6 +37,11 @@ const int FrameColour::COLOUR_RGB8[COLOUR_NAME_SIZE] = {
     0xFFBF00  // Amber
 };
 
+int FrameColour::GetRGB8(uint8_t mappedc)
+{
+    return mappedc > 9 ? COLOUR_RGB8[0] : COLOUR_RGB8[mappedc];
+}
+
 const uint8_t FrameColour::COLOUR_RGB1[COLOUR_NAME_SIZE] = {
     // only get bit-7 of colour value,so there are only 0-7
     0x00, // 0x000000, // Black
@@ -51,24 +56,29 @@ const uint8_t FrameColour::COLOUR_RGB1[COLOUR_NAME_SIZE] = {
     0x06, // 0xFFBF00  // Amber
 };
 
+uint8_t FrameColour::GetRGB1(uint8_t mappedc)
+{
+    return mappedc > 9 ? COLOUR_RGB1[0] : COLOUR_RGB1[mappedc];
+}
+
 uint8_t FrameColour::Rgb2Colour(int32_t rgb)
 {
-    uint8_t c=0;
-    if(rgb&0x000080)
+    uint8_t c = 0;
+    if (rgb & 0x000080)
     {
-        c|=1;
+        c |= 1;
     }
-    if(rgb&0x008000)
+    if (rgb & 0x008000)
     {
-        c|=2;
+        c |= 2;
     }
-    if(rgb&0x800000)
+    if (rgb & 0x800000)
     {
-        c|=4;
+        c |= 4;
     }
-    for(int i=0;i<COLOUR_NAME_SIZE;i++)
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
     {
-        if(c==COLOUR_RGB1[i])
+        if (c == COLOUR_RGB1[i])
         {
             return i;
         }

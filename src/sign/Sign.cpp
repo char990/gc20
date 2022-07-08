@@ -25,6 +25,11 @@ Sign::Sign(uint8_t id)
     ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
     lsMidnightFault.SetCNT(15 * 60);
     lsMiddayFault.SetCNT(15 * 60);
+
+    for(int i=0;i<7;i++)
+    {
+        frameImages[i].SetId(id, i);
+    }
 }
 
 Sign::~Sign()
@@ -511,8 +516,7 @@ void Sign::RefreshDevErr(DEV::ERROR err)
     }
 }
 
-std::string Sign::GetImageBase64()
+const char * Sign::GetImageBase64()
 {
-    
+    return frameImages[slaveFrameId].Save2Base64().data();
 }
-

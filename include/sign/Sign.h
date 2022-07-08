@@ -6,6 +6,7 @@
 #include <sign/DeviceError.h>
 #include <module/BootTimer.h>
 #include <tsisp003/TsiSp003Const.h>
+#include <sign/FrameImage.h>
 /*
     Sign is fit to TSI-SP-003
     For VMS, it is a combination of slaves.
@@ -54,6 +55,9 @@ public:
         reportFrm = f;
     };
 
+    // current slave frame
+    void SlaveFrameId(uint8_t id) { slaveFrameId = (id > 6) ? 0 : id; };
+
     uint8_t ReportFrm() { return reportFrm; };
     uint8_t ReportMsg() { return reportMsg; };
     uint8_t ReportPln() { return reportPln; };
@@ -89,7 +93,8 @@ public:
     uint8_t DimmingMode() { return (dimmingSet == 0) ? 0 : 1; };
     uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
 
-    std::string GetImageBase64();
+    const char * GetImageBase64();
+    FrameImage frameImages[7];
 
 protected:
     uint8_t signId;
@@ -127,4 +132,5 @@ protected:
 private:
     time_t timeSt{-1};
     time_t timeExtSt{-1};
+    uint8_t slaveFrameId;
 };

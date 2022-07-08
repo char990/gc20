@@ -187,7 +187,8 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     {
         json msg = json::parse(p);
         auto cmd = msg["cmd"].get<std::string>();
-        int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
+        int j = (1) ? countof(CMD_LIST) : 1;
+        //int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
         for (int i = 0; i < j; i++)
         {
             if (cmd.compare(CMD_LIST[i].cmd) == 0)

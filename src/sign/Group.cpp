@@ -1769,6 +1769,13 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
                 s->frmCrc[slvFrmId] = crc;
             }
         }
+        for (auto &s : vSigns)
+        {
+            if (slvId == 0xFF || slvId == s->SignId())
+            {
+                s->frameImages[slvFrmId].FillCore(txBuf);
+            }
+        }
         ms = Tx() + prod.SlaveSetStFrmDly();
     }
     LockBus(ms);
@@ -1809,6 +1816,13 @@ int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId)
 
 int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
 {
+    for (auto &s : vSigns)
+    {
+        if (slvId == 0xFF || slvId == s->SignId())
+        {
+            s->SlaveFrameId(slvFrmId);
+        }
+    }
     // PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]SetStoredFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::SET_STD_FRM;
     return SlaveSDFrame(slvId, slvFrmId);

@@ -353,14 +353,15 @@ enum class PRODUCT : uint8_t
     ISLUS
 };
 
-
 class FrameColour
 {
 public:
 #define COLOUR_NAME_SIZE 10
     static const char *COLOUR_NAME[COLOUR_NAME_SIZE];
     static const int COLOUR_RGB8[COLOUR_NAME_SIZE];
+    static int GetRGB8(uint8_t mappedc);
     static const uint8_t COLOUR_RGB1[COLOUR_NAME_SIZE];
+    static uint8_t GetRGB1(uint8_t mappedc);
     // convert int=rgb to colour code(NOT mapped)
     static uint8_t Rgb2Colour(int32_t);
 };
