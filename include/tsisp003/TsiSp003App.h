@@ -103,6 +103,8 @@ private:
         FACMD_SET_SIGN_CFG = 0x24,
         FACMD_RPL_SET_USER_CFG = 0x25,
 
+        FACMD_SIGNTEST = 0x30,
+
         FACMD_SHAKE_RQST = 0xF0,
         FACMD_SHAKE_REPLY = 0xF1,
         FACMD_SHAKE_PASSWD = 0xF2,
@@ -129,6 +131,8 @@ private:
     int FA20_SetUserCfg(uint8_t *data, int len);
     int FA21_RqstUserCfg(uint8_t *data, int len);
     int FA22_RqstUserExt(uint8_t *data, int len);
+
+    int FA30_SignTest(uint8_t *data, int len);
 
     int FAF0_ShakehandsRqst(uint8_t *data, int len);
     int FAF2_ShakehandsPasswd(uint8_t *data, int len);

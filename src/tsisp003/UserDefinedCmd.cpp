@@ -81,6 +81,9 @@ int TsiSp003App::UserDefinedCmdFA(uint8_t *data, int len)
     case FACMD_REBOOT:
         FAFA_Reboot(data, len);
         break;
+    case FACMD_SIGNTEST:
+        FA30_SignTest(data, len);
+        break;
     default:
         Reject(APP::ERROR::UnknownMi);
     }
@@ -268,8 +271,8 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
     uint32_t v;
     if (*(pd + 6) == *(pd + 5))
         return APP::ERROR::SyntaxError; // Deviceid =/= Broadcastaddr
-    //v=*(pd+7);		// TmcPath
-    //if(v!=1 && v!=2)	return APP::ERROR::SyntaxError;
+    // v=*(pd+7);		// TmcPath
+    // if(v!=1 && v!=2)	return APP::ERROR::SyntaxError;
     for (int i = 18; i <= 20; i++) // overtemp, fanOnTemp, humidity
     {
         if (*(pd + i) > 100)
@@ -277,7 +280,7 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
     }
     if (*(pd + 21) >= NUMBER_OF_TZ)
         return APP::ERROR::SyntaxError;
-    /* obsolete feature 
+    /* obsolete feature
     v = *(pd + 22); // default font
     if (v == 0 || v > 5)
         return APP::ERROR::SyntaxError;
@@ -588,8 +591,8 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = user.Fan1OnTemp();
         *pt++ = user.Humidity();
         *pt++ = user.Tz();
-        *pt++ = 0;                                                    //user.DefaultFont();
-        *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); //DefaultColour();
+        *pt++ = 0;                                                    // user.DefaultFont();
+        *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); // DefaultColour();
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
@@ -665,6 +668,16 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         memcpy(pt, FirmwareVer, 4);
         pt += 4;
         Tx(txbuf, pt - txbuf);
+    }
+    return 0;
+}
+
+int TsiSp003App::FA30_SignTest(uint8_t *data, int len)
+{
+    if (ChkLen(len, 5))
+    {
+        auto r = Controller::Instance().CmdSignTest(data);
+        (r != APP::ERROR::AppNoError) ? Reject(r) : Ack();
     }
     return 0;
 }
@@ -1050,22 +1063,22 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         p = Cnvt::PutU16(lux / cnt, p);             // avg of all
         *p++ = maxTemp;                             // max of all max temperatures
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
-        *p++ = 0;                                   //DefaultFont                  //
+        *p++ = 0;                                   // DefaultFont                  //
         p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
         *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                     // light sensor 2
         *p++ = 'V';                                 // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
-        *p++ = 'B';                                 //GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
+        *p++ = 'B';                                 // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
         *p++ = prod.MaxConspicuity();               // conspicuity
         *p++ = prod.MaxFont();                      // max. number of fonts
-        *p++ = prod.GetMappedColour(0);             //user.DefaultColour();                // 09
-        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.max_template=0;		// 00
-        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk1=1;                // 01
-        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_offset=0;		// 00
-        *p++ = 'D';                                 //GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
-        *p++ = 0;                                   //GUIconfigure.PARA.BYTE.group_length=0;		// 00
-        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.wk3=1;                // 01
-        *p++ = 1;                                   //GUIconfigure.PARA.BYTE.group_data=1;			// 01
+        *p++ = prod.GetMappedColour(0);             // user.DefaultColour();                // 09
+        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.max_template=0;		// 00
+        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.wk1=1;                // 01
+        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.group_offset=0;		// 00
+        *p++ = 'D';                                 // GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
+        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.group_length=0;		// 00
+        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.wk3=1;                // 01
+        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.group_data=1;			// 01
         Tx(txbuf, 39);
     }
     return 0;

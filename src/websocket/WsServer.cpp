@@ -188,10 +188,10 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
         json msg = json::parse(p);
         auto cmd = msg["cmd"].get<std::string>();
         int j = (1) ? countof(CMD_LIST) : 1;
-        //int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
+        // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
         for (int i = 0; i < j; i++)
         {
-            if (cmd.compare(CMD_LIST[i].cmd) == 0)
+            if (strcasecmp(cmd.c_str(), CMD_LIST[i].cmd) == 0)
             {
                 CMD_LIST[i].function(c, msg);
                 break;
@@ -434,6 +434,94 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg)
 
 void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
 {
+    auto &prod = DbHelper::Instance().GetUciProd();
+    json reply;
+    reply.emplace("cmd", "GetFrameSetting");
+    std::vector<std::string> frametype{"Text Frame"};
+    if (prod.PixelRows() < 255 && prod.PixelColumns() < 255)
+    {
+        frametype.push_back("Graphics Frame");
+    }
+    frametype.push_back("HR Graphics Frame");
+    reply.emplace("frame_type", frametype);
+
+    std::vector<std::string> txt_c;
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    {
+        if (prod.IsTxtFrmColourValid(i))
+        {
+            txt_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+        }
+    }
+    reply.emplace("txt_frame_colours", txt_c);
+
+    std::vector<std::string> gfx_c;
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    {
+        if (prod.IsGfxFrmColourValid(i))
+        {
+            gfx_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+        }
+    }
+    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::MultipleColours)))
+    {
+        gfx_c.push_back(std::string("Multi(4-bit)"));
+    }
+    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB24)))
+    {
+        gfx_c.push_back(std::string("RGB(24-bit)"));
+    }
+    reply.emplace("gfx_frame_colours", gfx_c);
+
+    std::vector<std::string> hrg_c;
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    {
+        if (prod.IsHrgFrmColourValid(i))
+        {
+            hrg_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+        }
+    }
+    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::MultipleColours)))
+    {
+        hrg_c.push_back(std::string("Multi(4-bit)"));
+    }
+    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB24)))
+    {
+        hrg_c.push_back(std::string("RGB(24-bit)"));
+    }
+    reply.emplace("hrg_frame_colours", hrg_c);
+
+    std::vector<int> fonts;
+    for (int i = 0; i < prod.MaxFont(); i++)
+    {
+        if (prod.IsFont(i))
+        {
+            fonts.push_back(i);
+        }
+    }
+    reply.emplace("fonts", fonts);
+
+    std::vector<std::string> conspicuity;
+    for (int i = 0; i < prod.MaxConspicuity(); i++)
+    {
+        if (prod.IsConspicuity(i))
+        {
+            conspicuity.push_back(std::string(Conspicuity[i]));
+        }
+    }
+    reply.emplace("conspicuity", conspicuity);
+
+    std::vector<std::string> annulus;
+    for (int i = 0; i < prod.MaxAnnulus(); i++)
+    {
+        if (prod.IsAnnulus(i))
+        {
+            annulus.push_back(std::string(Annulus[i]));
+        }
+    }
+    reply.emplace("annulus", annulus);
+
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
@@ -503,10 +591,29 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
 {
     json reply;
     reply.emplace("cmd", "SignTest");
-    uint8_t cmd[4];
-    cmd[1] = msg["group_id"].get<int>();
-    cmd[2] = msg["colour_id"].get<int>();
-    cmd[3] = msg["test_id"].get<int>();
+    uint8_t cmd[5];
+    cmd[0] = 0xFA;
+    cmd[1] = 0x30;
+    cmd[2] = msg["group_id"].get<int>();
+    cmd[3] = 255;
+    cmd[4] = 255;
+    auto p = DbHelper::Instance().GetUciProd();
+    std::string colour = msg["colour"].get<std::string>();
+    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    {
+        if (strcasecmp(FrameColour::COLOUR_NAME[i], colour.c_str()) == 0)
+        {
+            cmd[3] = i;
+        }
+    }
+    std::string pixels = msg["pixels"].get<std::string>();
+    for (int i = 0; i < TEST_PIXELS_SIZE; i++)
+    {
+        if (strcasecmp(TestPixels[i], pixels.c_str()) == 0)
+        {
+            cmd[4] = i;
+        }
+    }
     APP::ERROR r = ctrller->CmdSignTest(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
     my_mg_ws_send(c, reply);

@@ -24,6 +24,27 @@ const char *FrameColour::COLOUR_NAME[COLOUR_NAME_SIZE] = {
     "ORANGE",
     "AMBER"};
 
+const char *TestPixels[TEST_PIXELS_SIZE] = {
+    "All pixels",
+    "Odd rows",
+    "Even rows",
+    "Odd columns",
+    "Even columns"};
+
+const char *Annulus[ANNULUS_SIZE] = {
+    "Off",
+    "Flashing",
+    "On"
+};
+
+const char *Conspicuity[CONSPICUITY_SIZE] = {
+    "Off",
+    "Up Down",
+    "Left Right",
+    "Wig Wag",
+    "All Flash",
+    "All On"};
+
 const int FrameColour::COLOUR_RGB8[COLOUR_NAME_SIZE] = {
     0x000000, // BLACK
     0xFF0000, // Red

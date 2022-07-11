@@ -459,55 +459,70 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
 
 APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
 {
-    auto grpId = cmd[1];
-    auto colourId = cmd[2];
-    auto frmId = cmd[3];
+    auto grpId = cmd[2];
+    auto colourId = cmd[3];
+    auto pixels = cmd[4];
     auto grp = GetGroup(grpId);
     if (grp == nullptr)
     {
         return APP::ERROR::UndefinedDeviceNumber;
     }
-    if (colourId >= 0 && colourId <= 9 && frmId >= 1 && frmId <= 9)
+    if (pixels > 5)
     {
-        APP::ERROR r = APP::ERROR::FrmMsgPlnUndefined;
-        int maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
-        uint16_t chksum = 0;
-        char filename[256];
-        uint8_t *b = new uint8_t[maxFrmSize];
-        char *v = new char[maxFrmSize * 2 + 1]; // with '\n' or '\0' at the end
-        snprintf(filename, 255, "%s/test_0%d%d", db.Path(), colourId, frmId);
-        int frm_fd = open(filename, O_RDONLY);
-        if (frm_fd > 0)
+        return APP::ERROR::FrmMsgPlnUndefined;
+    }
+    if (colourId > 9)
+    {
+        return APP::ERROR::ColourNotSupported;
+    }
+    auto &prod = DbHelper::Instance().GetUciProd();
+    auto rows = prod.PixelRows();
+    auto columns = prod.PixelColumns();
+    auto frmlen = prod.Gfx1FrmLen();
+    std::vector<uint8_t> frm(frmlen + 15);
+    frm[0] = static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame);
+    frm[1] = 255;
+    frm[2] = 255;
+    Cnvt::PutU16(rows, frm.data() + 3);
+    Cnvt::PutU16(columns, frm.data() + 5);
+    frm[7] = colourId;
+    frm[8] = 0;
+    Utils::Cnvt::PutU32(frmlen, frm.data() + 9);
+    if (pixels == 1 || pixels == 2)
+    {
+        int bitOffset = 0;
+        int p = pixels - 1; // odd=0, even=1
+        for (int j = 0; j < rows; j++)
         {
-            int len = read(frm_fd, v, maxFrmSize * 2 + 1);
-            close(frm_fd);
-            if (len >= 9 * 2)
+            for (int i = 0; i < columns; i++)
             {
-                if (v[len - 1] == '\n')
-                {
-                    len--;
-                }
-                if (Cnvt::ParseToU8(v, b, len) == 0)
-                {
-                    len /= 2;
-                    b[1] = 255;
-                    Cnvt::PutU16(Crc::Crc16_1021(b, len - 2), b + len - 2);
-                    UciFrm &frm = db.GetUciFrm();
-                    r = frm.SetFrm(b, len);
-                }
+                int x = bitOffset / 8;
+                uint8_t b = 1 << (bitOffset & 0x07);
+                frm.at(13 + x) = ((j & 1) == p) ? (frm.at(13 + x) | b) : (frm.at(13 + x) & (~b));
+                bitOffset++;
             }
-        }
-        delete[] b;
-        if (r != APP::ERROR::AppNoError)
-        {
-            return r;
         }
     }
     else
     {
-        return APP::ERROR::FrmMsgPlnUndefined;
+        memset(frm.data() + 13, (pixels == 0) ? 0xFF : ((pixels == 3) ? 0x55 : 0xAA), frmlen);
     }
-    return grp->DispFrm(255, true);
+    Cnvt::PutU16(Crc::Crc16_1021(frm.data(), frm.size() - 2), frm.data() + frm.size() - 2);
+    UciFrm &ucifrm = db.GetUciFrm();
+    auto r = ucifrm.SetFrm(frm.data(), frm.size());
+    if (r != APP::ERROR::AppNoError)
+    {
+        return r;
+    }
+    ucifrm.SaveFrm(255);
+    db.GetUciEvent().Push(0, "Sign Test:SetHiResGfxFrame:Frame255");
+    r = grp->DispFrm(255, true);
+    if (r == APP::ERROR::AppNoError)
+    {
+        db.GetUciEvent().Push(0, "Sign Test:Display:Grp%d,Colour:%s,Pixels:%s",
+                              grpId, FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
+    }
+    return r;
 }
 
 APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)

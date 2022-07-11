@@ -353,6 +353,15 @@ enum class PRODUCT : uint8_t
     ISLUS
 };
 
+#define TEST_PIXELS_SIZE 5
+extern const char * TestPixels[TEST_PIXELS_SIZE];
+
+#define ANNULUS_SIZE 3
+extern const char *Annulus[ANNULUS_SIZE];
+
+#define CONSPICUITY_SIZE 6
+extern const char *Conspicuity[CONSPICUITY_SIZE];
+
 class FrameColour
 {
 public:

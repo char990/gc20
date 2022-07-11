@@ -125,6 +125,5 @@ private:
     BootTimer rrTmr;
 
     TcpServer *tcpServer;
-
 //    void WriteFifo(char c);
 };
