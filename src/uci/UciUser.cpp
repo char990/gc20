@@ -41,7 +41,7 @@ void UciUser::LoadConfig()
     broadcastId = GetInt(uciSec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
-        throw std::invalid_argument(FmtException("UciUser::DeviceId(%d) should not be same as BroadcastId(%d)",
+        throw std::invalid_argument(FmtException("UciUser.DeviceId(%d) should not be same as BroadcastId(%d)",
                                                  deviceId, broadcastId));
     }
     seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
@@ -62,13 +62,13 @@ void UciUser::LoadConfig()
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
     lockedMsg = GetInt(uciSec, _LockedMsg, 0, 255);
     passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);
-    displayTimeout = GetInt(uciSec, _DisplayTimeout, 0, 10080);
-    sessionTimeout = GetInt(uciSec, _SessionTimeout, 60, 0xFFFF);
+    displayTimeoutMin = GetInt(uciSec, _DisplayTimeout, 0, 10080);
+    sessionTimeoutSec = GetInt(uciSec, _SessionTimeout, 60, 0xFFFF);
     svcPort = GetInt(uciSec, _SvcPort, 1024, 0xFFFF);
     webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)
     {
-        throw std::invalid_argument(FmtException("UciUser::SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort));
+        throw std::invalid_argument(FmtException("UciUser.SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
@@ -103,11 +103,11 @@ void UciUser::LoadConfig()
         }
         else
         {
-            throw std::invalid_argument(FmtException("UciUser::%s error: %s", cbuf, str));
+            throw std::invalid_argument(FmtException("UciUser.%s error: %s", cbuf, str));
         }
     }
 
-    str = GetStr(uciSec, _CITY);
+    str = GetStr(uciSec, _City);
     cityId = NUMBER_OF_TZ;
     if (str != NULL)
     {
@@ -122,7 +122,7 @@ void UciUser::LoadConfig()
     }
     if (cnt == NUMBER_OF_TZ)
     {
-        throw std::invalid_argument(FmtException("UciUser::TZ error:%s", str));
+        throw std::invalid_argument(FmtException("UciUser.City error:%s", str));
     }
 
     str = GetStr(uciSec, _DawnDusk);
@@ -133,7 +133,7 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] > 23)
             {
-                throw std::invalid_argument("UciUser::DawnDusk Error: Hour>23");
+                throw std::invalid_argument("UciUser.DawnDusk Error: Hour>23");
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -143,7 +143,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument("UciUser::DawnDusk Error: cnt!=16");
+        throw std::invalid_argument("UciUser.DawnDusk Error: cnt!=16");
     }
     if (tz_AU != nullptr)
     {
@@ -165,7 +165,7 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] >= ibuf[cnt + 1])
             {
-                throw std::invalid_argument(FmtException("UciUser::Luminance Error: [%d]%d>[%d]%d",
+                throw std::invalid_argument(FmtException("UciUser.Luminance Error: [%d]%d>[%d]%d",
                                                          cnt, ibuf[cnt], cnt + 1, ibuf[cnt + 1]));
             }
         }
@@ -176,7 +176,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument("UciUser::Luminance Error: cnt!=16");
+        throw std::invalid_argument("UciUser.Luminance Error: cnt!=16");
     }
 
     int numberOfSigns = uciProd.NumberOfSigns();
@@ -186,12 +186,12 @@ void UciUser::LoadConfig()
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
-            throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.Sign[%d]", _ComPort, COM_NAME[comPort], i));
+            throw std::invalid_argument(FmtException("UciUser.%s: %s used by UciProd.Sign[%d]", _ComPort, COM_NAME[comPort], i));
         }
     }
     if (comPort == uciProd.MonitoringPort())
     {
-        throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]));
+        throw std::invalid_argument(FmtException("UciUser.%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]));
     }
 
     Close();
@@ -225,8 +225,8 @@ void UciUser::Dump()
     PrintOption_d(_Fan1OnTemp, Fan1OnTemp());
     PrintOption_d(_Fan2OnTemp, Fan2OnTemp());
     PrintOption_d(_Humidity, Humidity());
-    PrintOption_d(_SessionTimeout, SessionTimeout());
-    PrintOption_d(_DisplayTimeout, DisplayTimeout());
+    PrintOption_d(_SessionTimeout, SessionTimeoutSec());
+    PrintOption_d(_DisplayTimeout, DisplayTimeoutMin());
     //PrintOption_d(_DefaultFont, DefaultFont());
     //PrintOption_d(_DefaultColour, DefaultColour());
     PrintOption_d(_MultiLedFaultThreshold, MultiLedFaultThreshold());
@@ -234,7 +234,7 @@ void UciUser::Dump()
     PrintOption_d(_LockedMsg, LockedMsg());
     PrintOption_d(_LastFrmOn, LastFrmOn());
 
-    PrintOption_str(_CITY, City());
+    PrintOption_str(_City, City());
     PrintOption_str(_ComPort, COM_NAME[ComPort()]);
 
     char buf[256];
@@ -449,20 +449,20 @@ void UciUser::PasswordOffset(uint16_t v)
     }
 }
 
-void UciUser::SessionTimeout(uint16_t v)
+void UciUser::SessionTimeoutSec(uint16_t v)
 {
-    if (sessionTimeout != v)
+    if (sessionTimeoutSec != v)
     {
-        sessionTimeout = v;
+        sessionTimeoutSec = v;
         OpenSaveClose(SECTION, _SessionTimeout, v);
     }
 }
 
-void UciUser::DisplayTimeout(uint16_t v)
+void UciUser::DisplayTimeoutMin(uint16_t v)
 {
-    if (displayTimeout != v)
+    if (displayTimeoutMin != v)
     {
-        displayTimeout = v;
+        displayTimeoutMin = v;
         OpenSaveClose(SECTION, _DisplayTimeout, v);
     }
 }
@@ -499,7 +499,7 @@ void UciUser::CityId(uint8_t v)
     if (cityId != v)
     {
         cityId = v;
-        OpenSaveClose(SECTION, _CITY, Tz_AU::tz_au[cityId].city);
+        OpenSaveClose(SECTION, _City, Tz_AU::tz_au[cityId].city);
         char buf[1024];
         PrintDawnDusk(buf);
         tz_AU->Init_Tz(cityId, buf);

@@ -163,7 +163,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument(FmtException("UciProd::ColourRatio Error: cnt!=4"));
+        throw std::invalid_argument(FmtException("UciProd.ColourRatio Error: cnt!=4"));
     }
     str = GetStr(uciSec, _Dimming);
     cnt = Cnvt::GetIntArray(str, 16, ibuf, 1, 255);
@@ -173,7 +173,7 @@ void UciProd::LoadConfig()
         {
             if (ibuf[cnt] > ibuf[cnt + 1])
             {
-                throw std::invalid_argument(FmtException("UciProd::Dimming Error: Level:[%d]>[%d]", cnt, cnt + 1));
+                throw std::invalid_argument(FmtException("UciProd.Dimming Error: Level:[%d]>[%d]", cnt, cnt + 1));
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -183,7 +183,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument(FmtException("UciProd::Dimming Error: cnt!=16"));
+        throw std::invalid_argument(FmtException("UciProd.Dimming Error: cnt!=16"));
     }
 
     str = GetStr(uciSec, _ColourLeds);
@@ -194,17 +194,17 @@ void UciProd::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument(FmtException("UciProd Error: %s(%s)", _ColourLeds, str));
+        throw std::invalid_argument(FmtException("UciProd.%s Error:%s", _ColourLeds, str));
     }
 
     colourBits = GetInt(uciSec, _ColourBits, 1, 24);
     if (colourBits != 1 && colourBits != 4) // && colourBits != 24)
     {
-        throw std::invalid_argument(FmtException("UciProd Error: %s(%d) Only 1/4 allowed", _ColourBits, colourBits));
+        throw std::invalid_argument(FmtException("UciProd.%s Error:%d Only 1/4 allowed", _ColourBits, colourBits));
     }
     if (strlen(colourLeds) > colourBits)
     {
-        throw std::invalid_argument(FmtException("UciProd Error: %s(%d) not matched with %s('%s')",
+        throw std::invalid_argument(FmtException("UciProd.%s Error:%d not matched with %s('%s')",
                                                  _ColourBits, colourBits, _ColourLeds, colourLeds));
     }
 
@@ -215,29 +215,29 @@ void UciProd::LoadConfig()
     ReadBits(uciSec, _Font, bFont);
     if (!bFont.GetBit(0))
     {
-        throw std::invalid_argument("UciProd Error: Font : Default(0) is not enabled");
+        throw std::invalid_argument("UciProd.Font Error: Default(0) is not enabled");
     }
     if (bFont.GetMaxBit() > 5)
     {
-        throw std::invalid_argument("UciProd Error: Font : Only 0-5 allowed");
+        throw std::invalid_argument("UciProd.Font Error: Only 0-5 allowed");
     }
     ReadBits(uciSec, _Conspicuity, bConspicuity);
     if (!bConspicuity.GetBit(0))
     {
-        throw std::invalid_argument("UciProd Error: Conspicuity : OFF(0) is not enabled");
+        throw std::invalid_argument("UciProd.Conspicuity Error:OFF(0) is not enabled");
     }
     if (bConspicuity.GetMaxBit() > 5)
     {
-        throw std::invalid_argument("UciProd Error: Conspicuity : Only 0-5 allowed");
+        throw std::invalid_argument("UciProd.Conspicuity Error:Only 0-5 allowed");
     }
     ReadBits(uciSec, _Annulus, bAnnulus);
     if (!bAnnulus.GetBit(0))
     {
-        throw std::invalid_argument("UciProd Error: Annulus : OFF(0) is not enabled");
+        throw std::invalid_argument("UciProd.Annulus Error:OFF(0) is not enabled");
     }
     if (bAnnulus.GetMaxBit() > 2)
     {
-        throw std::invalid_argument("UciProd Error: Annulus : Only 0-2 allowed");
+        throw std::invalid_argument("UciProd.Annulus Error:Only 0-2 allowed");
     }
     ReadBits(uciSec, _TxtFrmColour, bTxtFrmColour);
     ReadBits(uciSec, _GfxFrmColour, bGfxFrmColour);
@@ -258,7 +258,7 @@ void UciProd::LoadConfig()
             str = GetStr(uciSec, cbuf);
             if (strlen(str) > 8)
             {
-                throw std::invalid_argument(FmtException("UciProd Error: %s '%s'(file name length too long >8)", cbuf, str));
+                throw std::invalid_argument(FmtException("UciProd.%s Error:'%s'(file name length too long >8)", cbuf, str));
             }
             int j;
             for (j = 0; j < i; j++)
@@ -309,7 +309,7 @@ void UciProd::LoadConfig()
         int port = -SignCfg::bps_port;
         if (port < 1024 || port > 0xFFFF)
         {
-            throw std::invalid_argument(FmtException("UciProd Error: %s '%d'(Port should be '-'1024~65535)",
+            throw std::invalid_argument(FmtException("UciProd.%s Error:'%d'(Port should be '-'1024~65535)",
                                                      _SlaveBpsPort, SignCfg::bps_port));
         }
     }
@@ -327,7 +327,7 @@ void UciProd::LoadConfig()
             _sign.com_ip = GetIndexFromStrz(uciSec, _COM, COM_NAME, COMPORT_SIZE);
             if (_sign.com_ip == monitoringPort)
             {
-                throw std::invalid_argument(FmtException("UciProd Error: %s: %s '%s' - Used by MonitoringPort", signx, _COM, str));
+                throw std::invalid_argument(FmtException("UciProd.%s Error: %s '%s' - Used by MonitoringPort", signx, _COM, str));
             }
         }
         else
@@ -342,7 +342,7 @@ void UciProd::LoadConfig()
                 }
                 else
                 {
-                    throw std::invalid_argument(FmtException("UciProd Error: %s: %s '%s'", signx, _IP, str));
+                    throw std::invalid_argument(FmtException("UciProd.%s Error: %s '%s'", signx, _IP, str));
                 }
             }
         }
@@ -381,7 +381,7 @@ void UciProd::LoadConfig()
         {
             if (signCfg.at(i).groupId != (i + 1))
             {
-                throw std::invalid_argument("UciProd::GroupCfg Error, 1 group 1 sign for VMS");
+                throw std::invalid_argument("UciProd.GroupCfg Error, 1 group 1 sign for VMS");
             }
         }
     }
@@ -390,7 +390,7 @@ void UciProd::LoadConfig()
         // ISLUS should configured as 1 slave per Sign
         if (slavesPerSign != 1)
         {
-            throw std::invalid_argument(FmtException("UciProd::slavesPerSign=%d should be 1 for ISLUS", slavesPerSign));
+            throw std::invalid_argument(FmtException("UciProd.slavesPerSign=%d should be 1 for ISLUS", slavesPerSign));
         }
     }
     else

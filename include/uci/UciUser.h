@@ -53,8 +53,8 @@ public:
     const char * City();
     Tz_AU *tz_AU{nullptr};
     uint16_t PasswordOffset() { return passwordOffset;};
-    uint16_t SessionTimeout() { return sessionTimeout;};    // seconds
-    uint16_t DisplayTimeout() { return displayTimeout;};    // minutes
+    uint16_t SessionTimeoutSec() { return sessionTimeoutSec;};    // seconds
+    uint16_t DisplayTimeoutMin() { return displayTimeoutMin;};    // minutes
     uint16_t SvcPort() { return svcPort;};
     uint16_t WebPort() { return webPort;};
     uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold;};
@@ -85,8 +85,8 @@ public:
     void ComPort(uint8_t);
     void CityId(uint8_t);
     void PasswordOffset(uint16_t);
-    void SessionTimeout(uint16_t);  // seconds
-    void DisplayTimeout(uint16_t);  // minutes
+    void SessionTimeoutSec(uint16_t);  // seconds
+    void DisplayTimeoutMin(uint16_t);  // minutes
     void SvcPort(uint16_t);
     void WebPort(uint16_t);
     void MultiLedFaultThreshold(uint16_t);
@@ -116,8 +116,8 @@ private:
 
     uint16_t
         passwordOffset,
-        sessionTimeout,
-        displayTimeout,
+        sessionTimeoutSec,
+        displayTimeoutMin,
         svcPort,
         webPort,
         multiLedFaultThreshold;
@@ -155,7 +155,7 @@ private:
     const char * _LastFrmOn="LastFrmOn";
     
 
-    const char * _CITY="City";
+    const char * _City="City";
     const char * _ShakehandsPassword="ShakehandsPassword";
     const char * _Luminance="Luminance";
     const char * _DawnDusk="DawnDusk";

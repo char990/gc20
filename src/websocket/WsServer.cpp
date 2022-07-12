@@ -365,8 +365,8 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
     reply.emplace("password", buf);
     reply.emplace("device_id", user.DeviceId());
     reply.emplace("broadcast_id", user.BroadcastId());
-    reply.emplace("session_timeout", user.SessionTimeout());
-    reply.emplace("display_timeout", user.DisplayTimeout());
+    reply.emplace("session_timeout", user.SessionTimeoutSec());
+    reply.emplace("display_timeout", user.DisplayTimeoutMin());
     reply.emplace("tmc_com_port", COM_NAME[user.ComPort()]);
     reply.emplace("baudrate", user.Baudrate());
     reply.emplace("multiled_fault", user.MultiLedFaultThreshold());
@@ -476,18 +476,18 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
             rr_flag |= RQST_RESTART;
         }
 
-        if (session_timeout != user.SessionTimeout())
+        if (session_timeout != user.SessionTimeoutSec())
         {
             evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                     user.SessionTimeout(), session_timeout);
-            user.SessionTimeout(session_timeout);
+                     user.SessionTimeoutSec(), session_timeout);
+            user.SessionTimeoutSec(session_timeout);
         }
 
-        if (display_timeout != user.DisplayTimeout())
+        if (display_timeout != user.DisplayTimeoutMin())
         {
             evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                     user.DisplayTimeout(), display_timeout);
-            user.DisplayTimeout(display_timeout);
+                     user.DisplayTimeoutMin(), display_timeout);
+            user.DisplayTimeoutMin(display_timeout);
         }
 
         if (over_temp != user.OverTemp())

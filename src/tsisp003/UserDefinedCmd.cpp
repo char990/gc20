@@ -399,19 +399,19 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             }
 
             v = Cnvt::GetU16(pd + 14);
-            if (v != user.SessionTimeout())
+            if (v != user.SessionTimeoutSec())
             {
                 evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                         user.SessionTimeout(), v);
-                user.SessionTimeout(v);
+                         user.SessionTimeoutSec(), v);
+                user.SessionTimeoutSec(v);
             }
 
             v = Cnvt::GetU16(pd + 16);
-            if (v != user.DisplayTimeout())
+            if (v != user.DisplayTimeoutMin())
             {
                 evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                         user.DisplayTimeout(), v);
-                user.DisplayTimeout(v);
+                         user.DisplayTimeoutMin(), v);
+                user.DisplayTimeoutMin(v);
             }
 
             v = *(pd + 18);
@@ -585,8 +585,8 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = 1; // TMC Path
         pt = Cnvt::PutU32(user.Baudrate(), pt);
         pt = Cnvt::PutU16(user.SvcPort(), pt);
-        pt = Cnvt::PutU16(user.SessionTimeout(), pt);
-        pt = Cnvt::PutU16(user.DisplayTimeout(), pt);
+        pt = Cnvt::PutU16(user.SessionTimeoutSec(), pt);
+        pt = Cnvt::PutU16(user.DisplayTimeoutMin(), pt);
         *pt++ = user.OverTemp();
         *pt++ = user.Fan1OnTemp();
         *pt++ = user.Humidity();
@@ -1001,17 +1001,17 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
                          user.DefaultFont(), defaultFont);
                 user.DefaultFont(defaultFont);
             }*/
-            if (sessiont != user.SessionTimeout())
+            if (sessiont != user.SessionTimeoutSec())
             {
                 evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                         user.SessionTimeout(), sessiont);
-                user.SessionTimeout(sessiont);
+                         user.SessionTimeoutSec(), sessiont);
+                user.SessionTimeoutSec(sessiont);
             }
-            if (displayt != user.DisplayTimeout())
+            if (displayt != user.DisplayTimeoutMin())
             {
                 evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                         user.DisplayTimeout(), displayt);
-                user.DisplayTimeout(displayt);
+                         user.DisplayTimeoutMin(), displayt);
+                user.DisplayTimeoutMin(displayt);
             }
             // after DisplayTimeout, there are 4 bytes, don't know the meaning
             Ack();
@@ -1038,7 +1038,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = user.Fan2OnTemp();                   // fan 2 on temperature
         *p++ = user.Humidity();                     // Humidity
         *p++ = user.BroadcastId();                  // broadcast address
-        p = Cnvt::PutU16(user.SessionTimeout(), p); // session time out
+        p = Cnvt::PutU16(user.SessionTimeoutSec(), p); // session time out
         auto &groups = Controller::Instance().GetGroups();
         int faultleds = 0;
         int maxTemp = 0;
@@ -1064,7 +1064,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = maxTemp;                             // max of all max temperatures
         *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
         *p++ = 0;                                   // DefaultFont                  //
-        p = Cnvt::PutU16(user.DisplayTimeout(), p); // display time out
+        p = Cnvt::PutU16(user.DisplayTimeoutMin(), p); // display time out
         *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                     // light sensor 2
         *p++ = 'V';                                 // GUIconfigure.PARA.BYTE.device_type='V';		// "V"

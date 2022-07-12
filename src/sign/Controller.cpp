@@ -39,7 +39,7 @@ Controller::Controller()
     tempTmr.Setms(0);
     ms100Tmr.Setms(0);
 
-    long dt = db.GetUciUser().DisplayTimeout();
+    long dt = db.GetUciUser().DisplayTimeoutMin();
     if (dt == 0)
     {
         displayTimeout.Clear();
@@ -289,7 +289,7 @@ void Controller::ExtInputFunc()
 
 void Controller::RefreshDispTime()
 {
-    long ms = db.GetUciUser().DisplayTimeout();
+    long ms = db.GetUciUser().DisplayTimeoutMin();
     if (ms > 0)
     {
         displayTimeout.Setms(ms * 60000);
@@ -299,7 +299,7 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    long ms = db.GetUciUser().SessionTimeout();
+    long ms = db.GetUciUser().SessionTimeoutSec();
     if (ms == 0)
     {
         sessionTimeout.Clear();
