@@ -216,7 +216,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
         {
             sprintf(v, "Sign[%d]", id);
         }
-        Ldebug("%s - Fault=%s : %s", v, DEV::ToStr(errorCode), onset ? "onset" : "clear");
+        Ldebug("%s:Fault=%s : %s", v, DEV::ToStr(errorCode), onset ? "onset" : "clear");
     }
 }
 

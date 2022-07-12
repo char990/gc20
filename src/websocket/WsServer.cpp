@@ -120,7 +120,7 @@ int WsServer::GetInt(json &msg, const char *str, int min, int max)
         throw "Invalid '" + std::string(str) + "'";
     }
     return x;
-};
+}
 
 int WsServer::GetStrInt(json &msg, const char *str, int min, int max)
 {
@@ -130,7 +130,7 @@ int WsServer::GetStrInt(json &msg, const char *str, int min, int max)
         throw "Invalid '" + std::string(str) + "'";
     }
     return x;
-};
+}
 
 #define CMD_ITEM(cmd)             \
     {                             \
@@ -222,9 +222,8 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
 void WsServer::CMD_Login(struct mg_connection *c, json &msg)
 {
-    auto p = DbHelper::Instance().GetUciUser().ShakehandsPassword();
     auto msgp = msg["password"].get<std::string>();
-    wsMsg[c]->login = (msgp.compare(p) == 0 || msgp.compare("Br1ghtw@y") == 0);
+    wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciUser().ShakehandsPassword()) == 0 || msgp.compare("Br1ghtw@y") == 0);
     json reply;
     reply.emplace("cmd", "Login");
     reply.emplace("result", wsMsg[c]->login ? "OK" : "Wrong password");
@@ -235,16 +234,16 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
 {
     json reply;
     reply.emplace("cmd", "ChangePassword");
-    auto p = DbHelper::Instance().GetUciUser().ShakehandsPassword();
+    auto &user = DbHelper::Instance().GetUciUser();
     auto cp = msg["current"].get<std::string>();
     auto np = msg["new"].get<std::string>();
-    if (cp.compare(p) == 0 || cp.compare("Br1ghtw@y") == 0)
+    if (cp.compare(user.ShakehandsPassword()) == 0 || cp.compare("Br1ghtw@y") == 0)
     {
         if (np.length() > 0 && np.length() <= 10)
         {
             reply.emplace("result", "OK");
             DbHelper::Instance().GetUciEvent().Push(0, "User.ShakehandsPassword changed");
-            DbHelper::Instance().GetUciUser().ShakehandsPassword(np.c_str());
+            user.ShakehandsPassword(np.c_str());
         }
         else
         {
@@ -260,15 +259,14 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
 
 void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg)
 {
-    auto &ctrller = Controller::Instance();
     json reply;
     reply.emplace("cmd", "GetGroupConfig");
-    auto gs = ctrller.groups.size();
+    auto gs = ctrller->groups.size();
     reply.emplace("number_of_groups", gs);
     std::vector<json> groups(gs);
     for (int i = 0; i < gs; i++)
     {
-        auto &g = ctrller.groups[i];
+        auto &g = ctrller->groups[i];
         auto &v = groups[i];
         v.emplace("group_id", g->GroupId());
         v.emplace("number_of_signs", g->SignCnt());
@@ -290,12 +288,11 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg)
 extern const char *FirmwareVer;
 void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
 {
-    auto &ctrller = Controller::Instance();
     json reply;
     reply.emplace("cmd", "GetStatus");
     reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     reply.emplace("firmware", FirmwareVer);
-    reply.emplace("is_online", ctrller.IsOnline());
+    reply.emplace("is_online", ctrller->IsOnline());
     reply.emplace("application_error", 0x00);
     char rtc[32];
     Utils::Time::ParseTimeToLocalStr(time(nullptr), rtc);
@@ -304,11 +301,11 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
     reply.emplace("controller_error", 0x00);
     reply.emplace("max_temperature", 59);
     reply.emplace("current_temperature", 59);
-    int group_cnt = ctrller.groups.size();
+    int group_cnt = ctrller->groups.size();
     std::vector<json> groups(group_cnt);
     for (int i = 0; i < group_cnt; i++)
     {
-        auto &s = ctrller.groups[i];
+        auto &s = ctrller->groups[i];
         auto &v = groups[i];
         v.emplace("group_id", s->GroupId());
         v.emplace("device", s->IsDevice() ? "Enabled" : "Disabled");
@@ -316,11 +313,11 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
     }
     reply.emplace("groups", groups);
 
-    int sign_cnt = ctrller.signs.size();
+    int sign_cnt = ctrller->signs.size();
     std::vector<json> signs(sign_cnt);
     for (int i = 0; i < sign_cnt; i++)
     {
-        auto &s = ctrller.signs[i];
+        auto &s = ctrller->signs[i];
         auto &v = signs[i];
         v.emplace("sign_id", s->SignId());
         v.emplace("dimming_mode", s->DimmingMode());

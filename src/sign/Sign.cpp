@@ -259,7 +259,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (!signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsHigh())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, true);
-            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
+            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign[%d[] OverTemperatureAlarm ONSET: %d'C", signId, curTemp);
             overtempFault.ClearEdge();
         }
     }
@@ -269,7 +269,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
         if (signErr.IsSet(DEV::ERROR::OverTemperatureAlarm) && overtempFault.IsLow())
         {
             signErr.Push(signId, DEV::ERROR::OverTemperatureAlarm, false);
-            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign%d OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
+            DbHelper::Instance().GetUciAlarm().Push(signId, "Sign[%d] OverTemperatureAlarm CLEAR: %d'C", signId, curTemp);
             overtempFault.ClearEdge();
         }
     }
@@ -428,7 +428,7 @@ void Sign::RefreshFatalError()
         fatalError.Set();
         if (fatalError.IsRising())
         {
-            Ldebug("Sign[%d] fatalError Set", signId);
+            Ldebug("Sign[%d]:fatalError Set", signId);
         }
     }
     else
@@ -436,7 +436,7 @@ void Sign::RefreshFatalError()
         fatalError.Clr();
         if (fatalError.IsFalling() && (fatalError.PreV() != STATE5::S5_NA))
         {
-            Ldebug("Sign[%d] fatalError Clr", signId);
+            Ldebug("Sign[%d]:fatalError Clr", signId);
         }
     }
     fatalError.ClearEdge();
@@ -474,7 +474,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (!signErr.IsSet(err))
         {
             signErr.Push(signId, err, true);
-            len = snprintf(buf, 63, "Sign%d %s ONSET", signId, DEV::ToStr(err));
+            len = snprintf(buf, 63, "Sign[%d] %s ONSET", signId, DEV::ToStr(err));
         }
     }
     else if (dbc.IsFalling())
@@ -482,7 +482,7 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (signErr.IsSet(err))
         {
             signErr.Push(signId, err, false);
-            len = snprintf(buf, 63, "Sign%d %s CLEAR", signId, DEV::ToStr(err));
+            len = snprintf(buf, 63, "Sign[%d] %s CLEAR", signId, DEV::ToStr(err));
         }
     }
     dbc.ClearEdge();

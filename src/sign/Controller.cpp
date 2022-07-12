@@ -376,12 +376,12 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
     }
     if (lvl > 1 && grpId != 0)
     {
-        snprintf(rejectStr, 63, "GroupID[%d] - SystemReset Level[%d] is only for Group[0])", grpId, lvl);
+        snprintf(rejectStr, 63, "Group[%d]SystemReset Level[%d] is only for Group[0])", grpId, lvl);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId > groups.size())
     {
-        snprintf(rejectStr, 63, "GroupID[%d] undefined", grpId);
+        snprintf(rejectStr, 63, "Group[%d] undefined", grpId);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
@@ -420,7 +420,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
             db.GetUciUser().LoadFactoryDefault();
         }
     }
-    db.GetUciEvent().Push(0, "SystemReset: Group%d, Level%d", grpId, lvl);
+    db.GetUciEvent().Push(0, "SystemReset: Group[%d]Level=%d", grpId, lvl);
     return APP::ERROR::AppNoError;
 }
 
@@ -515,12 +515,12 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
         return r;
     }
     ucifrm.SaveFrm(255);
-    db.GetUciEvent().Push(0, "Sign Test:SetHiResGfxFrame:Frame255");
+    db.GetUciEvent().Push(0, "SignTest:SetHrgFrame[255]:Colour:%s,Pixels:%s",
+                          FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
     r = grp->DispFrm(255, true);
     if (r == APP::ERROR::AppNoError)
     {
-        db.GetUciEvent().Push(0, "Sign Test:Display:Grp%d,Colour:%s,Pixels:%s",
-                              grpId, FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
+        db.GetUciEvent().Push(0, "SignTest:Group[%d]DispFrm[255]", grpId);
     }
     return r;
 }
@@ -895,13 +895,13 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
             switch (*data)
             {
             case static_cast<uint8_t>(MI::CODE::SignSetTextFrame):
-                db.GetUciEvent().Push(0, "SetTxtFrame: Frame%d", id);
+                db.GetUciEvent().Push(0, "SetTxtFrame: Frame[%d]", id);
                 break;
             case static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame):
-                db.GetUciEvent().Push(0, "SetGfxFrame: Frame%d", id);
+                db.GetUciEvent().Push(0, "SetGfxFrame: Frame[%d]", id);
                 break;
             default:
-                db.GetUciEvent().Push(0, "SetHiResGfxFrame: Frame%d", id);
+                db.GetUciEvent().Push(0, "SetHiResGfxFrame: Frame[%d]", id);
                 break;
             }
         }

@@ -186,7 +186,7 @@ void UciUser::LoadConfig()
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
-            throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.Sign%d", _ComPort, COM_NAME[comPort], i));
+            throw std::invalid_argument(FmtException("UciUser::%s: %s used by UciProd.Sign[%d]", _ComPort, COM_NAME[comPort], i));
         }
     }
     if (comPort == uciProd.MonitoringPort())
