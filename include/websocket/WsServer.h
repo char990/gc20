@@ -42,6 +42,10 @@ private:
     //    static ConnUri * FindConn(unsigned long id);
     //    static void PushConn(ConnUri & conn);
 
+    static int GetInt(nlohmann::json &msg, const char *str, int min, int max);
+    static int GetStrInt(nlohmann::json &msg, const char *str, int min, int max);
+
+
     static void VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm);
     static const WsCmd CMD_LIST[];
 

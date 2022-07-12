@@ -49,8 +49,8 @@ public:
     uint8_t LockedMsg() { return lockedMsg;};
     uint8_t LastFrmOn() { return lastFrmOn;};
     uint8_t ComPort() { return comPort;};
-    uint8_t Tz() { return tz;};
-    const char * TZ();
+    uint8_t CityId() { return cityId;};
+    const char * City();
     Tz_AU *tz_AU{nullptr};
     uint16_t PasswordOffset() { return passwordOffset;};
     uint16_t SessionTimeout() { return sessionTimeout;};    // seconds
@@ -83,7 +83,7 @@ public:
     void LockedMsg(uint8_t);
     void LastFrmOn(uint8_t);
     void ComPort(uint8_t);
-    void Tz(uint8_t);
+    void CityId(uint8_t);
     void PasswordOffset(uint16_t);
     void SessionTimeout(uint16_t);  // seconds
     void DisplayTimeout(uint16_t);  // minutes
@@ -111,7 +111,7 @@ private:
         lockedFrm,
         lockedMsg,
         comPort,
-        tz,
+        cityId,
         lastFrmOn;
 
     uint16_t
@@ -155,7 +155,7 @@ private:
     const char * _LastFrmOn="LastFrmOn";
     
 
-    const char * _TZ="TZ";
+    const char * _CITY="City";
     const char * _ShakehandsPassword="ShakehandsPassword";
     const char * _Luminance="Luminance";
     const char * _DawnDusk="DawnDusk";

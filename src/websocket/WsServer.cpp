@@ -112,6 +112,26 @@ size_t my_mg_ws_send(struct mg_connection *c, json &reply)
     return s.length();
 }
 
+int WsServer::GetInt(json &msg, const char *str, int min, int max)
+{
+    auto x = msg[str].get<int>();
+    if (x < min || x > max)
+    {
+        throw "Invalid '" + std::string(str) + "'";
+    }
+    return x;
+};
+
+int WsServer::GetStrInt(json &msg, const char *str, int min, int max)
+{
+    auto x = stoi(msg[str].get<std::string>(), nullptr, 0);
+    if (x < min || x > max)
+    {
+        throw "Invalid '" + std::string(str) + "'";
+    }
+    return x;
+};
+
 #define CMD_ITEM(cmd)             \
     {                             \
 #cmd, WsServer::CMD_##cmd \
@@ -187,7 +207,7 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     {
         json msg = json::parse(p);
         auto cmd = msg["cmd"].get<std::string>();
-        int j = (1) ? countof(CMD_LIST) : 1;
+        int j = countof(CMD_LIST);
         // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
         for (int i = 0; i < j; i++)
         {
@@ -207,7 +227,34 @@ void WsServer::CMD_Login(struct mg_connection *c, json &msg)
     wsMsg[c]->login = (msgp.compare(p) == 0 || msgp.compare("Br1ghtw@y") == 0);
     json reply;
     reply.emplace("cmd", "Login");
-    reply.emplace("result", wsMsg[c]->login ? "OK" : "NG");
+    reply.emplace("result", wsMsg[c]->login ? "OK" : "Wrong password");
+    my_mg_ws_send(c, reply);
+}
+
+void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "ChangePassword");
+    auto p = DbHelper::Instance().GetUciUser().ShakehandsPassword();
+    auto cp = msg["current"].get<std::string>();
+    auto np = msg["new"].get<std::string>();
+    if (cp.compare(p) == 0 || cp.compare("Br1ghtw@y") == 0)
+    {
+        if (np.length() > 0 && np.length() <= 10)
+        {
+            reply.emplace("result", "OK");
+            DbHelper::Instance().GetUciEvent().Push(0, "User.ShakehandsPassword changed");
+            DbHelper::Instance().GetUciUser().ShakehandsPassword(np.c_str());
+        }
+        else
+        {
+            reply.emplace("result", "Invalid new password");
+        }
+    }
+    else
+    {
+        reply.emplace("result", "Current password NOT matched");
+    }
     my_mg_ws_send(c, reply);
 }
 
@@ -309,16 +356,192 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
     my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
-{
-}
-
 void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
 {
+    auto &user = DbHelper::Instance().GetUciUser();
+    json reply;
+    reply.emplace("cmd", "GetUserConfig");
+    char buf[8];
+    sprintf(buf, "0x%02X", user.SeedOffset());
+    reply.emplace("seed", buf);
+    sprintf(buf, "0x%04X", user.PasswordOffset());
+    reply.emplace("password", buf);
+    reply.emplace("device_id", user.DeviceId());
+    reply.emplace("broadcast_id", user.BroadcastId());
+    reply.emplace("session_timeout", user.SessionTimeout());
+    reply.emplace("display_timeout", user.DisplayTimeout());
+    reply.emplace("tmc_com_port", COM_NAME[user.ComPort()]);
+    reply.emplace("baudrate", user.Baudrate());
+    reply.emplace("multiled_fault", user.MultiLedFaultThreshold());
+    reply.emplace("tmc_tcp_port", user.SvcPort());
+    reply.emplace("over_temp", user.OverTemp());
+    reply.emplace("locked_frame", user.LockedFrm());
+    reply.emplace("locked_msg", user.LockedMsg());
+    reply.emplace("city", user.City());
+    reply.emplace("last_frame_time", user.LastFrmOn());
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
 {
+    json reply;
+    reply.emplace("cmd", "SetUserConfig");
+    try
+    {
+        unsigned char rr_flag = 0;
+        auto device_id = GetInt(msg, "device_id", 0, 255);
+        auto broadcast_id = GetInt(msg, "broadcast_id", 0, 255);
+        if (device_id == broadcast_id)
+        {
+            throw std::string("device_id==broadcast_id");
+        }
+        auto session_timeout = GetInt(msg, "session_timeout", 0, 65535);
+        auto display_timeout = GetInt(msg, "display_timeout", 0, 65535);
+        auto baudrate = GetInt(msg, "baudrate", 19200, 115200);
+        auto multiled_fault = GetInt(msg, "multiled_fault", 0, 255);
+        auto tmc_tcp_port = GetInt(msg, "tmc_tcp_port", 1024, 65535);
+        auto over_temp = GetInt(msg, "over_temp", 0, 99);
+        auto locked_frame = GetInt(msg, "locked_frame", 0, 255);
+        auto locked_msg = GetInt(msg, "locked_msg", 0, 255);
+        auto last_frame_time = GetInt(msg, "last_frame_time", 0, 255);
+
+        auto seed = GetStrInt(msg, "seed", 0, 0xFF);
+        auto password = GetStrInt(msg, "password", 0, 0xFF);
+
+        int tmc_com_port = -1;
+        auto tmc_com_port_str = msg["tmc_com_port"].get<std::string>();
+        for (int i = 0; i < COMPORT_SIZE; i++)
+        {
+            if (strcasecmp(tmc_com_port_str.c_str(), COM_NAME[i]) == 0)
+            {
+                tmc_com_port = i;
+                break;
+            }
+        }
+        if (tmc_com_port == -1)
+        {
+            throw "'tmc_com_port' NOT valid";
+        }
+        int city = -1;
+        auto city_str = msg["city"].get<std::string>();
+        for (int i = 0; i < NUMBER_OF_TZ; i++)
+        {
+            if (strcasecmp(city_str.c_str(), Tz_AU::tz_au[i].city) == 0)
+            {
+                city = i;
+                break;
+            }
+        }
+        if (city == -1)
+        {
+            throw "'city' NOT valid";
+        }
+        auto &user = DbHelper::Instance().GetUciUser();
+        auto &evt = DbHelper::Instance().GetUciEvent();
+
+        if (seed != user.SeedOffset())
+        {
+            evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X", user.SeedOffset(), seed);
+            user.SeedOffset(seed);
+        }
+
+        if (password != user.PasswordOffset())
+        {
+            evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X", user.PasswordOffset(), password);
+            user.PasswordOffset(password);
+        }
+
+        if (device_id != user.DeviceId())
+        {
+            evt.Push(0, "User.DeviceID changed: %u->%u", user.DeviceId(), device_id);
+            user.DeviceId(device_id);
+        }
+
+        if (broadcast_id != user.BroadcastId())
+        {
+            evt.Push(0, "User.BroadcastID changed: %u->%u", user.BroadcastId(), broadcast_id);
+            user.BroadcastId(broadcast_id);
+        }
+
+        if (baudrate != user.Baudrate())
+        {
+            evt.Push(0, "User.Baudrate changed: %u->%u . Restart to load new setting",
+                     user.Baudrate(), baudrate);
+            user.Baudrate(baudrate);
+            rr_flag |= RQST_RESTART;
+        }
+
+        if (tmc_tcp_port != user.SvcPort())
+        {
+            evt.Push(0, "User.SvcPort changed: %u->%u. Restart to load new setting",
+                     user.SvcPort(), tmc_tcp_port);
+            user.SvcPort(tmc_tcp_port);
+            rr_flag |= RQST_RESTART;
+        }
+
+        if (session_timeout != user.SessionTimeout())
+        {
+            evt.Push(0, "User.SessionTimeout changed: %u->%u",
+                     user.SessionTimeout(), session_timeout);
+            user.SessionTimeout(session_timeout);
+        }
+
+        if (display_timeout != user.DisplayTimeout())
+        {
+            evt.Push(0, "User.DisplayTimeout changed: %u->%u",
+                     user.DisplayTimeout(), display_timeout);
+            user.DisplayTimeout(display_timeout);
+        }
+
+        if (over_temp != user.OverTemp())
+        {
+            evt.Push(0, "User.OverTemp changed: %u->%u",
+                     user.OverTemp(), over_temp);
+            user.OverTemp(over_temp);
+        }
+
+        if (city != user.CityId())
+        {
+            evt.Push(0, "User.Timezone changed: %s->%s",
+                     Tz_AU::tz_au[user.CityId()].city, Tz_AU::tz_au[city].city);
+            user.CityId(city);
+            rr_flag |= RQST_RESTART;
+        }
+
+        if (multiled_fault != user.MultiLedFaultThreshold())
+        {
+            evt.Push(0, "User.MultiLed changed: %u->%u",
+                     user.MultiLedFaultThreshold(), multiled_fault);
+            user.MultiLedFaultThreshold(multiled_fault);
+        }
+
+        if (locked_msg != user.LockedMsg())
+        {
+            evt.Push(0, "User.LockedMsg changed: %u->%u",
+                     user.LockedMsg(), locked_msg);
+            user.LockedMsg(locked_msg);
+        }
+
+        if (locked_frame != user.LockedFrm())
+        {
+            evt.Push(0, "User.LockedFrm changed: %u->%u",
+                     user.LockedFrm(), locked_frame);
+            user.LockedFrm(locked_frame);
+        }
+
+        if (last_frame_time != user.LastFrmOn())
+        {
+            evt.Push(0, "User.LastFrmOn changed: %u->%u",
+                     user.LastFrmOn(), last_frame_time);
+            user.LastFrmOn(last_frame_time);
+        }
+        reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
+    }
+    catch (const std::string &e)
+    {
+        reply.emplace("result", e);
+    }
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg)

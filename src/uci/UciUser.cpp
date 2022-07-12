@@ -107,15 +107,15 @@ void UciUser::LoadConfig()
         }
     }
 
-    str = GetStr(uciSec, _TZ);
-    tz = NUMBER_OF_TZ;
+    str = GetStr(uciSec, _CITY);
+    cityId = NUMBER_OF_TZ;
     if (str != NULL)
     {
         for (int cnt = 0; cnt < NUMBER_OF_TZ; cnt++)
         {
             if (strcasecmp(str, Tz_AU::tz_au[cnt].city) == 0)
             {
-                tz = cnt;
+                cityId = cnt;
                 break;
             }
         }
@@ -147,11 +147,11 @@ void UciUser::LoadConfig()
     }
     if (tz_AU != nullptr)
     {
-        tz_AU->Init_Tz(tz, str);
+        tz_AU->Init_Tz(cityId, str);
     }
     else
     {
-        tz_AU = new Tz_AU(tz, str);
+        tz_AU = new Tz_AU(cityId, str);
     }
 
     setenv("TZ", tz_AU->GetTz(), 1);
@@ -234,7 +234,7 @@ void UciUser::Dump()
     PrintOption_d(_LockedMsg, LockedMsg());
     PrintOption_d(_LastFrmOn, LastFrmOn());
 
-    PrintOption_str(_TZ, TZ());
+    PrintOption_str(_CITY, City());
     PrintOption_str(_ComPort, COM_NAME[ComPort()]);
 
     char buf[256];
@@ -494,23 +494,23 @@ void UciUser::Baudrate(int v)
     }
 }
 
-void UciUser::Tz(uint8_t v)
+void UciUser::CityId(uint8_t v)
 {
-    if (tz != v)
+    if (cityId != v)
     {
-        tz = v;
-        OpenSaveClose(SECTION, _TZ, Tz_AU::tz_au[tz].city);
+        cityId = v;
+        OpenSaveClose(SECTION, _CITY, Tz_AU::tz_au[cityId].city);
         char buf[1024];
         PrintDawnDusk(buf);
-        tz_AU->Init_Tz(tz, buf);
+        tz_AU->Init_Tz(cityId, buf);
         setenv("TZ", tz_AU->GetTz(), 1);
         tzset();
     }
 }
 
-const char *UciUser::TZ()
+const char *UciUser::City()
 {
-    return Tz_AU::tz_au[tz].city;
+    return Tz_AU::tz_au[cityId].city;
 }
 
 void UciUser::DawnDusk(uint8_t *p)
@@ -521,7 +521,7 @@ void UciUser::DawnDusk(uint8_t *p)
         char buf[1024];
         PrintDawnDusk(buf);
         OpenSaveClose(SECTION, _DawnDusk, buf);
-        tz_AU->Init_Tz(tz, buf);
+        tz_AU->Init_Tz(cityId, buf);
     }
 }
 

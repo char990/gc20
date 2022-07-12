@@ -445,11 +445,11 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             }
 
             v = *(pd + 21);
-            if (v != user.Tz())
+            if (v != user.CityId())
             {
-                evt.Push(0, "User.Timezone changed: %u->%u",
-                         user.Tz(), v);
-                user.Tz(v);
+                evt.Push(0, "User.City changed: %u->%u",
+                         user.CityId(), v);
+                user.CityId(v);
                 rr_flag |= RQST_RESTART;
             }
 
@@ -480,7 +480,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
 
             if (shakehands_passwd[0] != 0)
             {
-                evt.Push(0, "User.ConfigPassword changed");
+                evt.Push(0, "User.ShakehandsPassword changed");
                 user.ShakehandsPassword(shakehands_passwd);
             }
             v = *(pd + 40);
@@ -590,7 +590,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = user.OverTemp();
         *pt++ = user.Fan1OnTemp();
         *pt++ = user.Humidity();
-        *pt++ = user.Tz();
+        *pt++ = user.CityId();
         *pt++ = 0;                                                    // user.DefaultFont();
         *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); // DefaultColour();
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
