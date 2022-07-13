@@ -12,7 +12,7 @@ const char *PRODTYPE[PRODTYPE_SIZE] = {
 };
 
 // index is coulur code
-const char *FrameColour::COLOUR_NAME[COLOUR_NAME_SIZE] = {
+const char *FrameColour::COLOUR_NAME[ALL_COLOUR_NAME_SIZE] = {
     "DEFAULT",
     "RED",
     "YELLOW",
@@ -22,7 +22,9 @@ const char *FrameColour::COLOUR_NAME[COLOUR_NAME_SIZE] = {
     "MAGENTA",
     "WHITE",
     "ORANGE",
-    "AMBER"};
+    "AMBER",
+    "Multi(4-bit)",
+    "RGB(24-bit)"};
 
 const char *TestPixels[TEST_PIXELS_SIZE] = {
     "All pixels",
@@ -34,8 +36,7 @@ const char *TestPixels[TEST_PIXELS_SIZE] = {
 const char *Annulus[ANNULUS_SIZE] = {
     "Off",
     "Flashing",
-    "On"
-};
+    "On"};
 
 const char *Conspicuity[CONSPICUITY_SIZE] = {
     "Off",
@@ -45,7 +46,7 @@ const char *Conspicuity[CONSPICUITY_SIZE] = {
     "All Flash",
     "All On"};
 
-const int FrameColour::COLOUR_RGB8[COLOUR_NAME_SIZE] = {
+const int FrameColour::COLOUR_RGB8[MONO_COLOUR_NAME_SIZE] = {
     0x000000, // BLACK
     0xFF0000, // Red
     0xFFFF00, // Yellow
@@ -63,7 +64,7 @@ int FrameColour::GetRGB8(uint8_t mappedc)
     return mappedc > 9 ? COLOUR_RGB8[0] : COLOUR_RGB8[mappedc];
 }
 
-const uint8_t FrameColour::COLOUR_RGB1[COLOUR_NAME_SIZE] = {
+const uint8_t FrameColour::COLOUR_RGB1[MONO_COLOUR_NAME_SIZE] = {
     // only get bit-7 of colour value,so there are only 0-7
     0x00, // 0x000000, // Black
     0x04, // 0xFF0000, // Red
@@ -97,7 +98,7 @@ uint8_t FrameColour::Rgb2Colour(int32_t rgb)
     {
         c |= 4;
     }
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (c == COLOUR_RGB1[i])
         {
@@ -105,6 +106,26 @@ uint8_t FrameColour::Rgb2Colour(int32_t rgb)
         }
     }
     return 0;
+}
+
+const char *FrameColour::GetColourName(uint8_t code)
+{
+    if (code < MONO_COLOUR_NAME_SIZE)
+    {
+        return COLOUR_NAME[code];
+    }
+    else if(code == 0x0D)
+    {
+        return COLOUR_NAME[MONO_COLOUR_NAME_SIZE];
+    }
+    else if(code == 0x0E)
+    {
+        return COLOUR_NAME[MONO_COLOUR_NAME_SIZE+1];
+    }
+    else
+    {
+        return COLOUR_NAME[0];
+    }
 }
 
 std::vector<MI::sMiCodeStr> MI::micode_str{
@@ -235,6 +256,18 @@ const char *APP::ToStr(uint8_t code)
     for (auto &s : apperror_str)
     {
         if (code == static_cast<uint8_t>(s.code))
+        {
+            return s.str;
+        }
+    }
+    return "Unknown App Error";
+}
+
+const char *APP::ToStr(ERROR code)
+{
+    for (auto &s : apperror_str)
+    {
+        if (code == s.code)
         {
             return s.str;
         }

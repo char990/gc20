@@ -45,9 +45,6 @@ public:
     uint16_t SlaveDispDly() { return slaveDispDly; };
     uint16_t SlaveCmdDly() { return slaveCmdDly; };
 
-    uint16_t LightSensorMidday() { return lightSensorMidday; };
-    uint16_t LightSensorMidnight() { return lightSensorMidnight; };
-    uint16_t LightSensor18Hours() { return lightSensor18Hours; };
     uint16_t DriverFaultDebounce() { return driverFaultDebounce; };
     uint16_t LedFaultDebounce() { return ledFaultDebounce; };
     uint16_t OverTempDebounce() { return overTempDebounce; };
@@ -76,11 +73,10 @@ public:
     uint16_t CoreOffsetY() { return coreOffsetY; };
 
     uint8_t *Dimming() { return &dimming[0]; };
-    uint8_t Dimming(uint8_t lvl) { return dimming[lvl-1]; };
+    uint8_t Dimming(uint8_t lvl) { return dimming[lvl - 1]; };
     uint8_t *ColourRatio() { return &colourRatio[0]; };
     uint8_t DriverMode() { return driverMode; };
     uint8_t DimmingAdjTime() { return dimmingAdjTime; };
-
     char *ColourLeds() { return colourLeds; };
     uint8_t GetColourXbit(uint8_t colour);
 
@@ -118,8 +114,8 @@ public:
 
     uint8_t LoadLastDisp() { return loadLastDisp; };
 
-    uint8_t MonitoringPort() {return monitoringPort;};
-    int MonitoringBps() {return monitoringBps;};
+    uint8_t MonitoringPort() { return monitoringPort; };
+    int MonitoringBps() { return monitoringBps; };
 
 private:
     ///  ---------- section -----------
@@ -138,7 +134,7 @@ private:
     const char *_TxtFrmColour = "TxtFrmColour";
     const char *_GfxFrmColour = "GfxFrmColour";
     const char *_HrgFrmColour = "HrgFrmColour";
-    //const char *_GroupCfg = "GroupCfg";
+    // const char *_GroupCfg = "GroupCfg";
 
     /// int
     const char *_SlaveRqstInterval = "SlaveRqstInterval";
@@ -150,9 +146,6 @@ private:
     const char *_SlaveBpsPort = "SlaveBpsPort";
 
     /// uint16_t
-    const char *_LightSensorMidday = "LightSensorMidday";
-    const char *_LightSensorMidnight = "LightSensorMidnight";
-    const char *_LightSensor18Hours = "LightSensor18Hours";
     const char *_DriverFaultDebounce = "DriverFaultDebounce";
     const char *_LedFaultDebounce = "LedFaultDebounce";
     const char *_OverTempDebounce = "OverTempDebounce";
@@ -222,9 +215,6 @@ private:
         slaveSetStFrmDly,
         slaveDispDly,
         slaveCmdDly,
-        lightSensorMidday,
-        lightSensorMidnight,
-        lightSensor18Hours,
         driverFaultDebounce,
         ledFaultDebounce,
         overTempDebounce,
@@ -283,7 +273,6 @@ private:
     int monitoringBps;
     const char *_MonitoringBps = "MonitoringBps";
 
-
     Utils::Bits bSimSlaves{16};
-    const char * _SimSlaves = "SimSlaves";
+    const char *_SimSlaves = "SimSlaves";
 };

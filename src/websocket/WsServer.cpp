@@ -156,8 +156,13 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(UpdateTime),
     CMD_ITEM(GetFrameSetting),
     CMD_ITEM(GetStoredFrame),
+    CMD_ITEM(SetFrame),
+    CMD_ITEM(DisplayFrame),
     CMD_ITEM(GetStoredMessage),
+    CMD_ITEM(SetMessage),
+    CMD_ITEM(DisplayMessage),
     CMD_ITEM(GetStoredPlan),
+    CMD_ITEM(SetFrame),
     CMD_ITEM(RetrieveFaultLog),
     CMD_ITEM(RetrieveAlarmLog),
     CMD_ITEM(RetrieveEventLog),
@@ -375,7 +380,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
     reply.emplace("locked_frame", user.LockedFrm());
     reply.emplace("locked_msg", user.LockedMsg());
     reply.emplace("city", user.City());
-    reply.emplace("last_frame_time", user.LastFrmOn());
+    reply.emplace("last_frame_time", user.LastFrmTime());
     my_mg_ws_send(c, reply);
 }
 
@@ -499,7 +504,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
 
         if (city != user.CityId())
         {
-            evt.Push(0, "User.Timezone changed: %s->%s",
+            evt.Push(0, "User.City changed: %s->%s",
                      Tz_AU::tz_au[user.CityId()].city, Tz_AU::tz_au[city].city);
             user.CityId(city);
             rr_flag |= RQST_RESTART;
@@ -507,7 +512,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
 
         if (multiled_fault != user.MultiLedFaultThreshold())
         {
-            evt.Push(0, "User.MultiLed changed: %u->%u",
+            evt.Push(0, "User.MultiLedFaultThreshold changed: %u->%u",
                      user.MultiLedFaultThreshold(), multiled_fault);
             user.MultiLedFaultThreshold(multiled_fault);
         }
@@ -526,11 +531,11 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
             user.LockedFrm(locked_frame);
         }
 
-        if (last_frame_time != user.LastFrmOn())
+        if (last_frame_time != user.LastFrmTime())
         {
-            evt.Push(0, "User.LastFrmOn changed: %u->%u",
-                     user.LastFrmOn(), last_frame_time);
-            user.LastFrmOn(last_frame_time);
+            evt.Push(0, "User.LastFrmTime changed: %u->%u",
+                     user.LastFrmTime(), last_frame_time);
+            user.LastFrmTime(last_frame_time);
         }
         reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
     }
@@ -543,10 +548,69 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
 
 void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg)
 {
+    auto &user = DbHelper::Instance().GetUciUser();
+    json reply;
+    reply.emplace("cmd", "GetDimmingConfig");
+    reply.emplace("night_level", user.NightDimmingLevel());
+    reply.emplace("dawn_dusk_level", user.DawnDimmingLevel());
+    reply.emplace("day_level", user.DayDimmingLevel());
+    reply.emplace("night_max_lux", user.LuxNightMax());
+    reply.emplace("day_min_lux", user.LuxDayMin());
+    reply.emplace("18_hours_min_lux", user.Lux18HoursMin());
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg)
 {
+    json reply;
+    reply.emplace("cmd", "SetDimmingConfig");
+    try
+    {
+        auto night_level = GetInt(msg, "night_level", 1, 8);
+        auto dawn_dusk_level = GetInt(msg, "dawn_dusk_level", night_level + 1, 15);
+        auto day_level = GetInt(msg, "day_level", dawn_dusk_level + 1, 16);
+        auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
+        auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
+        auto _18_hours_min_lux = GetInt(msg, "18_hours_min_lux", day_min_lux + 1, 65535);
+        auto &user = DbHelper::Instance().GetUciUser();
+        auto &evt = DbHelper::Instance().GetUciEvent();
+        if (night_level != user.NightDimmingLevel())
+        {
+            evt.Push(0, "User.NightDimmingLevel changed: %d->%d", user.NightDimmingLevel(), night_level);
+            user.NightDimmingLevel(night_level);
+        }
+        if (dawn_dusk_level != user.DawnDimmingLevel())
+        {
+            evt.Push(0, "User.DawnDimmingLevel changed: %d->%d", user.DawnDimmingLevel(), dawn_dusk_level);
+            user.DawnDimmingLevel(dawn_dusk_level);
+        }
+        if (day_level != user.DayDimmingLevel())
+        {
+            evt.Push(0, "User.DayDimmingLevel changed: %d->%d", user.DayDimmingLevel(), day_level);
+            user.DayDimmingLevel(day_level);
+        }
+        if (night_max_lux != user.LuxNightMax())
+        {
+            evt.Push(0, "User.LuxNightMax changed: %d->%d", user.LuxNightMax(), night_max_lux);
+            user.LuxNightMax(night_max_lux);
+        }
+        if (day_min_lux != user.LuxDayMin())
+        {
+            evt.Push(0, "User.LuxDayMin changed: %d->%d", user.LuxDayMin(), day_min_lux);
+            user.LuxDayMin(day_min_lux);
+        }
+        if (_18_hours_min_lux != user.Lux18HoursMin())
+        {
+            evt.Push(0, "User.Lux18HoursMin changed: %d->%d", user.Lux18HoursMin(), _18_hours_min_lux);
+            user.Lux18HoursMin(_18_hours_min_lux);
+        }
+        reply.emplace("result", "OK");
+    }
+    catch (const std::string &e)
+    {
+        reply.emplace("result", e);
+    }
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg)
@@ -666,7 +730,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
     reply.emplace("frame_type", frametype);
 
     std::vector<std::string> txt_c;
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsTxtFrmColourValid(i))
         {
@@ -676,36 +740,36 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
     reply.emplace("txt_frame_colours", txt_c);
 
     std::vector<std::string> gfx_c;
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsGfxFrmColourValid(i))
         {
             gfx_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
         }
     }
-    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::MultipleColours)))
+    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
         gfx_c.push_back(std::string("Multi(4-bit)"));
     }
-    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB24)))
+    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
         gfx_c.push_back(std::string("RGB(24-bit)"));
     }
     reply.emplace("gfx_frame_colours", gfx_c);
 
     std::vector<std::string> hrg_c;
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsHrgFrmColourValid(i))
         {
             hrg_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
         }
     }
-    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::MultipleColours)))
+    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
         hrg_c.push_back(std::string("Multi(4-bit)"));
     }
-    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB24)))
+    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
         hrg_c.push_back(std::string("RGB(24-bit)"));
     }
@@ -740,19 +804,91 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
         }
     }
     reply.emplace("annulus", annulus);
-
     my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
 {
+    json reply;
+    reply.emplace("cmd", "GetStoredFrame");
+    auto id = msg["id"].get<int>();
+    reply.emplace("id", id);
+    auto &ucifrm = DbHelper::Instance().GetUciFrm();
+    auto frm = ucifrm.GetFrm(id);
+    if (frm == nullptr)
+    {
+        reply.emplace("text", "UNDEFINED");
+    }
+    else
+    {
+        reply.emplace("revision", frm->frmRev);
+        reply.emplace("colour", FrameColour::GetColourName(frm->colour));
+        reply.emplace("conspicuity", Conspicuity[frm->conspicuity & 0x07]);
+        reply.emplace("annulus", Annulus[(frm->conspicuity >> 3) & 0x03]);
+        if (frm->micode == 0x0A) // SignSetTextFrame
+        {
+            reply.emplace("type", "Text Frame");
+            auto &rawdata = frm->stFrm.rawData;
+            reply.emplace("font", rawdata[3]);
+            std::vector<char> txt(rawdata[6] + 1);
+            memcpy(txt.data(), rawdata.data() + 7, rawdata[6]);
+            txt.back() = '\0';
+            reply.emplace("text", txt.data());
+        }
+        else if (frm->micode == 0x0B || frm->micode == 0x1D)
+        {
+            reply.emplace("type", (frm->micode == 0x0B) ? "Graphics Frame" : "HR Graphics Frame");
+            auto fi = new FrameImage();
+            fi->SetId(0, id);
+            fi->FillCoreFromUciFrame();
+            reply.emplace("image", fi->Save2Base64().data());
+            delete fi;
+        }
+    }
+    my_mg_ws_send(c, reply);
+}
+
+void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg)
+{
+}
+
+void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "DisplayFrame");
+    uint8_t cmd[3];
+    cmd[1] = msg["group_id"].get<int>();
+    cmd[2] = msg["frame_id"].get<int>();
+    auto r = ctrller->CmdDispFrm(cmd);
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
+    my_mg_ws_send(c, reply);
 }
 
 void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg)
 {
 }
 
+void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg)
+{
+}
+
+void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg)
+{
+    json reply;
+    reply.emplace("cmd", "DisplayMessage");
+    uint8_t cmd[3];
+    cmd[1] = msg["group_id"].get<int>();
+    cmd[2] = msg["message_id"].get<int>();
+    auto r = ctrller->CmdDispMsg(cmd);
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
+    my_mg_ws_send(c, reply);
+}
+
 void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg)
+{
+}
+
+void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg)
 {
 }
 
@@ -819,7 +955,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
     cmd[4] = 255;
     auto p = DbHelper::Instance().GetUciProd();
     std::string colour = msg["colour"].get<std::string>();
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (strcasecmp(FrameColour::COLOUR_NAME[i], colour.c_str()) == 0)
         {

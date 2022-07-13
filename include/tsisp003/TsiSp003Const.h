@@ -142,6 +142,7 @@ public:
 
     static std::vector<sAppErrorStr> apperror_str;
     static const char *ToStr(uint8_t);
+    static const char *ToStr(ERROR);
 };
 
 class DEV
@@ -212,8 +213,8 @@ enum class FRMCOLOUR : uint8_t
     Orange,
     Amber,
     MonoFinished,
-    MultipleColours = 0x0D,
-    RGB24 = 0x0E,
+    Multi_4bit = 0x0D,
+    RGB_24bit = 0x0E,
 #ifdef HALF_BYTE
     HalfByte = 0xF1, // Brightway Master-Slave poctocol V2.2
 #endif
@@ -365,14 +366,17 @@ extern const char *Conspicuity[CONSPICUITY_SIZE];
 class FrameColour
 {
 public:
-#define COLOUR_NAME_SIZE 10
-    static const char *COLOUR_NAME[COLOUR_NAME_SIZE];
-    static const int COLOUR_RGB8[COLOUR_NAME_SIZE];
+#define MONO_COLOUR_NAME_SIZE 10
+#define ALL_COLOUR_NAME_SIZE 12
+
+    static const char *COLOUR_NAME[ALL_COLOUR_NAME_SIZE];
+    static const int COLOUR_RGB8[MONO_COLOUR_NAME_SIZE];
     static int GetRGB8(uint8_t mappedc);
-    static const uint8_t COLOUR_RGB1[COLOUR_NAME_SIZE];
+    static const uint8_t COLOUR_RGB1[MONO_COLOUR_NAME_SIZE];
     static uint8_t GetRGB1(uint8_t mappedc);
     // convert int=rgb to colour code(NOT mapped)
     static uint8_t Rgb2Colour(int32_t);
+    static const char * GetColourName(uint8_t code);
 };
 
 enum class FCLTSWITCH : uint8_t

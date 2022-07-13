@@ -127,9 +127,6 @@ void UciProd::LoadConfig()
                                                  slaveCmdDly, slaveDispDly));
     }
 
-    lightSensorMidday = GetInt(uciSec, _LightSensorMidday, 1, 65535);
-    lightSensorMidnight = GetInt(uciSec, _LightSensorMidnight, 1, 65535);
-    lightSensor18Hours = GetInt(uciSec, _LightSensor18Hours, 1, 65535);
     driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 3, 65535);
     overTempDebounce = GetInt(uciSec, _OverTempDebounce, 3, 65535);
     ledFaultDebounce = GetInt(uciSec, _LedFaultDebounce, 3, 65535);
@@ -279,10 +276,10 @@ void UciProd::LoadConfig()
         }
     }
 
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         str = GetStr(uciSec, FrameColour::COLOUR_NAME[i]);
-        for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
+        for (cnt = 1; cnt < MONO_COLOUR_NAME_SIZE; cnt++)
         {
             if (strcmp(str, FrameColour::COLOUR_NAME[cnt]) == 0)
             {
@@ -290,7 +287,7 @@ void UciProd::LoadConfig()
                 break;
             }
         }
-        if (cnt == COLOUR_NAME_SIZE)
+        if (cnt == MONO_COLOUR_NAME_SIZE)
         {
             throw std::invalid_argument(FmtException("UciProd Error: colour map %s undefined", FrameColour::COLOUR_NAME[i]));
         }
@@ -404,7 +401,7 @@ void UciProd::LoadConfig()
     int cblen = strlen(colourLeds);
     for (int i = 0; i < cblen; i++)
     {
-        for (cnt = 1; cnt < COLOUR_NAME_SIZE; cnt++)
+        for (cnt = 1; cnt < MONO_COLOUR_NAME_SIZE; cnt++)
         {
             if (colourLeds[i] == FrameColour::COLOUR_NAME[cnt][0])
             { // matched with first letter of colour
@@ -489,9 +486,6 @@ void UciProd::Dump()
     PrintOption_d(_SlaveSetStFrmDly, SlaveSetStFrmDly());
     PrintOption_d(_SlaveDispDly, SlaveDispDly());
     PrintOption_d(_SlaveCmdDly, SlaveCmdDly());
-    PrintOption_d(_LightSensorMidday, LightSensorMidday());
-    PrintOption_d(_LightSensorMidnight, LightSensorMidnight());
-    PrintOption_d(_LightSensor18Hours, LightSensor18Hours());
     PrintOption_d(_DriverFaultDebounce, DriverFaultDebounce());
     PrintOption_d(_LedFaultDebounce, LedFaultDebounce());
     PrintOption_d(_OverTempDebounce, OverTempDebounce());
@@ -530,7 +524,7 @@ void UciProd::Dump()
     PrintOption_str(_HrgFrmColour, bHrgFrmColour.ToString().c_str());
 
     printf("\tColour map:\n");
-    for (int i = 0; i < COLOUR_NAME_SIZE; i++)
+    for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         PrintOption_str(FrameColour::COLOUR_NAME[i], FrameColour::COLOUR_NAME[mappedColoursTable[i]]);
     }

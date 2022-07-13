@@ -94,7 +94,7 @@ public:
     uint8_t DimmingValue() { return (dimmingSet == 0) ? dimmingV : dimmingSet; };
 
     const char * GetImageBase64();
-    FrameImage frameImages[7];
+    std::vector<FrameImage> frameImages;
 
 protected:
     uint8_t signId;

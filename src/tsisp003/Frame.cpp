@@ -92,11 +92,11 @@ int Frame::CheckLength(int len)
         {
             x = prod.Gfx1FrmLen();
         }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         {
             x = prod.Gfx4FrmLen();
         }
-        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB24))
+        else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB_24bit))
         {
             x = prod.Gfx24FrmLen();
         }
@@ -119,7 +119,7 @@ int Frame::CheckLength(int len)
 
 int Frame::CheckMultiColour(uint8_t *frm, int len)
 {
-    if (colour == static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
+    if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
     {
         auto p = frm + frmOffset;
         auto &prod = DbHelper::Instance().GetUciProd();
@@ -195,8 +195,8 @@ int Frame::ToBit(uint8_t colourbit, uint8_t *buf)
         {
         }
     }
-    else if (colour == (uint8_t)FRMCOLOUR::MultipleColours)
-    { // MultipleColours -> 4-bit/half-byte
+    else if (colour == (uint8_t)FRMCOLOUR::Multi_4bit)
+    { // Multi_4bit -> 4-bit/half-byte
         if (colourbit == 4)
         { // to 4-bit
 #ifdef HALF_BYTE

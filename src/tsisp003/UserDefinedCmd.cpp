@@ -473,7 +473,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             v = Cnvt::GetU16(pd + 24);
             if (v != user.MultiLedFaultThreshold())
             {
-                evt.Push(0, "User.MultiLed changed: %u->%u",
+                evt.Push(0, "User.MultiLedFaultThreshold changed: %u->%u",
                          user.MultiLedFaultThreshold(), v);
                 user.MultiLedFaultThreshold(v);
             }
@@ -500,11 +500,11 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             }
 
             v = *(pd + 42);
-            if (v != user.LastFrmOn())
+            if (v != user.LastFrmTime())
             {
-                evt.Push(0, "User.LastFrmOn changed: %u->%u",
-                         user.LastFrmOn(), v);
-                user.LastFrmOn(v);
+                evt.Push(0, "User.LastFrmTime changed: %u->%u",
+                         user.LastFrmTime(), v);
+                user.LastFrmTime(v);
             }
 
             // network settings
@@ -601,7 +601,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         pt += 4;
         *pt++ = user.LockedMsg();
         *pt++ = user.LockedFrm();
-        *pt++ = user.LastFrmOn();
+        *pt++ = user.LastFrmTime();
         memcpy(pt, net.GetETH(0).netmask, 4);
         pt += 4;
         memcpy(pt, net.GetETH(0).gateway, 4);

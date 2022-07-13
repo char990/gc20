@@ -580,9 +580,9 @@ bool Group::TaskMsg(int *_ptLine)
                         (pMsg->msgEntries[msgDispEntry].onTime == 0) ? taskMsgTmr.Clear() // last entry && onTIme is 0, display forever
                                                                      : taskMsgTmr.Setms(pMsg->msgEntries[msgDispEntry].onTime * 100 - 1);
                         if (msgDispEntry == pMsg->entries - 1)
-                        { // last entry, start lastFrmOn
-                            long lastFrmOn = user.LastFrmOn();
-                            (lastFrmOn == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmOn * 1000);
+                        { // last entry, start lastFrmTime
+                            long lastFrmTime = user.LastFrmTime();
+                            (lastFrmTime == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmTime * 1000);
                         }
                         else
                         {
@@ -1773,7 +1773,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
         {
             if (slvId == 0xFF || slvId == s->SignId())
             {
-                s->frameImages[slvFrmId].FillCore(txBuf);
+                s->frameImages[slvFrmId].FillCoreFromSlaveFrame(txBuf);
             }
         }
         ms = Tx() + prod.SlaveSetStFrmDly();
@@ -1953,7 +1953,7 @@ void Group::MakeFrameForSlave(Frame *frm)
 #ifdef HALF_BYTE
         *p++ = (uint8_t)FRMCOLOUR::HalfByte;
 #else
-        *p++ = (uint8_t)FRMCOLOUR::MultipleColours;
+        *p++ = (uint8_t)FRMCOLOUR::Multi_4bit;
 #endif
     }
     *p++ = frm->conspicuity;
@@ -2002,7 +2002,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         { // overlay but no need to trans or copy
             orsrc = frm->stFrm.rawData.data() + frm->frmOffset;
         }
-        else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::MultipleColours))
+        else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         { // frame is mono but should transfer from 1-bit to 4-bit
             buf = new uint8_t[frmlen];
             frm->ToBit(msgOverlay, buf);

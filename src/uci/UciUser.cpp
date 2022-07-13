@@ -58,7 +58,14 @@ void UciUser::LoadConfig()
     defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
     */
 
-    lastFrmOn = GetInt(uciSec, _LastFrmOn, 1, 60);
+    nightDimmingLevel = GetInt(uciSec, _NightDimmingLevel, 1, 8);
+    dawnDimmingLevel = GetInt(uciSec, _DawnDimmingLevel, nightDimmingLevel + 1, 15);
+    dayDimmingLevel = GetInt(uciSec, _DayDimmingLevel, dawnDimmingLevel + 1, 16);
+    luxDayMin = GetInt(uciSec, _LuxDayMin, 1, 65535);
+    luxNightMax = GetInt(uciSec, _LuxNightMax, 1, 65535);
+    lux18HoursMin = GetInt(uciSec, _Lux18HoursMin, 1, 65535);
+
+    lastFrmTime = GetInt(uciSec, _LastFrmTime, 1, 60);
     lockedFrm = GetInt(uciSec, _LockedFrm, 0, 255);
     lockedMsg = GetInt(uciSec, _LockedMsg, 0, 255);
     passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);
@@ -232,7 +239,7 @@ void UciUser::Dump()
     PrintOption_d(_MultiLedFaultThreshold, MultiLedFaultThreshold());
     PrintOption_d(_LockedFrm, LockedFrm());
     PrintOption_d(_LockedMsg, LockedMsg());
-    PrintOption_d(_LastFrmOn, LastFrmOn());
+    PrintOption_d(_LastFrmTime, LastFrmTime());
 
     PrintOption_str(_City, City());
     PrintOption_str(_ComPort, COM_NAME[ComPort()]);
@@ -245,11 +252,19 @@ void UciUser::Dump()
         printf("\t%s%d \t'%s'\n", _ExtSw, i + 1, buf);
     }
 
+    PrintOption_d(_LuxDayMin, LuxDayMin());
+    PrintOption_d(_LuxNightMax, LuxNightMax());
+    PrintOption_d(_Lux18HoursMin, Lux18HoursMin());
+    PrintOption_d(_NightDimmingLevel, NightDimmingLevel());
+    PrintOption_d(_DawnDimmingLevel, DawnDimmingLevel());
+    PrintOption_d(_DayDimmingLevel, DayDimmingLevel());
+
     PrintLuminance(buf);
     printf("\t%s \t'%s'\n", _Luminance, buf);
 
     PrintDawnDusk(buf);
     printf("\t%s \t'%s'\n", _DawnDusk, buf);
+
     PrintDash('>');
 }
 
@@ -287,11 +302,11 @@ uint8_t UciUser::GetLuxLevel(int lux)
         switch (tz_AU->GetTwilightStatus(GetTime(nullptr)))
         {
         case Tz_AU::TwilightStatus::TW_ST_NIGHT:
-            return 1;
+            return nightDimmingLevel;
         case Tz_AU::TwilightStatus::TW_ST_DAY:
-            return 16;
+            return dayDimmingLevel;
         default:
-            return 8;
+            return dawnDimmingLevel;
         }
     }
     else
@@ -411,12 +426,12 @@ void UciUser::LockedMsg(uint8_t v)
     }
 }
 
-void UciUser::LastFrmOn(uint8_t v)
+void UciUser::LastFrmTime(uint8_t v)
 {
-    if (lastFrmOn != v)
+    if (lastFrmTime != v)
     {
-        lastFrmOn = v;
-        OpenSaveClose(SECTION, _LastFrmOn, v);
+        lastFrmTime = v;
+        OpenSaveClose(SECTION, _LastFrmTime, v);
     }
 }
 
@@ -561,4 +576,58 @@ void UciUser::ShakehandsPassword(const char *shake)
         }
     }
     shakehandsPassword[10] = '\0';
+}
+
+void UciUser::NightDimmingLevel(uint8_t v)
+{
+    if (nightDimmingLevel != v)
+    {
+        nightDimmingLevel = v;
+        OpenSaveClose(SECTION, _NightDimmingLevel, v);
+    }
+}
+
+void UciUser::DayDimmingLevel(uint8_t v)
+{
+    if (dayDimmingLevel != v)
+    {
+        dayDimmingLevel = v;
+        OpenSaveClose(SECTION, _DayDimmingLevel, v);
+    }
+}
+
+void UciUser::DawnDimmingLevel(uint8_t v)
+{
+    if (dawnDimmingLevel != v)
+    {
+        dawnDimmingLevel = v;
+        OpenSaveClose(SECTION, _DawnDimmingLevel, v);
+    }
+}
+
+void UciUser::LuxDayMin(uint16_t v)
+{
+    if (luxDayMin != v)
+    {
+        luxDayMin = v;
+        OpenSaveClose(SECTION, _LuxDayMin, v);
+    }
+}
+
+void UciUser::LuxNightMax(uint16_t v)
+{
+    if (luxNightMax != v)
+    {
+        luxNightMax = v;
+        OpenSaveClose(SECTION, _LuxNightMax, v);
+    }
+}
+
+void UciUser::Lux18HoursMin(uint16_t v)
+{
+    if (lux18HoursMin != v)
+    {
+        lux18HoursMin = v;
+        OpenSaveClose(SECTION, _Lux18HoursMin, v);
+    }
 }

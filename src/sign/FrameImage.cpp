@@ -4,73 +4,41 @@
 #include <tsisp003/TsiSp003Const.h>
 #include <module/Utils.h>
 
-void FrameImage::SetId(uint8_t signId, uint8_t slaveFrmId)
+void FrameImage::SetId(uint8_t signId, uint8_t frmId)
 {
     this->signId = signId;
-    this->slaveFrmId = slaveFrmId;
+    this->frmId = frmId;
 }
 
-void FrameImage::FillCore(uint8_t *frame)
+void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame)
 {
-    if (slaveFrmId == 0)
-    {
-        return;
-    }
-    newImg = true;
-    char filename[256];
-    sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, slaveFrmId);
-    if (frame[1] == 0xFC)
-    {
-        if (frame[6] == 189)
-        {
-            bmp.ReadFromFile("config/islus_189.bmp");
-        }
-        else if (frame[6] == 199)
-        {
-            bmp.ReadFromFile("config/islus_199.bmp");
-        }
-        else if (frame[6] == 251)
-        {
-            bmp.ReadFromFile("config/islus_251.bmp");
-        }
-        else
-        {
-            bmp.ReadFromFile("config/annulus_off.bmp");
-        }
-        bmp.WriteToFile(filename);
-        return;
-    }
-    if (frame[1] != 0x0B)
-    {
-        bmp.ReadFromFile("config/annulus_off.bmp");
-        return;
-    }
-    int annulus = (frame[7] >> 3) & 0x03;
+    int annulus = (f_conspicuity >> 3) & 0x03;
     if (annulus == 3)
         annulus = 0;
     bmp.ReadFromFile(annulus ? "config/annulus_on.bmp" : "config/annulus_off.bmp");
-    int lantern = frame[7] & 0x07;
+    int lantern = f_conspicuity & 0x07;
     if (lantern > 5)
         lantern = 0;
     if (lantern > 0)
     {
         // TODO: set lantern
     }
+
     auto &prod = DbHelper::Instance().GetUciProd();
     int coreOffsetX = prod.CoreOffsetX();
     int coreOffsetY = prod.CoreOffsetY();
     int coreRows = prod.PixelRows();
     int coreColumns = prod.PixelColumns();
-    if (frame[6] >= 0 && frame[6] <= 9)
+    if (f_colour >= 0 && f_colour <= 9)
     { // colour is mapped colour
         // TODO: mono
-        int colour = FrameColour::GetRGB8(frame[6]);
+        int colour = FrameColour::GetRGB8(f_colour);
         RGBApixel rgba;
         rgba.Alpha = 0;
         rgba.Red = (colour >> 16) & 0xFF;
         rgba.Green = (colour >> 8) & 0xFF;
         rgba.Blue = (colour)&0xFF;
-        uint8_t *p = &frame[10];
+        uint8_t *p = frame;
         int bitOffset = 0;
         for (int j = coreOffsetY; j < (coreOffsetY + coreRows); j++)
         {
@@ -86,7 +54,7 @@ void FrameImage::FillCore(uint8_t *frame)
             }
         }
     }
-    else if (frame[6] == 0x0D)
+    else if (f_colour == 0x0D)
     {
         // TODO: 4-bit
         RGBApixel rgba[10];
@@ -98,7 +66,7 @@ void FrameImage::FillCore(uint8_t *frame)
             rgba[i].Green = (colour >> 8) & 0xFF;
             rgba[i].Blue = (colour)&0xFF;
         }
-        uint8_t *p = &frame[10];
+        uint8_t *p = frame;
         int bitOffset = 0;
         for (int j = coreOffsetY; j < (coreOffsetY + coreRows); j++)
         {
@@ -122,15 +90,70 @@ void FrameImage::FillCore(uint8_t *frame)
             }
         }
     }
-    else if (frame[6] == 0x0E)
+    else if (f_colour == 0x0E)
     {
     }
-    else if (frame[6] == 0xF1)
+    else if (f_colour == 0xF1)
     {
     }
     else
     {
     }
+}
+
+void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
+{
+    if (frmId == 0)
+    {
+        return;
+    }
+    newImg = true;
+    char filename[256];
+    sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, frmId);
+    if (frame[1] == 0xFC)
+    {
+        if (DbHelper::Instance().GetUciProd().IsIslusSpFrm(frame[6]))
+        {
+            char islus_xxx[256];
+            sprintf(islus_xxx, "config/islus_%03d.bmp", frame[6]);
+            bmp.ReadFromFile(islus_xxx);
+        }
+        else
+        {
+            bmp.ReadFromFile("config/annulus_off.bmp");
+        }
+        bmp.WriteToFile(filename);
+        return;
+    }
+    if (frame[1] != 0x0B)
+    {
+        bmp.ReadFromFile("config/annulus_off.bmp");
+        return;
+    }
+    FillCore(frame[6], frame[7], frame+10);
+    bmp.WriteToFile(filename);
+}
+
+void FrameImage::FillCoreFromUciFrame()
+{
+    newImg = true;
+    char filename[256];
+    sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, frmId);
+    if (DbHelper::Instance().GetUciProd().ProdType() == PRODUCT::ISLUS &&
+        DbHelper::Instance().GetUciProd().IsIslusSpFrm(frmId))
+    {
+        char islus_xxx[256];
+        sprintf(islus_xxx, "config/islus_%03d.bmp", frmId);
+        bmp.ReadFromFile(islus_xxx);
+        bmp.WriteToFile(filename);
+        return;
+    }
+    auto frm = DbHelper::Instance().GetUciFrm().GetFrm(frmId);
+    if(frm==nullptr)
+    {
+        return;
+    }
+    FillCore(frm->colour, frm->conspicuity, frm->stFrm.rawData.data() + frm->frmOffset);
     bmp.WriteToFile(filename);
 }
 
@@ -139,13 +162,13 @@ std::vector<char> &FrameImage::Save2Base64()
     if (newImg)
     {
         char filename[256];
-        if (slaveFrmId == 0)
+        if (frmId == 0)
         {
             sprintf(filename, "config/annulus_off.bmp");
         }
         else
         {
-            sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, slaveFrmId);
+            sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, frmId);
         }
 
         int fd;
@@ -175,4 +198,15 @@ std::vector<char> &FrameImage::Save2Base64()
         newImg = false;
     }
     return base64Img;
+}
+void FrameImage::RemoveBmp()
+{
+    if (frmId == 0)
+    {
+        return;
+    }
+    newImg = false;
+    char filename[256];
+    sprintf(filename, "/tmp/Sign%d_Frm%d.bmp", signId, frmId);
+    remove(filename);
 }

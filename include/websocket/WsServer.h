@@ -67,8 +67,13 @@ private:
     static void CMD_UpdateTime(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetFrameSetting(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetStoredFrame(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetFrame(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_DisplayFrame(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetStoredMessage(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetMessage(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_DisplayMessage(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_GetStoredPlan(struct mg_connection *c, nlohmann::json & msg);
+    static void CMD_SetPlan(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_RetrieveFaultLog(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_RetrieveAlarmLog(struct mg_connection *c, nlohmann::json & msg);
     static void CMD_RetrieveEventLog(struct mg_connection *c, nlohmann::json & msg);

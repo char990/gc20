@@ -6,19 +6,20 @@
 #include <uci/UciProd.h>
 #include <module/Tz_AU.h>
 
-typedef struct ExtSw {
-	uint16_t dispTime{0};   // 0:disabled
-	uint8_t reserved;
-	uint8_t emergency;      // 0:ON / 1:OFF
-	uint8_t flashingOv;     // 0:ON / 1:OFF
-	bool Equal(struct ExtSw & v)
-	{
-		return (	dispTime==v.dispTime &&
-					reserved==v.reserved &&
-					emergency==v.emergency &&
-					flashingOv==v.flashingOv );
-	};
-}ExtSw;
+typedef struct ExtSw
+{
+    uint16_t dispTime{0}; // 0:disabled
+    uint8_t reserved;
+    uint8_t emergency;  // 0:ON / 1:OFF
+    uint8_t flashingOv; // 0:ON / 1:OFF
+    bool Equal(struct ExtSw &v)
+    {
+        return (dispTime == v.dispTime &&
+                reserved == v.reserved &&
+                emergency == v.emergency &&
+                flashingOv == v.flashingOv);
+    };
+} ExtSw;
 
 class UciUser : public UciCfg
 {
@@ -26,48 +27,55 @@ public:
     UciUser();
     ~UciUser();
 
-    const char *DEFAULT_FILE; 
+    const char *DEFAULT_FILE;
 
     void LoadConfig() override;
-	void Dump() override;
+    void Dump() override;
 
     /// \brief  Load factory default. Call OpenSECTION/CommitCloseSectionForSave inside
     ///         Copy 'goblin_user.def' to 'goblin_user.def' and set DeviceId & BroadcastId
     void LoadFactoryDefault();
 
     /// --------getter--------
-    uint8_t BroadcastId() { return broadcastId;};
-    uint8_t DeviceId() { return deviceId;};
-    uint8_t SeedOffset() { return seedOffset;};
-    uint8_t Fan1OnTemp() { return fan1OnTemp;};
-    uint8_t Fan2OnTemp() { return fan2OnTemp;};
-    uint8_t OverTemp() { return overTemp;};
-    uint8_t Humidity() { return humidity;};
-    //uint8_t DefaultFont() { return defaultFont;};
-    //uint8_t DefaultColour() { return defaultColour;};
-    uint8_t LockedFrm() { return lockedFrm;};
-    uint8_t LockedMsg() { return lockedMsg;};
-    uint8_t LastFrmOn() { return lastFrmOn;};
-    uint8_t ComPort() { return comPort;};
-    uint8_t CityId() { return cityId;};
-    const char * City();
+    uint8_t BroadcastId() { return broadcastId; };
+    uint8_t DeviceId() { return deviceId; };
+    uint8_t SeedOffset() { return seedOffset; };
+    uint8_t Fan1OnTemp() { return fan1OnTemp; };
+    uint8_t Fan2OnTemp() { return fan2OnTemp; };
+    uint8_t OverTemp() { return overTemp; };
+    uint8_t Humidity() { return humidity; };
+    // uint8_t DefaultFont() { return defaultFont;};
+    // uint8_t DefaultColour() { return defaultColour;};
+    uint8_t LockedFrm() { return lockedFrm; };
+    uint8_t LockedMsg() { return lockedMsg; };
+    uint8_t LastFrmTime() { return lastFrmTime; };
+    uint8_t ComPort() { return comPort; };
+    uint8_t CityId() { return cityId; };
+    const char *City();
     Tz_AU *tz_AU{nullptr};
-    uint16_t PasswordOffset() { return passwordOffset;};
-    uint16_t SessionTimeoutSec() { return sessionTimeoutSec;};    // seconds
-    uint16_t DisplayTimeoutMin() { return displayTimeoutMin;};    // minutes
-    uint16_t SvcPort() { return svcPort;};
-    uint16_t WebPort() { return webPort;};
-    uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold;};
-    int Baudrate() { return baudrate;};
-    uint16_t *Luminance(){ return luminance; };
-    uint8_t GetLuxLevel(int lux);   // level:1-16
-    uint8_t *DawnDusk(){ return dawnDusk; };
+    uint16_t PasswordOffset() { return passwordOffset; };
+    uint16_t SessionTimeoutSec() { return sessionTimeoutSec; }; // seconds
+    uint16_t DisplayTimeoutMin() { return displayTimeoutMin; }; // minutes
+    uint16_t SvcPort() { return svcPort; };
+    uint16_t WebPort() { return webPort; };
+    uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold; };
+    int Baudrate() { return baudrate; };
+    uint16_t *Luminance() { return luminance; };
+    uint8_t GetLuxLevel(int lux); // level:1-16
+    uint8_t *DawnDusk() { return dawnDusk; };
 
-    ExtSw & ExtSwCfgX(int i)
+    uint16_t LuxDayMin() { return luxDayMin; };
+    uint16_t LuxNightMax() { return luxNightMax; };
+    uint16_t Lux18HoursMin() { return lux18HoursMin; };
+    uint8_t NightDimmingLevel() { return nightDimmingLevel; };
+    uint8_t DayDimmingLevel() { return dayDimmingLevel; };
+    uint8_t DawnDimmingLevel() { return dawnDimmingLevel; };
+
+    ExtSw &ExtSwCfgX(int i)
     {
         return extSw.at(i);
     };
-    const char * ShakehandsPassword() {return shakehandsPassword; };
+    const char *ShakehandsPassword() { return shakehandsPassword; };
 
     /// --------setter--------
     void BroadcastId(uint8_t);
@@ -77,27 +85,32 @@ public:
     void Fan2OnTemp(uint8_t);
     void OverTemp(uint8_t);
     void Humidity(uint8_t);
-    //void DefaultFont(uint8_t);
-    //void DefaultColour(uint8_t);
+    // void DefaultFont(uint8_t);
+    // void DefaultColour(uint8_t);
     void LockedFrm(uint8_t);
     void LockedMsg(uint8_t);
-    void LastFrmOn(uint8_t);
+    void LastFrmTime(uint8_t);
     void ComPort(uint8_t);
     void CityId(uint8_t);
     void PasswordOffset(uint16_t);
-    void SessionTimeoutSec(uint16_t);  // seconds
-    void DisplayTimeoutMin(uint16_t);  // minutes
+    void SessionTimeoutSec(uint16_t); // seconds
+    void DisplayTimeoutMin(uint16_t); // minutes
     void SvcPort(uint16_t);
     void WebPort(uint16_t);
     void MultiLedFaultThreshold(uint16_t);
     void Baudrate(int);
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
-    void ExtSwCfgX(int i, ExtSw & cfg);
-    void ShakehandsPassword(const char * shake);
+    void ExtSwCfgX(int i, ExtSw &cfg);
+    void ShakehandsPassword(const char *shake);
+    void NightDimmingLevel(uint8_t);
+    void DayDimmingLevel(uint8_t);
+    void DawnDimmingLevel(uint8_t);
+    void LuxDayMin(uint16_t);
+    void LuxNightMax(uint16_t);
+    void Lux18HoursMin(uint16_t);
 
 private:
-
     uint8_t
         broadcastId,
         deviceId,
@@ -106,15 +119,21 @@ private:
         fan2OnTemp,
         overTemp,
         humidity,
-        //defaultFont,
-        //defaultColour,
+        // defaultFont,
+        // defaultColour,
         lockedFrm,
         lockedMsg,
         comPort,
         cityId,
-        lastFrmOn;
+        lastFrmTime,
+        nightDimmingLevel,
+        dayDimmingLevel,
+        dawnDimmingLevel;
 
     uint16_t
+        luxDayMin,
+        luxNightMax,
+        lux18HoursMin,
         passwordOffset,
         sessionTimeoutSec,
         displayTimeoutMin,
@@ -130,41 +149,45 @@ private:
 
     std::vector<ExtSw> extSw{4};
 
-    const char * _DeviceId="DeviceId";
-    const char * _BroadcastId="BroadcastId";
-    const char * _SeedOffset="SeedOffset";
-    const char * _PasswordOffset="PasswordOffset";
-    const char * _SvcPort="SvcPort";
-    const char * _WebPort="WebPort";
-    const char * _Baudrate="Baudrate";
+    const char *_DeviceId = "DeviceId";
+    const char *_BroadcastId = "BroadcastId";
+    const char *_SeedOffset = "SeedOffset";
+    const char *_PasswordOffset = "PasswordOffset";
+    const char *_SvcPort = "SvcPort";
+    const char *_WebPort = "WebPort";
+    const char *_Baudrate = "Baudrate";
 
-    const char * _OverTemp="OverTemp";
-    const char * _Fan1OnTemp="Fan1OnTemp";
-    const char * _Fan2OnTemp="Fan2OnTemp";
-    const char * _Humidity="Humidity";
+    const char *_OverTemp = "OverTemp";
+    const char *_Fan1OnTemp = "Fan1OnTemp";
+    const char *_Fan2OnTemp = "Fan2OnTemp";
+    const char *_Humidity = "Humidity";
 
-    const char * _SessionTimeout="SessionTimeout";
-    const char * _DisplayTimeout="DisplayTimeout";
-    //const char * _DefaultFont="DefaultFont";
-    //const char * _DefaultColour="DefaultColour";
+    const char *_SessionTimeout = "SessionTimeout";
+    const char *_DisplayTimeout = "DisplayTimeout";
+    // const char * _DefaultFont="DefaultFont";
+    // const char * _DefaultColour="DefaultColour";
 
-    const char * _MultiLedFaultThreshold="MultiLedFaultThreshold";
+    const char *_MultiLedFaultThreshold = "MultiLedFaultThreshold";
 
-    const char * _LockedFrm="LockedFrm";
-    const char * _LockedMsg="LockedMsg";
-    const char * _LastFrmOn="LastFrmOn";
-    
+    const char *_LockedFrm = "LockedFrm";
+    const char *_LockedMsg = "LockedMsg";
+    const char *_LastFrmTime = "LastFrmTime";
 
-    const char * _City="City";
-    const char * _ShakehandsPassword="ShakehandsPassword";
-    const char * _Luminance="Luminance";
-    const char * _DawnDusk="DawnDusk";
-    const char * _ComPort="ComPort";
-    const char * _ExtSw="ExtSw";
+    const char *_City = "City";
+    const char *_ShakehandsPassword = "ShakehandsPassword";
+    const char *_Luminance = "Luminance";
+    const char *_DawnDusk = "DawnDusk";
+    const char *_ComPort = "ComPort";
+    const char *_ExtSw = "ExtSw";
+
+    const char *_LuxDayMin = "LuxDayMin";
+    const char *_LuxNightMax = "LuxNightMax";
+    const char *_Lux18HoursMin = "Lux18HoursMin";
+    const char *_NightDimmingLevel = "NightDimmingLevel";
+    const char *_DayDimmingLevel = "DayDimmingLevel";
+    const char *_DawnDimmingLevel = "DawnDimmingLevel";
 
     void PrintExtSw(int i, char *buf);
     void PrintDawnDusk(char *buf);
     void PrintLuminance(char *buf);
-    
 };
-
