@@ -44,8 +44,8 @@ void UciFrm::LoadFrms(const char *FMT)
 	maxFrmSize = DbHelper::Instance().GetUciProd().MaxFrmLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	chksum = 0;
 	char filename[256];
-	uint8_t *b = new uint8_t[maxFrmSize];
-	char *v = new char[maxFrmSize * 2 + 1]; // with '\n' or '\0' at the end
+	vector<uint8_t> b(maxFrmSize);
+	vector<char> v(maxFrmSize * 2 + 1); // with '\n' or '\0' at the end
 	try
 	{
 		for (int i = 1; i <= 255; i++)
@@ -55,7 +55,7 @@ void UciFrm::LoadFrms(const char *FMT)
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
 			{
-				int len = read(frm_fd, v, maxFrmSize * 2 + 1);
+				int len = read(frm_fd, v.data(), maxFrmSize * 2 + 1);
 				close(frm_fd);
 				if (len < 9 * 2)
 				{
@@ -66,19 +66,19 @@ void UciFrm::LoadFrms(const char *FMT)
 					len--;
 				}
 				bool fakeCRC = false;
-				if (memcmp(v + len - 4, "!!!!", 4) == 0) // if crc is "!!!!", make crc
+				if (memcmp(v.data() + len - 4, "!!!!", 4) == 0) // if crc is "!!!!", make crc
 				{
-					memset(v + len - 4, '0', 4);
+					memset(v.data() + len - 4, '0', 4);
 					fakeCRC = true;
 				}
-				if (Cnvt::ParseToU8(v, b, len) == 0)
+				if (Cnvt::ParseToU8(v.data(), b.data(), len) == 0)
 				{
 					len /= 2;
 					if (fakeCRC)
 					{
-						Cnvt::PutU16(Crc::Crc16_1021(b, len - 2), b + len - 2);
+						Cnvt::PutU16(Crc::Crc16_1021(b.data(), len - 2), b.data() + len - 2);
 					}
-					SetFrm(b, len);
+					SetFrm(b.data(), len);
 				}
 			}
 		}
@@ -87,8 +87,6 @@ void UciFrm::LoadFrms(const char *FMT)
 	{
 		Ldebug("%s", e.what());
 	}
-	delete[] v;
-	delete[] b;
 	//Dump();
 }
 

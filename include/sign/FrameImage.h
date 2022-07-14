@@ -10,7 +10,6 @@ public:
     void FillCoreFromSlaveFrame(uint8_t *frame);
     void FillCoreFromUciFrame();
     std::vector<char> &Save2Base64();
-    void RemoveBmp();
 
 private:
     BMP bmp;

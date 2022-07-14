@@ -14,6 +14,7 @@
 
 extern time_t GetTime(time_t *);
 
+using namespace std;
 using namespace Utils;
 
 Group::Group(uint8_t groupId)
@@ -1755,10 +1756,9 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
         IMakeFrameForSlave(uciFrmId);
         txBuf[0] = slvId;
         txBuf[2] = slvFrmId;
-        char *asc = new char[(txLen - 1) * 2];
-        Cnvt::ParseToAsc(txBuf + 1, asc, txLen - 1);
-        uint16_t crc = Crc::Crc16_8005((uint8_t *)asc, (txLen - 1) * 2);
-        delete[] asc;
+        vector<char> asc((txLen - 1) * 2);
+        Cnvt::ParseToAsc(txBuf + 1, asc.data(), txLen - 1);
+        uint16_t crc = Crc::Crc16_8005((uint8_t *)asc.data(), (txLen - 1) * 2);
         Cnvt::PutU16(crc, txBuf + txLen);
         txLen += 2;
         for (auto &s : vSlaves)
@@ -1988,13 +1988,13 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     }
     // overlay
     int frmlen = (msgOverlay == 1) ? prod.Gfx1FrmLen() : ((msgOverlay == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen());
-    uint8_t *buf = nullptr;
+    vector<uint8_t> buf;
     uint8_t *orsrc;
     if (txtfrm != nullptr)
     { // text frame trans to bitmap
-        buf = new uint8_t[frmlen];
-        txtfrm->ToBit(msgOverlay, buf);
-        orsrc = buf;
+        buf.resize(frmlen);
+        orsrc = buf.data();
+        txtfrm->ToBit(msgOverlay, orsrc);
     }
     else
     { // gfx/hrg
@@ -2004,9 +2004,9 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         }
         else if (msgOverlay == 4 && frm->colour <= static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         { // frame is mono but should transfer from 1-bit to 4-bit
-            buf = new uint8_t[frmlen];
-            frm->ToBit(msgOverlay, buf);
-            orsrc = buf;
+            buf.resize(frmlen);
+            orsrc = buf.data();
+            frm->ToBit(msgOverlay, orsrc);
         }
         else
         {
@@ -2027,10 +2027,6 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     {
         // TODO 24-bit
         throw std::runtime_error(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): 24-bit unsupported", frm->frmId));
-    }
-    if (buf != nullptr)
-    {
-        delete[] buf;
     }
     return frmlen;
 }

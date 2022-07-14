@@ -10,21 +10,22 @@
 
 unsigned int ws_hexdump = 0;
 
-const char *WsServer::WS = "/ws";
+const char *WsServer::uri_ws = "/ws";
 
 using json = nlohmann::json;
 using namespace Utils;
+using namespace std;
 
 Controller *WsServer::ctrller;
 
-std::map<struct mg_connection *, std::unique_ptr<WsMsg>> WsServer::wsMsg;
+map<struct mg_connection *, WsMsg *> WsServer::wsMsg;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
     : tmrEvt(tmrEvt)
 {
     if (port < 1024 || port > 65535)
     {
-        throw std::invalid_argument(FmtException("WsServer error: port: %d", port));
+        throw invalid_argument(FmtException("WsServer error: port: %d", port));
     }
     char buf[32];
     sprintf(buf, "ws://0.0.0.0:%d", port);
@@ -60,15 +61,15 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     else if (ev == MG_EV_HTTP_MSG)
     {
         struct mg_http_message *hm = (struct mg_http_message *)ev_data;
-        if (mg_http_match_uri(hm, WS))
+        if (mg_http_match_uri(hm, uri_ws))
         {
             // Upgrade to websocket. From now on, a connection is a full-duplex
             // Websocket connection, which will receive MG_EV_WS_MSG events.
             mg_ws_upgrade(c, hm, NULL);
             uint8_t *ip = (uint8_t *)&c->rem.ip;
-            Ldebug("Websocket '%s' connected from %d.%d.%d.%d, ID=%lu", WS, ip[0], ip[1], ip[2], ip[3], c->id);
-            wsMsg[c] = std::unique_ptr<WsMsg>(new WsMsg());
-            c->fn_data = (void *)WS;
+            Ldebug("Websocket '%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            wsMsg[c] = new WsMsg();
+            c->fn_data = (void *)uri_ws;
         }
     }
     else if (ev == MG_EV_WS_MSG)
@@ -77,7 +78,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
         if (wm->data.len > 0)
         {
-            if (c->fn_data == (void *)WS)
+            if (c->fn_data == (void *)uri_ws)
             {
                 VMSWebSokectProtocol(c, wm);
             }
@@ -85,11 +86,11 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     }
     else if (ev == MG_EV_CLOSE)
     {
-        if (c->fn_data == WS)
+        if (c->fn_data == uri_ws)
         {
             uint8_t *ip = (uint8_t *)&c->rem.ip;
-            Ldebug("Websocket '%s' disconnected from %d.%d.%d.%d, ID=%lu", WS, ip[0], ip[1], ip[2], ip[3], c->id);
-            wsMsg[c] = nullptr;
+            Ldebug("Websocket '%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            delete wsMsg[c];
             wsMsg.erase(c);
         }
     }
@@ -117,17 +118,17 @@ int WsServer::GetInt(json &msg, const char *str, int min, int max)
     auto x = msg[str].get<int>();
     if (x < min || x > max)
     {
-        throw "Invalid '" + std::string(str) + "'";
+        throw "Invalid '" + string(str) + "'";
     }
     return x;
 }
 
 int WsServer::GetStrInt(json &msg, const char *str, int min, int max)
 {
-    auto x = stoi(msg[str].get<std::string>(), nullptr, 0);
+    auto x = stoi(msg[str].get<string>(), nullptr, 0);
     if (x < min || x > max)
     {
-        throw "Invalid '" + std::string(str) + "'";
+        throw "Invalid '" + string(str) + "'";
     }
     return x;
 }
@@ -175,10 +176,10 @@ const WsCmd WsServer::CMD_LIST[] = {
 
 void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
 {
-    if ((wsMsg[c]->len + wm->data.len) > (WsMsgBuf_SIZE + 1))
+    if ((wsMsg[c]->len + wm->data.len) >= WsMsgBuf_SIZE)
     {
         wsMsg[c]->len = 0;
-        if (wm->data.len > (WsMsgBuf_SIZE + 1))
+        if (wm->data.len >= WsMsgBuf_SIZE)
         {
             return;
         }
@@ -192,13 +193,13 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
         Pdebug("<<<mg_ws_message<<<\n%s", p);
     }
 
-    if (json::accept(p))
+    if (json::accept(p,true))
     {
         wsMsg[c]->len = 0; // clear msgbuf
     }
     else
     {
-        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf))
+        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf,true))
         {
             wsMsg[c]->len = 0; // clear msgbuf
             p = wsMsg[c]->buf;
@@ -210,38 +211,46 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     }
     if (p != nullptr)
     {
-        json msg = json::parse(p);
-        auto cmd = msg["cmd"].get<std::string>();
-        int j = countof(CMD_LIST);
-        // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
-        for (int i = 0; i < j; i++)
+        json reply;
+        string cmd;
+        try
         {
-            if (strcasecmp(cmd.c_str(), CMD_LIST[i].cmd) == 0)
+            json msg = json::parse(p, nullptr, true, true);
+            cmd = msg["cmd"].get<string>();
+            reply.emplace("cmd", cmd);
+            int j = countof(CMD_LIST);
+            // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
+            for (int i = 0; i < j; i++)
             {
-                CMD_LIST[i].function(c, msg);
-                break;
+                if (strcasecmp(cmd.c_str(), CMD_LIST[i].cmd) == 0)
+                {
+                    CMD_LIST[i].function(c, msg, reply);
+                    my_mg_ws_send(c, reply);
+                    return;
+                }
             }
+            reply.emplace("result", "Unknown cmd:" + cmd);
         }
+        catch(exception & e)
+        {
+            reply.emplace("result", e.what());
+        }
+        my_mg_ws_send(c, reply);
     }
 }
 
-void WsServer::CMD_Login(struct mg_connection *c, json &msg)
+void WsServer::CMD_Login(struct mg_connection *c, json &msg, json & reply)
 {
-    auto msgp = msg["password"].get<std::string>();
+    auto msgp = msg["password"].get<string>();
     wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciUser().ShakehandsPassword()) == 0 || msgp.compare("Br1ghtw@y") == 0);
-    json reply;
-    reply.emplace("cmd", "Login");
     reply.emplace("result", wsMsg[c]->login ? "OK" : "Wrong password");
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
+void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "ChangePassword");
     auto &user = DbHelper::Instance().GetUciUser();
-    auto cp = msg["current"].get<std::string>();
-    auto np = msg["new"].get<std::string>();
+    auto cp = msg["current"].get<string>();
+    auto np = msg["new"].get<string>();
     if (cp.compare(user.ShakehandsPassword()) == 0 || cp.compare("Br1ghtw@y") == 0)
     {
         if (np.length() > 0 && np.length() <= 10)
@@ -259,23 +268,20 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg)
     {
         reply.emplace("result", "Current password NOT matched");
     }
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "GetGroupConfig");
     auto gs = ctrller->groups.size();
     reply.emplace("number_of_groups", gs);
-    std::vector<json> groups(gs);
+    vector<json> groups(gs);
     for (int i = 0; i < gs; i++)
     {
         auto &g = ctrller->groups[i];
         auto &v = groups[i];
         v.emplace("group_id", g->GroupId());
         v.emplace("number_of_signs", g->SignCnt());
-        std::vector<int> signs(g->SignCnt());
+        vector<int> signs(g->SignCnt());
         for (int j = 0; j < g->SignCnt(); j++)
         {
             signs[j] = g->GetSigns()[j]->SignId();
@@ -283,18 +289,15 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg)
         v.emplace("signs", signs);
     }
     reply.emplace("groups", groups);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json & reply)
 {
 }
 
 extern const char *FirmwareVer;
-void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "GetStatus");
     reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     reply.emplace("firmware", FirmwareVer);
     reply.emplace("is_online", ctrller->IsOnline());
@@ -307,7 +310,7 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
     reply.emplace("max_temperature", 59);
     reply.emplace("current_temperature", 59);
     int group_cnt = ctrller->groups.size();
-    std::vector<json> groups(group_cnt);
+    vector<json> groups(group_cnt);
     for (int i = 0; i < group_cnt; i++)
     {
         auto &s = ctrller->groups[i];
@@ -319,7 +322,7 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
     reply.emplace("groups", groups);
 
     int sign_cnt = ctrller->signs.size();
-    std::vector<json> signs(sign_cnt);
+    vector<json> signs(sign_cnt);
     for (int i = 0; i < sign_cnt; i++)
     {
         auto &s = ctrller->signs[i];
@@ -355,14 +358,11 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg)
         v.emplace("image", s->GetImageBase64());
     }
     reply.emplace("signs", signs);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json & reply)
 {
     auto &user = DbHelper::Instance().GetUciUser();
-    json reply;
-    reply.emplace("cmd", "GetUserConfig");
     char buf[8];
     sprintf(buf, "0x%02X", user.SeedOffset());
     reply.emplace("seed", buf);
@@ -381,13 +381,10 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg)
     reply.emplace("locked_msg", user.LockedMsg());
     reply.emplace("city", user.City());
     reply.emplace("last_frame_time", user.LastFrmTime());
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "SetUserConfig");
     try
     {
         unsigned char rr_flag = 0;
@@ -395,7 +392,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
         auto broadcast_id = GetInt(msg, "broadcast_id", 0, 255);
         if (device_id == broadcast_id)
         {
-            throw std::string("device_id==broadcast_id");
+            throw string("device_id==broadcast_id");
         }
         auto session_timeout = GetInt(msg, "session_timeout", 0, 65535);
         auto display_timeout = GetInt(msg, "display_timeout", 0, 65535);
@@ -411,7 +408,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
         auto password = GetStrInt(msg, "password", 0, 0xFF);
 
         int tmc_com_port = -1;
-        auto tmc_com_port_str = msg["tmc_com_port"].get<std::string>();
+        auto tmc_com_port_str = msg["tmc_com_port"].get<string>();
         for (int i = 0; i < COMPORT_SIZE; i++)
         {
             if (strcasecmp(tmc_com_port_str.c_str(), COM_NAME[i]) == 0)
@@ -425,7 +422,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
             throw "'tmc_com_port' NOT valid";
         }
         int city = -1;
-        auto city_str = msg["city"].get<std::string>();
+        auto city_str = msg["city"].get<string>();
         for (int i = 0; i < NUMBER_OF_TZ; i++)
         {
             if (strcasecmp(city_str.c_str(), Tz_AU::tz_au[i].city) == 0)
@@ -539,31 +536,25 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg)
         }
         reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
     }
-    catch (const std::string &e)
+    catch (const string &e)
     {
         reply.emplace("result", e);
     }
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json & reply)
 {
     auto &user = DbHelper::Instance().GetUciUser();
-    json reply;
-    reply.emplace("cmd", "GetDimmingConfig");
     reply.emplace("night_level", user.NightDimmingLevel());
     reply.emplace("dawn_dusk_level", user.DawnDimmingLevel());
     reply.emplace("day_level", user.DayDimmingLevel());
     reply.emplace("night_max_lux", user.LuxNightMax());
     reply.emplace("day_min_lux", user.LuxDayMin());
     reply.emplace("18_hours_min_lux", user.Lux18HoursMin());
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "SetDimmingConfig");
     try
     {
         auto night_level = GetInt(msg, "night_level", 1, 8);
@@ -606,26 +597,23 @@ void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg)
         }
         reply.emplace("result", "OK");
     }
-    catch (const std::string &e)
+    catch (const string &e)
     {
         reply.emplace("result", e);
     }
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg)
+void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg)
+void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "ControlDimming");
-    auto grp = msg["groups"].get<std::vector<int>>();
+    auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
     uint8_t cmd[2 + grp.size() * 3];
     cmd[1] = grp.size();
@@ -638,14 +626,11 @@ void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg)
     }
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdSetDimmingLevel(cmd, buf)) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg)
+void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "ControlPower");
-    auto grp = msg["groups"].get<std::vector<int>>();
+    auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
     uint8_t cmd[2 + grp.size() * 2];
     cmd[1] = grp.size();
@@ -657,14 +642,11 @@ void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg)
     }
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg)
+void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "ControlDevice");
-    auto grp = msg["groups"].get<std::vector<int>>();
+    auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
     uint8_t cmd[2 + grp.size() * 2];
     cmd[1] = grp.size();
@@ -676,26 +658,20 @@ void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg)
     }
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg)
+void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "SystemReset");
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
     cmd[2] = msg["level"].get<int>();
     char buf[64];
     reply.emplace("result", (ctrller->CmdSystemReset(cmd, buf) == APP::ERROR::AppNoError) ? "OK" : buf);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg)
+void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "UpdateTime");
-    auto cmd = msg["rtc"].get<std::string>();
+    auto cmd = msg["rtc"].get<string>();
     if (cmd.length() > 0)
     {
         struct tm stm;
@@ -713,15 +689,12 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg)
     {
         reply.emplace("result", "No \"rtc\" in command");
     }
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json & reply)
 {
     auto &prod = DbHelper::Instance().GetUciProd();
-    json reply;
-    reply.emplace("cmd", "GetFrameSetting");
-    std::vector<std::string> frametype{"Text Frame"};
+    vector<string> frametype{"Text Frame"};
     if (prod.PixelRows() < 255 && prod.PixelColumns() < 255)
     {
         frametype.push_back("Graphics Frame");
@@ -729,53 +702,53 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
     frametype.push_back("HR Graphics Frame");
     reply.emplace("frame_type", frametype);
 
-    std::vector<std::string> txt_c;
+    vector<string> txt_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsTxtFrmColourValid(i))
         {
-            txt_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+            txt_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
     }
     reply.emplace("txt_frame_colours", txt_c);
 
-    std::vector<std::string> gfx_c;
+    vector<string> gfx_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsGfxFrmColourValid(i))
         {
-            gfx_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+            gfx_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
     }
     if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
-        gfx_c.push_back(std::string("Multi(4-bit)"));
+        gfx_c.push_back(string("Multi(4-bit)"));
     }
     if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
-        gfx_c.push_back(std::string("RGB(24-bit)"));
+        gfx_c.push_back(string("RGB(24-bit)"));
     }
     reply.emplace("gfx_frame_colours", gfx_c);
 
-    std::vector<std::string> hrg_c;
+    vector<string> hrg_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (prod.IsHrgFrmColourValid(i))
         {
-            hrg_c.push_back(std::string(FrameColour::COLOUR_NAME[i]));
+            hrg_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
     }
     if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
-        hrg_c.push_back(std::string("Multi(4-bit)"));
+        hrg_c.push_back(string("Multi(4-bit)"));
     }
     if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
-        hrg_c.push_back(std::string("RGB(24-bit)"));
+        hrg_c.push_back(string("RGB(24-bit)"));
     }
     reply.emplace("hrg_frame_colours", hrg_c);
 
-    std::vector<int> fonts;
+    vector<int> fonts;
     for (int i = 0; i < prod.MaxFont(); i++)
     {
         if (prod.IsFont(i))
@@ -785,32 +758,29 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg)
     }
     reply.emplace("fonts", fonts);
 
-    std::vector<std::string> conspicuity;
+    vector<string> conspicuity;
     for (int i = 0; i < prod.MaxConspicuity(); i++)
     {
         if (prod.IsConspicuity(i))
         {
-            conspicuity.push_back(std::string(Conspicuity[i]));
+            conspicuity.push_back(string(Conspicuity[i]));
         }
     }
     reply.emplace("conspicuity", conspicuity);
 
-    std::vector<std::string> annulus;
+    vector<string> annulus;
     for (int i = 0; i < prod.MaxAnnulus(); i++)
     {
         if (prod.IsAnnulus(i))
         {
-            annulus.push_back(std::string(Annulus[i]));
+            annulus.push_back(string(Annulus[i]));
         }
     }
     reply.emplace("annulus", annulus);
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "GetStoredFrame");
     auto id = msg["id"].get<int>();
     reply.emplace("id", id);
     auto &ucifrm = DbHelper::Instance().GetUciFrm();
@@ -830,7 +800,7 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
             reply.emplace("type", "Text Frame");
             auto &rawdata = frm->stFrm.rawData;
             reply.emplace("font", rawdata[3]);
-            std::vector<char> txt(rawdata[6] + 1);
+            vector<char> txt(rawdata[6] + 1);
             memcpy(txt.data(), rawdata.data() + 7, rawdata[6]);
             txt.back() = '\0';
             reply.emplace("text", txt.data());
@@ -838,115 +808,88 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg)
         else if (frm->micode == 0x0B || frm->micode == 0x1D)
         {
             reply.emplace("type", (frm->micode == 0x0B) ? "Graphics Frame" : "HR Graphics Frame");
-            auto fi = new FrameImage();
+            unique_ptr<FrameImage> fi(new FrameImage());
             fi->SetId(0, id);
             fi->FillCoreFromUciFrame();
             reply.emplace("image", fi->Save2Base64().data());
-            delete fi;
         }
     }
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg)
+void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg)
+void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "DisplayFrame");
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
     cmd[2] = msg["frame_id"].get<int>();
     auto r = ctrller->CmdDispFrm(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json & reply)
+{
+
+}
+
+void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg)
+void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, json & reply)
 {
-}
-
-void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg)
-{
-    json reply;
-    reply.emplace("cmd", "DisplayMessage");
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
     cmd[2] = msg["message_id"].get<int>();
     auto r = ctrller->CmdDispMsg(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg)
+void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg)
+void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json & reply)
 {
 }
 
-void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "RetrieveFaultLog");
-    auto applen = DbHelper::Instance().GetUciFault().GetLog(reply);
-    my_mg_ws_send(c, reply);
+    DbHelper::Instance().GetUciFault().GetLog(reply);
 }
 
-void WsServer::CMD_RetrieveAlarmLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_RetrieveAlarmLog(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "RetrieveAlarmLog");
-    auto applen = DbHelper::Instance().GetUciAlarm().GetLog(reply);
-    my_mg_ws_send(c, reply);
+    DbHelper::Instance().GetUciAlarm().GetLog(reply);
 }
 
-void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "RetrieveEventLog");
-    auto applen = DbHelper::Instance().GetUciEvent().GetLog(reply);
-    my_mg_ws_send(c, reply);
+    DbHelper::Instance().GetUciEvent().GetLog(reply);
 }
 
-void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg, json & reply)
 {
     DbHelper::Instance().GetUciFault().Reset();
-    json reply;
-    reply.emplace("cmd", "ResetFaultLog");
     reply.emplace("result", "OK");
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg, json & reply)
 {
     DbHelper::Instance().GetUciAlarm().Reset();
-    json reply;
-    reply.emplace("cmd", "ResetAlarmLog");
     reply.emplace("result", "OK");
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg)
+void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json & reply)
 {
     DbHelper::Instance().GetUciEvent().Reset();
-    json reply;
-    reply.emplace("cmd", "ResetEventLog");
     reply.emplace("result", "OK");
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
+void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "SignTest");
     uint8_t cmd[5];
     cmd[0] = 0xFA;
     cmd[1] = 0x30;
@@ -954,7 +897,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
     cmd[3] = 255;
     cmd[4] = 255;
     auto p = DbHelper::Instance().GetUciProd();
-    std::string colour = msg["colour"].get<std::string>();
+    string colour = msg["colour"].get<string>();
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (strcasecmp(FrameColour::COLOUR_NAME[i], colour.c_str()) == 0)
@@ -962,7 +905,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
             cmd[3] = i;
         }
     }
-    std::string pixels = msg["pixels"].get<std::string>();
+    string pixels = msg["pixels"].get<string>();
     for (int i = 0; i < TEST_PIXELS_SIZE; i++)
     {
         if (strcasecmp(TestPixels[i], pixels.c_str()) == 0)
@@ -972,16 +915,13 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg)
     }
     APP::ERROR r = ctrller->CmdSignTest(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
-    my_mg_ws_send(c, reply);
 }
 
-void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg)
+void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json & reply)
 {
-    json reply;
-    reply.emplace("cmd", "DispAtomic");
-    std::vector<json> content = msg["content"].get<std::vector<json>>();
+    vector<json> content = msg["content"].get<vector<json>>();
     int len = content.size();
-    uint8_t *cmd = new uint8_t[3 + len * 2];
+    unique_ptr<uint8_t []> cmd(new uint8_t[3 + len * 2]);
     cmd[0] = 0x2B;
     cmd[1] = msg["group_id"].get<int>();
     cmd[2] = len;
@@ -991,8 +931,6 @@ void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg)
         cmd[3 + i * 2] = x["sign_id"].get<int>();
         cmd[3 + i * 2 + 1] = x["frame_id"].get<int>();
     }
-    APP::ERROR r = ctrller->CmdDispAtomicFrm(cmd, 3 + len * 2);
+    APP::ERROR r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
-    my_mg_ws_send(c, reply);
-    delete cmd;
 }

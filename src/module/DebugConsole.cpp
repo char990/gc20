@@ -7,6 +7,9 @@
 #include <module/Epoll.h>
 #include <module/Utils.h>
 
+using namespace std;
+using namespace Utils;
+
 const Command DebugConsole::CMD_LIST[] = {
     {"?",
      "This help",
@@ -97,15 +100,15 @@ void DebugConsole::Process()
     {
         return;
     }
-    char **argv = new char *[argc + 1];
-    argz_extract(argz, argz_len, argv);
+    vector<char *> argv(argc + 1);
+    argz_extract(argz, argz_len, argv.data());
     int i = 0;
     int j = Utils::countof(CMD_LIST);
     do
     {
-        if (strcmp(argv[0], CMD_LIST[i].cmd) == 0)
+        if (strcasecmp(argv[0], CMD_LIST[i].cmd) == 0)
         {
-            (*CMD_LIST[i].function)(argc, argv);
+            (*CMD_LIST[i].function)(argc, argv.data());
             break;
         }
         i++;
@@ -113,12 +116,11 @@ void DebugConsole::Process()
     if (i == j)
     {
         printf("Unknown command\nPlease use command from the Command list:\n");
-        Cmd_help(argc, argv);
+        Cmd_help(argc, argv.data());
     }
     printf("\n=>");
     fflush(stdout);
     free(argz);
-    delete (argv);
 }
 
 void DebugConsole::Cmd_help(int argc, char *argv[])
