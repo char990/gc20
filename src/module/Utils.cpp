@@ -161,20 +161,26 @@ char *Cnvt::ParseToStr(uint8_t *src, char *dst, int srclen)
     return p;
 }
 
+char *Cnvt::ParseUintToAsc(uint8_t *src, char *dst, int srclen)
+{
+    uint8_t *p = src + srclen - 1; 
+    for (int i = 0; i < srclen; i++)
+    {
+        ParseToAsc(*p, dst);
+        p--;
+        dst += 2;
+    }
+    return dst;
+}
+
 char *Cnvt::ParseU16ToAsc(uint16_t h, char *p)
 {
-    p = ParseToAsc(h / 0x100, p);
-    p = ParseToAsc(h & 0xFF, p);
-    return p;
+    return ParseUintToAsc((uint8_t *)&h, p, 2);
 }
 
 char *Cnvt::ParseU32ToAsc(uint32_t h, char *p)
 {
-    p = ParseToAsc(h / 0x1000000, p);
-    p = ParseToAsc(h / 0x10000, p);
-    p = ParseToAsc(h / 0x100, p);
-    p = ParseToAsc(h & 0xFF, p);
-    return p;
+    return ParseUintToAsc((uint8_t *)&h, p, 4);
 }
 
 int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)

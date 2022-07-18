@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <module/SerialPort.h>
 #include <module/IOperator.h>
 #include <layer/ILayer.h>
@@ -9,11 +8,11 @@
 class OprSp : public IOperator
 {
 public:
-    OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer);
-    OprSp(uint8_t comX, int bps, IUpperLayer * upperLayer, int rxbufsize);
+    OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer);
+    OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer, int rxbufsize);
     ~OprSp();
 
-    const char* Name() { return sp->Config().name; };
+    const char *Name() { return sp->Config().name; };
     int ComX() { return comX; };
     int Bps() { return sp->Config().baudrate; };
 
@@ -21,7 +20,7 @@ public:
     /// \brief  Called by upperLayer
     virtual bool IsTxReady() override;
     /// \brief  Called by upperLayer
-    virtual int Tx(uint8_t * data, int len) override;
+    virtual int Tx(uint8_t *data, int len) override;
 
     /// \brief  Called by Eepoll, receiving & sending handle
     virtual void EventsHandle(uint32_t events) override;

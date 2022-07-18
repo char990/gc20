@@ -114,7 +114,7 @@ public:
 
     uint8_t LoadLastDisp() { return loadLastDisp; };
 
-    uint8_t MonitoringPort() { return monitoringPort; };
+    int MonitoringPort() { return monitoringPort; };
     int MonitoringBps() { return monitoringBps; };
 
 private:
@@ -268,7 +268,7 @@ private:
     int gfx4FrmLen;
     int gfx24FrmLen;
 
-    uint8_t monitoringPort;
+    int monitoringPort{-1};
     const char *_MonitoringPort = "MonitoringPort";
     int monitoringBps;
     const char *_MonitoringBps = "MonitoringBps";

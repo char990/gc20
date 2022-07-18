@@ -14,7 +14,7 @@ OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer)
 OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer, int rxbufsize)
     : IOperator(rxbufsize)
 {
-    this->comX = comX; 
+    this->comX = comX;
     SpConfig &spCfg = gSpConfig[comX];
     spCfg.baudrate = bps;
     sp = new SerialPort(spCfg);

@@ -293,9 +293,17 @@ void UciProd::LoadConfig()
         }
     }
 
-    monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
-
-    monitoringBps = GetInt(uciSec, _MonitoringBps, ALLOWEDBPS, STANDARDBPS_SIZE);
+    try
+    {
+        monitoringPort = GetIndexFromStrz(uciSec, _MonitoringPort, COM_NAME, COMPORT_SIZE);
+    }
+    catch (...)
+    {
+    }
+    if (monitoringPort >= 0)
+    {
+        monitoringBps = GetInt(uciSec, _MonitoringBps, ALLOWEDBPS, STANDARDBPS_SIZE);
+    }
 
     /********************* SignX ******************/
     signCfg.resize(numberOfSigns);
@@ -549,8 +557,11 @@ void UciProd::Dump()
         PrintOption_str(_IslusSpFrm, bIslusSpFrm.ToString().c_str());
     }
 
-    PrintOption_str(_MonitoringPort, COM_NAME[monitoringPort]);
-    PrintOption_d(_MonitoringBps, MonitoringBps());
+    if (monitoringPort >= 0)
+    {
+        PrintOption_str(_MonitoringPort, COM_NAME[monitoringPort]);
+        PrintOption_d(_MonitoringBps, MonitoringBps());
+    }
 
     PrintOption_d(_SlaveBpsPort, SignCfg::bps_port);
     PrintOption_d(_NumberOfGroups, NumberOfGroups());

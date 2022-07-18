@@ -52,11 +52,11 @@ const char *MAKE = "Release";
 #define __BUILDTIME__ (__DATE__ " " __TIME__ " UTC")
 #endif
 
-int PrintfVersion_(bool start, char * buf)
+int PrintfVersion_(bool start, char *buf)
 {
     return snprintf(buf, 63, "%s* %s ver:%s @ %s *",
-                       start?">>> START >>> ":"", 
-                       MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
+                    start ? ">>> START >>> " : "",
+                    MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
 }
 
 void PrintVersion(bool start)
@@ -103,7 +103,7 @@ public:
                 struct tm stm;
                 localtime_r(&t1, &stm);
                 Ldebug("DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
-                         stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
+                       stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
                 Utils::Time::SetLocalTime(stm);
             }
             else
@@ -222,9 +222,9 @@ int main(int argc, char *argv[])
 
         // 2(tmr) + 1+8*2(nts) + 1+4*2(web) + 7*2(com) + 1(led) + 1(debugconsole) = 44
         Epoll::Instance().Init(64);
-        auto ctrllerTmrEvt = new TimerEvent {CTRLLER_TICK, "[ctrllerTmrEvt]"};
-        auto timerEvt100ms = new TimerEvent {100, "[tmrEvt100ms:100ms]"};
-        auto tmrEvt1Sec = new TimerEvent {1000, "[tmrEvt1Sec]"};
+        auto ctrllerTmrEvt = new TimerEvent{CTRLLER_TICK, "[ctrllerTmrEvt]"};
+        auto timerEvt100ms = new TimerEvent{100, "[tmrEvt100ms:100ms]"};
+        auto tmrEvt1Sec = new TimerEvent{1000, "[tmrEvt1Sec]"};
         tmrEvt1Sec->Add(pTickTock);
         auto console = new DebugConsole();
 
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
         Controller::Instance().Init(ctrllerTmrEvt);
 
         LogResetTime();
-        //AllGroupPowerOn();
+        // AllGroupPowerOn();
 
         UciProd &prod = DbHelper::Instance().GetUciProd();
         UciUser &user = DbHelper::Instance().GetUciUser();
@@ -245,8 +245,11 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485
         IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[user.ComPort()], "NTS");
         oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
-        LayerWeb::monitor = LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
-            new OprSp{prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024 * 1024};
+        if (prod.MonitoringPort() >= 0)
+        {
+            LayerWeb::monitor = LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
+                new OprSp{(uint8_t)prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024 * 1024};
+        }
         // Slaves
         if (SignCfg::bps_port > 0)
         { // Slaves of Groups on RS485
@@ -268,7 +271,7 @@ int main(int argc, char *argv[])
         }
 
         // TSI-SP-003 Web
-        //auto tcpServerWeb = new TcpServer {user.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
+        // auto tcpServerWeb = new TcpServer {user.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
         auto wsServer = new WsServer{user.WebPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
         auto tcpServerNts = new TcpServer{user.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
@@ -285,12 +288,12 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &e)
     {
-        //muntrace();
+        // muntrace();
         Ldebug("\n!!! main exception :%s", e.what());
         return 255;
         // clean
     }
-    //muntrace();
+    // muntrace();
 }
 
 // E-O-F

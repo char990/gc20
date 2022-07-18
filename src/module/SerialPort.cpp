@@ -12,8 +12,9 @@
 
 using namespace std;
 
-int ALLOWEDBPS[EXTENDEDBPS_SIZE] = {
-	300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+int ALLOWEDBPS[EXTENDEDBPS_SIZE] =
+	{
+		300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
 
 const char *COM_NAME[COMPORT_SIZE] =
 	{
@@ -33,8 +34,7 @@ SpConfig gSpConfig[COMPORT_SIZE] =
 		SpConfig{COM_NAME[3], "/dev/ttymxc5", SpConfig::SpMode::RS232},
 		SpConfig{COM_NAME[4], "/dev/ttymxc4", SpConfig::SpMode::RS232},
 		SpConfig{COM_NAME[5], "/dev/ttySC0", SpConfig::SpMode::RS485_01},
-		SpConfig{COM_NAME[6], "/dev/ttySC1", SpConfig::SpMode::RS485_01},
-};
+		SpConfig{COM_NAME[6], "/dev/ttySC1", SpConfig::SpMode::RS485_01}};
 
 SerialPort::SerialPort(SpConfig &config)
 	: spConfig(config), spFileDesc(-1)
@@ -50,7 +50,7 @@ SerialPort::~SerialPort()
 int SerialPort::Open()
 {
 	// Attempt to open file
-	//this->fileDesc = open(this->filePath, O_RDWR | O_NOCTTY | O_NDELAY);
+	// this->fileDesc = open(this->filePath, O_RDWR | O_NOCTTY | O_NDELAY);
 
 	// O_RDONLY for read-only, O_WRONLY for write only, O_RDWR for both read/write access
 	// 3rd, optional parameter is mode_t mode
@@ -134,8 +134,8 @@ void SerialPort::ConfigureTermios()
 	//===================== (.c_oflag) =================//
 
 	tty.c_oflag = 0; // No remapping, no delays
-	//tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-	//tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
+	// tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
+	// tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
 
 	//================= CONTROL CHARACTERS (.c_cc[]) ==================//
 
@@ -182,11 +182,7 @@ void SerialPort::ConfigureTermios()
 											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 	rs485conf.flags = 0;
-	if (spConfig.mode == SpConfig::SpMode::RS232)
-	{
-		rs485conf.flags &= ~SER_RS485_ENABLED;
-	}
-	else
+	if (spConfig.mode != SpConfig::SpMode::RS232)
 	{
 		rs485conf.flags |= SER_RS485_ENABLED |
 						   (spConfig.mode == SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);

@@ -163,11 +163,18 @@ namespace Utils
         /// \return     next byte of dst
         static char *ParseToStr(uint8_t *src, char *dst, int srclen);
 
+        /// \brief  parse uint at src to Asc. For ParseU16ToAsc/ParseU32ToAsc
+        /// \param      src : hex buffer
+        /// \param      dst : ascii buffer
+        /// \param      srclen : hex len ( = asc_len / 2)
+        /// \return     next byte of dst
+        static char *ParseUintToAsc(uint8_t *src, char *dst, int srclen);
+
         /// \brief  parse uint16_t to 4 Asc. Example: 0x1F09 => "1F09"
         /// \return     next byte of dst
         static char *ParseU16ToAsc(uint16_t h, char *dst);
 
-        /// \brief  parse uint32_t to 4 Asc. Example: 0x1F09 => "1F09"
+        /// \brief  parse uint32_t to 8 Asc. Example: 0x1F09342E => "1F09342E"
         /// \return     next byte of dst
         static char *ParseU32ToAsc(uint32_t h, char *dst);
 

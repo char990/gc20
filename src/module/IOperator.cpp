@@ -66,10 +66,9 @@ int IOperator::TxHandle()
 
     int len = txsize - txcnt;
     int n = write(eventFd, optxbuf + txcnt, len);
-    if (n < 0)
+    if (n <= 0)
     {
-        ClrTx();
-        r = -1;
+        r = len;
     }
     else if (n <= len)
     {
