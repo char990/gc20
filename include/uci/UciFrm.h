@@ -19,16 +19,9 @@ E.g.
         0B64......
     frm_101:HrGfxFrame
         1D65......
+If frame CRC is "0000", ignore it and make a real crc to replace it
+ or
 If frame CRC is not matched, discard frame
-
-islus_frame is only for ISLUS, in order to get the real gfx frame related to frm_xxx
-Filename: "./config/islus_frm_xxx"
-islus_frm_xxx : xxx is frame ID, 001-255, 0 is not allowed
-file content is same as SetGfxFrame
-E.g.
-    islus_frm_100:GfxFrame
-        0B64......
-The RED CROSS should have a special defination
 --- End ---
 */
 class UciFrm

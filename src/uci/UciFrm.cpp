@@ -65,16 +65,10 @@ void UciFrm::LoadFrms(const char *FMT)
 				{
 					len--;
 				}
-				bool fakeCRC = false;
-				if (memcmp(v.data() + len - 4, "!!!!", 4) == 0) // if crc is "!!!!", make crc
-				{
-					memset(v.data() + len - 4, '0', 4);
-					fakeCRC = true;
-				}
 				if (Cnvt::ParseToU8(v.data(), b.data(), len) == 0)
 				{
 					len /= 2;
-					if (fakeCRC)
+					if (b.at(len - 2) == 0 && b.at(len - 1) == 0) // if crc is 0x0000, make crc
 					{
 						Cnvt::PutU16(Crc::Crc16_1021(b.data(), len - 2), b.data() + len - 2);
 					}
