@@ -163,7 +163,7 @@ char *Cnvt::ParseToStr(uint8_t *src, char *dst, int srclen)
 
 char *Cnvt::ParseUintToAsc(uint8_t *src, char *dst, int srclen)
 {
-    uint8_t *p = src + srclen - 1; 
+    uint8_t *p = src + srclen - 1;
     for (int i = 0; i < srclen; i++)
     {
         ParseToAsc(*p, dst);
@@ -257,8 +257,8 @@ void Cnvt::split(const string &s, vector<string> &tokens, const string &delimite
 
 union si16_
 {
-	uint8_t u8a[2];
-	int16_t i16;
+    uint8_t u8a[2];
+    int16_t i16;
 };
 uint16_t Cnvt::SwapU16(uint16_t v)
 {
@@ -782,33 +782,54 @@ int Time::ParseLocalStrToTm(const char *pbuf, struct tm *stm)
         return -1;
     }
     stm->tm_mday = mday;
-    stm->tm_mon = mon-1;
-    stm->tm_year = year-1900;
+    stm->tm_mon = mon - 1;
+    stm->tm_year = year - 1900;
     stm->tm_hour = hour;
     stm->tm_min = min;
     stm->tm_sec = sec;
     stm->tm_isdst = -1;
-    return IsTmValid(*stm)?0:-1;
+    return IsTmValid(*stm) ? 0 : -1;
 }
 
-void BitOffset::SetBit(uint8_t *buf, int bitOffset)
+void BitOffset::Set07Bit(uint8_t *buf, int bitOffset)
 {
     uint8_t *p = buf + bitOffset / 8;
     uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
     *p |= b;
 }
 
-void BitOffset::ClrBit(uint8_t *buf, int bitOffset)
+void BitOffset::Clr07Bit(uint8_t *buf, int bitOffset)
 {
     uint8_t *p = buf + bitOffset / 8;
     uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
     *p &= ~b;
 }
 
-bool BitOffset::GetBit(uint8_t *buf, int bitOffset)
+bool BitOffset::Get07Bit(uint8_t *buf, int bitOffset)
 {
     uint8_t *p = buf + bitOffset / 8;
     uint8_t b = MASK_BIT[7 - (bitOffset & 7)];
+    return (*p & b) != 0;
+}
+
+void BitOffset::Set70Bit(uint8_t *buf, int bitOffset)
+{
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[(bitOffset & 7)];
+    *p |= b;
+}
+
+void BitOffset::Clr70Bit(uint8_t *buf, int bitOffset)
+{
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[(bitOffset & 7)];
+    *p &= ~b;
+}
+
+bool BitOffset::Get70Bit(uint8_t *buf, int bitOffset)
+{
+    uint8_t *p = buf + bitOffset / 8;
+    uint8_t b = MASK_BIT[(bitOffset & 7)];
     return (*p & b) != 0;
 }
 
@@ -833,13 +854,13 @@ Bits::~Bits()
 void Bits::SetBit(int bitOffset)
 {
     Check(bitOffset);
-    BitOffset::SetBit(data.data(), bitOffset);
+    BitOffset::Set07Bit(data.data(), bitOffset);
 }
 
 void Bits::ClrBit(int bitOffset)
 {
     Check(bitOffset);
-    BitOffset::ClrBit(data.data(), bitOffset);
+    BitOffset::Clr07Bit(data.data(), bitOffset);
 }
 
 void Bits::ClrAll()
@@ -850,7 +871,7 @@ void Bits::ClrAll()
 bool Bits::GetBit(int bitOffset)
 {
     Check(bitOffset);
-    return BitOffset::GetBit(data.data(), bitOffset);
+    return BitOffset::Get07Bit(data.data(), bitOffset);
 }
 
 std::string Bits::ToString()
@@ -859,7 +880,7 @@ std::string Bits::ToString()
     int len = 0;
     for (int i = 0; i < size && i < 256; i++)
     {
-        if (BitOffset::GetBit(data.data(), i))
+        if (BitOffset::Get07Bit(data.data(), i))
         {
             len += sprintf(buf + len, (len == 0) ? "%d" : ",%d", i);
         }
@@ -880,7 +901,7 @@ int Bits::GetMaxBit()
     int max = -1;
     for (int i = 0; i < size; i++)
     {
-        if (BitOffset::GetBit(data.data(), i))
+        if (BitOffset::Get07Bit(data.data(), i))
         {
             max = i;
         }
@@ -931,6 +952,19 @@ int StrFn::vsPrint(vector<string> *vs)
         }
     }
     return len;
+}
+
+int Pick::PickStr(const char * v, const char ** src, const int len, const bool ignore_case)
+{
+    auto F = (ignore_case) ? strcasecmp : strcmp;
+    for (int i = 0; i < len; i++)
+    {
+        if (F(v,*src++)==0)
+        {
+            return i;
+        }
+    }
+    return -1;
 }
 
 #if 0

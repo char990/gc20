@@ -5,6 +5,7 @@
 #include <module/Utils.h>
 
 using namespace std;
+using namespace Utils;
 
 const char *annulus_on = "config/annulus_on.bmp";
 const char *annulus_off = "config/annulus_off.bmp";
@@ -25,7 +26,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     int annulus = (f_conspicuity >> 3) & 0x03;
     if (annulus == 3)
         annulus = 0;
-    bmp.ReadFromFile(annulus ? annulus_on : annulus_off);
+    ReadFromFile(annulus ? annulus_on : annulus_off);
     int lantern = f_conspicuity & 0x07;
     if (lantern > 5)
         lantern = 0;
@@ -53,9 +54,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
         {
             for (int i = coreOffsetX; i < (coreOffsetX + coreColumns); i++)
             {
-                int x = bitOffset / 8;
-                int b = 1 << (bitOffset & 0x07);
-                if (p[x] & b)
+                if (BitOffset::Get70Bit(p, bitOffset))
                 {
                     bmp.SetPixel(i, j, rgba);
                 }
@@ -125,22 +124,22 @@ void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
         {
             char islus_xxx[256];
             sprintf(islus_xxx, islus_sp_frm, frame[6]);
-            bmp.ReadFromFile(islus_xxx);
+            ReadFromFile(islus_xxx);
         }
         else
         {
-            bmp.ReadFromFile(annulus_off);
+            ReadFromFile(annulus_off);
         }
-        bmp.WriteToFile(filename);
+        WriteToFile(filename);
         return;
     }
     if (frame[1] != 0x0B)
     {
-        bmp.ReadFromFile(annulus_off);
+        ReadFromFile(annulus_off);
         return;
     }
     FillCore(frame[6], frame[7], frame + 10);
-    bmp.WriteToFile(filename);
+    WriteToFile(filename);
 }
 
 void FrameImage::FillCoreFromUciFrame()
@@ -156,8 +155,8 @@ void FrameImage::FillCoreFromUciFrame()
     {
         char islus_xxx[256];
         sprintf(islus_xxx, islus_sp_frm, frmId);
-        bmp.ReadFromFile(islus_xxx);
-        bmp.WriteToFile(filename);
+        ReadFromFile(islus_xxx);
+        WriteToFile(filename);
         return;
     }
     auto frm = DbHelper::Instance().GetUciFrm().GetFrm(frmId);
@@ -166,7 +165,28 @@ void FrameImage::FillCoreFromUciFrame()
         return;
     }
     FillCore(frm->colour, frm->conspicuity, frm->stFrm.rawData.data() + frm->frmOffset);
-    bmp.WriteToFile(filename);
+    WriteToFile(filename);
+}
+
+void FrameImage::LoadBmpFromBase64(const char *base64, int len)
+{
+    vector<char> bmpbuf(len / 4 * 3);
+    int blen = mg_base64_encode((const unsigned char *)base64, len, bmpbuf.data());
+
+    int fd = open(uci_frame, O_WRONLY);
+    if(fd<0)
+    {
+        throw std::string("Can't open ") + uci_frame;
+    }
+    write(fd, bmpbuf.data(), blen);
+    close(fd);
+
+    ReadFromFile(uci_frame);
+
+    newImg = false;
+    base64Img.resize(len + 1);
+    memcpy(base64Img.data(), base64, len);
+    base64Img.back() = '\0';
 }
 
 std::vector<char> &FrameImage::Save2Base64()
@@ -216,4 +236,22 @@ std::vector<char> &FrameImage::Save2Base64()
         newImg = false;
     }
     return base64Img;
+}
+
+bool FrameImage::ReadFromFile(const char * filename)
+{
+    if(bmp.ReadFromFile(filename)==false)
+    {
+        throw std::string("Write file error: ") + filename;
+    }
+    return true;
+}
+
+bool FrameImage::WriteToFile(const char * filename)
+{
+    if(bmp.WriteToFile(filename)==false)
+    {
+        throw std::string("Write file error: ") + filename;
+    }
+    return true;
 }

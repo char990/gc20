@@ -371,13 +371,18 @@ namespace Utils
     };
 
     /// \brief  Set/Clr bit in uint8_t *buf
-    /// bifOffset is from [0:7](0), ..., [0:0](7), [1:7](8), ..., [1:0](15), ...
+    /// E.g. {0x80,0x02}
+    /// 07Bit stands for (bitOffset&0x07) is from higher bit in byte : bit[0]=1, bit[1-13]=0, bit[14]=1, bit[15]=0
+    /// 70Bit stands for (bitOffset&0x07) is from higher bit in byte : bit[0-6]=0, bit[7]=1, bit[8]=0, bit[9]=1, bit[10-15]=0
     class BitOffset
     {
     public:
-        static void SetBit(uint8_t *buf, int bitOffset);
-        static void ClrBit(uint8_t *buf, int bitOffset);
-        static bool GetBit(uint8_t *buf, int bitOffset);
+        static void Set07Bit(uint8_t *buf, int bitOffset);
+        static void Clr07Bit(uint8_t *buf, int bitOffset);
+        static bool Get07Bit(uint8_t *buf, int bitOffset);
+        static void Set70Bit(uint8_t *buf, int bitOffset);
+        static void Clr70Bit(uint8_t *buf, int bitOffset);
+        static bool Get70Bit(uint8_t *buf, int bitOffset);
     };
 
     class Bits
@@ -434,8 +439,27 @@ namespace Utils
     class StrFn
     {
     public:
-        static std::vector<std::string> Split(const std::string& i_str, const std::string& i_delim);
+        static std::vector<std::string> Split(const std::string &i_str, const std::string &i_delim);
         static int vsPrint(std::vector<std::string> *vs);
     };
-    
+
+    class Pick
+    {
+    public:
+        template <typename T>
+        static int PickInt(const T v, const T *src, const int len)
+        {
+            for (int i = 0; i < len; i++)
+            {
+                if (v == *src++)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        };
+
+        static int PickStr(const char *v, const char **src, const int len, const bool ignore_case=false);
+    };
+
 } // namespace Utils

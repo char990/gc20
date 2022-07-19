@@ -478,35 +478,55 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     auto &prod = DbHelper::Instance().GetUciProd();
     auto rows = prod.PixelRows();
     auto columns = prod.PixelColumns();
-    auto frmlen = prod.Gfx1FrmLen();
-    std::vector<uint8_t> frm(frmlen + 15);
-    frm[0] = static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame);
-    frm[1] = 255;
-    frm[2] = 255;
-    Cnvt::PutU16(rows, frm.data() + 3);
-    Cnvt::PutU16(columns, frm.data() + 5);
-    frm[7] = colourId;
-    frm[8] = 0;
-    Utils::Cnvt::PutU32(frmlen, frm.data() + 9);
-    if (pixels == 1 || pixels == 2)
+    auto corelen = prod.Gfx1CoreLen();
+    int f_offset;
+    std::vector<uint8_t> frm;
+    if (rows < 255 && columns < 255)
     {
+        f_offset = 9;
+        frm.resize(corelen + f_offset + 2);
+        frm[0] = static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame);
+        frm[1] = 255;
+        frm[2] = 255;
+        frm[3] = rows;
+        frm[4] = columns;
+        frm[5] = colourId;
+        frm[6] = 0;
+        Utils::Cnvt::PutU16(corelen, frm.data() + 7);
+    }
+    else
+    {
+        f_offset = 13;
+        frm.resize(corelen + f_offset + 2);
+        frm[0] = static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame);
+        frm[1] = 255;
+        frm[2] = 255;
+        Cnvt::PutU16(rows, frm.data() + 3);
+        Cnvt::PutU16(columns, frm.data() + 5);
+        frm[7] = colourId;
+        frm[8] = 0;
+        Utils::Cnvt::PutU32(corelen, frm.data() + 9);
+    }
+
+    if (pixels == 1 || pixels == 2)
+    { // odd(1)/even(2) rows
+        uint8_t *core = frm.data() + f_offset;
+        memset(core, 0, corelen);
         int bitOffset = 0;
-        int p = pixels - 1; // odd=0, even=1
-        for (int j = 0; j < rows; j++)
+        for (int j = pixels - 1; j < rows; j += 2)
         {
             for (int i = 0; i < columns; i++)
             {
-                int x = bitOffset / 8;
-                uint8_t b = 1 << (bitOffset & 0x07);
-                frm.at(13 + x) = ((j & 1) == p) ? (frm.at(13 + x) | b) : (frm.at(13 + x) & (~b));
-                bitOffset++;
+                BitOffset::Set70Bit(core, bitOffset++);
             }
+            bitOffset += columns;
         }
     }
     else
     {
-        memset(frm.data() + 13, (pixels == 0) ? 0xFF : ((pixels == 3) ? 0x55 : 0xAA), frmlen);
+        memset(frm.data() + f_offset, (pixels == 0) ? 0xFF : ((pixels == 3) ? 0x55 : 0xAA), corelen);
     }
+
     Cnvt::PutU16(Crc::Crc16_1021(frm.data(), frm.size() - 2), frm.data() + frm.size() - 2);
     UciFrm &ucifrm = db.GetUciFrm();
     auto r = ucifrm.SetFrm(frm.data(), frm.size());
@@ -515,7 +535,7 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
         return r;
     }
     ucifrm.SaveFrm(255);
-    db.GetUciEvent().Push(0, "SignTest:SetHrgFrame[255]:Colour:%s,Pixels:%s",
+    db.GetUciEvent().Push(0, "SignTest:SetFrame[255]:Colour:%s,Pixels:%s",
                           FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
     r = grp->DispFrm(255, true);
     if (r == APP::ERROR::AppNoError)

@@ -424,15 +424,15 @@ void UciProd::LoadConfig()
 
     pixels = (uint32_t)pixelRows * pixelColumns;
 
-    gfx1FrmLen = 0;
-    gfx4FrmLen = 0;
-    gfx24FrmLen = 0;
+    gfx1CoreLen = 0;
+    gfx4CoreLen = 0;
+    gfx24CoreLen = 0;
     int sesrtype = mfcCode[5] - '0';
     if (sesrtype == 0)
     {
         extStsRplSignType = SESR_SIGN_TYPE::TEXT;
         configRplSignType = SCR_SIGN_TYPE::TEXT;
-        maxFrmLen = 255;
+        maxCoreLen = 255;
     }
     else if (sesrtype == 1 || sesrtype == 2)
     {
@@ -441,21 +441,21 @@ void UciProd::LoadConfig()
         {
         case 1:
             configRplSignType = SCR_SIGN_TYPE::GFXMONO;
-            gfx1FrmLen = (pixels + 7) / 8;
-            maxFrmLen = gfx1FrmLen;
+            gfx1CoreLen = (pixels + 7) / 8;
+            maxCoreLen = gfx1CoreLen;
             break;
         case 4:
             configRplSignType = SCR_SIGN_TYPE::GFXMULTI;
-            gfx1FrmLen = (pixels + 7) / 8;
-            gfx4FrmLen = (pixels + 1) / 2;
-            maxFrmLen = gfx4FrmLen;
+            gfx1CoreLen = (pixels + 7) / 8;
+            gfx4CoreLen = (pixels + 1) / 2;
+            maxCoreLen = gfx4CoreLen;
             break;
         case 24:
             configRplSignType = SCR_SIGN_TYPE::GFXRGB24;
-            gfx1FrmLen = (pixels + 7) / 8;
-            gfx4FrmLen = (pixels + 1) / 2;
-            gfx24FrmLen = pixels * 3;
-            maxFrmLen = gfx24FrmLen;
+            gfx1CoreLen = (pixels + 7) / 8;
+            gfx4CoreLen = (pixels + 1) / 2;
+            gfx24CoreLen = pixels * 3;
+            maxCoreLen = gfx24CoreLen;
             break;
         default:
             throw std::invalid_argument("Unknown ColourBits in UciProd");

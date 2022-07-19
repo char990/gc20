@@ -193,13 +193,13 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
         Pdebug("<<<mg_ws_message<<<\n%s", p);
     }
 
-    if (json::accept(p,true))
+    if (json::accept(p, true))
     {
         wsMsg[c]->len = 0; // clear msgbuf
     }
     else
     {
-        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf,true))
+        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf, true))
         {
             wsMsg[c]->len = 0; // clear msgbuf
             p = wsMsg[c]->buf;
@@ -231,7 +231,7 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
             }
             reply.emplace("result", "Unknown cmd:" + cmd);
         }
-        catch(exception & e)
+        catch (exception &e)
         {
             reply.emplace("result", e.what());
         }
@@ -239,14 +239,26 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
     }
 }
 
-void WsServer::CMD_Login(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
     auto msgp = msg["password"].get<string>();
-    wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciUser().ShakehandsPassword()) == 0 || msgp.compare("Br1ghtw@y") == 0);
+    auto msgu = msg["user"].get<string>();
+    if (msgu.compare("user") == 0)
+    {
+        wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciUser().ShakehandsPassword()) == 0);
+    }
+    else if (msgu.compare("Administrator") == 0)
+    {
+        wsMsg[c]->login = (msgp.compare("Br1ghtw@y") == 0);
+    }
+    else
+    {
+    }
+    reply.emplace("user", msgu);
     reply.emplace("result", wsMsg[c]->login ? "OK" : "Wrong password");
 }
 
-void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply)
 {
     auto &user = DbHelper::Instance().GetUciUser();
     auto cp = msg["current"].get<string>();
@@ -270,7 +282,7 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json & rep
     }
 }
 
-void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &reply)
 {
     auto gs = ctrller->groups.size();
     reply.emplace("number_of_groups", gs);
@@ -291,12 +303,12 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json & rep
     reply.emplace("groups", groups);
 }
 
-void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &reply)
 {
 }
 
 extern const char *FirmwareVer;
-void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
 {
     reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     reply.emplace("firmware", FirmwareVer);
@@ -360,7 +372,7 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json & reply)
     reply.emplace("signs", signs);
 }
 
-void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply)
 {
     auto &user = DbHelper::Instance().GetUciUser();
     char buf[8];
@@ -383,7 +395,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json & repl
     reply.emplace("last_frame_time", user.LastFrmTime());
 }
 
-void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply)
 {
     try
     {
@@ -542,7 +554,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json & repl
     }
 }
 
-void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
 {
     auto &user = DbHelper::Instance().GetUciUser();
     reply.emplace("night_level", user.NightDimmingLevel());
@@ -553,7 +565,7 @@ void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json & r
     reply.emplace("18_hours_min_lux", user.Lux18HoursMin());
 }
 
-void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
 {
     try
     {
@@ -603,15 +615,15 @@ void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json & r
     }
 }
 
-void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
 {
 }
 
-void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
 {
 }
 
-void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
 {
     auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
@@ -628,7 +640,7 @@ void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json & rep
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdSetDimmingLevel(cmd, buf)) ? "OK" : buf);
 }
 
-void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json &reply)
 {
     auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
@@ -644,7 +656,7 @@ void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json & reply
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
 }
 
-void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json &reply)
 {
     auto grp = msg["groups"].get<vector<int>>();
     auto setting = msg["setting"].get<int>();
@@ -660,7 +672,7 @@ void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json & repl
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
 }
 
-void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
@@ -669,7 +681,7 @@ void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json & reply)
     reply.emplace("result", (ctrller->CmdSystemReset(cmd, buf) == APP::ERROR::AppNoError) ? "OK" : buf);
 }
 
-void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
 {
     auto cmd = msg["rtc"].get<string>();
     if (cmd.length() > 0)
@@ -691,7 +703,7 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json & reply)
     }
 }
 
-void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &reply)
 {
     auto &prod = DbHelper::Instance().GetUciProd();
     vector<string> frametype{"Text Frame"};
@@ -757,6 +769,16 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json & re
         }
     }
     reply.emplace("fonts", fonts);
+    
+    vector<int> txt_columns;
+    vector<int> txt_rows;
+    for(auto f : fonts)
+    {
+        txt_columns.emplace_back(prod.CharColumns(f));
+        txt_rows.emplace_back(prod.CharRows(f));
+    }
+    reply.emplace("txt_columns",txt_columns );
+    reply.emplace("txt_rows", txt_rows);
 
     vector<string> conspicuity;
     for (int i = 0; i < prod.MaxConspicuity(); i++)
@@ -779,7 +801,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json & re
     reply.emplace("annulus", annulus);
 }
 
-void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &reply)
 {
     auto id = msg["id"].get<int>();
     reply.emplace("id", id);
@@ -816,11 +838,170 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json & rep
     }
 }
 
-void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json & reply)
+void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
+    auto &prod = DbHelper::Instance().GetUciProd();
+    string str;
+    auto id = GetInt(msg, "id", 1, 255);
+    auto rev = GetInt(msg, "revision", 1, 255);
+    const char *FRM_TYPE[] = {"Text Frame", "Graphics Frame", "HR Graphics Frame"};
+    str = msg["type"].get<std::string>();
+    int ftype = Pick::PickStr(str.c_str(), FRM_TYPE, countof(FRM_TYPE), true);
+    if (ftype < 0)
+    {
+        throw string("CMD_SetFrame: type error");
+    }
+    str = msg["colour"].get<std::string>();
+    int colour = Pick::PickStr(str.c_str(), FrameColour::COLOUR_NAME, ALL_COLOUR_NAME_SIZE, true);
+    if (colour < 0)
+    {
+        throw string("CMD_SetFrame: colour error");
+    }
+    if (ftype == 0 && colour > 9)
+    {
+        throw string("CMD_SetFrame: colour error(Graphics Frame)");
+    }
+    if (ftype == 1 && colour > 10)
+    {
+        throw string("CMD_SetFrame: colour error(Text Frame)");
+    }
+    str = msg["conspicuity"].get<std::string>();
+    int conspicuity = Pick::PickStr(str.c_str(), Conspicuity, CONSPICUITY_SIZE, true);
+    if (conspicuity < 0)
+    {
+        throw string("CMD_SetFrame: conspicuity error");
+    }
+    str = msg["annulus"].get<std::string>();
+    int annulus = Pick::PickStr(str.c_str(), Annulus, ANNULUS_SIZE, true);
+    if (annulus < 0)
+    {
+        throw string("CMD_SetFrame: annulus error");
+    }
+    conspicuity = (conspicuity << 3) | annulus;
+    char rejectStr[64];
+    vector<uint8_t> frm;
+    if (ftype == 0)
+    {
+        str = msg["text"].get<std::string>();
+        if (str.length() < 1)
+        {
+            throw "'Text' is null";
+        }
+        frm.resize(str.length() + 9);
+        frm[0] = static_cast<uint8_t>(MI::CODE::SignSetTextFrame);
+        frm[1] = id;
+        frm[2] = rev;
+        frm[3] = GetInt(msg, "font", 0, 255);
+        frm[4] = colour;
+        frm[5] = conspicuity;
+        frm[6] = str.length();
+        memcpy(frm.data() + 7, str.data(), str.length());
+    }
+    else
+    {
+        str = msg["image"].get<std::string>();
+        unique_ptr<FrameImage> frmImg(new FrameImage);
+        frmImg->LoadBmpFromBase64(str.c_str(), str.length());
+        auto &bmp = frmImg->GetBmp();
+        auto rows = prod.PixelRows();
+        auto columns = prod.PixelColumns();
+        if (bmp.TellHeight() != rows || bmp.TellWidth() != columns)
+        {
+            throw "Image size NOT matched with sign";
+        }
+        int corelen;
+        if (colour <= 9)
+        {
+            corelen = prod.Gfx1CoreLen();
+        }
+        if (colour == 10)
+        {
+            colour = 0x0D;
+            corelen = prod.Gfx4CoreLen();
+        }
+        else if (colour == 11)
+        {
+            colour = 0x0E;
+            corelen = prod.Gfx24CoreLen();
+        }
+        int f_offset;
+        if (rows < 255 && columns < 255)
+        {
+            f_offset = 9;
+            frm.resize(corelen + f_offset + 2);
+            frm[0] = static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame);
+            frm[3] = rows;
+            frm[4] = columns;
+            frm[5] = colour;
+            frm[6] = 0;
+            Utils::Cnvt::PutU16(corelen, frm.data() + 7);
+        }
+        else
+        {
+            f_offset = 13;
+            frm.resize(corelen + f_offset + 2);
+            frm[0] = static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame);
+            Cnvt::PutU16(rows, frm.data() + 3);
+            Cnvt::PutU16(columns, frm.data() + 5);
+            frm[7] = colour;
+            frm[8] = 0;
+            Utils::Cnvt::PutU32(corelen, frm.data() + 9);
+        }
+        frm[1] = 255;
+        frm[2] = 255;
+        int bitOffset = 0;
+        if (colour <= 9)
+        {
+            uint8_t *core = frm.data() + f_offset;
+            memset(core, 0, corelen);
+            int bitOffset = 0;
+            for (int j = 0; j < rows; j++)
+            {
+                for (int i = 0; i < columns; i++)
+                {
+                    auto pixel = bmp.GetPixel(i, j);
+                    if (pixel.Blue > 0 || pixel.Green > 0 || pixel.Red > 0)
+                    {
+                        BitOffset::Set70Bit(core, bitOffset++);
+                    }
+                }
+            }
+        }
+        else if (colour == 0x0D)
+        {
+            for (int j = 0; j < rows; j++)
+            {
+                for (int i = 0; i < columns; i++)
+                {
+                    auto pixel = bmp.GetPixel(i, j);
+                    uint8_t c = FrameColour::Rgb2Colour(((pixel.Red * 0x100) + pixel.Green) * 0x100 + pixel.Blue);
+                    int x = f_offset + bitOffset / 2;
+                    frm.at(x) |= (bitOffset & 1) ? (c << 4) : c;
+                    bitOffset++;
+                }
+            }
+        }
+        else if (colour == 0x0E)
+        {
+            bitOffset = f_offset;
+            for (int j = 0; j < rows; j++)
+            {
+                for (int i = 0; i < columns; i++)
+                {
+                    auto pixel = bmp.GetPixel(i, j);
+                    frm.at(bitOffset++) = pixel.Red;
+                    frm.at(bitOffset++) = pixel.Green;
+                    frm.at(bitOffset++) = pixel.Blue;
+                }
+            }
+        }
+    }
+    Cnvt::PutU16(Crc::Crc16_1021(frm.data(), frm.size() - 2), frm.data() + frm.size() - 2);
+    auto r = ctrller->SignSetFrame(frm.data(), frm.size(), rejectStr);
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : rejectStr);
 }
 
-void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, json & reply)
+void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
@@ -829,16 +1010,15 @@ void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, js
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
-void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json & reply)
-{
-
-}
-
-void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json & reply)
+void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &reply)
 {
 }
 
-void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, json & reply)
+void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
+{
+}
+
+void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
     uint8_t cmd[3];
     cmd[1] = msg["group_id"].get<int>();
@@ -847,48 +1027,48 @@ void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, 
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
-void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply)
 {
 }
 
-void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json & reply)
+void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
 }
 
-void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciFault().GetLog(reply);
 }
 
-void WsServer::CMD_RetrieveAlarmLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_RetrieveAlarmLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciAlarm().GetLog(reply);
 }
 
-void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciEvent().GetLog(reply);
 }
 
-void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciFault().Reset();
     reply.emplace("result", "OK");
 }
 
-void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciAlarm().Reset();
     reply.emplace("result", "OK");
 }
 
-void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply)
 {
     DbHelper::Instance().GetUciEvent().Reset();
     reply.emplace("result", "OK");
 }
 
-void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[5];
     cmd[0] = 0xFA;
@@ -917,11 +1097,11 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json & reply)
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
 }
 
-void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json & reply)
+void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
 {
     vector<json> content = msg["content"].get<vector<json>>();
     int len = content.size();
-    unique_ptr<uint8_t []> cmd(new uint8_t[3 + len * 2]);
+    unique_ptr<uint8_t[]> cmd(new uint8_t[3 + len * 2]);
     cmd[0] = 0x2B;
     cmd[1] = msg["group_id"].get<int>();
     cmd[2] = len;

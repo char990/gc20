@@ -70,12 +70,12 @@ int Frame::FrameCheck(uint8_t *frm, int len)
 int Frame::CheckLength(int len)
 {
     UciProd &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1FrmLen())
+    if (len < frmOffset + 2 + prod.Gfx1CoreLen())
     {
         Ldebug("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooSmall;
     }
-    else if (len > frmOffset + 2 + prod.MaxFrmLen())
+    else if (len > frmOffset + 2 + prod.MaxCoreLen())
     {
         Ldebug("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooLarge;
@@ -90,15 +90,15 @@ int Frame::CheckLength(int len)
         int x = 0;
         if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         {
-            x = prod.Gfx1FrmLen();
+            x = prod.Gfx1CoreLen();
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         {
-            x = prod.Gfx4FrmLen();
+            x = prod.Gfx4CoreLen();
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB_24bit))
         {
-            x = prod.Gfx24FrmLen();
+            x = prod.Gfx24CoreLen();
         }
         if (x != 0)
         {
@@ -168,7 +168,7 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
 int Frame::ToBit(uint8_t colourbit, uint8_t *buf)
 {
     auto &prod = DbHelper::Instance().GetUciProd();
-    int frmLen = (colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen();
+    int frmLen = (colourbit == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen();
     memset(buf, 0, frmLen);
     if (colour < (uint8_t)FRMCOLOUR::MonoFinished)
     { // 1-bit frame
@@ -344,7 +344,7 @@ int FrmTxt::ToBit(uint8_t colourbit, uint8_t *buf)
         colourbit = 1;
     }
     auto &prod = DbHelper::Instance().GetUciProd();
-    int frmLen = (colourbit == 1) ? prod.Gfx1FrmLen() : ((colourbit == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen());
+    int frmLen = (colourbit == 1) ? prod.Gfx1CoreLen() : ((colourbit == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen());
     memset(buf, 0, frmLen);
     auto pFont = prod.Fonts(font);
     auto char_space = pFont->CharSpacing();

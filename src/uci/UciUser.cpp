@@ -24,11 +24,11 @@ UciUser::~UciUser()
 
 void UciUser::LoadConfig()
 {
-    Ldebug(">>> Loading 'user'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciUser";
     DEFAULT_FILE = "UciUser.def";
     SECTION = "user_cfg";
+    Ldebug(">>> Loading 'user'");
     UciProd &uciProd = DbHelper::Instance().GetUciProd();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);

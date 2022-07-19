@@ -83,31 +83,6 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	return x;
 }
 
-uint32_t UciCfg::GetUint32(struct uci_section *section, const char *option, uint32_t min, uint32_t max, bool ex)
-{
-	const char *str = GetStr(section, option, ex);
-	if (str == NULL)
-	{
-		if (ex)
-		{
-			throw std::invalid_argument(FmtException("Uci Error: %s/%s.%s.%s is not defined",
-													 PATH, PACKAGE, section->e.name, option));
-		}
-		else
-		{
-			return 0;
-		}
-	}
-	errno = 0;
-	uint32_t x = strtoul(str, NULL, 0);
-	if (errno != 0 || x < min || x > max)
-	{
-		throw std::runtime_error(FmtException("Invalid option: %s.%s.%s='%u' [%u-%u]",
-											  PACKAGE, section->e.name, option, x, min, max));
-	}
-	return x;
-}
-
 void UciCfg::Open()
 {
 	ctx = uci_alloc_context();
@@ -326,20 +301,16 @@ void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bit
 int UciCfg::GetIndexFromStrz(struct uci_section *uciSec, const char *option, const char **collection, int cSize)
 {
 	const char *str = GetStr(uciSec, option);
-	for (int cnt = 0; cnt < cSize; cnt++)
-	{
-		if (strcmp(str, collection[cnt]) == 0)
-		{
-			return cnt;
-		}
-	}
-	throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str));
-	return 0; // avoid warning
+	int x = Utils::Pick::PickStr(str, collection, cSize);
+	if(x==-1)
+		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str));
+	return x;
 }
 
 int UciCfg::GetInt(struct uci_section *uciSec, const char *option, const int *collection, int cSize, bool ex)
 {
 	int x = GetInt(uciSec, option, INT_MIN, INT_MAX, ex);
+	x = Utils::Pick::PickInt<int>(x, collection, cSize);
 	for (int cnt = 0; cnt < cSize; cnt++)
 	{
 		if (x == collection[cnt])
@@ -347,11 +318,11 @@ int UciCfg::GetInt(struct uci_section *uciSec, const char *option, const int *co
 			return x;
 		}
 	}
-	if (ex)
+	if (ex && x==-1)
 	{
 		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%d' is not a valid value", uciSec->e.name, option, x));
 	}
-	return 0;
+	return x;
 }
 
 void UciCfg::ClrSECTION()

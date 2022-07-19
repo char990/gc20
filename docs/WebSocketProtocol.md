@@ -130,6 +130,7 @@ JSON:
 {
 "replyms":13274693458,
 "cmd":"Login",
+"user":"admin",
 "result":"OK" or "Wrong password"
 }
 ```
@@ -664,10 +665,12 @@ JSON:
 "replyms":13274693458,
 "cmd":"GetFrameSetting",
 "frame_type":["Text Frame", "Graphics Frame"/"HR Graphics Frame"],
-"txt_frame_colours":["Default ", "Red", "Yellow", "Green", "White", ……],
-"gfx_frame_colours":["Default ", "Red", "Yellow", ……,"Multi(4-bit)"],
-"hrg_frame_colours":["Default ", "Red", "Yellow", ……,"Multi(4-bit)", "RGB(24-bit)"],
-"fonts":[0,1,2,3,4,5],
+"txt_frame_colours":["Default", "Red", "Yellow", "Green", "White", ……],
+"gfx_frame_colours":["Default", "Red", "Yellow", ……,"Multi(4-bit)"],
+"hrg_frame_colours":["Default", "Red", "Yellow", ……,"Multi(4-bit)", "RGB(24-bit)"],
+"fonts":[0,1,2,3],
+"txt_columns":[18,18,18,6],
+"txt_rows":[3,3,3,1],
 "conspicuity":["Off", "Up Down", "Left Right", "Wig Wag", "All Flash", "All On"],
 "annulus":["Off", "Flashing", "On"]
 }
@@ -677,6 +680,7 @@ Note:
 
 1. "frame_type" can be ["Text Frame", "Graphics Frame", "HR Graphics Frame"].
 2. If "Text Frame" is selected in "frame_type", the combobox of "Frame Colour" is sourced from "txt_frame_colours". And "gfx_frame_colours" for "Graphics Frame" and "hrg_frame_colours" for "HR Graphics Frame".
+3. "fonts", "txt_columns" and "txt_rows" are binded. If fonts[1] is selected, txt_columns[1] and txt_rows[1] are in use.
 
 ### 3.18 GetStoredFrame
 

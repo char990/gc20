@@ -9,7 +9,10 @@ public:
     void SetId(uint8_t signId, uint8_t frmId);
     void FillCoreFromSlaveFrame(uint8_t *frame);
     void FillCoreFromUciFrame();
+    void LoadBmpFromBase64(const char * base64, int len);
     std::vector<char> &Save2Base64();
+
+    BMP & GetBmp(){ return bmp;};
 
 private:
     BMP bmp;
@@ -18,4 +21,8 @@ private:
     std::vector<char> base64Img;
     bool newImg{true};
     void FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame);
+
+    bool ReadFromFile(const char *);
+    bool WriteToFile(const char *);
 };
+

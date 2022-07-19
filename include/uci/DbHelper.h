@@ -11,6 +11,7 @@
 #include <uci/UciEvent.h>
 #include <uci/UciProcess.h>
 #include <uci/UciNetwork.h>
+#include <uci/UciPasswd.h>
 #include <module/BootTimer.h>
 
 
@@ -43,6 +44,8 @@ public:
     
     UciProcess & GetUciProcess() { return uciProcess; };
 
+    UciPasswd & GetUciPasswd() { return uciPasswd; };
+
     const char * Path(){ return dbPath; };
 
 protected:
@@ -59,6 +62,8 @@ protected:
     UciEvent uciEvt;
 
     UciProcess uciProcess;
+
+    UciPasswd uciPasswd;
 
 private:
     DbHelper(){};

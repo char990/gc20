@@ -456,7 +456,7 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
             {
                 if (s->numberOfFaultyLed.at(j * s->numberOfTiles + i) > 0)
                 {
-                    BitOffset::SetBit(buf, bitOffset);
+                    BitOffset::Set07Bit(buf, bitOffset);
                     break;
                 }
             }

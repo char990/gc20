@@ -104,13 +104,13 @@ public:
     uint32_t Pixels() { return pixels; };
     SESR_SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
     SCR_SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
-    int MaxFrmLen() { return maxFrmLen; };
+    int MaxCoreLen() { return maxCoreLen; };
 
     int MinTxtFrmLen() { return 1; };
     int MaxTxtFrmLen() { return 255; };
-    int Gfx1FrmLen() { return gfx1FrmLen; };   // bytes
-    int Gfx4FrmLen() { return gfx4FrmLen; };   // bytes
-    int Gfx24FrmLen() { return gfx24FrmLen; }; // bytes
+    int Gfx1CoreLen() { return gfx1CoreLen; };   // bytes
+    int Gfx4CoreLen() { return gfx4CoreLen; };   // bytes
+    int Gfx24CoreLen() { return gfx24CoreLen; }; // bytes
 
     uint8_t LoadLastDisp() { return loadLastDisp; };
 
@@ -263,10 +263,10 @@ private:
     uint32_t pixels;
     SESR_SIGN_TYPE extStsRplSignType;
     SCR_SIGN_TYPE configRplSignType;
-    int maxFrmLen;
-    int gfx1FrmLen;
-    int gfx4FrmLen;
-    int gfx24FrmLen;
+    int maxCoreLen;
+    int gfx1CoreLen;
+    int gfx4CoreLen;
+    int gfx24CoreLen;
 
     int monitoringPort{-1};
     const char *_MonitoringPort = "MonitoringPort";

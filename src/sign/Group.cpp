@@ -69,20 +69,20 @@ Group::Group(uint8_t groupId)
     dsNext->dispType = DISP_TYPE::BLK;
     dsNext->fmpid[0] = 0;
 
-    maxTxSize = 1 + 9 + prod.MaxFrmLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
+    maxTxSize = 1 + 9 + prod.MaxCoreLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
     txBuf = new uint8_t[maxTxSize];
     txLen = 0;
 
     switch (prod.ColourBits())
     {
     case 1:
-        orLen = prod.Gfx1FrmLen();
+        orLen = prod.Gfx1CoreLen();
         break;
     case 4:
-        orLen = prod.Gfx4FrmLen();
+        orLen = prod.Gfx4CoreLen();
         break;
     case 24:
-        orLen = prod.Gfx24FrmLen();
+        orLen = prod.Gfx24CoreLen();
         break;
     }
     orBuf = new uint8_t[orLen];
@@ -1987,7 +1987,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         }
     }
     // overlay
-    int frmlen = (msgOverlay == 1) ? prod.Gfx1FrmLen() : ((msgOverlay == 4) ? prod.Gfx4FrmLen() : prod.Gfx24FrmLen());
+    int frmlen = (msgOverlay == 1) ? prod.Gfx1CoreLen() : ((msgOverlay == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen());
     vector<uint8_t> buf;
     uint8_t *orsrc;
     if (txtfrm != nullptr)
