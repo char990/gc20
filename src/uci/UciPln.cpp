@@ -7,14 +7,6 @@
 
 using namespace Utils;
 
-UciPln::UciPln()
-{
-}
-
-UciPln::~UciPln()
-{
-}
-
 void UciPln::LoadConfig()
 {
     Ldebug(">>> Loading 'plans'");

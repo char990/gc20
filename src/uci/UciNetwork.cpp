@@ -9,109 +9,99 @@ using namespace Utils;
 
 UciNetwork::UciNetwork()
 {
-    PATH = "/etc/config";
-    PACKAGE = "network";
-}
-
-UciNetwork::~UciNetwork()
-{
+    NetInterface init;
+    eths.emplace(std::string("ETH1"), init);
+    eths.emplace(std::string("ETH2"), init);
 }
 
 void UciNetwork::LoadConfig()
 {
+    PATH = "/etc/config";
+    PACKAGE = "network";
+    auto LoadIp = [this](struct uci_section *uciSec, const char *_option, Ipv4 &ip, bool ex = true)
+    {
+        const char *str = GetStr(uciSec, _option, ex);
+        if (ip.Set(str))
+        {
+            return;
+        }
+        if (ex == false)
+        {
+            ip.Set("0.0.0.0");
+            return;
+        }
+        throw std::invalid_argument(FmtException("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str));
+    };
+
     Ldebug(">>> Loading 'network'");
     Open();
-    char ethx[5];
-    for (int i = 0; i < 2; i++)
+    for (auto &x : eths)
     {
-        sprintf(ethx, "%s%d", _ETH, i + 1);
-        SECTION = ethx;
+        SECTION = x.first.c_str();
         struct uci_section *uciSec = GetSection(SECTION);
-        eth[i].proto = std::string(GetStr(uciSec, _proto));
-        if (eth[i].proto.compare("static") == 0)
+        auto &e = x.second;
+        e.proto = std::string(GetStr(uciSec, _Proto));
+        if (e.proto.compare("static") == 0)
         {
-            LoadIp(uciSec, _ipaddr, eth[i].ipaddr);
-            LoadIp(uciSec, _netmask, eth[i].netmask);
-            LoadIp(uciSec, _gateway, eth[i].gateway);
+            LoadIp(uciSec, _Ipaddr, e.ipaddr);
+            LoadIp(uciSec, _Netmask, e.netmask);
+            LoadIp(uciSec, _Gateway, e.gateway, false);
         }
-        const char *str = GetStr(uciSec, _dns, false);
+        const char *str = GetStr(uciSec, _Dns, false);
         if (str != nullptr)
         {
-            eth[i].dns = std::string(str);
+            e.dns = std::string(str);
         }
     }
     Close();
 }
 
-void UciNetwork::LoadIp(struct uci_section *uciSec, const char *_option, uint8_t *dst)
+void UciNetwork::SaveETH(std::string name)
 {
-    const char *str = GetStr(uciSec, _option);
-    if (str != nullptr)
+    NetInterface *n = GetETH(name);
+    if (n != nullptr)
     {
-        int ibuf[4];
-        int cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 255);
-        if (cnt == 4)
+        if (n->proto.compare("static") != 0)
         {
-            for (int i = 0; i < 4; i++)
-            {
-                dst[i] = ibuf[i];
-            }
-            return;
+            n->ipaddr.Set("0.0.0.0");
+            n->netmask.Set("0.0.0.0");
+            n->gateway.Set("0.0.0.0");
         }
+        OpenSectionForSave(name.c_str());
+        OptionSave(_Proto, n->proto.c_str());
+        OptionSave(_Ipaddr, n->ipaddr.ToString().c_str());
+        OptionSave(_Netmask, n->netmask.ToString().c_str());
+        OptionSave(_Gateway, n->gateway.ToString().c_str());
+        OptionSave(_Dns, n->dns.c_str());
+        CommitCloseSectionForSave();
     }
-    throw std::invalid_argument(FmtException("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str));
 }
 
-void UciNetwork::Ipaddr(int i, uint8_t *ip)
-{
-    Set(i, ip, _ipaddr, eth[i].ipaddr);
-}
-
-void UciNetwork::Netmask(int i, uint8_t *ip)
-{
-    Set(i, ip, _netmask, eth[i].netmask);
-}
-
-void UciNetwork::Gateway(int i, uint8_t *ip)
-{
-    Set(i, ip, _gateway, eth[i].gateway);
-}
-
-void UciNetwork::Set(int i, uint8_t *src, const char *_option, uint8_t *dst)
-{
-    memcpy(dst, src, 4);
-    char buf[16];
-    sprintf(buf, "%d.%d.%d.%d", dst[0], dst[1], dst[2], dst[3]);
-    char ethx[5];
-    sprintf(ethx, "%s%d", _ETH, i + 1);
-    SECTION = ethx;
-    OpenSaveClose(SECTION, _option, buf);
-}
-
-void UciNetwork::Dns(int i, std::string s)
+void UciNetwork::SaveNtp()
 {
 }
 
 void UciNetwork::Dump()
 {
-    PrintDash('<');
-    for (int i = 0; i < 2; i++)
+    auto PrintIp = [](const char *_option, Ipv4 & dst)
     {
-        printf("%s/%s.%s%d\n", PATH, PACKAGE, _ETH, i + 1);
-        printf("\t%s \t'%s'\n", _proto, eth[i].proto.c_str());
-        if (eth[i].proto.compare("static") == 0)
+        printf("\t%s \t'%s'\n", _option, dst.ToString().c_str());
+    };
+
+    PrintDash('<');
+    for (auto &x : eths)
+    {
+        printf("%s/%s.%s\n", PATH, PACKAGE, x.first.c_str());
+        auto &e = x.second;
+        printf("\t%s \t'%s'\n", _Proto, e.proto.c_str());
+        if (e.proto.compare("static") == 0)
         {
-            PrintIp(_ipaddr, eth[i].ipaddr);
-            PrintIp(_netmask, eth[i].netmask);
-            PrintIp(_gateway, eth[i].gateway);
+            PrintIp(_Ipaddr, e.ipaddr);
+            PrintIp(_Netmask, e.netmask);
+            PrintIp(_Gateway, e.gateway);
         }
-        printf("\t%s \t'%s'\n", _dns, eth[i].dns.c_str());
+        printf("\t%s \t'%s'\n", _Dns, e.dns.c_str());
     }
     printf("NTP server: %s:%d\n", ntp.server.c_str(), ntp.port);
     PrintDash('>');
-}
-
-void UciNetwork::PrintIp(const char *_option, uint8_t *dst)
-{
-    printf("\t%s \t'%d.%d.%d.%d'\n", _option, dst[0], dst[1], dst[2], dst[3]);
 }

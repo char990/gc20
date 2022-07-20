@@ -302,7 +302,7 @@ int UciCfg::GetIndexFromStrz(struct uci_section *uciSec, const char *option, con
 {
 	const char *str = GetStr(uciSec, option);
 	int x = Utils::Pick::PickStr(str, collection, cSize);
-	if(x==-1)
+	if (x == -1)
 		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str));
 	return x;
 }
@@ -311,18 +311,15 @@ int UciCfg::GetInt(struct uci_section *uciSec, const char *option, const int *co
 {
 	int x = GetInt(uciSec, option, INT_MIN, INT_MAX, ex);
 	x = Utils::Pick::PickInt<int>(x, collection, cSize);
-	for (int cnt = 0; cnt < cSize; cnt++)
+	if (x >= 0)
 	{
-		if (x == collection[cnt])
-		{
-			return x;
-		}
+		return collection[x];
 	}
-	if (ex && x==-1)
+	else if (ex)
 	{
 		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%d' is not a valid value", uciSec->e.name, option, x));
 	}
-	return x;
+	return 0;
 }
 
 void UciCfg::ClrSECTION()

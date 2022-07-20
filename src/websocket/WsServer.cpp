@@ -241,45 +241,80 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
 void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
+    #if 0
+    const char *r;
     auto msgp = msg["password"].get<string>();
     auto msgu = msg["user"].get<string>();
-    if (msgu.compare("user") == 0)
-    {
-        wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciUser().ShakehandsPassword()) == 0);
-    }
-    else if (msgu.compare("Administrator") == 0)
+    if (msgu.compare("Administrator") == 0)
     {
         wsMsg[c]->login = (msgp.compare("Br1ghtw@y") == 0);
+        r = wsMsg[c]->login ? "OK" : "Wrong password";
     }
     else
     {
+        auto ps = DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu);
+        if (ps == nullptr)
+        {
+            r = "Invalid user";
+        }
+        else
+        {
+            wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu)->passwd) == 0);
+            r = wsMsg[c]->login ? "OK" : "Wrong password";
+        }
     }
     reply.emplace("user", msgu);
-    reply.emplace("result", wsMsg[c]->login ? "OK" : "Wrong password");
+    reply.emplace("result", r);
+    #endif
 }
 
 void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply)
 {
-    auto &user = DbHelper::Instance().GetUciUser();
+    #if 0
+    auto msgu = msg["user"].get<string>();
     auto cp = msg["current"].get<string>();
     auto np = msg["new"].get<string>();
-    if (cp.compare(user.ShakehandsPassword()) == 0 || cp.compare("Br1ghtw@y") == 0)
+    const char *r;
+    if (np.length() < 4 || np.length() > 10)
     {
-        if (np.length() > 0 && np.length() <= 10)
-        {
-            reply.emplace("result", "OK");
-            DbHelper::Instance().GetUciEvent().Push(0, "User.ShakehandsPassword changed");
-            user.ShakehandsPassword(np.c_str());
-        }
-        else
-        {
-            reply.emplace("result", "Invalid new password");
-        }
+        r = "Length of password should be 4 - 10";
     }
     else
     {
-        reply.emplace("result", "Current password NOT matched");
+        auto &up = DbHelper::Instance().GetUciPasswd();
+        auto ps = up.GetUserPasswd(msgu);
+        if (ps == nullptr)
+        {
+            r = "Invalid user";
+        }
+        if (cp.compare(ps->passwd) == 0)
+        {
+            bool invalid = false;
+            for (auto s : np)
+            {
+                if (s <= 0x20 || s == '"' || s == '\'' || s == '\\' || s >= 0x7F)
+                {
+                    invalid = true;
+                    break;
+                }
+            }
+            if (invalid)
+            {
+                r = "result", "Invalid character in new password";
+            }
+            else
+            {
+                up.Set(msgu, np, ps->permission);
+                r = "OK";
+            }
+        }
+        else
+        {
+            r = "Current password NOT matched";
+        }
     }
+    reply.emplace("result", r);
+#endif
 }
 
 void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &reply)
@@ -431,7 +466,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         }
         if (tmc_com_port == -1)
         {
-            throw "'tmc_com_port' NOT valid";
+            throw string("'tmc_com_port' NOT valid");
         }
         int city = -1;
         auto city_str = msg["city"].get<string>();
@@ -445,7 +480,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         }
         if (city == -1)
         {
-            throw "'city' NOT valid";
+            throw string("'city' NOT valid");
         }
         auto &user = DbHelper::Instance().GetUciUser();
         auto &evt = DbHelper::Instance().GetUciEvent();
@@ -617,10 +652,81 @@ void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &re
 
 void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
 {
+    auto &net = DbHelper::Instance().GetUciNetwork();
+    string ethname[2]{"ETH1", "ETH2"};
+    json ethjs[2];
+    for (int i = 0; i < 2; i++)
+    {
+        auto eth = net.GetETH(ethname[i]);
+        ethjs[i].emplace(net._Proto, eth->proto);
+        ethjs[i].emplace(net._Ipaddr, eth->ipaddr.ToString());
+        ethjs[i].emplace(net._Netmask, eth->netmask.ToString());
+        ethjs[i].emplace(net._Gateway, eth->gateway.ToString());
+        ethjs[i].emplace(net._Dns, eth->dns);
+        reply.emplace(ethname[i], ethjs[i]);
+    }
+    json ntpjs;
+    auto ntp = net.GetNtp();
+    ntpjs.emplace(net._Server, ntp->server);
+    ntpjs.emplace(net._Port, ntp->port);
+    reply.emplace("NTP", ntpjs);
 }
 
 void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
 {
+    auto &net = DbHelper::Instance().GetUciNetwork();
+
+    string ethname[2]{"ETH1", "ETH2"};
+    json ethjs[2];
+    NetInterface interfaces[2];
+    for (int i = 0; i < 2; i++)
+    {
+        ethjs[i] = msg[ethname[i]].get<json>();
+        interfaces[i].proto = ethjs[i][net._Proto].get<std::string>();
+        if (interfaces[i].proto.compare("static") == 0)
+        {
+            if (interfaces[i].ipaddr.Set(ethjs[i][net._Ipaddr].get<std::string>()) == false)
+            {
+                throw "Invalid " + ethname[i] + ".ipaddr";
+            }
+            interfaces[i].netmask.Set(ethjs[i][net._Netmask].get<std::string>());
+            {
+                throw "Invalid " + ethname[i] + ".netmask";
+            }
+            try
+            {
+                interfaces[i].gateway.Set(ethjs[i][net._Gateway].get<std::string>());
+                interfaces[i].dns = ethjs[i][net._Dns].get<std::string>();
+            }
+            catch (...)
+            {
+            }
+        }
+        else if (interfaces[i].proto.compare("dhcp") != 0)
+        {
+            throw "Invalid " + ethname[i] + ".proto";
+        }
+    }
+
+    json ntpjs = msg["NTP"].get<json>();
+    NtpServer ntp;
+    ntp.server = ntpjs[net._Server].get<string>();
+    ntp.port = GetInt(ntpjs, net._Port, 1, 65535);
+
+    if (interfaces[0].gateway.Isvalid() && interfaces[1].gateway.Isvalid())
+    {
+        throw "Only one ETH can have gateway";
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        memcpy(net.GetETH(ethname[i]), &interfaces[i], sizeof(NetInterface));
+        net.SaveETH(ethname[i]);
+    }
+    memcpy(net.GetNtp(), &ntp, sizeof(NtpServer));
+    net.SaveNtp();
+
+    reply.emplace("result", "'Reboot' to active new setting");
 }
 
 void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
@@ -769,15 +875,15 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
         }
     }
     reply.emplace("fonts", fonts);
-    
+
     vector<int> txt_columns;
     vector<int> txt_rows;
-    for(auto f : fonts)
+    for (auto f : fonts)
     {
         txt_columns.emplace_back(prod.CharColumns(f));
         txt_rows.emplace_back(prod.CharRows(f));
     }
-    reply.emplace("txt_columns",txt_columns );
+    reply.emplace("txt_columns", txt_columns);
     reply.emplace("txt_rows", txt_rows);
 
     vector<string> conspicuity;

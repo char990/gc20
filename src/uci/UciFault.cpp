@@ -13,15 +13,6 @@ using json = nlohmann::json;
 
 extern time_t GetTime(time_t *);
 
-UciFault::UciFault()
-{
-    lastLog = -1;
-}
-
-UciFault::~UciFault()
-{
-}
-
 void UciFault::LoadConfig()
 {
     Ldebug(">>> Loading 'faultlog'");

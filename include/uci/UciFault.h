@@ -23,9 +23,6 @@ config UciFault flt
 class UciFault : public UciLog
 {
 public:
-    UciFault();
-    ~UciFault();
-
     virtual void LoadConfig() override;
 
     virtual void Dump() override;

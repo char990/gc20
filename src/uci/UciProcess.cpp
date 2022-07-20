@@ -7,16 +7,6 @@
 
 using namespace Utils;
 
-UciProcess::UciProcess()
-{
-	grpCnt = 0;
-	signCnt = 0;
-}
-
-UciProcess::~UciProcess()
-{
-}
-
 void UciProcess::LoadConfig()
 {
 	Ldebug(">>> Loading 'process'");

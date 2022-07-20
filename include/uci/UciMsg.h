@@ -26,9 +26,6 @@ config UciMsg msg
 class UciMsg : public UciCfg
 {
 public:
-    UciMsg();
-    ~UciMsg();
-
     /// \brief  load msgs[] from "UciMsg"
     void LoadConfig() override;
 

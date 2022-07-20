@@ -24,7 +24,6 @@ typedef struct ExtSw
 class UciUser : public UciCfg
 {
 public:
-    UciUser();
     ~UciUser();
 
     const char *DEFAULT_FILE;

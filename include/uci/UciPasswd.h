@@ -16,12 +16,11 @@ public:
 class UciPasswd : public UciCfg
 {
 public:
-    UciPasswd();
-    ~UciPasswd();
     virtual void LoadConfig() override;
     virtual void Dump() override;
 
-    void Set(const char * user, const char * passwd, const int permission);
+    void Set(const std::string & user, const std::string & passwd, const int permission);
+    UserPasswd * GetUserPasswd(const std::string & user);
 
 private:
     std::map<std::string, UserPasswd> mapUserPass;

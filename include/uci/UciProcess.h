@@ -10,9 +10,6 @@
 class UciProcess : public UciCfg
 {
 public:
-    UciProcess();
-    ~UciProcess();
-
     void LoadConfig() override;
 
     void Dump() override;
@@ -51,7 +48,7 @@ public:
 
 private:
     std::vector<GrpProc> grpProc;
-    uint8_t grpCnt;
+    uint8_t grpCnt{0};
 
     int PrintGrpPln(uint8_t gid, char *buf);
     void SaveGrpPln(uint8_t gid);
@@ -70,6 +67,6 @@ private:
 
     const char *_Sign = "Sign";
     std::vector<Utils::Bits> signErr;
-    uint8_t signCnt;
+    uint8_t signCnt{0};
     const char *_SignError = "SignError";
 };

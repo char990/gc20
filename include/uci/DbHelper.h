@@ -66,7 +66,7 @@ protected:
     UciPasswd uciPasswd;
 
 private:
-    DbHelper(){};
+    DbHelper(){}
     ~DbHelper(){}
 
     const char * dbPath;

@@ -8,19 +8,12 @@
 using namespace Utils;
 using namespace std;
 
-UciPasswd::UciPasswd()
-{
-    PATH = "/etc/config";
-    PACKAGE = "UciPasswd";
-}
-
-UciPasswd::~UciPasswd()
-{
-}
-
 void UciPasswd::LoadConfig()
 {
     Ldebug(">>> Loading 'UciPasswd'");
+    PATH = DbHelper::Instance().Path();
+    PACKAGE = "UciPasswd";
+
     Open();
 
     struct uci_section *uciSec;
@@ -53,13 +46,13 @@ void UciPasswd::LoadConfig()
     Dump();
 }
 
-void UciPasswd::Set(const char *user, const char *passwd, const int permission)
+void UciPasswd::Set(const std::string & user, const std::string & passwd, const int permission)
 {
     struct uci_ptr pa = {
         .package = PACKAGE,
-        .section = user,
+        .section = user.c_str(),
         .option = _Passwd,
-        .value = passwd};
+        .value = passwd.c_str()};
 
     Open();
     int r = uci_set(ctx, &pa);
@@ -72,17 +65,16 @@ void UciPasswd::Set(const char *user, const char *passwd, const int permission)
     CommitCloseSectionForSave();
 
     UserPasswd userpass;
-    userpass.passwd = string(passwd);
+    userpass.passwd = passwd;
     userpass.permission = permission;
-    string name(user);
-    SECTION = name.c_str();
-    if (mapUserPass.find(name) != mapUserPass.end())
+    SECTION = user.c_str();
+    if (mapUserPass.find(user) != mapUserPass.end())
     { // exist
-        mapUserPass[name] = userpass;
+        mapUserPass[user] = userpass;
     }
     else
     {
-        mapUserPass.emplace(name, userpass);
+        mapUserPass.emplace(user, userpass);
     }
 }
 
@@ -95,4 +87,17 @@ void UciPasswd::Dump()
         printf("\t%s:%s:%d\n", m.first.c_str(), m.second.passwd.c_str(), m.second.permission);
     }
     PrintDash('>');
+}
+
+UserPasswd *UciPasswd::GetUserPasswd(const std::string & user)
+{
+    auto p = mapUserPass.find(user);
+    if (p != mapUserPass.end())
+    { // exist
+        return &(p->second);
+    }
+    else
+    {
+        return nullptr;
+    }
 }

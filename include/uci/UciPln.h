@@ -30,9 +30,6 @@ config UciPln pln
 class UciPln : public UciCfg
 {
 public:
-    UciPln();
-    ~UciPln();
-
     /// \brief  load plns[] from "UciPln"
     void LoadConfig() override;
 

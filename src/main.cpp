@@ -34,13 +34,13 @@
 
 #include <3rdparty/catch2/enable_test.h>
 
+using namespace std;
+
 const char *FirmwareVer = "0120";
 const char *CONFIG_PATH = "config";
-const char *FRAME_BMP = "/tmp/sign%d_frame.bmp";
 
 char *mainpath;
 
-using namespace std;
 
 #ifdef DEBUG
 const char *MAKE = "Debug";

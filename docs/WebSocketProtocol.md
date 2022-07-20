@@ -7,7 +7,7 @@
 | 0.1 | First issue | 1/3/2022 | Hailin |
 | 0.1a | Add "replyms" | 6/6/2022 | Hailin |
 | 0.1b | Update design | 4/7/2022 | Hailin |
-| 0.1c | Change this doc to markdown | 17/7/2022 | Hailin |
+| 0.1c | Change this doc to markdown | 19/7/2022 | Hailin |
 
 ---
 
@@ -476,7 +476,7 @@ JSON:
   {
     "server":"0.au.pool.ntp.org",
     "port":123
- }
+  }
 }
 ```
 

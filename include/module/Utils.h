@@ -459,7 +459,7 @@ namespace Utils
             return -1;
         };
 
-        static int PickStr(const char *v, const char **src, const int len, const bool ignore_case=false);
+        static int PickStr(const char *v, const char **src, const int len, const bool ignore_case = false);
     };
 
 } // namespace Utils

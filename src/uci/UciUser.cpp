@@ -10,10 +10,6 @@
 using namespace Utils;
 extern time_t GetTime(time_t *);
 
-UciUser::UciUser()
-{
-}
-
 UciUser::~UciUser()
 {
     if (tz_AU != nullptr)

@@ -508,43 +508,50 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             }
 
             // network settings
-            auto &net = DbHelper::Instance().GetUciNetwork();
-            uint8_t *pip1 = pd + 36;
-            uint8_t *nip1 = net.GetETH(0).ipaddr;
-            int m1 = memcmp(pip1, nip1, 4);
-            uint8_t *pip2 = pd + 43;
-            uint8_t *nip2 = net.GetETH(0).netmask;
-            int m2 = memcmp(pip2, nip2, 4);
-            uint8_t *pip3 = pd + 47;
-            uint8_t *nip3 = net.GetETH(0).gateway;
-            int m3 = memcmp(pip3, nip3, 4);
-            if (m1 != 0 || m2 != 0 || m3 != 0)
+            auto &uciNet = DbHelper::Instance().GetUciNetwork();
+            std::string eth("ETH1");
+            auto net = uciNet.GetETH(eth);
+            if (net != nullptr)
             {
-                char ipbuf[64];
-                auto printip = [&ipbuf](const char *str, uint8_t *old_n, uint8_t *new_p) -> void
+                Ipv4 pip1(pd + 36);
+                Ipv4 pip2(pd + 43);
+                Ipv4 pip3(pd + 47);
+                int m0 = net->proto.compare("static");
+                int m1 = pip1.Compare(net->ipaddr);
+                int m2 = pip2.Compare(net->netmask);
+                int m3 = pip3.Compare(net->gateway);
+                if (m0 != 0 || m1 != 0 || m2 != 0 || m3 != 0)
                 {
-                    sprintf(ipbuf, "network.%s changed: %u.%u.%u.%u->%u.%u.%u.%u",
-                            str, old_n[0], old_n[1], old_n[2], old_n[3], new_p[0], new_p[1], new_p[2], new_p[3]);
-                };
-                if (m1 != 0)
-                {
-                    printip("ipaddr", nip1, pip1);
-                    evt.Push(0, ipbuf);
-                    net.Ipaddr(0, pip1);
+                    if (m0 != 0)
+                    {
+                        char ipbuf[64];
+                        sprintf(ipbuf, "network.ETH1.proto changed: %s -> %s", net->proto.c_str(), "static");
+                        evt.Push(0, ipbuf);
+                        net->proto.assign("static");
+                    }
+                    auto newip = [&evt](const char *str, Ipv4 &old_n, Ipv4 &new_p) -> void
+                    {
+                        char ipbuf[64];
+                        sprintf(ipbuf, "network.ETH1.%s changed: %s -> %s",
+                                str, old_n.ToString().c_str(), new_p.ToString().c_str());
+                        evt.Push(0, ipbuf);
+                        old_n.Set(new_p.ip);
+                    };
+                    if (m1 != 0)
+                    {
+                        newip("ipaddr", net->ipaddr, pip1);
+                    }
+                    if (m2 != 0)
+                    {
+                        newip("netmask", net->netmask, pip2);
+                    }
+                    if (m3 != 0)
+                    {
+                        newip("gateway", net->gateway, pip3);
+                    }
+                    uciNet.SaveETH(eth);
+                    rr_flag |= RQST_NETWORK;
                 }
-                if (m2 != 0)
-                {
-                    printip("netmask", nip2, pip2);
-                    evt.Push(0, ipbuf);
-                    net.Netmask(0, pip2);
-                }
-                if (m3 != 0)
-                {
-                    printip("gateway", nip3, pip3);
-                    evt.Push(0, ipbuf);
-                    net.Gateway(0, pip3);
-                }
-                rr_flag |= RQST_NETWORK;
             }
             txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
             txbuf[1] = FACMD_RPL_SET_USER_CFG;
@@ -596,15 +603,15 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
-        auto &net = DbHelper::Instance().GetUciNetwork();
-        memcpy(pt, net.GetETH(0).ipaddr, 4);
+        auto net = DbHelper::Instance().GetUciNetwork().GetETH(std::string("ETH1"));
+        memcpy(pt, net->ipaddr.ip, 4);
         pt += 4;
         *pt++ = user.LockedMsg();
         *pt++ = user.LockedFrm();
         *pt++ = user.LastFrmTime();
-        memcpy(pt, net.GetETH(0).netmask, 4);
+        memcpy(pt, net->netmask.ip, 4);
         pt += 4;
-        memcpy(pt, net.GetETH(0).gateway, 4);
+        memcpy(pt, net->gateway.ip, 4);
         pt += 4;
         Tx(txbuf, pt - txbuf);
     }
@@ -1028,16 +1035,16 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         auto &user = DbHelper::Instance().GetUciUser();
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFF);
         uint8_t *p = txbuf + 1;
-        p = Cnvt::PutU16(user.PasswordOffset(), p); // password offset
-        *p++ = user.SeedOffset();                   // seed offset
-        *p++ = user.DeviceId();                     // device id
-        p = Cnvt::PutU16(5, p);                     // conspicuity( flasher ) ON time : 5/10 seconds
-        p = Cnvt::PutU16(5, p);                     // conspicuity( flasher ) OFF time : 5/10 seconds
-        *p++ = user.OverTemp();                     // over temperature
-        *p++ = user.Fan1OnTemp();                   // fan 1 on temperature
-        *p++ = user.Fan2OnTemp();                   // fan 2 on temperature
-        *p++ = user.Humidity();                     // Humidity
-        *p++ = user.BroadcastId();                  // broadcast address
+        p = Cnvt::PutU16(user.PasswordOffset(), p);    // password offset
+        *p++ = user.SeedOffset();                      // seed offset
+        *p++ = user.DeviceId();                        // device id
+        p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) ON time : 5/10 seconds
+        p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) OFF time : 5/10 seconds
+        *p++ = user.OverTemp();                        // over temperature
+        *p++ = user.Fan1OnTemp();                      // fan 1 on temperature
+        *p++ = user.Fan2OnTemp();                      // fan 2 on temperature
+        *p++ = user.Humidity();                        // Humidity
+        *p++ = user.BroadcastId();                     // broadcast address
         p = Cnvt::PutU16(user.SessionTimeoutSec(), p); // session time out
         auto &groups = Controller::Instance().GetGroups();
         int faultleds = 0;
@@ -1059,26 +1066,26 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
                 lux += s->Lux();
             }
         }
-        *p++ = curTemp / cnt;                       // avg of all current temperatures
-        p = Cnvt::PutU16(lux / cnt, p);             // avg of all
-        *p++ = maxTemp;                             // max of all max temperatures
-        *p++ = (faultleds > 255) ? 255 : faultleds; // pixel on fault
-        *p++ = 0;                                   // DefaultFont                  //
+        *p++ = curTemp / cnt;                          // avg of all current temperatures
+        p = Cnvt::PutU16(lux / cnt, p);                // avg of all
+        *p++ = maxTemp;                                // max of all max temperatures
+        *p++ = (faultleds > 255) ? 255 : faultleds;    // pixel on fault
+        *p++ = 0;                                      // DefaultFont                  //
         p = Cnvt::PutU16(user.DisplayTimeoutMin(), p); // display time out
-        *p++ = 0;                                   //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
-        p = Cnvt::PutU16(0, p);                     // light sensor 2
-        *p++ = 'V';                                 // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
-        *p++ = 'B';                                 // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
-        *p++ = prod.MaxConspicuity();               // conspicuity
-        *p++ = prod.MaxFont();                      // max. number of fonts
-        *p++ = prod.GetMappedColour(0);             // user.DefaultColour();                // 09
-        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.max_template=0;		// 00
-        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.wk1=1;                // 01
-        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.group_offset=0;		// 00
-        *p++ = 'D';                                 // GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
-        *p++ = 0;                                   // GUIconfigure.PARA.BYTE.group_length=0;		// 00
-        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.wk3=1;                // 01
-        *p++ = 1;                                   // GUIconfigure.PARA.BYTE.group_data=1;			// 01
+        *p++ = 0;                                      //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
+        p = Cnvt::PutU16(0, p);                        // light sensor 2
+        *p++ = 'V';                                    // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
+        *p++ = 'B';                                    // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
+        *p++ = prod.MaxConspicuity();                  // conspicuity
+        *p++ = prod.MaxFont();                         // max. number of fonts
+        *p++ = prod.GetMappedColour(0);                // user.DefaultColour();                // 09
+        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.max_template=0;		// 00
+        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.wk1=1;                // 01
+        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.group_offset=0;		// 00
+        *p++ = 'D';                                    // GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
+        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.group_length=0;		// 00
+        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.wk3=1;                // 01
+        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.group_data=1;			// 01
         Tx(txbuf, 39);
     }
     return 0;

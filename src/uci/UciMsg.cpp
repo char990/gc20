@@ -7,14 +7,6 @@
 
 using namespace Utils;
 
-UciMsg::UciMsg()
-{
-}
-
-UciMsg::~UciMsg()
-{
-}
-
 void UciMsg::LoadConfig()
 {
 	Ldebug(">>> Loading 'messages'");
