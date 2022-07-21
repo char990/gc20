@@ -13,9 +13,9 @@ UciAlarm::~UciAlarm()
 
 void UciAlarm::LoadConfig()
 {
-    Ldebug(">>> Loading 'alarmlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciAlarm";
 	SECTION = "alm";
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
     UciStrLog::LoadConfig();
 }

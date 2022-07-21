@@ -191,7 +191,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     char buf[64];
     DbHelper &db = DbHelper::Instance();
     UciProd &prod = db.GetUciProd();
-    UciUser &user = db.GetUciUser();
+    UciUserCfg &user = db.GetUciUser();
 
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV

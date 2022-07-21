@@ -44,7 +44,7 @@ LayerNTS::~LayerNTS()
 int LayerNTS::Rx(uint8_t *data, int len)
 {
     int addr = Cnvt::ParseToU8((char *)data + 5);
-    UciUser &user = DbHelper::Instance().GetUciUser();
+    UciUserCfg &user = DbHelper::Instance().GetUciUser();
     if (addr != user.DeviceId() || addr == user.BroadcastId())
     {
         Ldebug("NOT my addr: %d", addr);
@@ -160,7 +160,7 @@ bool LayerNTS::IsTxReady()
 
 int LayerNTS::Tx(uint8_t *data, int len)
 {
-    UciUser &user = DbHelper::Instance().GetUciUser();
+    UciUserCfg &user = DbHelper::Instance().GetUciUser();
     if (_addr == user.BroadcastId())
     { // no reply for broadcast
         return 0;

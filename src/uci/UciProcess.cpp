@@ -9,10 +9,10 @@ using namespace Utils;
 
 void UciProcess::LoadConfig()
 {
-	Ldebug(">>> Loading 'process'");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
 	Open();
 	DbHelper &db = DbHelper::Instance();
 	char option[16];

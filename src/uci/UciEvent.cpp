@@ -12,9 +12,9 @@ UciEvent::~UciEvent()
 
 void UciEvent::LoadConfig()
 {
-    Ldebug(">>> Loading 'eventlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciEvent";
 	SECTION = "evt";
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
     UciStrLog::LoadConfig();
 }

@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
         // AllGroupPowerOn();
 
         UciProd &prod = DbHelper::Instance().GetUciProd();
-        UciUser &user = DbHelper::Instance().GetUciUser();
+        UciUserCfg &user = DbHelper::Instance().GetUciUser();
         // init serial ports
         OprSp *oprSp[COMPORT_SIZE];
         for (int i = 0; i < COMPORT_SIZE; i++)

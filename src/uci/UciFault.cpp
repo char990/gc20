@@ -15,10 +15,10 @@ extern time_t GetTime(time_t *);
 
 void UciFault::LoadConfig()
 {
-    Ldebug(">>> Loading 'faultlog'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciFault";
     SECTION = "flt";
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     struct uci_element *e;

@@ -5,6 +5,7 @@
 #include <uci.h>
 #include <module/Utils.h>
 
+
 struct OptChars
 {
 	const char *option;
@@ -104,4 +105,8 @@ protected:
 	void PrintOption_d(const char *option, int x);
 	void PrintOption_f(const char *option, float x);
 	void PrintOption_str(const char *option, const char *str);
+
+
+	void ThrowError(const char * option, const char * str);
+	void ThrowError(const char * option, const int i);
 };

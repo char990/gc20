@@ -10,9 +10,9 @@ using namespace std;
 
 void UciPasswd::LoadConfig()
 {
-    Ldebug(">>> Loading 'UciPasswd'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciPasswd";
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
 
     Open();
 

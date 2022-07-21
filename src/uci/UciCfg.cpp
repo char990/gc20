@@ -338,3 +338,13 @@ void UciCfg::ClrSECTION()
 	fdatasync(dstfd);
 	close(dstfd);
 }
+
+void UciCfg::ThrowError(const char * option, const char * str)
+{
+    throw std::invalid_argument(FmtException("%s.%s.%s error:%s", PACKAGE, SECTION, option, str));
+}
+
+void UciCfg::ThrowError(const char * option, const int i)
+{
+    throw std::invalid_argument(FmtException("%s.%s.%s error:%d", PACKAGE, SECTION, option, i));
+}

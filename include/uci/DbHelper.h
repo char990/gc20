@@ -2,7 +2,7 @@
 
 
 #include <uci/UciProd.h>
-#include <uci/UciUser.h>
+#include <uci/UciUserCfg.h>
 #include <uci/UciFrm.h>
 #include <uci/UciMsg.h>
 #include <uci/UciPln.h>
@@ -31,7 +31,7 @@ public:
     uint16_t HdrChksum();
 
     UciProd & GetUciProd() { return uciProd; };
-    UciUser & GetUciUser() { return uciUser; };
+    UciUserCfg & GetUciUser() { return uciUserCfg; };
     UciNetwork & GetUciNetwork() {return uciNetwork;};
 
     UciFrm & GetUciFrm() { return  uciFrm; };
@@ -50,7 +50,7 @@ public:
 
 protected:
     UciProd uciProd;
-    UciUser uciUser;
+    UciUserCfg uciUserCfg;
     UciNetwork uciNetwork;
 
     UciFrm uciFrm;

@@ -21,10 +21,10 @@ typedef struct ExtSw
     };
 } ExtSw;
 
-class UciUser : public UciCfg
+class UciUserCfg : public UciCfg
 {
 public:
-    ~UciUser();
+    ~UciUserCfg();
 
     const char *DEFAULT_FILE;
 

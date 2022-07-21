@@ -10,7 +10,7 @@
 using namespace Utils;
 extern time_t GetTime(time_t *);
 
-UciUser::~UciUser()
+UciUserCfg::~UciUserCfg()
 {
     if (tz_AU != nullptr)
     {
@@ -18,13 +18,13 @@ UciUser::~UciUser()
     }
 }
 
-void UciUser::LoadConfig()
+void UciUserCfg::LoadConfig()
 {
     PATH = DbHelper::Instance().Path();
-    PACKAGE = "UciUser";
-    DEFAULT_FILE = "UciUser.def";
+    PACKAGE = "UciUserCfg";
+    DEFAULT_FILE = "UciUserCfg.def";
     SECTION = "user_cfg";
-    Ldebug(">>> Loading 'user'");
+    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
     UciProd &uciProd = DbHelper::Instance().GetUciProd();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
@@ -37,8 +37,8 @@ void UciUser::LoadConfig()
     broadcastId = GetInt(uciSec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
-        throw std::invalid_argument(FmtException("UciUser.DeviceId(%d) should not be same as BroadcastId(%d)",
-                                                 deviceId, broadcastId));
+        throw std::invalid_argument(FmtException("%s.%s.%s(%d) should not be same as %s(%d)",
+                                                 PACKAGE, SECTION, _DeviceId, deviceId, _BroadcastId, broadcastId));
     }
     seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
     fan1OnTemp = GetInt(uciSec, _Fan1OnTemp, 0, 100);
@@ -49,7 +49,7 @@ void UciUser::LoadConfig()
     defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
     if (!uciProd.IsFont(defaultFont))
     {
-        throw std::invalid_argument(FmtException("UciUser::DefaultFont(%d) is not valid", defaultFont));
+        throw std::invalid_argument(FmtException("%s.%s.%s(%d) is not valid", PACKAGE, SECTION, _DefaultFont, defaultFont));
     }
     defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
     */
@@ -71,7 +71,8 @@ void UciUser::LoadConfig()
     webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)
     {
-        throw std::invalid_argument(FmtException("UciUser.SvcPort(%d) should not be same as WebPort(%d)", svcPort, webPort));
+        throw std::invalid_argument(FmtException("%s.%s.%s(%d) should not be same as %s(%d)",
+                                                 PACKAGE, SECTION, _SvcPort, svcPort, _WebPort, webPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
@@ -106,7 +107,7 @@ void UciUser::LoadConfig()
         }
         else
         {
-            throw std::invalid_argument(FmtException("UciUser.%s error: %s", cbuf, str));
+            ThrowError(cbuf, str);
         }
     }
 
@@ -125,7 +126,7 @@ void UciUser::LoadConfig()
     }
     if (cnt == NUMBER_OF_TZ)
     {
-        throw std::invalid_argument(FmtException("UciUser.City error:%s", str));
+        ThrowError(_City, str);
     }
 
     str = GetStr(uciSec, _DawnDusk);
@@ -136,7 +137,7 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] > 23)
             {
-                throw std::invalid_argument("UciUser.DawnDusk Error: Hour>23");
+                ThrowError(_DawnDusk, "Hour>23");
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -146,7 +147,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument("UciUser.DawnDusk Error: cnt!=16");
+        ThrowError(_DawnDusk, "cnt!=16");
     }
     if (tz_AU != nullptr)
     {
@@ -168,8 +169,7 @@ void UciUser::LoadConfig()
         {
             if (ibuf[cnt] >= ibuf[cnt + 1])
             {
-                throw std::invalid_argument(FmtException("UciUser.Luminance Error: [%d]%d>[%d]%d",
-                                                         cnt, ibuf[cnt], cnt + 1, ibuf[cnt + 1]));
+                ThrowError(_Luminance, "Lower level lux should less than higher level");
             }
         }
         for (cnt = 0; cnt < 16; cnt++)
@@ -179,7 +179,7 @@ void UciUser::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument("UciUser.Luminance Error: cnt!=16");
+        ThrowError(_Luminance, "cnt!=16");
     }
 
     int numberOfSigns = uciProd.NumberOfSigns();
@@ -189,19 +189,19 @@ void UciUser::LoadConfig()
     {
         if (comPort == uciProd.GetSignCfg(i).com_ip)
         {
-            throw std::invalid_argument(FmtException("UciUser.%s: %s used by UciProd.Sign[%d]", _ComPort, COM_NAME[comPort], i));
+            ThrowError(_ComPort, "Assigned to UciProd.Sign");
         }
     }
     if (comPort == uciProd.MonitoringPort())
     {
-        throw std::invalid_argument(FmtException("UciUser.%s: %s used by UciProd.MonitoringPort", _ComPort, COM_NAME[comPort]));
+        ThrowError(_ComPort, "Assigned to UciProd.MonitoringPort");
     }
 
     Close();
     Dump();
 }
 
-void UciUser::LoadFactoryDefault()
+void UciUserCfg::LoadFactoryDefault()
 {
     char def[256];
     char uci[256];
@@ -213,7 +213,7 @@ void UciUser::LoadFactoryDefault()
     LoadConfig();
 }
 
-void UciUser::Dump()
+void UciUserCfg::Dump()
 {
     PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, SECTION);
@@ -230,8 +230,8 @@ void UciUser::Dump()
     PrintOption_d(_Humidity, Humidity());
     PrintOption_d(_SessionTimeout, SessionTimeoutSec());
     PrintOption_d(_DisplayTimeout, DisplayTimeoutMin());
-    //PrintOption_d(_DefaultFont, DefaultFont());
-    //PrintOption_d(_DefaultColour, DefaultColour());
+    // PrintOption_d(_DefaultFont, DefaultFont());
+    // PrintOption_d(_DefaultColour, DefaultColour());
     PrintOption_d(_MultiLedFaultThreshold, MultiLedFaultThreshold());
     PrintOption_d(_LockedFrm, LockedFrm());
     PrintOption_d(_LockedMsg, LockedMsg());
@@ -264,14 +264,14 @@ void UciUser::Dump()
     PrintDash('>');
 }
 
-void UciUser::PrintExtSw(int i, char *buf)
+void UciUserCfg::PrintExtSw(int i, char *buf)
 {
     auto &exswcfg = ExtSwCfgX(i);
     sprintf(buf, "%d,%d,%d,%d",
             exswcfg.dispTime, exswcfg.reserved, exswcfg.emergency, exswcfg.flashingOv);
 }
 
-void UciUser::PrintDawnDusk(char *buf)
+void UciUserCfg::PrintDawnDusk(char *buf)
 {
     uint8_t *p = DawnDusk();
     int len = 0;
@@ -282,7 +282,7 @@ void UciUser::PrintDawnDusk(char *buf)
     }
 }
 
-void UciUser::PrintLuminance(char *buf)
+void UciUserCfg::PrintLuminance(char *buf)
 {
     int len = 0;
     for (int i = 0; i < 16; i++)
@@ -291,7 +291,7 @@ void UciUser::PrintLuminance(char *buf)
     }
 }
 
-uint8_t UciUser::GetLuxLevel(int lux)
+uint8_t UciUserCfg::GetLuxLevel(int lux)
 {
     if (lux < 0)
     {
@@ -320,7 +320,7 @@ uint8_t UciUser::GetLuxLevel(int lux)
 
 /// --------setter--------
 
-void UciUser::BroadcastId(uint8_t v)
+void UciUserCfg::BroadcastId(uint8_t v)
 {
     if (broadcastId != v)
     {
@@ -329,7 +329,7 @@ void UciUser::BroadcastId(uint8_t v)
     }
 }
 
-void UciUser::DeviceId(uint8_t v)
+void UciUserCfg::DeviceId(uint8_t v)
 {
     if (deviceId != v)
     {
@@ -338,7 +338,7 @@ void UciUser::DeviceId(uint8_t v)
     }
 }
 
-void UciUser::SeedOffset(uint8_t v)
+void UciUserCfg::SeedOffset(uint8_t v)
 {
     if (seedOffset != v)
     {
@@ -349,7 +349,7 @@ void UciUser::SeedOffset(uint8_t v)
     }
 }
 
-void UciUser::Fan1OnTemp(uint8_t v)
+void UciUserCfg::Fan1OnTemp(uint8_t v)
 {
     if (fan1OnTemp != v)
     {
@@ -358,7 +358,7 @@ void UciUser::Fan1OnTemp(uint8_t v)
     }
 }
 
-void UciUser::Fan2OnTemp(uint8_t v)
+void UciUserCfg::Fan2OnTemp(uint8_t v)
 {
     if (fan2OnTemp != v)
     {
@@ -367,7 +367,7 @@ void UciUser::Fan2OnTemp(uint8_t v)
     }
 }
 
-void UciUser::OverTemp(uint8_t v)
+void UciUserCfg::OverTemp(uint8_t v)
 {
     if (overTemp != v)
     {
@@ -376,7 +376,7 @@ void UciUser::OverTemp(uint8_t v)
     }
 }
 
-void UciUser::Humidity(uint8_t v)
+void UciUserCfg::Humidity(uint8_t v)
 {
     if (humidity != v)
     {
@@ -386,7 +386,7 @@ void UciUser::Humidity(uint8_t v)
 }
 
 /*
-void UciUser::DefaultFont(uint8_t v)
+void UciUserCfg::DefaultFont(uint8_t v)
 {
     if (defaultFont != v)
     {
@@ -395,7 +395,7 @@ void UciUser::DefaultFont(uint8_t v)
     }
 }
 
-void UciUser::DefaultColour(uint8_t v)
+void UciUserCfg::DefaultColour(uint8_t v)
 {
     if (defaultColour != v)
     {
@@ -404,7 +404,7 @@ void UciUser::DefaultColour(uint8_t v)
     }
 }
 */
-void UciUser::LockedFrm(uint8_t v)
+void UciUserCfg::LockedFrm(uint8_t v)
 {
     if (lockedFrm != v)
     {
@@ -413,7 +413,7 @@ void UciUser::LockedFrm(uint8_t v)
     }
 }
 
-void UciUser::LockedMsg(uint8_t v)
+void UciUserCfg::LockedMsg(uint8_t v)
 {
     if (lockedMsg != v)
     {
@@ -422,7 +422,7 @@ void UciUser::LockedMsg(uint8_t v)
     }
 }
 
-void UciUser::LastFrmTime(uint8_t v)
+void UciUserCfg::LastFrmTime(uint8_t v)
 {
     if (lastFrmTime != v)
     {
@@ -431,7 +431,7 @@ void UciUser::LastFrmTime(uint8_t v)
     }
 }
 
-void UciUser::ComPort(uint8_t v)
+void UciUserCfg::ComPort(uint8_t v)
 {
     if (comPort != v)
     {
@@ -440,7 +440,7 @@ void UciUser::ComPort(uint8_t v)
     }
 }
 
-void UciUser::MultiLedFaultThreshold(uint16_t v)
+void UciUserCfg::MultiLedFaultThreshold(uint16_t v)
 {
     if (multiLedFaultThreshold != v)
     {
@@ -449,7 +449,7 @@ void UciUser::MultiLedFaultThreshold(uint16_t v)
     }
 }
 
-void UciUser::PasswordOffset(uint16_t v)
+void UciUserCfg::PasswordOffset(uint16_t v)
 {
     if (passwordOffset != v)
     {
@@ -460,7 +460,7 @@ void UciUser::PasswordOffset(uint16_t v)
     }
 }
 
-void UciUser::SessionTimeoutSec(uint16_t v)
+void UciUserCfg::SessionTimeoutSec(uint16_t v)
 {
     if (sessionTimeoutSec != v)
     {
@@ -469,7 +469,7 @@ void UciUser::SessionTimeoutSec(uint16_t v)
     }
 }
 
-void UciUser::DisplayTimeoutMin(uint16_t v)
+void UciUserCfg::DisplayTimeoutMin(uint16_t v)
 {
     if (displayTimeoutMin != v)
     {
@@ -478,7 +478,7 @@ void UciUser::DisplayTimeoutMin(uint16_t v)
     }
 }
 
-void UciUser::SvcPort(uint16_t v)
+void UciUserCfg::SvcPort(uint16_t v)
 {
     if (svcPort != v)
     {
@@ -487,7 +487,7 @@ void UciUser::SvcPort(uint16_t v)
     }
 }
 
-void UciUser::WebPort(uint16_t v)
+void UciUserCfg::WebPort(uint16_t v)
 {
     if (webPort != v)
     {
@@ -496,7 +496,7 @@ void UciUser::WebPort(uint16_t v)
     }
 }
 
-void UciUser::Baudrate(int v)
+void UciUserCfg::Baudrate(int v)
 {
     if (baudrate != v)
     {
@@ -505,7 +505,7 @@ void UciUser::Baudrate(int v)
     }
 }
 
-void UciUser::CityId(uint8_t v)
+void UciUserCfg::CityId(uint8_t v)
 {
     if (cityId != v)
     {
@@ -519,12 +519,12 @@ void UciUser::CityId(uint8_t v)
     }
 }
 
-const char *UciUser::City()
+const char *UciUserCfg::City()
 {
     return Tz_AU::tz_au[cityId].city;
 }
 
-void UciUser::DawnDusk(uint8_t *p)
+void UciUserCfg::DawnDusk(uint8_t *p)
 {
     if (memcmp(p, dawnDusk, sizeof(dawnDusk)) != 0)
     {
@@ -536,7 +536,7 @@ void UciUser::DawnDusk(uint8_t *p)
     }
 }
 
-void UciUser::Luminance(uint16_t *p)
+void UciUserCfg::Luminance(uint16_t *p)
 {
     if (memcmp(luminance, p, sizeof(luminance)) != 0)
     {
@@ -547,7 +547,7 @@ void UciUser::Luminance(uint16_t *p)
     }
 }
 
-void UciUser::ExtSwCfgX(int i, ExtSw &cfg)
+void UciUserCfg::ExtSwCfgX(int i, ExtSw &cfg)
 {
     if (i >= 0 && i < extSw.size() && !extSw.at(i).Equal(cfg))
     {
@@ -561,7 +561,7 @@ void UciUser::ExtSwCfgX(int i, ExtSw &cfg)
     }
 }
 
-void UciUser::ShakehandsPassword(const char *shake)
+void UciUserCfg::ShakehandsPassword(const char *shake)
 {
     for (int i = 0; i < 10; i++)
     {
@@ -574,7 +574,7 @@ void UciUser::ShakehandsPassword(const char *shake)
     shakehandsPassword[10] = '\0';
 }
 
-void UciUser::NightDimmingLevel(uint8_t v)
+void UciUserCfg::NightDimmingLevel(uint8_t v)
 {
     if (nightDimmingLevel != v)
     {
@@ -583,7 +583,7 @@ void UciUser::NightDimmingLevel(uint8_t v)
     }
 }
 
-void UciUser::DayDimmingLevel(uint8_t v)
+void UciUserCfg::DayDimmingLevel(uint8_t v)
 {
     if (dayDimmingLevel != v)
     {
@@ -592,7 +592,7 @@ void UciUser::DayDimmingLevel(uint8_t v)
     }
 }
 
-void UciUser::DawnDimmingLevel(uint8_t v)
+void UciUserCfg::DawnDimmingLevel(uint8_t v)
 {
     if (dawnDimmingLevel != v)
     {
@@ -601,7 +601,7 @@ void UciUser::DawnDimmingLevel(uint8_t v)
     }
 }
 
-void UciUser::LuxDayMin(uint16_t v)
+void UciUserCfg::LuxDayMin(uint16_t v)
 {
     if (luxDayMin != v)
     {
@@ -610,7 +610,7 @@ void UciUser::LuxDayMin(uint16_t v)
     }
 }
 
-void UciUser::LuxNightMax(uint16_t v)
+void UciUserCfg::LuxNightMax(uint16_t v)
 {
     if (luxNightMax != v)
     {
@@ -619,7 +619,7 @@ void UciUser::LuxNightMax(uint16_t v)
     }
 }
 
-void UciUser::Lux18HoursMin(uint16_t v)
+void UciUserCfg::Lux18HoursMin(uint16_t v)
 {
     if (lux18HoursMin != v)
     {
