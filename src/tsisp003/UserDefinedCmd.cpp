@@ -94,7 +94,6 @@ int TsiSp003App::FA0A_RetrieveLogs(uint8_t *data, int len)
 {
     if (ChkLen(len, 3))
     {
-        auto &db = DbHelper::Instance();
         int applen;
         uint8_t subcmd = *(data + 2);
         switch (subcmd)
@@ -132,8 +131,7 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
 {
     if (ChkLen(len, 3))
     {
-        auto &db = DbHelper::Instance();
-        if (!db.GetUciProd().IsResetLogAllowed())
+        if (!prod.IsResetLogAllowed())
         {
             Reject(APP::ERROR::MiNotSupported);
             return 0;
@@ -177,7 +175,7 @@ int TsiSp003App::FA10_SendFileInfo(uint8_t *data, int len)
     {
         if (shake_hands_status == 2)
         {
-            if (db.GetUciProd().IsUpgradeAllowed())
+            if (prod.IsUpgradeAllowed())
             {
                 if (upgrade.FileInfo(data))
                 {
@@ -206,7 +204,7 @@ int TsiSp003App::FA11_SendFilePacket(uint8_t *data, int len)
 {
     if (shake_hands_status == 2)
     {
-        if (db.GetUciProd().IsUpgradeAllowed())
+        if (prod.IsUpgradeAllowed())
         {
             if (upgrade.FilePacket(data, len))
             {
@@ -235,7 +233,7 @@ int TsiSp003App::FA12_StartUpgrading(uint8_t *data, int len)
 {
     if (shake_hands_status == 2)
     {
-        if (db.GetUciProd().IsUpgradeAllowed())
+        if (prod.IsUpgradeAllowed())
         {
             if (upgrade.Start())
             {
@@ -339,176 +337,175 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
         else
         {
             uint8_t *pd = data;
-            auto &user = DbHelper::Instance().GetUciUser();
-            auto &evt = DbHelper::Instance().GetUciEvent();
+            auto &evt = db.GetUciEvent();
             // restart/reboot flag
             unsigned char rr_flag = 0;
             // save config
             uint32_t v;
             v = *(pd + 2);
-            if (v != user.SeedOffset())
+            if (v != usercfg.SeedOffset())
             {
-                evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X", user.SeedOffset(), v);
-                user.SeedOffset(v);
+                evt.Push(0, "UserCfg.SeedOffset changed: 0x%02X->0x%02X", usercfg.SeedOffset(), v);
+                usercfg.SeedOffset(v);
             }
             v = Cnvt::GetU16(pd + 3);
-            if (v != user.PasswordOffset())
+            if (v != usercfg.PasswordOffset())
             {
-                evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X", user.PasswordOffset(), v);
-                user.PasswordOffset(v);
+                evt.Push(0, "UserCfg.PasswordOffset changed: 0x%04X->0x%04X", usercfg.PasswordOffset(), v);
+                usercfg.PasswordOffset(v);
             }
             v = *(pd + 5);
-            if (v != user.DeviceId())
+            if (v != usercfg.DeviceId())
             {
-                evt.Push(0, "User.DeviceID changed: %u->%u", user.DeviceId(), v);
-                user.DeviceId(v);
+                evt.Push(0, "UserCfg.DeviceID changed: %u->%u", usercfg.DeviceId(), v);
+                usercfg.DeviceId(v);
             }
             v = *(pd + 6);
-            if (v != user.BroadcastId())
+            if (v != usercfg.BroadcastId())
             {
-                evt.Push(0, "User.BroadcastID changed: %u->%u", user.BroadcastId(), v);
-                user.BroadcastId(v);
+                evt.Push(0, "UserCfg.BroadcastID changed: %u->%u", usercfg.BroadcastId(), v);
+                usercfg.BroadcastId(v);
             }
 
             /*
             v = *(pd + 7);
-            if (v != user.TmcPath())
+            if (v != usercfg.TmcPath())
             {
                 evt.Push(0, "TMC Path changed: %u->%u . Restart to load new setting",
-                            user.TmcPath(), v);
-                user.TmcPath(v);
+                            usercfg.TmcPath(), v);
+                usercfg.TmcPath(v);
                 rr_flag = RQST_RESTART;
             }*/
 
             v = Cnvt::GetU32(pd + 8);
-            if (v != user.Baudrate())
+            if (v != usercfg.Baudrate())
             {
-                evt.Push(0, "User.Baudrate changed: %u->%u . Restart to load new setting",
-                         user.Baudrate(), v);
-                user.Baudrate(v);
+                evt.Push(0, "UserCfg.Baudrate changed: %u->%u . Restart to load new setting",
+                         usercfg.Baudrate(), v);
+                usercfg.Baudrate(v);
                 rr_flag |= RQST_RESTART;
             }
 
             v = Cnvt::GetU16(pd + 12);
-            if (v != user.SvcPort())
+            if (v != usercfg.SvcPort())
             {
-                evt.Push(0, "User.SvcPort changed: %u->%u. Restart to load new setting",
-                         user.SvcPort(), v);
-                user.SvcPort(v);
+                evt.Push(0, "UserCfg.SvcPort changed: %u->%u. Restart to load new setting",
+                         usercfg.SvcPort(), v);
+                usercfg.SvcPort(v);
                 rr_flag |= RQST_RESTART;
             }
 
             v = Cnvt::GetU16(pd + 14);
-            if (v != user.SessionTimeoutSec())
+            if (v != usercfg.SessionTimeoutSec())
             {
-                evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                         user.SessionTimeoutSec(), v);
-                user.SessionTimeoutSec(v);
+                evt.Push(0, "UserCfg.SessionTimeout changed: %u->%u",
+                         usercfg.SessionTimeoutSec(), v);
+                usercfg.SessionTimeoutSec(v);
             }
 
             v = Cnvt::GetU16(pd + 16);
-            if (v != user.DisplayTimeoutMin())
+            if (v != usercfg.DisplayTimeoutMin())
             {
-                evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                         user.DisplayTimeoutMin(), v);
-                user.DisplayTimeoutMin(v);
+                evt.Push(0, "UserCfg.DisplayTimeout changed: %u->%u",
+                         usercfg.DisplayTimeoutMin(), v);
+                usercfg.DisplayTimeoutMin(v);
             }
 
             v = *(pd + 18);
-            if (v != user.OverTemp())
+            if (v != usercfg.OverTemp())
             {
-                evt.Push(0, "User.OverTemp changed: %u->%u",
-                         user.OverTemp(), v);
-                user.OverTemp(v);
+                evt.Push(0, "UserCfg.OverTemp changed: %u->%u",
+                         usercfg.OverTemp(), v);
+                usercfg.OverTemp(v);
             }
 
             v = *(pd + 19);
-            if (v != user.Fan1OnTemp())
+            if (v != usercfg.Fan1OnTemp())
             {
-                evt.Push(0, "User.Fan1OnTemp changed: %u->%u",
-                         user.Fan1OnTemp(), v);
-                user.Fan1OnTemp(v);
+                evt.Push(0, "UserCfg.Fan1OnTemp changed: %u->%u",
+                         usercfg.Fan1OnTemp(), v);
+                usercfg.Fan1OnTemp(v);
             }
-            if (v != user.Fan2OnTemp())
+            if (v != usercfg.Fan2OnTemp())
             {
-                evt.Push(0, "User.Fan2OnTemp changed: %u->%u",
-                         user.Fan2OnTemp(), v);
-                user.Fan2OnTemp(v);
+                evt.Push(0, "UserCfg.Fan2OnTemp changed: %u->%u",
+                         usercfg.Fan2OnTemp(), v);
+                usercfg.Fan2OnTemp(v);
             }
 
             v = *(pd + 20);
-            if (v != user.Humidity())
+            if (v != usercfg.Humidity())
             {
-                evt.Push(0, "User.Humidity changed: %u->%u",
-                         user.Humidity(), v);
-                user.Humidity(v);
+                evt.Push(0, "UserCfg.Humidity changed: %u->%u",
+                         usercfg.Humidity(), v);
+                usercfg.Humidity(v);
             }
 
             v = *(pd + 21);
-            if (v != user.CityId())
+            if (v != usercfg.CityId())
             {
-                evt.Push(0, "User.City changed: %u->%u",
-                         user.CityId(), v);
-                user.CityId(v);
+                evt.Push(0, "UserCfg.City changed: %u->%u",
+                         usercfg.CityId(), v);
+                usercfg.CityId(v);
                 rr_flag |= RQST_RESTART;
             }
 
             /* discard DefaultFont & DefaultColour
             v = *(pd + 22);
-            if (v != user.DefaultFont())
+            if (v != usercfg.DefaultFont())
             {
-                evt.Push(0, "User.DefaultFont changed: %u->%u",
-                         user.DefaultFont(), v);
-                user.DefaultFont(v);
+                evt.Push(0, "UserCfg.DefaultFont changed: %u->%u",
+                         usercfg.DefaultFont(), v);
+                usercfg.DefaultFont(v);
             }
 
             v = *(pd + 23);
-            if (v != user.DefaultColour())
+            if (v != usercfg.DefaultColour())
             {
-                evt.Push(0, "User.DefaultColour changed: %u->%u",
-                         user.DefaultColour(), v);
-                user.DefaultColour(v);
+                evt.Push(0, "UserCfg.DefaultColour changed: %u->%u",
+                         usercfg.DefaultColour(), v);
+                usercfg.DefaultColour(v);
             }*/
 
             v = Cnvt::GetU16(pd + 24);
-            if (v != user.MultiLedFaultThreshold())
+            if (v != usercfg.MultiLedFaultThreshold())
             {
-                evt.Push(0, "User.MultiLedFaultThreshold changed: %u->%u",
-                         user.MultiLedFaultThreshold(), v);
-                user.MultiLedFaultThreshold(v);
+                evt.Push(0, "UserCfg.MultiLedFaultThreshold changed: %u->%u",
+                         usercfg.MultiLedFaultThreshold(), v);
+                usercfg.MultiLedFaultThreshold(v);
             }
 
             if (shakehands_passwd[0] != 0)
             {
-                evt.Push(0, "User.ShakehandsPassword changed");
-                user.ShakehandsPassword(shakehands_passwd);
+                evt.Push(0, "UserCfg.ShakehandsPassword changed");
+                usercfg.ShakehandsPassword(shakehands_passwd);
             }
             v = *(pd + 40);
-            if (v != user.LockedMsg())
+            if (v != usercfg.LockedMsg())
             {
-                evt.Push(0, "User.LockedMsg changed: %u->%u",
-                         user.LockedMsg(), v);
-                user.LockedMsg(v);
+                evt.Push(0, "UserCfg.LockedMsg changed: %u->%u",
+                         usercfg.LockedMsg(), v);
+                usercfg.LockedMsg(v);
             }
 
             v = *(pd + 41);
-            if (v != user.LockedFrm())
+            if (v != usercfg.LockedFrm())
             {
-                evt.Push(0, "User.LockedFrm changed: %u->%u",
-                         user.LockedFrm(), v);
-                user.LockedFrm(v);
+                evt.Push(0, "UserCfg.LockedFrm changed: %u->%u",
+                         usercfg.LockedFrm(), v);
+                usercfg.LockedFrm(v);
             }
 
             v = *(pd + 42);
-            if (v != user.LastFrmTime())
+            if (v != usercfg.LastFrmTime())
             {
-                evt.Push(0, "User.LastFrmTime changed: %u->%u",
-                         user.LastFrmTime(), v);
-                user.LastFrmTime(v);
+                evt.Push(0, "UserCfg.LastFrmTime changed: %u->%u",
+                         usercfg.LastFrmTime(), v);
+                usercfg.LastFrmTime(v);
             }
 
             // network settings
-            auto &uciNet = DbHelper::Instance().GetUciNetwork();
+            auto &uciNet = db.GetUciNetwork();
             std::string eth("ETH1");
             auto net = uciNet.GetETH(eth);
             if (net != nullptr)
@@ -584,31 +581,30 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
         txbuf[1] = FACMD_SET_USER_CFG;
         auto pt = txbuf + 2;
-        auto &user = DbHelper::Instance().GetUciUser();
-        *pt++ = user.SeedOffset();
-        pt = Cnvt::PutU16(user.PasswordOffset(), pt);
-        *pt++ = user.DeviceId();
-        *pt++ = user.BroadcastId();
+        *pt++ = usercfg.SeedOffset();
+        pt = Cnvt::PutU16(usercfg.PasswordOffset(), pt);
+        *pt++ = usercfg.DeviceId();
+        *pt++ = usercfg.BroadcastId();
         *pt++ = 1; // TMC Path
-        pt = Cnvt::PutU32(user.Baudrate(), pt);
-        pt = Cnvt::PutU16(user.SvcPort(), pt);
-        pt = Cnvt::PutU16(user.SessionTimeoutSec(), pt);
-        pt = Cnvt::PutU16(user.DisplayTimeoutMin(), pt);
-        *pt++ = user.OverTemp();
-        *pt++ = user.Fan1OnTemp();
-        *pt++ = user.Humidity();
-        *pt++ = user.CityId();
-        *pt++ = 0;                                                    // user.DefaultFont();
-        *pt++ = DbHelper::Instance().GetUciProd().GetMappedColour(0); // DefaultColour();
-        pt = Cnvt::PutU16(user.MultiLedFaultThreshold(), pt);
+        pt = Cnvt::PutU32(usercfg.Baudrate(), pt);
+        pt = Cnvt::PutU16(usercfg.SvcPort(), pt);
+        pt = Cnvt::PutU16(usercfg.SessionTimeoutSec(), pt);
+        pt = Cnvt::PutU16(usercfg.DisplayTimeoutMin(), pt);
+        *pt++ = usercfg.OverTemp();
+        *pt++ = usercfg.Fan1OnTemp();
+        *pt++ = usercfg.Humidity();
+        *pt++ = usercfg.CityId();
+        *pt++ = 0;                                                    // usercfg.DefaultFont();
+        *pt++ = prod.GetMappedColour(0); // DefaultColour();
+        pt = Cnvt::PutU16(usercfg.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
-        auto net = DbHelper::Instance().GetUciNetwork().GetETH(std::string("ETH1"));
+        auto net = db.GetUciNetwork().GetETH(std::string("ETH1"));
         memcpy(pt, net->ipaddr.ip, 4);
         pt += 4;
-        *pt++ = user.LockedMsg();
-        *pt++ = user.LockedFrm();
-        *pt++ = user.LastFrmTime();
+        *pt++ = usercfg.LockedMsg();
+        *pt++ = usercfg.LockedFrm();
+        *pt++ = usercfg.LastFrmTime();
         memcpy(pt, net->netmask.ip, 4);
         pt += 4;
         memcpy(pt, net->gateway.ip, 4);
@@ -625,9 +621,7 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
         txbuf[1] = FACMD_RPL_USER_EXT;
         auto pt = txbuf + 2;
-        auto &prod = db.GetUciProd();
-        auto &ctrl = Controller::Instance();
-        auto &groups = ctrl.GetGroups();
+        auto &groups = ctrller.GetGroups();
         int voltage = 0;
         int voltagemin = 0xFFFF;
         int voltagemax = 0;
@@ -664,12 +658,12 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         }
         *pt++ = maxTemp;
         *pt++ = curTemp / cnt; // avg of all current temperatures
-        *pt++ = ctrl.MaxTemp();
-        *pt++ = ctrl.CurTemp();
+        *pt++ = ctrller.MaxTemp();
+        *pt++ = ctrller.CurTemp();
         voltage = (voltagemin < prod.SlaveVoltageLow()) ? voltagemin : ((voltagemax > prod.SlaveVoltageHigh()) ? voltagemax : (voltage / cnt));
         pt = Cnvt::PutU16(voltage, pt);
         pt = Cnvt::PutU16(lux / cnt, pt);
-        char *mfcCode = DbHelper::Instance().GetUciProd().MfcCode();
+        char *mfcCode =prod.MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
         memcpy(pt, FirmwareVer, 4);
@@ -727,9 +721,8 @@ int TsiSp003App::FA01_SetLuminance(uint8_t *data, int len)
             }
             pd += 2;
         }
-        auto &user = DbHelper::Instance().GetUciUser();
-        user.DawnDusk(data + 2);
-        user.Luminance(buf2);
+        usercfg.DawnDusk(data + 2);
+        usercfg.Luminance(buf2);
         Ack();
     }
     return 0;
@@ -742,10 +735,9 @@ int TsiSp003App::FA04_RqstLuminance(uint8_t *data, int len)
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
         txbuf[1] = FACMD_SET_LUMINANCE;
         auto pt = txbuf + 2;
-        auto &user = DbHelper::Instance().GetUciUser();
-        memcpy(pt, user.DawnDusk(), 16);
+        memcpy(pt, usercfg.DawnDusk(), 16);
         pt += 16;
-        uint16_t *luminance = user.Luminance();
+        uint16_t *luminance = usercfg.Luminance();
         for (int i = 0; i < 16; i++)
         {
             pt = Cnvt::PutU16(*luminance++, pt);
@@ -791,10 +783,9 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
             }
             extsw[i].flashingOv = k;
         }
-        auto &user = DbHelper::Instance().GetUciUser();
         for (int i = 0; i < 3; i++)
         {
-            user.ExtSwCfgX(i, extsw[i]);
+            usercfg.ExtSwCfgX(i, extsw[i]);
         }
         Ack();
     }
@@ -808,19 +799,18 @@ int TsiSp003App::FA03_RqstExtInput(uint8_t *data, int len)
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
         txbuf[1] = FACMD_SET_EXT_INPUT;
         auto pt = txbuf + 2;
-        auto &user = DbHelper::Instance().GetUciUser();
         for (int i = 0; i < 3; i++)
         {
-            pt = Cnvt::PutU16(user.ExtSwCfgX(i).dispTime, pt);
+            pt = Cnvt::PutU16(usercfg.ExtSwCfgX(i).dispTime, pt);
         }
         for (int i = 0; i < 3; i++)
         {
-            *pt++ = user.ExtSwCfgX(i).emergency;
+            *pt++ = usercfg.ExtSwCfgX(i).emergency;
         }
-        *pt++ = user.ExtSwCfgX(0).reserved; // feedback = reserved, only report [0]
+        *pt++ = usercfg.ExtSwCfgX(0).reserved; // feedback = reserved, only report [0]
         for (int i = 0; i < 3; i++)
         {
-            *pt++ = user.ExtSwCfgX(i).flashingOv;
+            *pt++ = usercfg.ExtSwCfgX(i).flashingOv;
         }
         Tx(txbuf, pt - txbuf);
     }
@@ -854,8 +844,7 @@ int TsiSp003App::FAF2_ShakehandsPasswd(uint8_t *data, int len)
             return 0;
         }
         unsigned char sh_pwd[16];
-        auto &user = DbHelper::Instance().GetUciUser();
-        Md5_of_sh(user.ShakehandsPassword(), sh_pwd);
+        Md5_of_sh(usercfg.ShakehandsPassword(), sh_pwd);
         if (memcmp(sh_pwd, data + 2, 16) == 0)
         {
             shake_hands_status = 2;
@@ -930,8 +919,6 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
 {
     if (ChkLen(len, 23))
     {
-        auto &prod = DbHelper::Instance().GetUciProd();
-        auto &user = DbHelper::Instance().GetUciUser();
         auto sessiont = Cnvt::GetU16(data + 14);
         auto displayt = Cnvt::GetU16(data + 17);
         auto devId = data[4];
@@ -951,74 +938,74 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
         }
         else
         {
-            auto &evt = DbHelper::Instance().GetUciEvent();
+            auto &evt = db.GetUciEvent();
             auto passwordOffset = Cnvt::GetU16(data + 1);
-            if (passwordOffset != user.PasswordOffset())
+            if (passwordOffset != usercfg.PasswordOffset())
             {
-                evt.Push(0, "User.PasswordOffset changed: %u->%u",
-                         user.PasswordOffset(), passwordOffset);
-                user.PasswordOffset(passwordOffset);
+                evt.Push(0, "UserCfg.PasswordOffset changed: %u->%u",
+                         usercfg.PasswordOffset(), passwordOffset);
+                usercfg.PasswordOffset(passwordOffset);
             }
-            if (data[3] != user.SeedOffset())
+            if (data[3] != usercfg.SeedOffset())
             {
-                evt.Push(0, "User.SeedOffset changed: %u->%u",
-                         user.SeedOffset(), data[3]);
-                user.SeedOffset(data[3]);
+                evt.Push(0, "UserCfg.SeedOffset changed: %u->%u",
+                         usercfg.SeedOffset(), data[3]);
+                usercfg.SeedOffset(data[3]);
             }
-            if (devId != user.DeviceId())
+            if (devId != usercfg.DeviceId())
             {
-                evt.Push(0, "User.DeviceId changed: %u->%u",
-                         user.DeviceId(), devId);
-                user.DeviceId(devId);
+                evt.Push(0, "UserCfg.DeviceId changed: %u->%u",
+                         usercfg.DeviceId(), devId);
+                usercfg.DeviceId(devId);
             }
-            if (overtemp != user.OverTemp())
+            if (overtemp != usercfg.OverTemp())
             {
-                evt.Push(0, "User.OverTemp changed: %u->%u",
-                         user.OverTemp(), overtemp);
-                user.OverTemp(overtemp);
+                evt.Push(0, "UserCfg.OverTemp changed: %u->%u",
+                         usercfg.OverTemp(), overtemp);
+                usercfg.OverTemp(overtemp);
             }
-            if (fan1temp != user.Fan1OnTemp())
+            if (fan1temp != usercfg.Fan1OnTemp())
             {
-                evt.Push(0, "User.Fan1OnTemp changed: %u->%u",
-                         user.Fan1OnTemp(), fan1temp);
-                user.Fan1OnTemp(fan1temp);
+                evt.Push(0, "UserCfg.Fan1OnTemp changed: %u->%u",
+                         usercfg.Fan1OnTemp(), fan1temp);
+                usercfg.Fan1OnTemp(fan1temp);
             }
-            if (fan2temp != user.Fan2OnTemp())
+            if (fan2temp != usercfg.Fan2OnTemp())
             {
-                evt.Push(0, "User.Fan2OnTemp changed: %u->%u",
-                         user.Fan2OnTemp(), fan2temp);
-                user.Fan2OnTemp(fan2temp);
+                evt.Push(0, "UserCfg.Fan2OnTemp changed: %u->%u",
+                         usercfg.Fan2OnTemp(), fan2temp);
+                usercfg.Fan2OnTemp(fan2temp);
             }
-            if (humid != user.Humidity())
+            if (humid != usercfg.Humidity())
             {
-                evt.Push(0, "User.Humidity changed: %u->%u",
-                         user.Humidity(), humid);
-                user.Humidity(humid);
+                evt.Push(0, "UserCfg.Humidity changed: %u->%u",
+                         usercfg.Humidity(), humid);
+                usercfg.Humidity(humid);
             }
-            if (broadcastId != user.BroadcastId())
+            if (broadcastId != usercfg.BroadcastId())
             {
-                evt.Push(0, "User.BroadcastId changed: %u->%u",
-                         user.BroadcastId(), broadcastId);
-                user.BroadcastId(broadcastId);
+                evt.Push(0, "UserCfg.BroadcastId changed: %u->%u",
+                         usercfg.BroadcastId(), broadcastId);
+                usercfg.BroadcastId(broadcastId);
             }
             /*
-            if (defaultFont != user.DefaultFont())
+            if (defaultFont != usercfg.DefaultFont())
             {
-                evt.Push(0, "User.DefaultFont changed: %u->%u",
-                         user.DefaultFont(), defaultFont);
-                user.DefaultFont(defaultFont);
+                evt.Push(0, "UserCfg.DefaultFont changed: %u->%u",
+                         usercfg.DefaultFont(), defaultFont);
+                usercfg.DefaultFont(defaultFont);
             }*/
-            if (sessiont != user.SessionTimeoutSec())
+            if (sessiont != usercfg.SessionTimeoutSec())
             {
-                evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                         user.SessionTimeoutSec(), sessiont);
-                user.SessionTimeoutSec(sessiont);
+                evt.Push(0, "UserCfg.SessionTimeout changed: %u->%u",
+                         usercfg.SessionTimeoutSec(), sessiont);
+                usercfg.SessionTimeoutSec(sessiont);
             }
-            if (displayt != user.DisplayTimeoutMin())
+            if (displayt != usercfg.DisplayTimeoutMin())
             {
-                evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                         user.DisplayTimeoutMin(), displayt);
-                user.DisplayTimeoutMin(displayt);
+                evt.Push(0, "UserCfg.DisplayTimeout changed: %u->%u",
+                         usercfg.DisplayTimeoutMin(), displayt);
+                usercfg.DisplayTimeoutMin(displayt);
             }
             // after DisplayTimeout, there are 4 bytes, don't know the meaning
             Ack();
@@ -1031,27 +1018,25 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
 {
     if (ChkLen(len, 1))
     {
-        auto &prod = DbHelper::Instance().GetUciProd();
-        auto &user = DbHelper::Instance().GetUciUser();
         txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFF);
         uint8_t *p = txbuf + 1;
-        p = Cnvt::PutU16(user.PasswordOffset(), p);    // password offset
-        *p++ = user.SeedOffset();                      // seed offset
-        *p++ = user.DeviceId();                        // device id
+        p = Cnvt::PutU16(usercfg.PasswordOffset(), p);    // password offset
+        *p++ = usercfg.SeedOffset();                      // seed offset
+        *p++ = usercfg.DeviceId();                        // device id
         p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) ON time : 5/10 seconds
         p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) OFF time : 5/10 seconds
-        *p++ = user.OverTemp();                        // over temperature
-        *p++ = user.Fan1OnTemp();                      // fan 1 on temperature
-        *p++ = user.Fan2OnTemp();                      // fan 2 on temperature
-        *p++ = user.Humidity();                        // Humidity
-        *p++ = user.BroadcastId();                     // broadcast address
-        p = Cnvt::PutU16(user.SessionTimeoutSec(), p); // session time out
+        *p++ = usercfg.OverTemp();                        // over temperature
+        *p++ = usercfg.Fan1OnTemp();                      // fan 1 on temperature
+        *p++ = usercfg.Fan2OnTemp();                      // fan 2 on temperature
+        *p++ = usercfg.Humidity();                        // Humidity
+        *p++ = usercfg.BroadcastId();                     // broadcast address
+        p = Cnvt::PutU16(usercfg.SessionTimeoutSec(), p); // session time out
         auto &groups = Controller::Instance().GetGroups();
         int faultleds = 0;
         int maxTemp = 0;
         int curTemp = 0;
         int lux = 0;
-        int cnt = db.GetUciProd().NumberOfSigns();
+        int cnt = prod.NumberOfSigns();
         for (auto &g : groups)
         {
             auto &signs = g->GetSigns();
@@ -1071,7 +1056,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         *p++ = maxTemp;                                // max of all max temperatures
         *p++ = (faultleds > 255) ? 255 : faultleds;    // pixel on fault
         *p++ = 0;                                      // DefaultFont                  //
-        p = Cnvt::PutU16(user.DisplayTimeoutMin(), p); // display time out
+        p = Cnvt::PutU16(usercfg.DisplayTimeoutMin(), p); // display time out
         *p++ = 0;                                      //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
         p = Cnvt::PutU16(0, p);                        // light sensor 2
         *p++ = 'V';                                    // GUIconfigure.PARA.BYTE.device_type='V';		// "V"

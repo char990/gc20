@@ -6,7 +6,7 @@
 using namespace Utils;
 uint8_t *SignGfx::GetExtStatus(uint8_t *buf)
 {
-    UciProd & prod = DbHelper::Instance().GetUciProd();
+    auto & prod = DbHelper::Instance().GetUciProd();
     uint8_t * p = buf;
     *p++=signId;
     *p++=static_cast<uint8_t>(prod.ExtStsRplSignType());
@@ -23,7 +23,7 @@ uint8_t *SignGfx::GetExtStatus(uint8_t *buf)
 
 uint8_t *SignGfx::GetConfig(uint8_t *buf)
 {
-    UciProd & prod = DbHelper::Instance().GetUciProd();
+    auto & prod = DbHelper::Instance().GetUciProd();
     uint8_t * p = buf;
     *p++=signId;
     *p++=static_cast<uint8_t>(prod.ConfigRplSignType());

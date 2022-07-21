@@ -44,8 +44,8 @@ LayerNTS::~LayerNTS()
 int LayerNTS::Rx(uint8_t *data, int len)
 {
     int addr = Cnvt::ParseToU8((char *)data + 5);
-    UciUserCfg &user = DbHelper::Instance().GetUciUser();
-    if (addr != user.DeviceId() || addr == user.BroadcastId())
+    UciUserCfg &usercfg = DbHelper::Instance().GetUciUserCfg();
+    if (addr != usercfg.DeviceId() || addr == usercfg.BroadcastId())
     {
         Ldebug("NOT my addr: %d", addr);
         return 0;
@@ -76,7 +76,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     _addr = addr;
     int mi = Cnvt::ParseToU8((char *)data + 8);
-    if ((mi == static_cast<uint8_t>(MI::CODE::StartSession) && len == 15 && addr == user.DeviceId()) ||
+    if ((mi == static_cast<uint8_t>(MI::CODE::StartSession) && len == 15 && addr == usercfg.DeviceId()) ||
         (ntsSessionTimeout.IsExpired() && session == ISession::SESSION::ON_LINE))
     {
         session = ISession::SESSION::OFF_LINE;
@@ -85,7 +85,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     if (session == ISession::SESSION::ON_LINE)
     {
-        if (addr == user.DeviceId())
+        if (addr == usercfg.DeviceId())
         { // only matched slave addr inc _nr, for broadcast id ignore ns nr
             int ns = Cnvt::ParseToU8((char *)data + 1);
             int nr = Cnvt::ParseToU8((char *)data + 3);
@@ -128,7 +128,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     }
     else
     {
-        if (addr == user.BroadcastId())
+        if (addr == usercfg.BroadcastId())
         { // ignore broadcast when off-line
             Ldebug("Ignore broadcast when off-line:cmd=%d", mi);
             return 0;
@@ -138,7 +138,7 @@ int LayerNTS::Rx(uint8_t *data, int len)
     auto &ctrl = Controller::Instance();
     if (session == ISession::SESSION::ON_LINE)
     {
-        long ms = user.SessionTimeoutSec();
+        long ms = usercfg.SessionTimeoutSec();
         if (ms == 0)
         {
             ntsSessionTimeout.Clear();
@@ -160,8 +160,8 @@ bool LayerNTS::IsTxReady()
 
 int LayerNTS::Tx(uint8_t *data, int len)
 {
-    UciUserCfg &user = DbHelper::Instance().GetUciUser();
-    if (_addr == user.BroadcastId())
+    UciUserCfg &usercfg = DbHelper::Instance().GetUciUserCfg();
+    if (_addr == usercfg.BroadcastId())
     { // no reply for broadcast
         return 0;
     }
@@ -173,7 +173,7 @@ int LayerNTS::Tx(uint8_t *data, int len)
     p += 2;
     Cnvt::ParseToAsc(_nr, p);
     p += 2;
-    Cnvt::ParseToAsc(user.DeviceId(), p);
+    Cnvt::ParseToAsc(usercfg.DeviceId(), p);
     p += 2;
     *p = static_cast<char>(CTRL_CHAR::STX);
     p++;
@@ -287,7 +287,7 @@ void LayerNTS::MakeNondata(uint8_t a)
 {
     txbuf[0] = a;
     Cnvt::ParseToAsc(_nr, (char *)txbuf + 1);
-    Cnvt::ParseToAsc(DbHelper::Instance().GetUciUser().DeviceId(), (char *)txbuf + 3);
+    Cnvt::ParseToAsc(DbHelper::Instance().GetUciUserCfg().DeviceId(), (char *)txbuf + 3);
     EndOfBlock(txbuf, 5);
 }
 

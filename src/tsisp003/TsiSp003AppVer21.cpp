@@ -114,7 +114,7 @@ void TsiSp003AppVer21::SignStatusReply()
     p = Time2Buf(p);
     p = Cnvt::PutU16(db.HdrChksum(),p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
-    int scnt = db.GetUciProd().NumberOfSigns();
+    int scnt = prod.NumberOfSigns();
     *p++ = scnt;
     for (int j = 1; j <= scnt; j++)
     {
@@ -220,7 +220,7 @@ void TsiSp003AppVer21::SignSetMessage(uint8_t *data, int len)
         SetRejectStr("Msg[%d] is active",id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
-    else if (id <= db.GetUciUser().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
+    else if (id <= usercfg.LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
         SetRejectStr("Msg[%d] is locked",id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
@@ -462,7 +462,6 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     *p++ = static_cast<uint8_t>(MI::CODE::SignExtendedStatusReply);
     *p++ = IsOnline() ? 1 : 0;
     *p++ = static_cast<uint8_t>(appErr);
-    UciProd &prod = db.GetUciProd();
     memcpy(p, prod.MfcCode(), 10); p+=10;
     p=Time2Buf(p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
@@ -504,7 +503,7 @@ void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    if(db.GetUciProd().IsResetLogAllowed())
+    if(prod.IsResetLogAllowed())
     {
         db.GetUciFault().Reset();
         db.GetUciEvent().Push(0, "ResetFaultLog");

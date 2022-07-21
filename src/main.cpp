@@ -234,8 +234,8 @@ int main(int argc, char *argv[])
         LogResetTime();
         // AllGroupPowerOn();
 
-        UciProd &prod = DbHelper::Instance().GetUciProd();
-        UciUserCfg &user = DbHelper::Instance().GetUciUser();
+        auto &prod = DbHelper::Instance().GetUciProd();
+        auto &usercfg = DbHelper::Instance().GetUciUserCfg();
         // init serial ports
         OprSp *oprSp[COMPORT_SIZE];
         for (int i = 0; i < COMPORT_SIZE; i++)
@@ -243,8 +243,8 @@ int main(int argc, char *argv[])
             oprSp[i] = nullptr;
         }
         // TSI-SP-003 RS232/485
-        IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[user.ComPort()], "NTS");
-        oprSp[user.ComPort()] = new OprSp{user.ComPort(), user.Baudrate(), uiLayer};
+        IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[usercfg.ComPort()], "NTS");
+        oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
         if (prod.MonitoringPort() >= 0)
         {
             LayerWeb::monitor = LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
@@ -271,10 +271,10 @@ int main(int argc, char *argv[])
         }
 
         // TSI-SP-003 Web
-        // auto tcpServerWeb = new TcpServer {user.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
-        auto wsServer = new WsServer{user.WebPort(), timerEvt100ms};
+        // auto tcpServerWeb = new TcpServer {usercfg.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
+        auto wsServer = new WsServer{usercfg.WebPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
-        auto tcpServerNts = new TcpServer{user.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
+        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
         Ldebug(">>> DONE >>>");

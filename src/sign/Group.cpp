@@ -21,7 +21,7 @@ Group::Group(uint8_t groupId)
     : groupId(groupId),
       db(DbHelper::Instance()),
       prod(DbHelper::Instance().GetUciProd()),
-      user(DbHelper::Instance().GetUciUser()),
+      usercfg(DbHelper::Instance().GetUciUserCfg()),
       fcltSw(PIN_G1_AUTO, PIN_G1_MSG1, PIN_G1_MSG2)
 {
     busLockTmr.Setms(0);
@@ -582,7 +582,7 @@ bool Group::TaskMsg(int *_ptLine)
                                                                      : taskMsgTmr.Setms(pMsg->msgEntries[msgDispEntry].onTime * 100 - 1);
                         if (msgDispEntry == pMsg->entries - 1)
                         { // last entry, start lastFrmTime
-                            long lastFrmTime = user.LastFrmTime();
+                            long lastFrmTime = usercfg.LastFrmTime();
                             (lastFrmTime == 0) ? taskMsgLastFrmTmr.Clear() : taskMsgLastFrmTmr.Setms(lastFrmTime * 1000);
                         }
                         else
@@ -890,7 +890,7 @@ uint8_t Group::GetTargetDimmingLvl() // 1-16
         }
         lux = (luxCnt == 0) ? -1 /*all lightsensors are faulty*/ : lux / luxCnt /*average*/;
         groupLux = lux;
-        tgt = user.GetLuxLevel(lux); // 1- 16
+        tgt = usercfg.GetLuxLevel(lux); // 1- 16
     }
     return tgt;
 }
@@ -1386,7 +1386,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
     {
         if (id >= 3 && id <= 6)
         {
-            auto &cfg = user.ExtSwCfgX(id - 3);
+            auto &cfg = usercfg.ExtSwCfgX(id - 3);
             auto time = cfg.dispTime * 100;
             if (time != 0)
             {
@@ -1586,7 +1586,7 @@ bool Group::IsDsNextEmergency()
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 6)
         {
-            if (user.ExtSwCfgX(mid - 3).emergency == 0)
+            if (usercfg.ExtSwCfgX(mid - 3).emergency == 0)
             {
                 r = true;
             }

@@ -39,7 +39,7 @@ Controller::Controller()
     tempTmr.Setms(0);
     ms100Tmr.Setms(0);
 
-    long dt = db.GetUciUser().DisplayTimeoutMin();
+    long dt = db.GetUciUserCfg().DisplayTimeoutMin();
     if (dt == 0)
     {
         displayTimeout.Clear();
@@ -191,7 +191,7 @@ void Controller::PeriodicRun()
             {
                 maxTemp = curTemp;
             }
-            auto ot = db.GetUciUser().OverTemp();
+            auto ot = db.GetUciUserCfg().OverTemp();
             if (curTemp >= ot)
             {
                 overtempFault.Check(1);
@@ -289,7 +289,7 @@ void Controller::ExtInputFunc()
 
 void Controller::RefreshDispTime()
 {
-    long ms = db.GetUciUser().DisplayTimeoutMin();
+    long ms = db.GetUciUserCfg().DisplayTimeoutMin();
     if (ms > 0)
     {
         displayTimeout.Setms(ms * 60000);
@@ -299,7 +299,7 @@ void Controller::RefreshDispTime()
 
 void Controller::RefreshSessionTime()
 {
-    long ms = db.GetUciUser().SessionTimeoutSec();
+    long ms = db.GetUciUserCfg().SessionTimeoutSec();
     if (ms == 0)
     {
         sessionTimeout.Clear();
@@ -417,7 +417,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
         }
         if (lvl == 255)
         {
-            db.GetUciUser().LoadFactoryDefault();
+            db.GetUciUserCfg().LoadFactoryDefault();
         }
     }
     db.GetUciEvent().Push(0, "SystemReset: Group[%d]Level=%d", grpId, lvl);
@@ -895,7 +895,7 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
         snprintf(rejectStr, 63, "Frame[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
-    else if (id <= db.GetUciUser().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
+    else if (id <= db.GetUciUserCfg().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
         snprintf(rejectStr, 63, "Frame[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // locked frame

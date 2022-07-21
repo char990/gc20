@@ -54,7 +54,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         return 1;
     }
     // int CheckConspicuity();
-    UciProd &prod = DbHelper::Instance().GetUciProd();
+    auto &prod = DbHelper::Instance().GetUciProd();
     if ((conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03) > 2 ||
         !prod.IsConspicuity(conspicuity & 0x07) ||
         !prod.IsAnnulus((conspicuity >> 3) & 0x03))
@@ -69,7 +69,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
 
 int Frame::CheckLength(int len)
 {
-    UciProd &prod = DbHelper::Instance().GetUciProd();
+    auto &prod = DbHelper::Instance().GetUciProd();
     if (len < frmOffset + 2 + prod.Gfx1CoreLen())
     {
         Ldebug("Frame[%d] Error:len=%d", frmId, len);

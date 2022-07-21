@@ -59,6 +59,8 @@ public:
 
 protected:
     DbHelper &db;
+    UciProd &prod;
+    UciUserCfg &usercfg;
     Controller &ctrller;
     ISession *session{nullptr};
 

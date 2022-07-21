@@ -111,7 +111,7 @@ public:
 protected:
     DbHelper &db;
     UciProd &prod;
-    UciUserCfg &user;
+    UciUserCfg &usercfg;
     uint8_t groupId;
     OprSp *oprSp;
     std::vector<Sign *> vSigns;

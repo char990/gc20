@@ -51,7 +51,6 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
     {
         return;
     }
-    auto &prod = db.GetUciProd();
     uint8_t *p = txbuf;
     *p++ = static_cast<uint8_t>(MI::CODE::SignConfigurationReply);
     memcpy(p, prod.MfcCode(), 10);

@@ -31,7 +31,7 @@ public:
     uint16_t HdrChksum();
 
     UciProd & GetUciProd() { return uciProd; };
-    UciUserCfg & GetUciUser() { return uciUserCfg; };
+    UciUserCfg & GetUciUserCfg() { return uciUserCfg; };
     UciNetwork & GetUciNetwork() {return uciNetwork;};
 
     UciFrm & GetUciFrm() { return  uciFrm; };

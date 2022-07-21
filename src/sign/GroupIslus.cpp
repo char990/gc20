@@ -12,7 +12,7 @@ using namespace Utils;
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
 {
-    UciProd &prod = db.GetUciProd();
+    auto &prod = db.GetUciProd();
     if (prod.SlavesPerSign() != 1)
     {
         throw std::invalid_argument("ISLUS: Sign can only have ONE slave");
@@ -143,8 +143,8 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
     if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
     {
-        auto &prod = db.GetUciProd();
-        auto &user = db.GetUciUser();
+        //auto &prod = db.GetUciProd();
+        //auto &usercfg = db.GetUciUserCfg();
         uint8_t *p = txBuf + 1;
         *p++ = SET_ISLUS_SP_FRM; // ISLUS special frame
         p++;                     // skip slave frame id

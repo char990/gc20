@@ -241,7 +241,6 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
 void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
-    #if 0
     const char *r;
     auto msgp = msg["password"].get<string>();
     auto msgu = msg["user"].get<string>();
@@ -265,12 +264,10 @@ void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
     }
     reply.emplace("user", msgu);
     reply.emplace("result", r);
-    #endif
 }
 
 void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply)
 {
-    #if 0
     auto msgu = msg["user"].get<string>();
     auto cp = msg["current"].get<string>();
     auto np = msg["new"].get<string>();
@@ -314,7 +311,6 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &repl
         }
     }
     reply.emplace("result", r);
-#endif
 }
 
 void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &reply)
@@ -409,25 +405,25 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply)
 {
-    auto &user = DbHelper::Instance().GetUciUser();
+    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     char buf[8];
-    sprintf(buf, "0x%02X", user.SeedOffset());
+    sprintf(buf, "0x%02X", usercfg.SeedOffset());
     reply.emplace("seed", buf);
-    sprintf(buf, "0x%04X", user.PasswordOffset());
+    sprintf(buf, "0x%04X", usercfg.PasswordOffset());
     reply.emplace("password", buf);
-    reply.emplace("device_id", user.DeviceId());
-    reply.emplace("broadcast_id", user.BroadcastId());
-    reply.emplace("session_timeout", user.SessionTimeoutSec());
-    reply.emplace("display_timeout", user.DisplayTimeoutMin());
-    reply.emplace("tmc_com_port", COM_NAME[user.ComPort()]);
-    reply.emplace("baudrate", user.Baudrate());
-    reply.emplace("multiled_fault", user.MultiLedFaultThreshold());
-    reply.emplace("tmc_tcp_port", user.SvcPort());
-    reply.emplace("over_temp", user.OverTemp());
-    reply.emplace("locked_frame", user.LockedFrm());
-    reply.emplace("locked_msg", user.LockedMsg());
-    reply.emplace("city", user.City());
-    reply.emplace("last_frame_time", user.LastFrmTime());
+    reply.emplace("device_id", usercfg.DeviceId());
+    reply.emplace("broadcast_id", usercfg.BroadcastId());
+    reply.emplace("session_timeout", usercfg.SessionTimeoutSec());
+    reply.emplace("display_timeout", usercfg.DisplayTimeoutMin());
+    reply.emplace("tmc_com_port", COM_NAME[usercfg.ComPort()]);
+    reply.emplace("baudrate", usercfg.Baudrate());
+    reply.emplace("multiled_fault", usercfg.MultiLedFaultThreshold());
+    reply.emplace("tmc_tcp_port", usercfg.SvcPort());
+    reply.emplace("over_temp", usercfg.OverTemp());
+    reply.emplace("locked_frame", usercfg.LockedFrm());
+    reply.emplace("locked_msg", usercfg.LockedMsg());
+    reply.emplace("city", usercfg.City());
+    reply.emplace("last_frame_time", usercfg.LastFrmTime());
 }
 
 void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply)
@@ -482,104 +478,104 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         {
             throw string("'city' NOT valid");
         }
-        auto &user = DbHelper::Instance().GetUciUser();
+        auto &usercfg = DbHelper::Instance().GetUciUserCfg();
         auto &evt = DbHelper::Instance().GetUciEvent();
 
-        if (seed != user.SeedOffset())
+        if (seed != usercfg.SeedOffset())
         {
-            evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X", user.SeedOffset(), seed);
-            user.SeedOffset(seed);
+            evt.Push(0, "User.SeedOffset changed: 0x%02X->0x%02X", usercfg.SeedOffset(), seed);
+            usercfg.SeedOffset(seed);
         }
 
-        if (password != user.PasswordOffset())
+        if (password != usercfg.PasswordOffset())
         {
-            evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X", user.PasswordOffset(), password);
-            user.PasswordOffset(password);
+            evt.Push(0, "User.PasswordOffset changed: 0x%04X->0x%04X", usercfg.PasswordOffset(), password);
+            usercfg.PasswordOffset(password);
         }
 
-        if (device_id != user.DeviceId())
+        if (device_id != usercfg.DeviceId())
         {
-            evt.Push(0, "User.DeviceID changed: %u->%u", user.DeviceId(), device_id);
-            user.DeviceId(device_id);
+            evt.Push(0, "User.DeviceID changed: %u->%u", usercfg.DeviceId(), device_id);
+            usercfg.DeviceId(device_id);
         }
 
-        if (broadcast_id != user.BroadcastId())
+        if (broadcast_id != usercfg.BroadcastId())
         {
-            evt.Push(0, "User.BroadcastID changed: %u->%u", user.BroadcastId(), broadcast_id);
-            user.BroadcastId(broadcast_id);
+            evt.Push(0, "User.BroadcastID changed: %u->%u", usercfg.BroadcastId(), broadcast_id);
+            usercfg.BroadcastId(broadcast_id);
         }
 
-        if (baudrate != user.Baudrate())
+        if (baudrate != usercfg.Baudrate())
         {
             evt.Push(0, "User.Baudrate changed: %u->%u . Restart to load new setting",
-                     user.Baudrate(), baudrate);
-            user.Baudrate(baudrate);
+                     usercfg.Baudrate(), baudrate);
+            usercfg.Baudrate(baudrate);
             rr_flag |= RQST_RESTART;
         }
 
-        if (tmc_tcp_port != user.SvcPort())
+        if (tmc_tcp_port != usercfg.SvcPort())
         {
             evt.Push(0, "User.SvcPort changed: %u->%u. Restart to load new setting",
-                     user.SvcPort(), tmc_tcp_port);
-            user.SvcPort(tmc_tcp_port);
+                     usercfg.SvcPort(), tmc_tcp_port);
+            usercfg.SvcPort(tmc_tcp_port);
             rr_flag |= RQST_RESTART;
         }
 
-        if (session_timeout != user.SessionTimeoutSec())
+        if (session_timeout != usercfg.SessionTimeoutSec())
         {
             evt.Push(0, "User.SessionTimeout changed: %u->%u",
-                     user.SessionTimeoutSec(), session_timeout);
-            user.SessionTimeoutSec(session_timeout);
+                     usercfg.SessionTimeoutSec(), session_timeout);
+            usercfg.SessionTimeoutSec(session_timeout);
         }
 
-        if (display_timeout != user.DisplayTimeoutMin())
+        if (display_timeout != usercfg.DisplayTimeoutMin())
         {
             evt.Push(0, "User.DisplayTimeout changed: %u->%u",
-                     user.DisplayTimeoutMin(), display_timeout);
-            user.DisplayTimeoutMin(display_timeout);
+                     usercfg.DisplayTimeoutMin(), display_timeout);
+            usercfg.DisplayTimeoutMin(display_timeout);
         }
 
-        if (over_temp != user.OverTemp())
+        if (over_temp != usercfg.OverTemp())
         {
             evt.Push(0, "User.OverTemp changed: %u->%u",
-                     user.OverTemp(), over_temp);
-            user.OverTemp(over_temp);
+                     usercfg.OverTemp(), over_temp);
+            usercfg.OverTemp(over_temp);
         }
 
-        if (city != user.CityId())
+        if (city != usercfg.CityId())
         {
             evt.Push(0, "User.City changed: %s->%s",
-                     Tz_AU::tz_au[user.CityId()].city, Tz_AU::tz_au[city].city);
-            user.CityId(city);
+                     Tz_AU::tz_au[usercfg.CityId()].city, Tz_AU::tz_au[city].city);
+            usercfg.CityId(city);
             rr_flag |= RQST_RESTART;
         }
 
-        if (multiled_fault != user.MultiLedFaultThreshold())
+        if (multiled_fault != usercfg.MultiLedFaultThreshold())
         {
             evt.Push(0, "User.MultiLedFaultThreshold changed: %u->%u",
-                     user.MultiLedFaultThreshold(), multiled_fault);
-            user.MultiLedFaultThreshold(multiled_fault);
+                     usercfg.MultiLedFaultThreshold(), multiled_fault);
+            usercfg.MultiLedFaultThreshold(multiled_fault);
         }
 
-        if (locked_msg != user.LockedMsg())
+        if (locked_msg != usercfg.LockedMsg())
         {
             evt.Push(0, "User.LockedMsg changed: %u->%u",
-                     user.LockedMsg(), locked_msg);
-            user.LockedMsg(locked_msg);
+                     usercfg.LockedMsg(), locked_msg);
+            usercfg.LockedMsg(locked_msg);
         }
 
-        if (locked_frame != user.LockedFrm())
+        if (locked_frame != usercfg.LockedFrm())
         {
             evt.Push(0, "User.LockedFrm changed: %u->%u",
-                     user.LockedFrm(), locked_frame);
-            user.LockedFrm(locked_frame);
+                     usercfg.LockedFrm(), locked_frame);
+            usercfg.LockedFrm(locked_frame);
         }
 
-        if (last_frame_time != user.LastFrmTime())
+        if (last_frame_time != usercfg.LastFrmTime())
         {
             evt.Push(0, "User.LastFrmTime changed: %u->%u",
-                     user.LastFrmTime(), last_frame_time);
-            user.LastFrmTime(last_frame_time);
+                     usercfg.LastFrmTime(), last_frame_time);
+            usercfg.LastFrmTime(last_frame_time);
         }
         reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
     }
@@ -591,13 +587,13 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
 
 void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
 {
-    auto &user = DbHelper::Instance().GetUciUser();
-    reply.emplace("night_level", user.NightDimmingLevel());
-    reply.emplace("dawn_dusk_level", user.DawnDimmingLevel());
-    reply.emplace("day_level", user.DayDimmingLevel());
-    reply.emplace("night_max_lux", user.LuxNightMax());
-    reply.emplace("day_min_lux", user.LuxDayMin());
-    reply.emplace("18_hours_min_lux", user.Lux18HoursMin());
+    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
+    reply.emplace("night_level", usercfg.NightDimmingLevel());
+    reply.emplace("dawn_dusk_level", usercfg.DawnDimmingLevel());
+    reply.emplace("day_level", usercfg.DayDimmingLevel());
+    reply.emplace("night_max_lux", usercfg.LuxNightMax());
+    reply.emplace("day_min_lux", usercfg.LuxDayMin());
+    reply.emplace("18_hours_min_lux", usercfg.Lux18HoursMin());
 }
 
 void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
@@ -610,37 +606,37 @@ void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &re
         auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
         auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
         auto _18_hours_min_lux = GetInt(msg, "18_hours_min_lux", day_min_lux + 1, 65535);
-        auto &user = DbHelper::Instance().GetUciUser();
+        auto &usercfg = DbHelper::Instance().GetUciUserCfg();
         auto &evt = DbHelper::Instance().GetUciEvent();
-        if (night_level != user.NightDimmingLevel())
+        if (night_level != usercfg.NightDimmingLevel())
         {
-            evt.Push(0, "User.NightDimmingLevel changed: %d->%d", user.NightDimmingLevel(), night_level);
-            user.NightDimmingLevel(night_level);
+            evt.Push(0, "User.NightDimmingLevel changed: %d->%d", usercfg.NightDimmingLevel(), night_level);
+            usercfg.NightDimmingLevel(night_level);
         }
-        if (dawn_dusk_level != user.DawnDimmingLevel())
+        if (dawn_dusk_level != usercfg.DawnDimmingLevel())
         {
-            evt.Push(0, "User.DawnDimmingLevel changed: %d->%d", user.DawnDimmingLevel(), dawn_dusk_level);
-            user.DawnDimmingLevel(dawn_dusk_level);
+            evt.Push(0, "User.DawnDimmingLevel changed: %d->%d", usercfg.DawnDimmingLevel(), dawn_dusk_level);
+            usercfg.DawnDimmingLevel(dawn_dusk_level);
         }
-        if (day_level != user.DayDimmingLevel())
+        if (day_level != usercfg.DayDimmingLevel())
         {
-            evt.Push(0, "User.DayDimmingLevel changed: %d->%d", user.DayDimmingLevel(), day_level);
-            user.DayDimmingLevel(day_level);
+            evt.Push(0, "User.DayDimmingLevel changed: %d->%d", usercfg.DayDimmingLevel(), day_level);
+            usercfg.DayDimmingLevel(day_level);
         }
-        if (night_max_lux != user.LuxNightMax())
+        if (night_max_lux != usercfg.LuxNightMax())
         {
-            evt.Push(0, "User.LuxNightMax changed: %d->%d", user.LuxNightMax(), night_max_lux);
-            user.LuxNightMax(night_max_lux);
+            evt.Push(0, "User.LuxNightMax changed: %d->%d", usercfg.LuxNightMax(), night_max_lux);
+            usercfg.LuxNightMax(night_max_lux);
         }
-        if (day_min_lux != user.LuxDayMin())
+        if (day_min_lux != usercfg.LuxDayMin())
         {
-            evt.Push(0, "User.LuxDayMin changed: %d->%d", user.LuxDayMin(), day_min_lux);
-            user.LuxDayMin(day_min_lux);
+            evt.Push(0, "User.LuxDayMin changed: %d->%d", usercfg.LuxDayMin(), day_min_lux);
+            usercfg.LuxDayMin(day_min_lux);
         }
-        if (_18_hours_min_lux != user.Lux18HoursMin())
+        if (_18_hours_min_lux != usercfg.Lux18HoursMin())
         {
-            evt.Push(0, "User.Lux18HoursMin changed: %d->%d", user.Lux18HoursMin(), _18_hours_min_lux);
-            user.Lux18HoursMin(_18_hours_min_lux);
+            evt.Push(0, "User.Lux18HoursMin changed: %d->%d", usercfg.Lux18HoursMin(), _18_hours_min_lux);
+            usercfg.Lux18HoursMin(_18_hours_min_lux);
         }
         reply.emplace("result", "OK");
     }

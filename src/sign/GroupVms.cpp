@@ -16,7 +16,7 @@ GroupVms::GroupVms(uint8_t id)
     {
         throw std::invalid_argument("VMS: Group can only have ONE sign");
     }
-    UciProd &prod = db.GetUciProd();
+    auto &prod = db.GetUciProd();
     vSlaves.resize(prod.SlavesPerSign());
     for (int i = 0; i < prod.SlavesPerSign(); i++)
     { // slave id = 1~n

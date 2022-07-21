@@ -10,7 +10,7 @@ extern time_t GetTime(time_t *);
 Sign::Sign(uint8_t id)
     : signId(id), frameImages(7)
 {
-    UciProd &prod = DbHelper::Instance().GetUciProd();
+    auto &prod = DbHelper::Instance().GetUciProd();
     chainFault.SetCNT(prod.DriverFaultDebounce());
     multiLedFault.SetCNT(prod.LedFaultDebounce());
     singleLedFault.SetCNT(prod.LedFaultDebounce());
@@ -189,9 +189,9 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
     char buf[64];
-    DbHelper &db = DbHelper::Instance();
-    UciProd &prod = db.GetUciProd();
-    UciUserCfg &user = db.GetUciUser();
+    auto &db = DbHelper::Instance();
+    auto &prod = db.GetUciProd();
+    auto &usercfg = db.GetUciUserCfg();
 
     // ----------------------Check ext-status
     uint16_t minvoltage = 0xFFFF, maxvoltage = 0; // mV
@@ -252,7 +252,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     {
         maxTemp = curTemp;
     }
-    auto ot = user.OverTemp();
+    auto ot = usercfg.OverTemp();
     if (curTemp > ot)
     {
         overtempFault.Check(true, t2);
@@ -288,7 +288,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     else
     {
         singleLedFault.Check(true, t2);
-        multiLedFault.Check(faultLeds > user.MultiLedFaultThreshold(), t2);
+        multiLedFault.Check(faultLeds > usercfg.MultiLedFaultThreshold(), t2);
     }
     if (multiLedFault.IsRising() || multiLedFault.IsFalling())
     {
@@ -341,8 +341,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
 
     if (lsConnectionFault.IsLow())
     {
-        auto &user = DbHelper::Instance().GetUciUser();
-        ls18hoursFault.Check(lux < user.Lux18HoursMin(), t2);
+        ls18hoursFault.Check(lux < usercfg.Lux18HoursMin(), t2);
         struct tm stm;
         localtime_r(&t, &stm);
         if (stm.tm_hour >= 11 && stm.tm_hour < 15)
@@ -351,7 +350,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             {
                 lsMiddayFault.ResetCnt();
             }
-            lsMiddayFault.Check(lux < user.LuxDayMin(), t2);
+            lsMiddayFault.Check(lux < usercfg.LuxDayMin(), t2);
         }
         if (stm.tm_hour < 3 || stm.tm_hour >= 23)
         { // mid-night
@@ -359,7 +358,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
             {
                 lsMidnightFault.ResetCnt();
             }
-            lsMidnightFault.Check(lux > user.LuxNightMax(), t2);
+            lsMidnightFault.Check(lux > usercfg.LuxNightMax(), t2);
         }
         lasthour = stm.tm_hour;
         if (ls18hoursFault.IsHigh() ||
@@ -387,11 +386,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             ls18hoursFault.ClearEdge();
             if (ls18hoursFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, user.Lux18HoursMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, usercfg.Lux18HoursMin());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, user.Lux18HoursMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, usercfg.Lux18HoursMin());
             }
         }
         if (lsMiddayFault.HasEdge())
@@ -399,11 +398,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             lsMiddayFault.ClearEdge();
             if (lsMiddayFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, user.LuxDayMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, usercfg.LuxDayMin());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, user.LuxDayMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, usercfg.LuxDayMin());
             }
         }
         if (lsMidnightFault.HasEdge())
@@ -411,11 +410,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             lsMidnightFault.ClearEdge();
             if (lsMidnightFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, user.LuxNightMax());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, usercfg.LuxNightMax());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, user.LuxNightMax());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, usercfg.LuxNightMax());
             }
         }
     }

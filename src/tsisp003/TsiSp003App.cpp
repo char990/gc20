@@ -10,7 +10,7 @@ using namespace Utils;
 extern time_t GetTime(time_t *);
 
 TsiSp003App::TsiSp003App()
-    : db(DbHelper::Instance()),
+    : db(DbHelper::Instance()), prod(db.GetUciProd()), usercfg(db.GetUciUserCfg()),
       ctrller(Controller::Instance())
 {
     rejectStr[0] = '\0';
@@ -186,7 +186,7 @@ uint16_t TsiSp003App::MakePassword()
     uint16_t passwd;
     uint8_t bit5, bit7, bit8;
     passwd = session->Seed();
-    passwd += db.GetUciUser().SeedOffset();
+    passwd += usercfg.SeedOffset();
     passwd = passwd & 0xFF;                  // set high byte to zero
     for (unsigned int ii = 0; ii < 16; ii++) // the process is cycled 16 times
     {
@@ -196,7 +196,7 @@ uint16_t TsiSp003App::MakePassword()
         passwd <<= 1; // shift left one position
         passwd = passwd + (bit5 ^ bit7 ^ bit8);
     }
-    return passwd + db.GetUciUser().PasswordOffset();
+    return passwd + usercfg.PasswordOffset();
 }
 
 bool TsiSp003App::ChkLen(int rcvd, int expect)

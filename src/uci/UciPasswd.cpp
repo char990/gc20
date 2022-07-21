@@ -43,7 +43,7 @@ void UciPasswd::LoadConfig()
         }
     }
     Close();
-    Dump();
+    //Dump();
 }
 
 void UciPasswd::Set(const std::string & user, const std::string & passwd, const int permission)
