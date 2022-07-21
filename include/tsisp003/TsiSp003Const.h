@@ -354,6 +354,9 @@ enum class PRODUCT : uint8_t
     ISLUS
 };
 
+#define WEEKDAY_SIZE 7
+extern const char *WEEKDAY[WEEKDAY_SIZE];
+
 #define TEST_PIXELS_SIZE 5
 extern const char * TestPixels[TEST_PIXELS_SIZE];
 

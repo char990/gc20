@@ -385,6 +385,9 @@ namespace Utils
         static bool Get70Bit(uint8_t *buf, int bitOffset);
     };
 
+    /// \brief bit store in 07Bit:
+    /// E.g. {0x80,0x02}
+    /// 07Bit stands for (bitOffset&0x07) is from higher bit in byte : bit[0]=1, bit[1-13]=0, bit[14]=1, bit[15]=0
     class Bits
     {
     public:
@@ -408,7 +411,7 @@ namespace Utils
         void Check(int bitOffset);
     };
 
-    // Only for byte type: uint8_t/char
+    /// \brief   Only for byte type: uint8_t/char
     template <typename T>
     T *CharCpy(T *dst, const char *from, int n)
     {
@@ -429,6 +432,7 @@ namespace Utils
         return dst;
     }
 
+    /// \brief  get the dimensions of array
     template <typename T, std::size_t N>
     constexpr std::size_t countof(T const (&)[N]) noexcept
     {
@@ -446,6 +450,8 @@ namespace Utils
     class Pick
     {
     public:
+        /// \brief Pick a int/char/uint8_t... from int/char/uint8_t... array
+        /// \return index(0 ~ len-1), -1 means not hit
         template <typename T>
         static int PickInt(const T v, const T *src, const int len)
         {
@@ -459,7 +465,9 @@ namespace Utils
             return -1;
         };
 
-        static int PickStr(const char *v, const char **src, const int len, const bool ignore_case = false);
+        /// \brief Pick a string from stringz
+        /// \return index(0 ~ len-1), -1 means not hit
+        static int PickStr(const char *str, const char **strz, const int len, const bool ignore_case = false);
     };
 
 } // namespace Utils

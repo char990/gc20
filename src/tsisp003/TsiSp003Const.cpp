@@ -11,6 +11,8 @@ const char *PRODTYPE[PRODTYPE_SIZE] = {
     "ISLUS", //  1 group of ISLUS at 1 com, 1 group has 1-x sign, 1 sign has 1 slave, slave id is same as sign Id
 };
 
+const char *WEEKDAY[WEEKDAY_SIZE] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
 // index is coulur code
 const char *FrameColour::COLOUR_NAME[ALL_COLOUR_NAME_SIZE] = {
     "DEFAULT",
@@ -114,13 +116,13 @@ const char *FrameColour::GetColourName(uint8_t code)
     {
         return COLOUR_NAME[code];
     }
-    else if(code == 0x0D)
+    else if (code == 0x0D)
     {
         return COLOUR_NAME[MONO_COLOUR_NAME_SIZE];
     }
-    else if(code == 0x0E)
+    else if (code == 0x0E)
     {
-        return COLOUR_NAME[MONO_COLOUR_NAME_SIZE+1];
+        return COLOUR_NAME[MONO_COLOUR_NAME_SIZE + 1];
     }
     else
     {

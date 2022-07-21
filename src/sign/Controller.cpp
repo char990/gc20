@@ -928,3 +928,72 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
     }
     return r;
 }
+
+APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
+{
+    auto r = APP::ERROR::AppNoError;
+    uint8_t id = *(data + OFFSET_MSG_ID);
+    if (id == 0)
+    {
+        strcpy(rejectStr, "Msg[0] is not valid");
+        r = APP::ERROR::SyntaxError;
+    }
+    else if (len > MSG_LEN_MAX)
+    {
+        snprintf(rejectStr, 63, "len[%d] > MSG_LEN_MAX[%d]", len, MSG_LEN_MAX);
+        r = APP::ERROR::LengthError;
+    }
+    else if (IsMsgActive(id))
+    {
+        snprintf(rejectStr, 63, "Msg[%d] is active",id);
+        r = APP::ERROR::FrmMsgPlnActive;
+    }
+    else if (id <= db.GetUciUserCfg().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
+    {
+        snprintf(rejectStr, 63, "Msg[%d] is locked",id);
+        r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
+    }
+    else
+    {
+        #if 0   // 1: reject overlay frames
+        uint8_t *fid = data + 4;
+        for (int i = 0; i < 6; i++)
+        {
+            if (*fid == 0)
+            {
+                break;
+            }
+            else
+            {
+                if (fid[1] == 0)
+                {
+                    if (i < 5 && fid[2] != 0)
+                    {
+                        r = APP::ERROR::OverlaysNotSupported;
+                        break;
+                    }
+                }
+            }
+            fid += 2;
+        }
+        #endif
+        if (r == APP::ERROR::AppNoError)
+        {
+            Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
+            UciMsg &msg = db.GetUciMsg();
+            r = msg.SetMsg(data, len + 2);
+            if (r == APP::ERROR::AppNoError)
+            {
+                msg.SaveMsg(id);
+                db.GetUciEvent().Push(0, "SignSetMessage: Msg%d", id);
+            }
+        }
+    }
+    return r;
+}
+
+APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
+{
+    auto r = APP::ERROR::AppNoError;
+    return r;
+}

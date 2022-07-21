@@ -792,6 +792,7 @@ JSON:
 "replyms":13274693458,
 "cmd":"GetStoredMessage",
 "id":1,
+"result":"OK"/"Undefined",  // if result is undefined, there is no following data
 "revision":1,
 "transition":100,  //0.01 second
 "entries":[
@@ -891,6 +892,7 @@ JSON:
 "replyms":13274693458,
 "cmd":"GetStoredPlan",
 "id":1,
+"result":"OK"/"Undefined",  // if result is undefined, there is no following data
 "revision":1,
 "week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
 "entries":[

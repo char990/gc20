@@ -47,6 +47,10 @@ public:
     Group *GetGroup(uint8_t id) { return (id == 0 || id > groups.size()) ? nullptr : groups.at(id - 1); };
     std::vector<Group *> &GetGroups() { return groups; };
 
+    uint8_t SignCnt() { return signs.size(); };
+    Sign *GetSign(uint8_t id) { return (id == 0 || id > signs.size()) ? nullptr : signs.at(id - 1); };
+    std::vector<Sign *> &GetSigns() { return signs; };
+
     bool IsFrmActive(uint8_t i);
     bool IsMsgActive(uint8_t i);
     bool IsPlnActive(uint8_t i);
@@ -62,6 +66,8 @@ public:
     APP::ERROR CmdSignTest(uint8_t *cmd);
 
     APP::ERROR SignSetFrame(uint8_t *data, int len, char *rejectStr);
+    APP::ERROR SignSetMessage(uint8_t *data, int len, char *rejectStr);
+    APP::ERROR SignSetPlan(uint8_t *data, int len, char *rejectStr);
 
     int CmdRequestEnabledPlans(uint8_t *buf);
     APP::ERROR CmdEnDisPlan(uint8_t *cmd);
@@ -89,15 +95,14 @@ public:
         }
     };
 
-    std::vector<Group *> groups;
-    std::vector<Sign *> signs;
-
-
 
 private:
     Controller();
     ~Controller();
     DbHelper &db;
+
+    std::vector<Sign *> signs;
+    std::vector<Group *> groups;
 
     bool isOnline{false};
 
