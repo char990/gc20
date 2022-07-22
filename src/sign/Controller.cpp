@@ -609,17 +609,22 @@ APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
     APP::ERROR r = APP::ERROR::AppNoError;
+    bool endis = cmd[0] == static_cast<uint8_t>(MI::CODE::EnablePlan);
     if (grpId > groups.size() || grpId == 0)
     {
         r = APP::ERROR::UndefinedDeviceNumber;
     }
-    else if (plnId != 0 && !db.GetUciPln().IsPlnDefined(plnId))
+    else if (endis && plnId != 0 && !db.GetUciPln().IsPlnDefined(plnId))
     {
         r = APP::ERROR::FrmMsgPlnUndefined;
     }
     else
     {
-        r = GetGroup(grpId)->EnDisPlan(plnId, cmd[0] == static_cast<uint8_t>(MI::CODE::EnablePlan));
+        r = GetGroup(grpId)->EnDisPlan(plnId, endis);
+    }
+    if (r == APP::ERROR::AppNoError)
+    {
+        db.GetUciEvent().Push(0, "Group[%d] %sable Plan[%d]", grpId, endis?"En":"Dis", plnId);
     }
     return r;
 }
@@ -945,17 +950,17 @@ APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
     }
     else if (IsMsgActive(id))
     {
-        snprintf(rejectStr, 63, "Msg[%d] is active",id);
+        snprintf(rejectStr, 63, "Msg[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUserCfg().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
-        snprintf(rejectStr, 63, "Msg[%d] is locked",id);
+        snprintf(rejectStr, 63, "Msg[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
     {
-        #if 0   // 1: reject overlay frames
+#if 0 // 1: reject overlay frames
         uint8_t *fid = data + 4;
         for (int i = 0; i < 6; i++)
         {
@@ -976,7 +981,7 @@ APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
             }
             fid += 2;
         }
-        #endif
+#endif
         if (r == APP::ERROR::AppNoError)
         {
             Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
@@ -995,5 +1000,37 @@ APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
 APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
 {
     auto r = APP::ERROR::AppNoError;
+    uint8_t id = *(data + OFFSET_PLN_ID);
+    if (id == 0)
+    {
+        strcpy(rejectStr, "Plan[0] is not valid");
+        r = APP::ERROR::SyntaxError;
+    }
+    else if (len > PLN_LEN_MAX)
+    {
+        sprintf(rejectStr, "len[%d]>PLN_LEN_MAX[%d]", len, PLN_LEN_MAX);
+        r = APP::ERROR::LengthError;
+    }
+    else if (IsPlnActive(id))
+    {
+        sprintf(rejectStr, "Plan[%d] is active", id);
+        r = APP::ERROR::FrmMsgPlnActive;
+    }
+    else if (IsPlnEnabled(id))
+    {
+        sprintf(rejectStr, "Plan[%d] is enabled", id);
+        r = APP::ERROR::PlanEnabled;
+    }
+    else
+    {
+        Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
+        UciPln &pln = db.GetUciPln();
+        r = pln.SetPln(data, len + PLN_TAIL);
+        if (r == APP::ERROR::AppNoError)
+        {
+            pln.SavePln(id);
+            db.GetUciEvent().Push(0, "SetPlan: Plan%d", data[1]);
+        }
+    }
     return r;
 }

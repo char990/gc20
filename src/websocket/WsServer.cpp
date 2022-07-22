@@ -94,7 +94,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
             wsMsg.erase(c);
         }
     }
-    (void)fn_data;
+    //(void)fn_data;
 }
 
 size_t my_mg_ws_send(struct mg_connection *c, json &reply)
@@ -172,6 +172,9 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ResetEventLog),
     CMD_ITEM(SignTest),
     CMD_ITEM(DispAtomic),
+    CMD_ITEM(GetFrameCrc),
+    CMD_ITEM(GetMessageCrc),
+    CMD_ITEM(GetPlanCrc),
 };
 
 void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -336,6 +339,66 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &repl
 
 void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &reply)
 {
+    // TODO: Because group configuration related to hardware (signs in same group should at same COM port).
+    // SO changing group configuration should directly edit "config/UciProd" file. 
+    reply.emplace("result", "Unsupported command");
+    return;
+    #if 0
+    auto gc = ctrller->GroupCnt();
+    auto vgroups = msg["groups"].get<vector<json>>();
+    if (vgroups.size() != gc)
+    {
+        throw "Missing group config";
+    }
+    vector<int> vgid(gc);
+    vgid.assign(gc, 0);
+    auto sc = ctrller->SignCnt();
+    vector<int> vsign_gid(sc);
+    vsign_gid.assign(sc, 0);
+    for (int i = 0; i < gc; i++)
+    {
+        auto gid = GetInt(vgroups[i], "group_id", 1, gc);
+        if (vgid[gid - 1] > 0)
+        {
+            throw FmtException("Repeated group id [%d]", gid);
+        }
+        vgid[gid - 1] = gid;
+        auto vsid = vgroups[i].get<vector<int>>();
+        if (vsid.size() == 0)
+        {
+            throw FmtException("Missing sign id in group[%d]", gid);
+        }
+        for (auto id : vsid)
+        {
+            if (id <= 0 || id > sc)
+            {
+                throw FmtException("Invalid sign id [%d]", id);
+            }
+            if (vsign_gid[id - 1] == 0)
+            {
+                vsign_gid[id - 1] = gid;
+            }
+            else
+            {
+                throw FmtException("Repeated sign id [%d]", id);
+            }
+        }
+    }
+    for (int i = 0; i < vgid.size(); i++)
+    {
+        if (vgid[i] == 0)
+        {
+            throw FmtException("Missing group[%d] config", i + 1);
+        }
+    }
+    for (int i = 0; i < vsign_gid.size(); i++)
+    {
+        if (vsign_gid[i] == 0)
+        {
+            throw FmtException("Missing sign[%d] config", i + 1);
+        }
+    }
+    #endif
 }
 
 extern const char *FirmwareVer;
@@ -1207,10 +1270,20 @@ void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply
         }
         reply.emplace("entries", entries);
     }
-
-    enabled_group
-
-
+    auto grp = ctrller->GetGroups();
+    vector<int> enabled_group;
+    for (auto g : grp)
+    {
+        if (g->IsPlanEnabled(id))
+        {
+            enabled_group.emplace_back(g->GroupId());
+        }
+    }
+    if (enabled_group.size() == 0)
+    {
+        enabled_group.emplace_back(0);
+    }
+    reply.emplace("enabled_group", enabled_group);
 }
 
 void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &reply)
@@ -1241,7 +1314,8 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
 
     vector<uint8_t> cmd(entries.size() * 6 + 4 + (entries.size() == 6 ? 0 : 1));
     cmd.back() = 0;
-    cmd[1] = GetInt(msg, "id", 1, 255);
+    int id = GetInt(msg, "id", 1, 255);
+    cmd[1] = id;
     cmd[2] = GetInt(msg, "revision", 0, 255);
     cmd[3] = bweek;
     uint8_t *p = cmd.data() + 4;
@@ -1267,12 +1341,82 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
         p = GetHM(entries[i], "start", p);
         p = GetHM(entries[i], "stop", p);
     }
-
-    auto enabled_group = msg["enabled_group"].get<vector<int>>();
-
     char rejectStr[64];
     auto r = ctrller->SignSetPlan(cmd.data(), cmd.size(), rejectStr);
-    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : rejectStr);
+    if (r != APP::ERROR::AppNoError)
+    {
+        reply.emplace("result", rejectStr);
+        return;
+    }
+
+    vector<int> disable_g;
+    vector<int> enable_g;
+    auto enabled_group = msg["enabled_group"].get<vector<int>>();
+    auto grp = ctrller->GetGroups();
+    for (auto g : grp)
+    {
+        int gid = g->GroupId();
+        if (Pick::PickInt(gid, enabled_group.data(), enabled_group.size()) == -1)
+        {
+            disable_g.emplace_back(gid);
+        }
+        else
+        {
+            enable_g.emplace_back(gid);
+        }
+    }
+
+    uint8_t endis_plan[3];
+    // disable plan
+    if (disable_g.size() > 0)
+    {
+        endis_plan[0] = static_cast<uint8_t>(MI::CODE::DisablePlan);
+        for (auto gi : disable_g)
+        {
+            auto g = ctrller->GetGroup(gi);
+            if (g != nullptr)
+            {
+                if (g->IsPlanEnabled(id))
+                {
+                    endis_plan[1] = gi;
+                    endis_plan[2] = id;
+                    r = ctrller->CmdEnDisPlan(endis_plan);
+                    if (r != APP::ERROR::AppNoError)
+                    {
+                        reply.emplace("result", APP::ToStr(r));
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // enable plan
+    if (enable_g.size() > 0)
+    {
+        endis_plan[0] = static_cast<uint8_t>(MI::CODE::EnablePlan);
+        for (auto gi : enable_g)
+        {
+            auto g = ctrller->GetGroup(gi);
+            if (g != nullptr)
+            {
+                if (!g->IsPlanEnabled(id))
+                {
+                    endis_plan[1] = gi;
+                    endis_plan[2] = id;
+                    r = ctrller->CmdEnDisPlan(endis_plan);
+                    if (r != APP::ERROR::AppNoError)
+                    {
+                        reply.emplace("result", APP::ToStr(r));
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // All done
+    reply.emplace("result", "OK");
 }
 
 void WsServer::CMD_RetrieveFaultLog(struct mg_connection *c, json &msg, json &reply)
@@ -1334,7 +1478,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
         }
     }
     APP::ERROR r = ctrller->CmdSignTest(cmd);
-    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
 void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
@@ -1352,5 +1496,41 @@ void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
         cmd[3 + i * 2 + 1] = GetInt(msg, "frame_id", 1, 255);
     }
     APP::ERROR r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
-    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(static_cast<uint8_t>(r)));
+    reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
+}
+
+void WsServer::CMD_GetFrameCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    auto &uci = DbHelper::Instance().GetUciFrm();
+    vector<int> crc(256);
+    for (int i = 0; i < 256; i++)
+    {
+        auto item = uci.GetFrm(i);
+        crc[i] = (item == nullptr) ? -1 : item->crc;
+    }
+    reply.emplace("crc", crc);
+}
+
+void WsServer::CMD_GetMessageCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    auto &uci = DbHelper::Instance().GetUciMsg();
+    vector<int> crc(256);
+    for (int i = 0; i < 256; i++)
+    {
+        auto item = uci.GetMsg(i);
+        crc[i] = (item == nullptr) ? -1 : item->crc;
+    }
+    reply.emplace("crc", crc);
+}
+
+void WsServer::CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    auto &uci = DbHelper::Instance().GetUciPln();
+    vector<int> crc(256);
+    for (int i = 0; i < 256; i++)
+    {
+        auto item = uci.GetPln(i);
+        crc[i] = (item == nullptr) ? -1 : item->crc;
+    }
+    reply.emplace("crc", crc);
 }

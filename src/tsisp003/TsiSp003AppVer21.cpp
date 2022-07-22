@@ -232,39 +232,7 @@ void TsiSp003AppVer21::SignSetPlan(uint8_t *data, int len)
     {
         return;
     }
-    auto r = APP::ERROR::AppNoError;
-    uint8_t id = *(data + OFFSET_PLN_ID);
-    if (id == 0)
-    {
-        SetRejectStr("Plan[0] is not valid");
-        r = APP::ERROR::SyntaxError;
-    }
-    else if (len > PLN_LEN_MAX)
-    {
-        SetRejectStr("len[%d]>PLN_LEN_MAX[%d]",len, PLN_LEN_MAX);
-        r = APP::ERROR::LengthError;
-    }
-    else if (ctrller.IsPlnActive(id))
-    {
-        SetRejectStr("Plan[%d] is active",id);
-        r = APP::ERROR::FrmMsgPlnActive;
-    }
-    else if (ctrller.IsPlnEnabled(id))
-    {
-        SetRejectStr("Plan[%d] is enabled",id);
-        r = APP::ERROR::PlanEnabled;
-    }
-    else
-    {
-        Cnvt::PutU16(Crc::Crc16_1021(data, len), data + len); // attach CRC
-        UciPln &pln = db.GetUciPln();
-        r = pln.SetPln(data, len + PLN_TAIL);
-        if (r == APP::ERROR::AppNoError)
-        {
-            pln.SavePln(id);
-            db.GetUciEvent().Push(0, "SetPlan: Plan%d", data[1]);
-        }
-    }
+    auto r = ctrller.SignSetPlan(data, len, rejectStr);
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }
 
@@ -278,7 +246,6 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
     const char * endis = data[0] == static_cast<uint8_t>(MI::CODE::EnablePlan)?"En":"Dis";
     if (r == APP::ERROR::AppNoError)
     {
-        db.GetUciEvent().Push(0, "Group[%d]%sable Plan[%d]", endis, data[1], data[2]);
         Ack();
     }
     else

@@ -115,7 +115,7 @@ StFrm *UciFrm::GetStFrm(uint8_t i)
 
 Frame *UciFrm::GetFrm(uint8_t i)
 {
-	return (i != 0) ? frms[i - 1] : nullptr;
+	return IsFrmDefined(i) ? frms[i - 1] : nullptr;
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)

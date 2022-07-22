@@ -1,5 +1,7 @@
 # VMS/ISLUS WebSocket Protocol
 
+<link rel="stylesheet" type="text/css" href="auto-number-title.css" />
+
 ## Record Of Amendments
 
 | Ver | Summary | Date | Approved |
@@ -18,38 +20,41 @@
     - [Ver0.1a](#ver01a)
     - [Ver0.1b](#ver01b)
     - [Ver0.1c](#ver01c)
-  - [1 Brief](#1-brief)
-  - [2 Web Configuration](#2-web-configuration)
-  - [3 Websocket Protocol](#3-websocket-protocol)
-    - [3.1 Login](#31-login)
-    - [3.2 GetGroupConfig](#32-getgroupconfig)
-    - [3.3 SetGroupConfig](#33-setgroupconfig)
-    - [3.4 GetStatus](#34-getstatus)
-    - [3.5 ChangePassword](#35-changepassword)
-    - [3.6 GetUserConfig](#36-getuserconfig)
-    - [3.7 SetUserConfig](#37-setuserconfig)
-    - [3.8  GetDimmingConfig](#38--getdimmingconfig)
-    - [3.9 SetDimmingConfig](#39-setdimmingconfig)
-    - [3.10 GetNetworkConfig](#310-getnetworkconfig)
-    - [3.11 SetNetworkConfig](#311-setnetworkconfig)
-    - [3.12 ControlDimming](#312-controldimming)
-    - [3.13 ControlPower](#313-controlpower)
-    - [3.14 ControlDevice](#314-controldevice)
-    - [3.15 SystemReset](#315-systemreset)
-    - [3.16 UpdateTime](#316-updatetime)
-    - [3.17 GetFrameSetting](#317-getframesetting)
-    - [3.18 GetStoredFrame](#318-getstoredframe)
-    - [3.19 SetFrame](#319-setframe)
-    - [3.20 DisplayFrame](#320-displayframe)
-    - [3.21 GetStoredMessage](#321-getstoredmessage)
-    - [3.22 SetMessage](#322-setmessage)
-    - [3.23 DisplayMessage](#323-displaymessage)
-    - [3.24 GetStoredPlan](#324-getstoredplan)
-    - [3.25 SetPlan](#325-setplan)
-    - [3.26 RetrieveLogs](#326-retrievelogs)
-    - [3.27 ResetLogs](#327-resetlogs)
-    - [3.28 SignTest](#328-signtest)
-    - [3.29 DisplayAtomic](#329-displayatomic)
+  - [Brief](#brief)
+  - [Web Configuration](#web-configuration)
+  - [Websocket Protocol](#websocket-protocol)
+    - [Login](#login)
+    - [GetGroupConfig](#getgroupconfig)
+    - [SetGroupConfig](#setgroupconfig)
+    - [GetStatus](#getstatus)
+    - [ChangePassword](#changepassword)
+    - [GetUserConfig](#getuserconfig)
+    - [SetUserConfig](#setuserconfig)
+    - [GetDimmingConfig](#getdimmingconfig)
+    - [SetDimmingConfig](#setdimmingconfig)
+    - [GetNetworkConfig](#getnetworkconfig)
+    - [SetNetworkConfig](#setnetworkconfig)
+    - [ControlDimming](#controldimming)
+    - [ControlPower](#controlpower)
+    - [ControlDevice](#controldevice)
+    - [SystemReset](#systemreset)
+    - [UpdateTime](#updatetime)
+    - [GetFrameSetting](#getframesetting)
+    - [GetStoredFrame](#getstoredframe)
+    - [GetFrameCrc](#getframecrc)
+    - [SetFrame](#setframe)
+    - [DisplayFrame](#displayframe)
+    - [GetMessageCrc](#getmessagecrc)
+    - [GetStoredMessage](#getstoredmessage)
+    - [SetMessage](#setmessage)
+    - [DisplayMessage](#displaymessage)
+    - [GetPlanCrc](#getplancrc)
+    - [GetStoredPlan](#getstoredplan)
+    - [SetPlan](#setplan)
+    - [RetrieveLogs](#retrievelogs)
+    - [ResetLogs](#resetlogs)
+    - [SignTest](#signtest)
+    - [DisplayAtomic](#displayatomic)
 
 ---
 
@@ -80,13 +85,13 @@ Change this doc to markdown.
 
 ---
 
-## 1 Brief
+## Brief
 
 Group controller should provide web service to help technician test/diagnose VMS/ISULUS.
 ![alt text](WebSocketProtocol_1.jpg)
 The "uhttpd" provides http service and "goblin" provides websocket service. In this document, "Master" stands for JavaScript program in browser (by http service) and "Controller" stands for websocket service in "goblin". Master talks to Controller by using JSON.
 
-## 2 Web Configuration
+## Web Configuration
 
 http port: 80
 
@@ -94,7 +99,7 @@ websocket port: 38401
 
 websocket path: ws://0.0.0.0:38401/ws
 
-## 3 Websocket Protocol
+## Websocket Protocol
 
 There is a "replyms" (64-bit int) in all replies from controller to Master, which is the timestamp with ms at controller.
 
@@ -109,7 +114,7 @@ JSON:
 }
 ```
 
-### 3.1 Login
+### Login
 
 Direction: Master -> Controller
 Description: This is the first command which master sent to controller. Other commands are not accepted until login is OK.
@@ -135,7 +140,7 @@ JSON:
 }
 ```
 
-### 3.2 GetGroupConfig
+### GetGroupConfig
 
 Direction: Master -> Controller
 Description: Request the device controller to respond with its group setting.
@@ -175,10 +180,17 @@ JSON:
 }
 ```
 
-### 3.3 SetGroupConfig
+### SetGroupConfig
 
 Direction: Master -> Controller
 Description: Set group of signs.
+
+**Because group configuration related to hardware (signs in same group should at same COM port).**
+
+**SO changing group configuration should directly edit "config/UciProd" file.**
+
+**Igonre this command. Controller reply "result":"Unspupported command".**
+
 JSON:
 
 ```JSON
@@ -216,7 +228,7 @@ JSON:
 }
 ```
 
-### 3.4 GetStatus
+### GetStatus
 
 Direction: Master -> Controller
 Description: Master sends this command to Controller periodically to get Sign Status.
@@ -282,7 +294,7 @@ JSON:
 }
 ```
 
-### 3.5 ChangePassword
+### ChangePassword
 
 Direction: Master -> Controller
 Description: Change user password. Max length is 10 letters.
@@ -308,7 +320,7 @@ JSON:
 }
 ```
 
-### 3.6 GetUserConfig
+### GetUserConfig
 
 Direction: Master -> Controller
 Description: Get user configuration
@@ -345,7 +357,7 @@ JSON:
 }
 ```
 
-### 3.7 SetUserConfig
+### SetUserConfig
 
 Direction: Master -> Controller
 Description: Set user configuration
@@ -383,7 +395,7 @@ JSON:
 }
 ```
 
-### 3.8  GetDimmingConfig
+### GetDimmingConfig
 
 Direction: Master -> Controller
 Description: Get dimmin configuration
@@ -411,7 +423,7 @@ JSON:
 }
 ```
 
-### 3.9 SetDimmingConfig
+### SetDimmingConfig
 
 Direction: Master -> Controller
 Description: Set dimming configuration
@@ -440,7 +452,7 @@ JSON:
 }
 ```
 
-### 3.10 GetNetworkConfig
+### GetNetworkConfig
 
 Direction: Master -> Controller
 Description: Get two ethernet cards' setting and NTP in controller.
@@ -480,7 +492,7 @@ JSON:
 }
 ```
 
-### 3.11 SetNetworkConfig
+### SetNetworkConfig
 
 Direction: Master -> Controller
 Description: The SET NETWORK command is used to set two ethernet cards and NTP in controller. Only one gateway is allowed.
@@ -521,7 +533,7 @@ JSON:
 }
 ```
 
-### 3.12 ControlDimming
+### ControlDimming
 
 Direction: Master -> Controller
 Description: Set controller dimming level
@@ -546,7 +558,7 @@ JSON:
 }
 ```
 
-### 3.13 ControlPower
+### ControlPower
 
 Direction: Master -> Controller
 Description: Controller power ON/OFF
@@ -571,7 +583,7 @@ JSON:
 }
 ```
 
-### 3.14 ControlDevice
+### ControlDevice
 
 Direction: Master -> Controller
 Description: Enable/disable device
@@ -596,7 +608,7 @@ JSON:
 }
 ```
 
-### 3.15 SystemReset
+### SystemReset
 
 Direction: Master -> Controller
 Description: The SYSTEM RESET command is used to reset the device controller.
@@ -621,7 +633,7 @@ JSON:
 }
 ```
 
-### 3.16 UpdateTime
+### UpdateTime
 
 Direction: Master -> Controller
 Description: The UPDATE TIME command is used to update the rtc in the device controller.
@@ -645,7 +657,7 @@ JSON:
 }
 ```
 
-### 3.17 GetFrameSetting
+### GetFrameSetting
 
 Direction: Master -> Controller
 Description: The Get Frame Setting command is used to get the setting from controller to initialise Set Frame Page.
@@ -682,7 +694,7 @@ Note:
 2. If "Text Frame" is selected in "frame_type", the combobox of "Frame Colour" is sourced from "txt_frame_colours". And "gfx_frame_colours" for "Graphics Frame" and "hrg_frame_colours" for "HR Graphics Frame".
 3. "fonts", "txt_columns" and "txt_rows" are binded. If fonts[1] is selected, txt_columns[1] and txt_rows[1] are in use.
 
-### 3.18 GetStoredFrame
+### GetStoredFrame
 
 Direction: Master -> Controller
 Description: The Get Stored Frame command is used to request the frame data in controller. Frame image is Windows BMP format with no compression and 24-bit colour depth.
@@ -714,7 +726,31 @@ JSON:
 }
 ```
 
-### 3.19 SetFrame
+### GetFrameCrc
+
+Direction: Master -> Controller
+Description: The Get Frame Crc command is used to request all frames(0-255) crc in controller. Crc is 0-65535. If frame is undefined, CRC is -1. Crc of Frame[0] is always -1.
+JSON:
+
+```JSON
+{
+"cmd":"GetFrameCrc",
+"id":1
+}
+```
+
+ Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"GetFrameCrc",
+"crc":[-1,23555,3458,......,24750]
+}
+```
+
+### SetFrame
 
 Direction: Master -> Controller
 Description: The Set Frame command is used to set the frame to controller.
@@ -746,7 +782,7 @@ JSON:
 }
 ```
 
-### 3.20 DisplayFrame
+### DisplayFrame
 
 Direction: Master -> Controller
 Description: The DisplayFrame command is used to display frame in a group.
@@ -771,7 +807,31 @@ JSON:
 }
 ```
 
-### 3.21 GetStoredMessage
+### GetMessageCrc
+
+Direction: Master -> Controller
+Description: The Get Message Crc command is used to request all messages(0-255) crc in controller. Crc is 0-65535. If message is undefined, CRC is -1. Crc of Message[0] is always -1.
+JSON:
+
+```JSON
+{
+"cmd":"GetMessageCrc",
+"id":1
+}
+```
+
+ Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"GetMessageCrc",
+"crc":[-1,23555,3458,......,24750]
+}
+```
+
+### GetStoredMessage
 
 Direction: Master -> Controller
 Description: The Get Stored Message command is used to request the message data in controller.
@@ -809,7 +869,7 @@ JSON:
 }
 ```
 
-### 3.22 SetMessage
+### SetMessage
 
 Direction: Master -> Controller
 Description: The Set Message command is used to set message to controller.
@@ -846,7 +906,7 @@ JSON:
 }
 ```
 
-### 3.23 DisplayMessage
+### DisplayMessage
 
 Direction: Master -> Controller
 Description: The DisplayMessage command is used to display message in a group.
@@ -871,7 +931,31 @@ JSON:
 }
 ```
 
-### 3.24 GetStoredPlan
+### GetPlanCrc
+
+Direction: Master -> Controller
+Description: The Get Plan Crc command is used to request all plans(0-255) crc in controller. Crc is 0-65535. If plan is undefined, CRC is -1. Crc of Plan[0] is always -1.
+JSON:
+
+```JSON
+{
+"cmd":"GetPlanCrc",
+"id":1
+}
+```
+
+ Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"GetPlanCrc",
+"crc":[-1,23555,3458,......,24750]
+}
+```
+
+### GetStoredPlan
 
 Direction: Master -> Controller
 Description: The Get Stored Plan command is used to request the plan data in controller.
@@ -914,7 +998,7 @@ JSON:
 }
 ```
 
-### 3.25 SetPlan
+### SetPlan
 
 Direction: Master -> Controller
 Description: The Set Plan command is used to set plan to controller.
@@ -956,7 +1040,7 @@ JSON:
 }
 ```
 
-### 3.26 RetrieveLogs
+### RetrieveLogs
 
 Direction: Master -> Controller
 Description: The RETRIEVE LOG command is used to retrieve the logs stored in the device controller's memory. There are 3 types of logs: Fault log (500 entries), Alarm log (500 entries) and Event log (1000 entries).
@@ -988,7 +1072,7 @@ JSON:
 }
 ```
 
-### 3.27 ResetLogs
+### ResetLogs
 
 Direction: Master -> Controller
 Description: The RESET LOG command is used to reset the logs stored in the device controller's memory.
@@ -1011,7 +1095,7 @@ JSON:
 }
 ```
 
-### 3.28 SignTest
+### SignTest
 
 Direction: Master -> Controller
 Description: The SignTest command is used to display a test frame.
@@ -1043,7 +1127,7 @@ JSON:
 }
 ```
 
-### 3.29 DisplayAtomic
+### DisplayAtomic
 
 Direction: Master -> Controller
 Description: The DisplayAtomic command is used to display atomic frames in a group.
