@@ -250,10 +250,10 @@ JSON:
 "manufacturer_code":"GC20020150",
 "firmware":"0120",
 "is_online":true,
-"application_error":"0x00",
+"application_error":"0x00:No error",
 "rtc":"31/12/2021 23:59:59",
-"hardware_checksum":"0x0000",
-"controller_error":"0x00",
+"hardware_checksum":"0x55AA",
+"controller_error":"0x00:No error",
 "max_temperature":59,
 "current_temperature":59,
 "groups":[
@@ -285,7 +285,7 @@ JSON:
   "current_temperature":59,
   "max_temperature":59,
   "voltage":12000,
-  "error_code":"0x00",
+  "error_code":"0x00:No error",
   "faulty_pixels":2,
   "image":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
   },

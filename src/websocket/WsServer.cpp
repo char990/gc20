@@ -340,10 +340,10 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &repl
 void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &reply)
 {
     // TODO: Because group configuration related to hardware (signs in same group should at same COM port).
-    // SO changing group configuration should directly edit "config/UciProd" file. 
+    // SO changing group configuration should directly edit "config/UciProd" file.
     reply.emplace("result", "Unsupported command");
     return;
-    #if 0
+#if 0
     auto gc = ctrller->GroupCnt();
     auto vgroups = msg["groups"].get<vector<json>>();
     if (vgroups.size() != gc)
@@ -398,23 +398,28 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
             throw FmtException("Missing sign[%d] config", i + 1);
         }
     }
-    #endif
+#endif
 }
 
 extern const char *FirmwareVer;
 void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
 {
+    char buf[64];
     reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
     reply.emplace("firmware", FirmwareVer);
     reply.emplace("is_online", ctrller->IsOnline());
-    reply.emplace("application_error", 0x00);
+    reply.emplace("application_error", "0x00:No error");
     char rtc[32];
     Utils::Time::ParseTimeToLocalStr(time(nullptr), rtc);
     reply.emplace("rtc", rtc);
-    reply.emplace("hardware_checksum", 0x0000);
-    reply.emplace("controller_error", 0x00);
-    reply.emplace("max_temperature", 59);
-    reply.emplace("current_temperature", 59);
+    sprintf(buf, "0x%04X", DbHelper::Instance().HdrChksum());
+    reply.emplace("hardware_checksum", buf);
+    DEV::ERROR dev_err;
+    dev_err = ctrller->GetErrorCode();
+    sprintf(buf, "0x%02X:%s", static_cast<int>(dev_err), DEV::ToStr(dev_err));
+    reply.emplace("controller_error", buf);
+    reply.emplace("max_temperature", ctrller->MaxTemp());
+    reply.emplace("current_temperature", ctrller->CurTemp());
     int group_cnt = ctrller->GroupCnt();
     vector<json> groups(group_cnt);
     for (int i = 0; i < group_cnt; i++)
@@ -459,7 +464,9 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
         v.emplace("current_temperature", s->CurTemp());
         v.emplace("max_temperature", s->MaxTemp());
         v.emplace("voltage", s->Voltage());
-        v.emplace("error_code", s->SignErr().GetErrorCode());
+        dev_err = s->SignErr().GetErrorCode();
+        sprintf(buf, "0x%02X:%s", static_cast<int>(dev_err), DEV::ToStr(dev_err));
+        v.emplace("error_code", buf);
         v.emplace("faulty_pixels", s->FaultLedCnt());
         v.emplace("image", s->GetImageBase64());
     }

@@ -41,8 +41,6 @@ public:
 
     void RefreshSessionTime();
 
-    uint8_t CtrllerErr();
-
     uint8_t GroupCnt() { return groups.size(); };
     Group *GetGroup(uint8_t id) { return (id == 0 || id > groups.size()) ? nullptr : groups.at(id - 1); };
     std::vector<Group *> &GetGroups() { return groups; };
@@ -81,6 +79,8 @@ public:
     APP::ERROR CmdUpdateTime(struct tm & stm);
 
     CtrllerError ctrllerError;
+    DEV::ERROR GetErrorCode() {return ctrllerError.GetErrorCode(); };
+
     BootTimer sessionTimeout;
 
     int8_t CurTemp() { return curTemp; };
