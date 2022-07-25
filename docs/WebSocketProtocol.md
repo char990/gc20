@@ -55,6 +55,7 @@
     - [ResetLogs](#resetlogs)
     - [SignTest](#signtest)
     - [DisplayAtomic](#displayatomic)
+    - [Reboot](#reboot)
 
 ---
 
@@ -122,7 +123,7 @@ JSON:
 
 ```JSON
 {
-"cmd":"Login ",
+"cmd":"Login",
 "user":"admin",
 "password":"admin" // Max length is 10 letters
 }
@@ -1158,5 +1159,28 @@ JSON:
 "replyms":13274693458,
 "cmd":"DisplayAtomic",
 "result": "OK" or error message
+}
+```
+
+### Reboot
+
+Direction: Master -> Controller
+Description: Tell the controller to reboot.
+JSON:
+
+```JSON
+{
+"cmd":"Reboot",
+}
+```
+
+Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"Reboot",
+"result": "Controller will reboot after 5 seconds"
 }
 ```

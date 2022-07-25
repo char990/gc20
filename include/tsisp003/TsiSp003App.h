@@ -80,40 +80,6 @@ protected:
 
 private:
     // all UserDefinedCmd functions are in UserDefinedCmd.cpp
-    // FACMD list
-    enum FACMD : uint8_t
-    {
-        FACMD_SET_LUMINANCE = 0x01,
-        FACMD_SET_EXT_INPUT = 0x02,
-        FACMD_RQST_EXT_INPUT = 0x03,
-        FACMD_RQST_LUMINANCE = 0x04,
-
-        FACMD_RTRV_LOGS = 0x0A,
-        FACMD_RPL_FLT_LOGS = 0x0B,
-        FACMD_RPL_ALM_LOGS = 0x0C,
-        FACMD_RPL_EVT_LOGS = 0x0D,
-        FACMD_RESET_LOGS = 0x0F,
-
-        FACMD_SEND_FINFO = 0x10,
-        FACMD_SEND_FPKT = 0x11,
-        FACMD_START_UPGRD = 0x12,
-
-        FACMD_SET_USER_CFG = 0x20,
-        FACMD_RQST_USER_CFG = 0x21,
-        FACMD_RQST_USER_EXT = 0x22,
-        FACMD_RPL_USER_EXT = 0x23,
-        FACMD_SET_SIGN_CFG = 0x24,
-        FACMD_RPL_SET_USER_CFG = 0x25,
-
-        FACMD_SIGNTEST = 0x30,
-
-        FACMD_SHAKE_RQST = 0xF0,
-        FACMD_SHAKE_REPLY = 0xF1,
-        FACMD_SHAKE_PASSWD = 0xF2,
-        FACMD_RESTART = 0xF5,
-        FACMD_REBOOT = 0xFA
-    };
-
     int shake_hands_status{0};
     uint8_t shake_src[26];  // 16-byte salt + 10-byte password 
 

@@ -131,40 +131,8 @@ int TsiSp003App::FA0F_ResetLogs(uint8_t *data, int len)
 {
     if (ChkLen(len, 3))
     {
-        if (!prod.IsResetLogAllowed())
-        {
-            Reject(APP::ERROR::MiNotSupported);
-            return 0;
-        }
-        uint8_t subcmd = *(data + 2);
-        switch (subcmd)
-        {
-        case FACMD_RPL_FLT_LOGS:
-        {
-            auto &log = db.GetUciFault();
-            log.Reset();
-            db.GetUciEvent().Push(0, "ResetFaultLog");
-        }
-        break;
-        case FACMD_RPL_ALM_LOGS:
-        {
-            auto &log = db.GetUciAlarm();
-            log.Reset();
-            db.GetUciEvent().Push(0, "ResetAlarmLog");
-        }
-        break;
-        case FACMD_RPL_EVT_LOGS:
-        {
-            auto &log = db.GetUciEvent();
-            log.Reset();
-            db.GetUciEvent().Push(0, "ResetEventLog");
-        }
-        break;
-        default:
-            Reject(APP::ERROR::SyntaxError);
-            return 0;
-        }
-        Ack();
+        auto r = ctrller.CmdResetLog(data);
+        (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
     }
     return 0;
 }
@@ -594,7 +562,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = usercfg.Fan1OnTemp();
         *pt++ = usercfg.Humidity();
         *pt++ = usercfg.CityId();
-        *pt++ = 0;                                                    // usercfg.DefaultFont();
+        *pt++ = 0;                       // usercfg.DefaultFont();
         *pt++ = prod.GetMappedColour(0); // DefaultColour();
         pt = Cnvt::PutU16(usercfg.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
@@ -663,7 +631,7 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         voltage = (voltagemin < prod.SlaveVoltageLow()) ? voltagemin : ((voltagemax > prod.SlaveVoltageHigh()) ? voltagemax : (voltage / cnt));
         pt = Cnvt::PutU16(voltage, pt);
         pt = Cnvt::PutU16(lux / cnt, pt);
-        char *mfcCode =prod.MfcCode();
+        char *mfcCode = prod.MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
         memcpy(pt, FirmwareVer, 4);
@@ -1023,8 +991,8 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         p = Cnvt::PutU16(usercfg.PasswordOffset(), p);    // password offset
         *p++ = usercfg.SeedOffset();                      // seed offset
         *p++ = usercfg.DeviceId();                        // device id
-        p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) ON time : 5/10 seconds
-        p = Cnvt::PutU16(5, p);                        // conspicuity( flasher ) OFF time : 5/10 seconds
+        p = Cnvt::PutU16(5, p);                           // conspicuity( flasher ) ON time : 5/10 seconds
+        p = Cnvt::PutU16(5, p);                           // conspicuity( flasher ) OFF time : 5/10 seconds
         *p++ = usercfg.OverTemp();                        // over temperature
         *p++ = usercfg.Fan1OnTemp();                      // fan 1 on temperature
         *p++ = usercfg.Fan2OnTemp();                      // fan 2 on temperature
@@ -1051,26 +1019,26 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
                 lux += s->Lux();
             }
         }
-        *p++ = curTemp / cnt;                          // avg of all current temperatures
-        p = Cnvt::PutU16(lux / cnt, p);                // avg of all
-        *p++ = maxTemp;                                // max of all max temperatures
-        *p++ = (faultleds > 255) ? 255 : faultleds;    // pixel on fault
-        *p++ = 0;                                      // DefaultFont                  //
+        *p++ = curTemp / cnt;                             // avg of all current temperatures
+        p = Cnvt::PutU16(lux / cnt, p);                   // avg of all
+        *p++ = maxTemp;                                   // max of all max temperatures
+        *p++ = (faultleds > 255) ? 255 : faultleds;       // pixel on fault
+        *p++ = 0;                                         // DefaultFont                  //
         p = Cnvt::PutU16(usercfg.DisplayTimeoutMin(), p); // display time out
-        *p++ = 0;                                      //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
-        p = Cnvt::PutU16(0, p);                        // light sensor 2
-        *p++ = 'V';                                    // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
-        *p++ = 'B';                                    // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
-        *p++ = prod.MaxConspicuity();                  // conspicuity
-        *p++ = prod.MaxFont();                         // max. number of fonts
-        *p++ = prod.GetMappedColour(0);                // user.DefaultColour();                // 09
-        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.max_template=0;		// 00
-        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.wk1=1;                // 01
-        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.group_offset=0;		// 00
-        *p++ = 'D';                                    // GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
-        *p++ = 0;                                      // GUIconfigure.PARA.BYTE.group_length=0;		// 00
-        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.wk3=1;                // 01
-        *p++ = 1;                                      // GUIconfigure.PARA.BYTE.group_data=1;			// 01
+        *p++ = 0;                                         //	    GUIconfigure.PARA.BYTE.define_modem=0;		//
+        p = Cnvt::PutU16(0, p);                           // light sensor 2
+        *p++ = 'V';                                       // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
+        *p++ = 'B';                                       // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
+        *p++ = prod.MaxConspicuity();                     // conspicuity
+        *p++ = prod.MaxFont();                            // max. number of fonts
+        *p++ = prod.GetMappedColour(0);                   // user.DefaultColour();                // 09
+        *p++ = 0;                                         // GUIconfigure.PARA.BYTE.max_template=0;		// 00
+        *p++ = 1;                                         // GUIconfigure.PARA.BYTE.wk1=1;                // 01
+        *p++ = 0;                                         // GUIconfigure.PARA.BYTE.group_offset=0;		// 00
+        *p++ = 'D';                                       // GUIconfigure.PARA.BYTE.wk2='D';                // 0x44 'D'
+        *p++ = 0;                                         // GUIconfigure.PARA.BYTE.group_length=0;		// 00
+        *p++ = 1;                                         // GUIconfigure.PARA.BYTE.wk3=1;                // 01
+        *p++ = 1;                                         // GUIconfigure.PARA.BYTE.group_data=1;			// 01
         Tx(txbuf, 39);
     }
     return 0;

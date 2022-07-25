@@ -175,6 +175,7 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(GetFrameCrc),
     CMD_ITEM(GetMessageCrc),
     CMD_ITEM(GetPlanCrc),
+    CMD_ITEM(Reboot),
 };
 
 void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -1181,7 +1182,7 @@ void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, js
 {
     uint8_t cmd[3];
     cmd[1] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
-    cmd[1] = GetInt(msg, "frame_id", 0, 255);
+    cmd[2] = GetInt(msg, "frame_id", 0, 255);
     auto r = ctrller->CmdDispFrm(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
@@ -1441,22 +1442,27 @@ void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json &re
     DbHelper::Instance().GetUciEvent().GetLog(reply);
 }
 
+void WsServer::cmd_ResetLog(uint8_t logcode, json &reply)
+{
+    uint8_t cmd[3];
+    cmd[2]= logcode;
+    auto r = ctrller->CmdResetLog(cmd);
+    reply.emplace("result", r==APP::ERROR::AppNoError ? "OK": APP::ToStr(r));
+}
+
 void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg, json &reply)
 {
-    DbHelper::Instance().GetUciFault().Reset();
-    reply.emplace("result", "OK");
+    cmd_ResetLog(FACMD_RPL_FLT_LOGS, reply);
 }
 
 void WsServer::CMD_ResetAlarmLog(struct mg_connection *c, json &msg, json &reply)
 {
-    DbHelper::Instance().GetUciAlarm().Reset();
-    reply.emplace("result", "OK");
+    cmd_ResetLog(FACMD_RPL_ALM_LOGS, reply);
 }
 
 void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply)
 {
-    DbHelper::Instance().GetUciEvent().Reset();
-    reply.emplace("result", "OK");
+    cmd_ResetLog(FACMD_RPL_EVT_LOGS, reply);
 }
 
 void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
@@ -1467,7 +1473,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
     cmd[2] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
     cmd[3] = 255;
     cmd[4] = 255;
-    auto p = DbHelper::Instance().GetUciProd();
+    auto & p = DbHelper::Instance().GetUciProd();
     string colour = msg["colour"].get<string>();
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
@@ -1502,7 +1508,7 @@ void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
         cmd[3 + i * 2] = GetInt(msg, "sign_id", 1, ctrller->SignCnt());
         cmd[3 + i * 2 + 1] = GetInt(msg, "frame_id", 1, 255);
     }
-    APP::ERROR r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
+    auto r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
@@ -1540,4 +1546,10 @@ void WsServer::CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nloh
         crc[i] = (item == nullptr) ? -1 : item->crc;
     }
     reply.emplace("crc", crc);
+}
+
+void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    reply.emplace("result", "Controller will reboot after 5 seconds");
+    ctrller->RR_flag(RQST_NETWORK);
 }

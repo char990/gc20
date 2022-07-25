@@ -1427,7 +1427,7 @@ void Group::DispBackup()
     }
 }
 
-APP::ERROR Group::DispFrm(uint8_t id, bool chk)
+APP::ERROR Group::DispChk(bool chk)
 {
     if (chk)
     {
@@ -1439,6 +1439,20 @@ APP::ERROR Group::DispFrm(uint8_t id, bool chk)
         {
             return APP::ERROR::FacilitySwitchOverride;
         }
+        if(fatalError.IsHigh())
+        {
+            return APP::ERROR::DeviceControllerOffline;
+        }
+    }
+    return APP::ERROR::AppNoError;
+}
+
+APP::ERROR Group::DispFrm(uint8_t id, bool chk)
+{
+    auto r = DispChk(chk);
+    if (r != APP::ERROR::AppNoError)
+    {
+        return r;
     }
     for (auto &sign : vSigns)
     {
@@ -1462,16 +1476,10 @@ APP::ERROR Group::DispFrm(uint8_t id, bool chk)
 
 APP::ERROR Group::DispMsg(uint8_t id, bool chk)
 {
-    if (chk)
+    auto r = DispChk(chk);
+    if (r != APP::ERROR::AppNoError)
     {
-        if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
-        {
-            return APP::ERROR::PowerIsOff;
-        }
-        if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
-        {
-            return APP::ERROR::FacilitySwitchOverride;
-        }
+        return r;
     }
     uint8_t buf[3];
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
@@ -1487,9 +1495,10 @@ APP::ERROR Group::DispMsg(uint8_t id, bool chk)
 
 APP::ERROR Group::DispAtmFrm(uint8_t *cmd, bool chk)
 {
-    if (chk && FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
+    auto r = DispChk(chk);
+    if (r != APP::ERROR::AppNoError)
     {
-        return APP::ERROR::FacilitySwitchOverride;
+        return r;
     }
     auto atm = DispAtomicFrm(cmd);
     if (chk && atm == APP::ERROR::AppNoError)

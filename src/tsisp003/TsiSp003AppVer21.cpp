@@ -187,7 +187,6 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     auto r = ctrller.CmdDispFrm(data);
     if (r == APP::ERROR::AppNoError)
     {
-        db.GetUciEvent().Push(0, "Group[%d]SignDisplayFrame:[%d]", data[1], data[2]);
         Ack();
     }
     else
@@ -216,7 +215,6 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     auto r = ctrller.CmdDispMsg(data);
     if (r == APP::ERROR::AppNoError)
     {
-        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", data[1], data[2]);
         Ack();
     }
     else

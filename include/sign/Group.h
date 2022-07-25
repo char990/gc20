@@ -228,6 +228,8 @@ private:
 
     Utils::State5 fatalError;
 
+    APP::ERROR DispChk(bool chk);
+
     /******************** Task Plan ********************/
     uint8_t onDispPlnId;
 

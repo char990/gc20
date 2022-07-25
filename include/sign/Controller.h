@@ -17,6 +17,7 @@
 #define RQST_RESTART (1 << 1)
 #define RQST_REBOOT (1 << 2)
 
+
 class Controller : public IPeriodicRun
 {
 public:
@@ -53,11 +54,11 @@ public:
     bool IsMsgActive(uint8_t i);
     bool IsPlnActive(uint8_t i);
     bool IsPlnEnabled(uint8_t id);
-    void SetOnline(bool v){isOnline=v;};
-    bool IsOnline(){return isOnline;};
+    void SetOnline(bool v) { isOnline = v; };
+    bool IsOnline() { return isOnline; };
 
     // command from TSI-SP-003/WebSocket
-    APP::ERROR CheckAdjacentLane(std::vector<uint8_t> & frms);
+    APP::ERROR CheckAdjacentLane(std::vector<uint8_t> &frms);
     APP::ERROR CmdDispFrm(uint8_t *cmd);
     APP::ERROR CmdDispMsg(uint8_t *cmd);
     APP::ERROR CmdDispAtomicFrm(uint8_t *cmd, int len);
@@ -72,14 +73,16 @@ public:
 
     APP::ERROR CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr);
     APP::ERROR CmdPowerOnOff(uint8_t *cmd, char *rejectStr);
-    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, char * rejectStr);
+    APP::ERROR CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr);
 
     APP::ERROR CmdSystemReset(uint8_t *cmd, char *rejectStr);
 
-    APP::ERROR CmdUpdateTime(struct tm & stm);
+    APP::ERROR CmdUpdateTime(struct tm &stm);
+
+    APP::ERROR CmdResetLog(uint8_t *cmd);
 
     CtrllerError ctrllerError;
-    DEV::ERROR GetErrorCode() {return ctrllerError.GetErrorCode(); };
+    DEV::ERROR GetErrorCode() { return ctrllerError.GetErrorCode(); };
 
     BootTimer sessionTimeout;
 
@@ -94,7 +97,6 @@ public:
             rrTmr.Setms(5000);
         }
     };
-
 
 private:
     Controller();
@@ -130,5 +132,5 @@ private:
     BootTimer rrTmr;
 
     TcpServer *tcpServer;
-//    void WriteFifo(char c);
+    //    void WriteFifo(char c);
 };

@@ -454,7 +454,12 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
             }
         }
     }
-    return grp->DispFrm(frmId, true);
+    auto r = grp->DispFrm(frmId, true);
+    if (r == APP::ERROR::AppNoError)
+    {
+        db.GetUciEvent().Push(0, "Group[%d]SignDisplayFrame:[%d]", cmd[1], cmd[2]);
+    }
+    return r;
 }
 
 APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
@@ -537,12 +542,7 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     ucifrm.SaveFrm(255);
     db.GetUciEvent().Push(0, "SignTest:SetFrame[255]:Colour:%s,Pixels:%s",
                           FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
-    r = grp->DispFrm(255, true);
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "SignTest:Group[%d]DispFrm[255]", grpId);
-    }
-    return r;
+    return grp->DispFrm(255, true);
 }
 
 APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
@@ -560,7 +560,12 @@ APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    return grp->DispMsg(msgId, true);
+    auto r = grp->DispMsg(msgId, true);
+    if (r == APP::ERROR::AppNoError)
+    {
+        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", cmd[1], cmd[2]);
+    }
+    return r;
 }
 
 APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
@@ -601,7 +606,12 @@ APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
             return APP::ERROR::OverlaysNotSupported;
         }
     }
-    return grp->DispAtmFrm(cmd, true);
+    auto r = grp->DispAtmFrm(cmd, true);
+    if (r == APP::ERROR::AppNoError)
+    {
+        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", cmd[1], cmd[2]);
+    }
+    return r;
 }
 
 APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
@@ -624,7 +634,7 @@ APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
     }
     if (r == APP::ERROR::AppNoError)
     {
-        db.GetUciEvent().Push(0, "Group[%d] %sable Plan[%d]", grpId, endis?"En":"Dis", plnId);
+        db.GetUciEvent().Push(0, "Group[%d] %sable Plan[%d]", grpId, endis ? "En" : "Dis", plnId);
     }
     return r;
 }
@@ -920,13 +930,13 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
             switch (*data)
             {
             case static_cast<uint8_t>(MI::CODE::SignSetTextFrame):
-                db.GetUciEvent().Push(0, "SetTxtFrame: Frame[%d]", id);
+                db.GetUciEvent().Push(0, "SetTxtFrame: [%d]", id);
                 break;
             case static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame):
-                db.GetUciEvent().Push(0, "SetGfxFrame: Frame[%d]", id);
+                db.GetUciEvent().Push(0, "SetGfxFrame: [%d]", id);
                 break;
             default:
-                db.GetUciEvent().Push(0, "SetHiResGfxFrame: Frame[%d]", id);
+                db.GetUciEvent().Push(0, "SetHiResGfxFrame: [%d]", id);
                 break;
             }
         }
@@ -990,7 +1000,7 @@ APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
             if (r == APP::ERROR::AppNoError)
             {
                 msg.SaveMsg(id);
-                db.GetUciEvent().Push(0, "SignSetMessage: Msg%d", id);
+                db.GetUciEvent().Push(0, "SignSetMessage: [%d]", id);
             }
         }
     }
@@ -1029,8 +1039,44 @@ APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
         if (r == APP::ERROR::AppNoError)
         {
             pln.SavePln(id);
-            db.GetUciEvent().Push(0, "SetPlan: Plan%d", data[1]);
+            db.GetUciEvent().Push(0, "SetPlan: [%d]", data[1]);
         }
     }
     return r;
+}
+
+APP::ERROR Controller::CmdResetLog(uint8_t *cmd)
+{
+    if (!DbHelper::Instance().GetUciProd().IsResetLogAllowed())
+    {
+        return APP::ERROR::MiNotSupported;
+    }
+    uint8_t subcmd = cmd[2];
+    switch (subcmd)
+    {
+    case FACMD_RPL_FLT_LOGS:
+    {
+        auto &log = db.GetUciFault();
+        log.Reset();
+        db.GetUciEvent().Push(0, "ResetFaultLog");
+    }
+    break;
+    case FACMD_RPL_ALM_LOGS:
+    {
+        auto &log = db.GetUciAlarm();
+        log.Reset();
+        db.GetUciEvent().Push(0, "ResetAlarmLog");
+    }
+    break;
+    case FACMD_RPL_EVT_LOGS:
+    {
+        auto &log = db.GetUciEvent();
+        log.Reset();
+        db.GetUciEvent().Push(0, "ResetEventLog");
+    }
+    break;
+    default:
+        return (APP::ERROR::SyntaxError);
+    }
+    return APP::ERROR::AppNoError;
 }

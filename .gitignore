@@ -1,4 +1,4 @@
 build/
 gc20.code-workspace
-main
-bak/
+*.o
+*.d

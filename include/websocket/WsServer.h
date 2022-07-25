@@ -85,5 +85,7 @@ private:
     static void CMD_GetFrameCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply);
     static void CMD_GetMessageCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply);
     static void CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply);
-};
+    static void CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply);
 
+    static void cmd_ResetLog(uint8_t logcode, nlohmann::json &reply);
+};
