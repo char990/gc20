@@ -500,7 +500,7 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                         sprintf(ipbuf, "network.ETH1.%s changed: %s -> %s",
                                 str, old_n.ToString().c_str(), new_p.ToString().c_str());
                         evt.Push(0, ipbuf);
-                        old_n.Set(new_p.ip);
+                        old_n.Set(new_p.ip.ipa);
                     };
                     if (m1 != 0)
                     {
@@ -568,14 +568,14 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         memset(pt, 0, 10);
         pt += 10;
         auto net = db.GetUciNetwork().GetETH(std::string("ETH1"));
-        memcpy(pt, net->ipaddr.ip, 4);
+        memcpy(pt, net->ipaddr.ip.ipa, 4);
         pt += 4;
         *pt++ = usercfg.LockedMsg();
         *pt++ = usercfg.LockedFrm();
         *pt++ = usercfg.LastFrmTime();
-        memcpy(pt, net->netmask.ip, 4);
+        memcpy(pt, net->netmask.ip.ipa, 4);
         pt += 4;
-        memcpy(pt, net->gateway.ip, 4);
+        memcpy(pt, net->gateway.ip.ipa, 4);
         pt += 4;
         Tx(txbuf, pt - txbuf);
     }

@@ -145,9 +145,11 @@ int UciFault::GetLog(json &reply)
                 entry.emplace("id", log.id);
                 entry.emplace("entry_no", log.entryNo);
                 entry.emplace("time", Time::ParseTimeToLocalStr(log.logTime));
+                entry.emplace("content", DEV::ToStr(static_cast<DEV::ERROR>(log.errorCode)));
+                entry.emplace("event", log.onset ? "Onset" : "Clear");
                 char buf[256];
-                sprintf(buf, "0x%02X:%s:%s", log.errorCode, DEV::ToStr(static_cast<DEV::ERROR>(log.errorCode)), log.onset ? "Onset" : "Clear");
-                entry.emplace("content", buf);
+                sprintf(buf, "0x%02X",log.errorCode);
+                entry.emplace("code", buf);
                 items.push_back(entry);
             }
             if (--logi < 0)

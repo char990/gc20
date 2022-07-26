@@ -1066,7 +1066,9 @@ JSON:
   "id":0,
   "entry_no":276, // cycles between 0 and 65535
   "time":"12/32/2021 23:59:59",
-  "content":"0x0E: Battery low: clear" // less than 64-char
+  "code":"0x0E",  // Fault log only
+  "event":"Onset",  // Fault log only
+  "content":"Battery low" // less than 64-char
   },
   ……
   ]

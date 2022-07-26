@@ -778,11 +778,11 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
     {
         throw "Only one ETH can have gateway";
     }
-    if (memcmp(interfaces[0].ipaddr.ip, interfaces[1].ipaddr.ip, 4) == 0)
+    if (interfaces[0].ipaddr.Compare(interfaces[1].ipaddr) == 0)
     {
         throw "ETH1.ipaddr and ETH2.ipaddr should not be same";
     }
-    if (ntp.server.compare(interfaces[0].ipaddr.ToString()) == 0 || ntp.server.compare(interfaces[1].ipaddr.ToString()) == 0)
+    if (ntp.server.find(interfaces[0].ipaddr.ToString()) >= 0 || ntp.server.find(interfaces[1].ipaddr.ToString()) >= 0)
     {
         throw "NTP Server should not be ETH1/2";
     }
@@ -1445,9 +1445,9 @@ void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json &re
 void WsServer::cmd_ResetLog(uint8_t logcode, json &reply)
 {
     uint8_t cmd[3];
-    cmd[2]= logcode;
+    cmd[2] = logcode;
     auto r = ctrller->CmdResetLog(cmd);
-    reply.emplace("result", r==APP::ERROR::AppNoError ? "OK": APP::ToStr(r));
+    reply.emplace("result", r == APP::ERROR::AppNoError ? "OK" : APP::ToStr(r));
 }
 
 void WsServer::CMD_ResetFaultLog(struct mg_connection *c, json &msg, json &reply)
@@ -1473,7 +1473,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
     cmd[2] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
     cmd[3] = 255;
     cmd[4] = 255;
-    auto & p = DbHelper::Instance().GetUciProd();
+    auto &p = DbHelper::Instance().GetUciProd();
     string colour = msg["colour"].get<string>();
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {

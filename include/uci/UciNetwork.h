@@ -14,10 +14,15 @@ public:
     Ipv4(const std::string &str) { Set(str); }
     Ipv4(const char *str) { Set(str); }
 
-    uint8_t ip[4]{0, 0, 0, 0};
+    union ips
+    {
+        uint8_t ipa[4]{0, 0, 0, 0};
+        uint32_t ip32;
+    } ip;
+    
     void Set(const uint8_t *p)
     {
-        memcpy(ip, p, 4);
+        memcpy(ip.ipa, p, 4);
     }
 
     bool Set(const std::string &str)
@@ -42,7 +47,7 @@ public:
                 }
                 for (int i = 0; i < 4; i++)
                 {
-                    ip[i] = ipb[i];
+                    ip.ipa[i] = ipb[i];
                 }
                 return true;
             }
@@ -52,24 +57,24 @@ public:
 
     int Compare(Ipv4 &_ip)
     {
-        return memcmp(ip, _ip.ip, 4);
+        return memcmp(ip.ipa, _ip.ip.ipa, 4);
     }
 
     bool Isvalid()
     {
-        return !(ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] == 0);
+        return (ip.ip32 != 0);
     }
 
     std::string ToString()
     {
         char buf[16];
-        if (ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] == 0)
+        if (ip.ip32 == 0)
         {
             buf[0] = 0;
         }
         else
         {
-            sprintf(buf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+            sprintf(buf, "%d.%d.%d.%d", ip.ipa[0], ip.ipa[1], ip.ipa[2], ip.ipa[3]);
         }
         return std::string(buf);
     };

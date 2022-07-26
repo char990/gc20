@@ -104,9 +104,7 @@ int UciStrLog::GetLog(nlohmann::json & reply)
                 entry.emplace("id", log.id);
                 entry.emplace("entry_no", log.entryNo);
                 entry.emplace("time", Time::ParseTimeToLocalStr(log.logTime));
-                char buf[STR_SIZE];
-                CharCpy(buf, log.str, STR_SIZE - 1);
-                entry.emplace("content", buf);
+                entry.emplace("content", log.str);
                 items.push_back(entry);
             }
             if (--logi < 0)
