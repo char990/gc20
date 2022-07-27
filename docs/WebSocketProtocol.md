@@ -277,7 +277,7 @@ JSON:
 "signs":[
   {
   "sign_id":1,
-  "dimming_set":"auto"/"1-16",
+  "dimming_mode":"auto"/"manual",
   "dimming_level":1,
   "light_sensor":"error"/"9276",
   "frame_id":1,

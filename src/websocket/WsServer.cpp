@@ -440,7 +440,7 @@ void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
         auto s = ctrller->GetSign(i + 1);
         auto &v = signs[i];
         v.emplace("sign_id", s->SignId());
-        v.emplace("dimming_mode", s->DimmingMode());
+        v.emplace("dimming_mode", s->DimmingMode() == 0 ? "Auto" : "Manual");
         v.emplace("dimming_level", s->DimmingValue());
         if (s->luminanceFault.IsValid())
         {
