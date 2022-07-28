@@ -1,7 +1,3 @@
-// Copyright (c) 2020 Cesanta Software Limited
-// All rights reserved
-//
-// Example Websocket server. See https://mongoose.ws/tutorials/websocket-server/
 #include <websocket/WsServer.h>
 
 #include <module/MyDbg.h>
@@ -250,8 +246,7 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
             json msg = json::parse(p, nullptr, true, true);
             cmd = GetStr(msg, "cmd");
             reply.emplace("cmd", cmd);
-            int j = countof(CMD_LIST);
-            // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
+            int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
             for (int i = 0; i < j; i++)
             {
                 if (strcasecmp(cmd.c_str(), CMD_LIST[i].cmd) == 0)

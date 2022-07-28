@@ -2,3 +2,5 @@ build/
 gc20.code-workspace
 *.o
 *.d
+core
+core/
