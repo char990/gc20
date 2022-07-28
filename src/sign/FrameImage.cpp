@@ -109,7 +109,7 @@ void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
 {
     if (signId == 0)
     {
-        throw "FrameImage::FillCoreFromSlaveFrame signId IS 0";
+        throw invalid_argument("FrameImage::FillCoreFromSlaveFrame signId IS 0");
     }
     if (frmId == 0)
     {
@@ -146,7 +146,7 @@ void FrameImage::FillCoreFromUciFrame()
 {
     if (signId != 0)
     {
-        throw "FrameImage::FillCoreFromUciFrame signId NOT 0";
+        throw invalid_argument("FrameImage::FillCoreFromUciFrame signId NOT 0");
     }
     newImg = true;
     const char *filename = uci_frame;
@@ -176,7 +176,7 @@ void FrameImage::LoadBmpFromBase64(const char *base64, int len)
     int fd = open(uci_frame, O_WRONLY);
     if(fd<0)
     {
-        throw std::string("Can't open ") + uci_frame;
+        throw invalid_argument(StrFn::PrintfStr("Can't open %s", uci_frame));
     }
     write(fd, bmpbuf.data(), blen);
     close(fd);
@@ -242,7 +242,7 @@ bool FrameImage::ReadFromFile(const char * filename)
 {
     if(bmp.ReadFromFile(filename)==false)
     {
-        throw std::string("Write file error: ") + filename;
+        throw runtime_error(StrFn::PrintfStr("Read file error: %s", filename));
     }
     return true;
 }
@@ -251,7 +251,7 @@ bool FrameImage::WriteToFile(const char * filename)
 {
     if(bmp.WriteToFile(filename)==false)
     {
-        throw std::string("Write file error: ") + filename;
+        throw runtime_error(StrFn::PrintfStr("Write file error: %s", filename));
     }
     return true;
 }

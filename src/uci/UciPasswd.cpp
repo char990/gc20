@@ -46,7 +46,7 @@ void UciPasswd::LoadConfig()
     //Dump();
 }
 
-void UciPasswd::Set(const std::string & user, const std::string & passwd, const int permission)
+void UciPasswd::Set(const string & user, const string & passwd, const int permission)
 {
     struct uci_ptr pa = {
         .package = PACKAGE,
@@ -58,7 +58,7 @@ void UciPasswd::Set(const std::string & user, const std::string & passwd, const 
     int r = uci_set(ctx, &pa);
     if (r != UCI_OK)
     {
-        throw std::runtime_error(FmtException("SetByPtr failed(return %d): %s.%s.%s=%s", r,
+        throw runtime_error(StrFn::PrintfStr("SetByPtr failed(return %d): %s.%s.%s=%s", r,
                                               ptrSecSave.package, ptrSecSave.section, ptrSecSave.option, ptrSecSave.value));
     }
     OptionSave(_Permission, permission);
@@ -89,7 +89,7 @@ void UciPasswd::Dump()
     PrintDash('>');
 }
 
-UserPasswd *UciPasswd::GetUserPasswd(const std::string & user)
+UserPasswd *UciPasswd::GetUserPasswd(const string & user)
 {
     auto p = mapUserPass.find(user);
     if (p != mapUserPass.end())

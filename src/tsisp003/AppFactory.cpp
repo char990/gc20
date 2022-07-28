@@ -2,6 +2,7 @@
 #include <tsisp003/QLD21.h>
 #include <tsisp003/NSW31.h>
 #include <tsisp003/NSW50.h>
+#include <module/Utils.h>
 
 
 
@@ -22,7 +23,7 @@ AppFactory::AppFactory()
     }
     else
     {
-        throw std::invalid_argument(FmtException("Unknow TsiSp003Ver %d",ver));
+        throw std::invalid_argument(Utils::StrFn::PrintfStr("Unknow TsiSp003Ver %d",ver));
     }
 }
 

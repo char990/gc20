@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
         mainpath = get_current_dir_name();
         if (strlen(mainpath) > 64)
         {
-            throw std::invalid_argument("path is longer than 64 bytes.\n");
+            throw invalid_argument("path is longer than 64 bytes.\n");
         }
         PrintVersion(true);
         pDS3231 = new DS3231{1};
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
         }
         else
         { // ip
-            throw std::runtime_error("TODO: Slave on IP:Port");
+            throw runtime_error("TODO: Slave on IP:Port");
         }
 
         // TSI-SP-003 Web
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
         }
         /************* Never hit **************/
     }
-    catch (const std::exception &e)
+    catch (const exception &e)
     {
         // muntrace();
         Ldebug("\n!!! main exception :%s", e.what());

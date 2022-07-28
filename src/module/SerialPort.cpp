@@ -6,11 +6,13 @@
 #include <termios.h>
 
 #include <cstring>
-#include <module/MyDbg.h>
 
+#include <module/MyDbg.h>
 #include <module/SerialPort.h>
+#include <module/Utils.h>
 
 using namespace std;
+using namespace Utils;
 
 int ALLOWEDBPS[EXTENDEDBPS_SIZE] =
 	{
@@ -72,7 +74,7 @@ void SerialPort::ConfigureTermios()
 	// Get current settings (will be stored in termios structure)
 	if (tcgetattr(spFileDesc, &tty) != 0)
 	{
-		throw std::runtime_error(FmtException("tcgetattr() failed: %s(%s)", spConfig.name, spConfig.dev));
+		throw runtime_error(StrFn::PrintfStr("tcgetattr() failed: %s(%s)", spConfig.name, spConfig.dev));
 	}
 	//================= (.c_cflag) ===============//
 
@@ -127,7 +129,7 @@ void SerialPort::ConfigureTermios()
 		tty.c_cflag |= B921600;
 		break;
 	default:
-		throw std::invalid_argument(FmtException("%s(%s) baudrate unrecognized: %d",
+		throw invalid_argument(StrFn::PrintfStr("%s(%s) baudrate unrecognized: %d",
 												 spConfig.name, spConfig.dev, spConfig.baudrate));
 	}
 
@@ -171,14 +173,14 @@ void SerialPort::ConfigureTermios()
 	tcflush(spFileDesc, TCIOFLUSH);
 	if (tcsetattr(spFileDesc, TCSANOW, &tty) != 0)
 	{
-		throw std::runtime_error(FmtException("tcsetattr() failed: %s(%s): (%d): %s\n",
+		throw runtime_error(StrFn::PrintfStr("tcsetattr() failed: %s(%s): (%d): %s\n",
 											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 
 	struct serial_rs485 rs485conf;
 	if (ioctl(spFileDesc, TIOCGRS485, &rs485conf) < 0)
 	{
-		throw std::runtime_error(FmtException("Error reading ioctl %s(%s): (%d): %s\n",
+		throw runtime_error(StrFn::PrintfStr("Error reading ioctl %s(%s): (%d): %s\n",
 											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 	rs485conf.flags = 0;
@@ -189,12 +191,12 @@ void SerialPort::ConfigureTermios()
 	}
 	if (ioctl(spFileDesc, TIOCSRS485, &rs485conf) < 0)
 	{
-		throw std::runtime_error(FmtException("Error writing ioctl %s(%s): (%d): %s\n",
+		throw runtime_error(StrFn::PrintfStr("Error writing ioctl %s(%s): (%d): %s\n",
 											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 	if (ioctl(spFileDesc, TIOCGRS485, &rs485conf) < 0)
 	{
-		throw std::runtime_error(FmtException("Error reading ioctl %s(%s): (%d): %s\n",
+		throw runtime_error(StrFn::PrintfStr("Error reading ioctl %s(%s): (%d): %s\n",
 											  spConfig.name, spConfig.dev, errno, strerror(errno)));
 	}
 	/*
@@ -212,7 +214,7 @@ int SerialPort::Close()
 		auto retVal = close(spFileDesc);
 		if (retVal != 0)
 		{
-			throw std::runtime_error(FmtException("Close() failed: %s(%s)", spConfig.name, spConfig.dev));
+			throw runtime_error(StrFn::PrintfStr("Close() failed: %s(%s)", spConfig.name, spConfig.dev));
 		}
 		spFileDesc = -1;
 	}

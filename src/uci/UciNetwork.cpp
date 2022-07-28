@@ -6,12 +6,13 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+using namespace std;
 
 UciNetwork::UciNetwork()
 {
     NetInterface init;
-    eths.emplace(std::string("ETH1"), init);
-    eths.emplace(std::string("ETH2"), init);
+    eths.emplace(string("ETH1"), init);
+    eths.emplace(string("ETH2"), init);
 }
 
 void UciNetwork::LoadConfig()
@@ -31,7 +32,7 @@ void UciNetwork::LoadConfig()
             ip.Set("0.0.0.0");
             return;
         }
-        throw std::invalid_argument(FmtException("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str));
+        throw invalid_argument(StrFn::PrintfStr("%s/%s.%s.%s Error: %s", PATH, PACKAGE, SECTION, _option, str));
     };
 
     Open();
@@ -40,7 +41,7 @@ void UciNetwork::LoadConfig()
         SECTION = x.first.c_str();
         struct uci_section *uciSec = GetSection(SECTION);
         auto &e = x.second;
-        e.proto = std::string(GetStr(uciSec, _Proto));
+        e.proto = string(GetStr(uciSec, _Proto));
         if (e.proto.compare("static") == 0)
         {
             LoadIp(uciSec, _Ipaddr, e.ipaddr);
@@ -50,13 +51,13 @@ void UciNetwork::LoadConfig()
         const char *str = GetStr(uciSec, _Dns, false);
         if (str != nullptr)
         {
-            e.dns = std::string(str);
+            e.dns = string(str);
         }
     }
     Close();
 }
 
-void UciNetwork::SaveETH(std::string name)
+void UciNetwork::SaveETH(string name)
 {
     NetInterface *n = GetETH(name);
     if (n != nullptr)

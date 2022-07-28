@@ -10,16 +10,7 @@
 #include <module/BootTimer.h>
 
 using namespace Utils;
-
-std::string FmtException(const char *fmt, ...)
-{
-	char buf[256];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buf, 255, fmt, args);
-	va_end(args);
-	return std::string(buf);
-}
+using namespace std;
 
 #define MyDbgBuf_SIZE 1024
 static char MyDbgBuf[MyDbgBuf_SIZE];
@@ -92,7 +83,7 @@ void Log(int len)
 	int log_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 	if (log_fd < 0)
 	{
-		throw std::runtime_error(FmtException("Open log file failed:%s", filename));
+		throw runtime_error(StrFn::PrintfStr("Open log file failed:%s", filename));
 	}
 	write(log_fd, MyDbgBuf, len);
 	close(log_fd);

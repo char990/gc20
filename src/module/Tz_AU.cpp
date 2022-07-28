@@ -1,6 +1,10 @@
 #include <cstdio>
 #include <cstring>
+#include <stdexcept>
+
 #include "module/Tz_AU.h"
+
+using namespace std;
 
 const Tz_AU::timezone_t Tz_AU::tz_au[NUMBER_OF_TZ] = {
     {"Perth", "AWST-8", 8 * 60 * 60, 0, {6 * 60 + 49, 7 * 60 + 16, 17 * 60 + 20, 17 * 60 + 47, 4 * 60 + 38, 5 * 60 + 7, 19 * 60 + 21, 19 * 60 + 50}},                                      // 0 Perth
@@ -25,7 +29,7 @@ Tz_AU::Tz_AU(const char *city, const char *twilight_string)
 {
     if (Init_Tz(city, twilight_string) < 0)
     {
-        throw "Tz_AU constructor failed";
+        throw invalid_argument("Tz_AU constructor failed");
     }
 }
 
@@ -33,7 +37,7 @@ Tz_AU::Tz_AU(unsigned char i, const char *twilight_string)
 {
     if (Init_Tz(i, twilight_string) < 0)
     {
-        throw "Tz_AU constructor failed";
+        throw invalid_argument("Tz_AU constructor failed");
     }
 }
 
@@ -41,7 +45,7 @@ Tz_AU::Tz_AU(const char *city)
 {
     if (Init_Tz(city) < 0)
     {
-        throw "Tz_AU constructor failed";
+        throw invalid_argument("Tz_AU constructor failed");
     }
 }
 
@@ -49,7 +53,7 @@ Tz_AU::Tz_AU(unsigned char i)
 {
     if (Init_Tz(i) < 0)
     {
-        throw "Tz_AU constructor failed";
+        throw invalid_argument("Tz_AU constructor failed");
     }
 }
 

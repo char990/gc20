@@ -8,6 +8,7 @@
 
 #include "gpio/GpioIn.h"
 #include "module/MyDbg.h"
+#include <module/Utils.h>
 
 
 GpioIn::GpioIn(int true_cnt, int false_cnt, unsigned int pin)
@@ -28,6 +29,6 @@ void GpioIn::PeriodicRun()
     }
     else
     {
-        throw std::runtime_error(FmtException("Read Pin[%d] failed", pin));
+        throw std::runtime_error(Utils::StrFn::PrintfStr("Read Pin[%d] failed", pin));
     }
 }

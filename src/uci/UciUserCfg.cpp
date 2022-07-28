@@ -8,6 +8,8 @@
 #include <uci/DbHelper.h>
 
 using namespace Utils;
+using namespace std;
+
 extern time_t GetTime(time_t *);
 
 UciUserCfg::~UciUserCfg()
@@ -37,7 +39,7 @@ void UciUserCfg::LoadConfig()
     broadcastId = GetInt(uciSec, _BroadcastId, 0, 255);
     if (deviceId == broadcastId)
     {
-        throw std::invalid_argument(FmtException("%s.%s.%s(%d) should not be same as %s(%d)",
+        throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
                                                  PACKAGE, SECTION, _DeviceId, deviceId, _BroadcastId, broadcastId));
     }
     seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
@@ -49,7 +51,7 @@ void UciUserCfg::LoadConfig()
     defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
     if (!prod.IsFont(defaultFont))
     {
-        throw std::invalid_argument(FmtException("%s.%s.%s(%d) is not valid", PACKAGE, SECTION, _DefaultFont, defaultFont));
+        throw invalid_argument(FmtException("%s.%s.%s(%d) is not valid", PACKAGE, SECTION, _DefaultFont, defaultFont));
     }
     defaultColour = GetInt(uciSec, _DefaultColour, 1, MAX_MONOCOLOUR);
     */
@@ -71,7 +73,7 @@ void UciUserCfg::LoadConfig()
     webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
     if (svcPort == webPort)
     {
-        throw std::invalid_argument(FmtException("%s.%s.%s(%d) should not be same as %s(%d)",
+        throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
                                                  PACKAGE, SECTION, _SvcPort, svcPort, _WebPort, webPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);

@@ -8,13 +8,14 @@
 #include <module/MyDbg.h>
 
 using namespace Utils;
+using namespace std;
 
 GroupVms::GroupVms(uint8_t id)
     : Group(id)
 {
     if (SignCnt() != 1)
     {
-        throw std::invalid_argument("VMS: Group can only have ONE sign");
+        throw invalid_argument("VMS: Group can only have ONE sign");
     }
     auto &prod = db.GetUciProd();
     vSlaves.resize(prod.SlavesPerSign());
@@ -42,7 +43,7 @@ APP::ERROR GroupVms::DispAtomicFrm(uint8_t *cmd)
 
 bool GroupVms::TaskSetATF(int *_ptLine)
 {
-    throw std::runtime_error("VMS can NOT run ATF");
+    throw runtime_error("VMS can NOT run ATF");
     return true;
 }
 
@@ -51,7 +52,7 @@ void GroupVms::IMakeFrameForSlave(uint8_t uciFrmId)
     auto frm = db.GetUciFrm().GetFrm(uciFrmId);
     if (frm == nullptr)
     {
-        throw std::invalid_argument(FmtException("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId));
+        throw invalid_argument(StrFn::PrintfStr("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId));
     }
     MakeFrameForSlave(frm);
 }
@@ -61,7 +62,7 @@ int GroupVms::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
     auto frm = db.GetUciFrm().GetFrm(uciFrmId);
     if (frm == nullptr)
     {
-        throw std::invalid_argument(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId));
+        throw invalid_argument(StrFn::PrintfStr("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId));
     }
     return TransFrmWithOrBuf(frm, dst);
 }

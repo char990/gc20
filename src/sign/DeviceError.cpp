@@ -1,6 +1,9 @@
 #include <sign/DeviceError.h>
 #include <module/MyDbg.h>
 #include <uci/DbHelper.h>
+#include <module/Utils.h>
+
+using namespace Utils;
 
 /***************** DeviceError *****************/
 DeviceError::DeviceError(int size)
@@ -24,7 +27,7 @@ bool DeviceError::DevError(DEV::ERROR code, bool v)
     }
     if (i == size)
     {
-        throw std::invalid_argument(FmtException("Invalid DEV::ERROR 0x%02X", code));
+        throw std::invalid_argument(StrFn::PrintfStr("Invalid DEV::ERROR 0x%02X", code));
     }
     if (v != errBit.GetBit(i))
     {
@@ -57,7 +60,7 @@ bool DeviceError::IsSet(DEV::ERROR code)
             return errBit.GetBit(i);
         }
     }
-    throw std::invalid_argument(FmtException("Invalid DEV::ERROR:%d", code));
+    throw std::invalid_argument(StrFn::PrintfStr("Invalid DEV::ERROR:%d", code));
     return false; // avoid warning
 }
 

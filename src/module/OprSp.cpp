@@ -72,7 +72,7 @@ void OprSp::EventsHandle(uint32_t events)
         DbHelper::Instance().GetUciAlarm().Push(0, buf);
         if (ReOpen() == -1)
         {
-            throw std::runtime_error(FmtException("%s closed: events=0x%08X and reopen failed", sp->Config().name, events));
+            throw std::runtime_error(Utils::StrFn::PrintfStr("%s closed: events=0x%08X and reopen failed", sp->Config().name, events));
         }
     }
     else if (events & EPOLLIN)

@@ -59,7 +59,7 @@ Group::Group(uint8_t groupId)
     }
     if (SignCnt() == 0)
     {
-        throw std::invalid_argument(FmtException("Error:There is no sign in Group[%d]", groupId));
+        throw invalid_argument(StrFn::PrintfStr("Error:There is no sign in Group[%d]", groupId));
     }
     dsBak = new DispStatus(SignCnt());
     dsCurrent = new DispStatus(SignCnt());
@@ -163,7 +163,7 @@ void Group::LoadLastDisp()
                 DispAtmFrm(disp + 1, false);
                 break;
             default:
-                throw std::invalid_argument(FmtException("Syntax Error: UciProcess.Group[%d].Display", groupId));
+                throw invalid_argument(StrFn::PrintfStr("Syntax Error: UciProcess.Group[%d].Display", groupId));
                 break;
             }
         }
@@ -1756,7 +1756,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
 {
     if (slvFrmId == 0 || uciFrmId == 0)
     {
-        throw std::invalid_argument(FmtException("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)",
+        throw invalid_argument(StrFn::PrintfStr("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)",
                                                  slvId, slvFrmId, uciFrmId));
     }
     int ms = 10;
@@ -1861,7 +1861,7 @@ void Group::LockBus(int ms)
 
 void Group::PrintPlnMin()
 {
-    std::vector<PlnMinute>::iterator it = plnMin.begin();
+    vector<PlnMinute>::iterator it = plnMin.begin();
     for (int d = 0; d < 7; d++)
     {
         printf("\nD%d:", d);
@@ -1884,7 +1884,7 @@ void Group::PrintPlnMin()
                 {
                     printf("%02X|", plnId);
                 }
-                std::advance(it, 1);
+                advance(it, 1);
             }
             printf("\n");
         }
@@ -1979,8 +1979,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         txtfrm = static_cast<FrmTxt *>(frm);
         if (txtfrm == nullptr)
         {
-            throw std::runtime_error(
-                FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId));
+            throw runtime_error(StrFn::PrintfStr("ERROR: TransFrmWithOrBuf(frmId=%d): dynamic_cast<FrmTxt *> failed", frm->frmId));
         }
     }
     if (msgOverlay == 0)
@@ -2020,7 +2019,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         else
         {
             // TODO 24-bit
-            throw std::runtime_error(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): 24-bit unsupported", frm->frmId));
+            throw runtime_error(StrFn::PrintfStr("ERROR: TransFrmWithOrBuf(frmId=%d): 24-bit unsupported", frm->frmId));
         }
     }
     // frame is ready in orsrc, then OR with orbuf if overlay
@@ -2035,7 +2034,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
     else
     {
         // TODO 24-bit
-        throw std::runtime_error(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): 24-bit unsupported", frm->frmId));
+        throw runtime_error(StrFn::PrintfStr("ERROR: TransFrmWithOrBuf(frmId=%d): 24-bit unsupported", frm->frmId));
     }
     return frmlen;
 }

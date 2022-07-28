@@ -8,16 +8,13 @@
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
 
+using namespace std;
+using namespace Utils;
+
 unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
-
-using json = nlohmann::json;
-using namespace Utils;
-using namespace std;
-
 Controller *WsServer::ctrller;
-
 map<struct mg_connection *, WsMsg *> WsServer::wsMsg;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
@@ -25,7 +22,7 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
 {
     if (port < 1024 || port > 65535)
     {
-        throw invalid_argument(FmtException("WsServer error: port: %d", port));
+        throw invalid_argument(StrFn::PrintfStr("WsServer error: port: %d", port));
     }
     char buf[32];
     sprintf(buf, "ws://0.0.0.0:%d", port);
@@ -115,22 +112,53 @@ size_t my_mg_ws_send(struct mg_connection *c, json &reply)
 
 int WsServer::GetInt(json &msg, const char *str, int min, int max)
 {
-    auto x = msg[str].get<int>();
-    if (x < min || x > max)
+    try
     {
-        throw "Invalid '" + string(str) + "'";
+        auto x = msg[str].get<int>();
+        if (x < min || x > max)
+        {
+            throw false;
+        }
+        return x;
     }
-    return x;
+    catch (...)
+    {
+        throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+    }
 }
 
-int WsServer::GetStrInt(json &msg, const char *str, int min, int max)
+int WsServer::GetIntFromStr(json &msg, const char *str, int min, int max)
 {
-    auto x = stoi(msg[str].get<string>(), nullptr, 0);
-    if (x < min || x > max)
+    try
     {
-        throw "Invalid '" + string(str) + "'";
+        auto x = stoi(msg[str].get<string>(), nullptr, 0);
+        if (x < min || x > max)
+        {
+            throw false;
+        }
+        return x;
     }
-    return x;
+    catch (...)
+    {
+        throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+    }
+}
+
+string WsServer::GetStr(json &msg, const char *str)
+{
+    try
+    {
+        auto x = msg[str].get<string>();
+        if (x.empty())
+        {
+            throw false;
+        }
+        return x;
+    }
+    catch (...)
+    {
+        throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+    }
 }
 
 #define CMD_ITEM(cmd)             \
@@ -220,7 +248,7 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
         try
         {
             json msg = json::parse(p, nullptr, true, true);
-            cmd = msg["cmd"].get<string>();
+            cmd = GetStr(msg, "cmd");
             reply.emplace("cmd", cmd);
             int j = countof(CMD_LIST);
             // int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
@@ -239,6 +267,10 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
         {
             reply.emplace("result", e.what());
         }
+        catch (string &s)
+        {
+            reply.emplace("result", s);
+        }
         my_mg_ws_send(c, reply);
     }
 }
@@ -246,8 +278,8 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
     const char *r;
-    auto msgp = msg["password"].get<string>();
-    auto msgu = msg["user"].get<string>();
+    auto msgp = GetStr(msg, "password");
+    auto msgu = GetStr(msg, "user");
     if (msgu.compare("Administrator") == 0)
     {
         wsMsg[c]->login = (msgp.compare("Br1ghtw@y") == 0);
@@ -272,9 +304,9 @@ void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply)
 {
-    auto msgu = msg["user"].get<string>();
-    auto cp = msg["current"].get<string>();
-    auto np = msg["new"].get<string>();
+    auto msgu = GetStr(msg, "user");
+    auto cp = GetStr(msg, "current");
+    auto np = GetStr(msg, "new");
     const char *r;
     if (np.length() < 4 || np.length() > 10)
     {
@@ -346,11 +378,7 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
     return;
 #if 0
     auto gc = ctrller->GroupCnt();
-    auto vgroups = msg["groups"].get<vector<json>>();
-    if (vgroups.size() != gc)
-    {
-        throw "Missing group config";
-    }
+    auto vgroups = GetVector<json>(msg,"groups");
     vector<int> vgid(gc);
     vgid.assign(gc, 0);
     auto sc = ctrller->SignCnt();
@@ -361,19 +389,15 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
         auto gid = GetInt(vgroups[i], "group_id", 1, gc);
         if (vgid[gid - 1] > 0)
         {
-            throw FmtException("Repeated group id [%d]", gid);
+            throw invalid_argument(StrFn::PrintfStr("Repeated group id [%d]", gid));
         }
         vgid[gid - 1] = gid;
-        auto vsid = vgroups[i].get<vector<int>>();
-        if (vsid.size() == 0)
-        {
-            throw FmtException("Missing sign id in group[%d]", gid);
-        }
+        auto vsid = GetVector<int>(vgroups[i],"signs");
         for (auto id : vsid)
         {
             if (id <= 0 || id > sc)
             {
-                throw FmtException("Invalid sign id [%d]", id);
+                throw invalid_argument(StrFn::PrintfStr("Invalid sign id [%d]", id));
             }
             if (vsign_gid[id - 1] == 0)
             {
@@ -381,7 +405,7 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
             }
             else
             {
-                throw FmtException("Repeated sign id [%d]", id);
+                            throw invalid_argument(StrFn::PrintfStr("Repeated sign id [%d]", id));
             }
         }
     }
@@ -389,14 +413,14 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
     {
         if (vgid[i] == 0)
         {
-            throw FmtException("Missing group[%d] config", i + 1);
+            throw invalid_argument(StrFn::PrintfStr("Missing group[%d] config", i+1));
         }
     }
     for (int i = 0; i < vsign_gid.size(); i++)
     {
         if (vsign_gid[i] == 0)
         {
-            throw FmtException("Missing sign[%d] config", i + 1);
+            throw invalid_argument(StrFn::PrintfStr("Missing sign[%d] config", i+1));
         }
     }
 #endif
@@ -504,7 +528,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     auto broadcast_id = GetInt(msg, "broadcast_id", 0, 255);
     if (device_id == broadcast_id)
     {
-        throw string("device_id should not equal to broadcast_id");
+        throw invalid_argument("device_id should not equal to broadcast_id");
     }
     auto session_timeout = GetInt(msg, "session_timeout", 0, 65535);
     auto display_timeout = GetInt(msg, "display_timeout", 0, 65535);
@@ -516,11 +540,11 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     auto locked_msg = GetInt(msg, "locked_msg", 0, 255);
     auto last_frame_time = GetInt(msg, "last_frame_time", 0, 255);
 
-    auto seed = GetStrInt(msg, "seed", 0, 0xFF);
-    auto password = GetStrInt(msg, "password", 0, 0xFF);
+    auto seed = GetIntFromStr(msg, "seed", 0, 0xFF);
+    auto password = GetIntFromStr(msg, "password", 0, 0xFF);
 
     int tmc_com_port = -1;
-    auto tmc_com_port_str = msg["tmc_com_port"].get<string>();
+    auto tmc_com_port_str = GetStr(msg, "tmc_com_port");
     for (int i = 0; i < COMPORT_SIZE; i++)
     {
         if (strcasecmp(tmc_com_port_str.c_str(), COM_NAME[i]) == 0)
@@ -531,10 +555,10 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     }
     if (tmc_com_port == -1)
     {
-        throw string("'tmc_com_port' NOT valid");
+        throw invalid_argument("'tmc_com_port' NOT valid");
     }
     int city = -1;
-    auto city_str = msg["city"].get<string>();
+    auto city_str = GetStr(msg, "city");
     for (int i = 0; i < NUMBER_OF_TZ; i++)
     {
         if (strcasecmp(city_str.c_str(), Tz_AU::tz_au[i].city) == 0)
@@ -545,7 +569,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     }
     if (city == -1)
     {
-        throw string("'city' NOT valid");
+        throw invalid_argument("'city' NOT valid");
     }
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     auto &evt = DbHelper::Instance().GetUciEvent();
@@ -740,11 +764,11 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
         {
             if (interfaces[i].ipaddr.Set(ethjs[i][net._Ipaddr].get<std::string>()) == false)
             {
-                throw "Invalid " + ethname[i] + ".ipaddr";
+                throw invalid_argument(StrFn::PrintfStr("Invalid %s.ipaddr", ethname[i]));
             }
             if (interfaces[i].netmask.Set(ethjs[i][net._Netmask].get<std::string>()) == false)
             {
-                throw "Invalid " + ethname[i] + ".netmask";
+                throw invalid_argument(StrFn::PrintfStr("Invalid %s.netmask", ethname[i]));
             }
             string str_gateway;
             try
@@ -759,32 +783,32 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             {
                 if (interfaces[i].netmask.Set(str_gateway) == false)
                 {
-                    throw "Invalid " + ethname[i] + ".gateway";
+                    throw invalid_argument(StrFn::PrintfStr("Invalid %s.gateway", ethname[i]));
                 }
             }
         }
         else if (interfaces[i].proto.compare("dhcp") != 0)
         {
-            throw "Invalid " + ethname[i] + ".proto";
+            throw invalid_argument(StrFn::PrintfStr("Invalid %s.proto", ethname[i]));
         }
     }
 
     json ntpjs = msg["NTP"].get<json>();
     NtpServer ntp;
-    ntp.server = ntpjs[net._Server].get<string>();
+    ntp.server = GetStr(msg, net._Server);
     ntp.port = GetInt(ntpjs, net._Port, 1, 65535);
 
     if (interfaces[0].gateway.Isvalid() && interfaces[1].gateway.Isvalid())
     {
-        throw "Only one ETH can have gateway";
+        throw invalid_argument("Only one ETH can have gateway");
     }
     if (interfaces[0].ipaddr.Compare(interfaces[1].ipaddr) == 0)
     {
-        throw "ETH1.ipaddr and ETH2.ipaddr should not be same";
+        throw invalid_argument("ETH1.ipaddr and ETH2.ipaddr should not be same");
     }
     if (ntp.server.find(interfaces[0].ipaddr.ToString()) >= 0 || ntp.server.find(interfaces[1].ipaddr.ToString()) >= 0)
     {
-        throw "NTP Server should not be ETH1/2";
+        throw invalid_argument("NTP Server should not be ETH1/2");
     }
 
     // all parameters are OK, save
@@ -801,7 +825,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
 
 void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = msg["groups"].get<vector<int>>();
+    auto grp = GetVector<int>(msg, "groups");
     auto setting = GetInt(msg, "setting", 0, 16);
     uint8_t cmd[2 + grp.size() * 3];
     cmd[1] = grp.size();
@@ -818,7 +842,7 @@ void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &repl
 
 void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = msg["groups"].get<vector<int>>();
+    auto grp = GetVector<int>(msg, "groups");
     auto setting = GetInt(msg, "setting", 0, 1);
     uint8_t cmd[2 + grp.size() * 2];
     cmd[1] = grp.size();
@@ -834,7 +858,7 @@ void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = msg["groups"].get<vector<int>>();
+    auto grp = GetVector<int>(msg, "groups");
     auto setting = GetInt(msg, "setting", 0, 1);
     uint8_t cmd[2 + grp.size() * 2];
     cmd[1] = grp.size();
@@ -859,7 +883,7 @@ void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
 {
-    auto cmd = msg["rtc"].get<string>();
+    auto cmd = GetStr(msg, "rtc");
     if (cmd.length() > 0)
     {
         struct tm stm;
@@ -1025,7 +1049,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     int ftype = Pick::PickStr(str.c_str(), FRM_TYPE, countof(FRM_TYPE), true);
     if (ftype < 0)
     {
-        throw string("CMD_SetFrame: type error");
+        throw invalid_argument("CMD_SetFrame: type error");
     }
     MI::CODE FrmType[3]{MI::CODE::SignSetTextFrame, MI::CODE::SignSetGraphicsFrame, MI::CODE::SignSetHighResolutionGraphicsFrame};
     MI::CODE frmType = FrmType[ftype];
@@ -1033,27 +1057,27 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     int colour = Pick::PickStr(str.c_str(), FrameColour::COLOUR_NAME, ALL_COLOUR_NAME_SIZE, true);
     if (colour < 0)
     {
-        throw string("CMD_SetFrame: colour error");
+        throw invalid_argument("CMD_SetFrame: colour error");
     }
     if (frmType == MI::CODE::SignSetTextFrame && colour > 9)
     {
-        throw string("CMD_SetFrame: colour error(Text Frame)");
+        throw invalid_argument("CMD_SetFrame: colour error(Text Frame)");
     }
     if (frmType == MI::CODE::SignSetGraphicsFrame && colour > 10)
     {
-        throw string("CMD_SetFrame: colour error(Graphics Frame)");
+        throw invalid_argument("CMD_SetFrame: colour error(Graphics Frame)");
     }
     str = msg["conspicuity"].get<std::string>();
     int conspicuity = Pick::PickStr(str.c_str(), Conspicuity, CONSPICUITY_SIZE, true);
     if (conspicuity < 0)
     {
-        throw string("CMD_SetFrame: conspicuity error");
+        throw invalid_argument("CMD_SetFrame: conspicuity error");
     }
     str = msg["annulus"].get<std::string>();
     int annulus = Pick::PickStr(str.c_str(), Annulus, ANNULUS_SIZE, true);
     if (annulus < 0)
     {
-        throw string("CMD_SetFrame: annulus error");
+        throw invalid_argument("CMD_SetFrame: annulus error");
     }
     conspicuity = (conspicuity << 3) | annulus;
     char rejectStr[64];
@@ -1063,7 +1087,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         str = msg["text"].get<std::string>();
         if (str.length() < 1)
         {
-            throw "'Text' is null";
+            throw invalid_argument("'Text' is null");
         }
         frm.resize(str.length() + 9);
         frm[0] = static_cast<uint8_t>(frmType);
@@ -1085,7 +1109,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         auto columns = prod.PixelColumns();
         if (bmp.TellHeight() != rows || bmp.TellWidth() != columns)
         {
-            throw "Image size NOT matched with sign";
+            throw invalid_argument("Image size NOT matched with sign");
         }
         int corelen;
         if (colour <= 9)
@@ -1213,11 +1237,7 @@ void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &re
 
 void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
-    auto entries = msg["entries"].get<vector<json>>();
-    if (entries.size() == 0)
-    {
-        throw "There is no etry";
-    }
+    auto entries = GetVector<json>(msg, "entries");
     vector<uint8_t> cmd(entries.size() * 2 + 4 + (entries.size() == 6 ? 0 : 1));
     cmd.back() = 0;
     cmd[1] = GetInt(msg, "id", 1, 255);
@@ -1296,14 +1316,14 @@ void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply
 
 void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
-    auto week = msg["week"].get<vector<string>>();
+    auto week = GetVector<string>(msg, "week");
     uint8_t bweek = 0;
     for (int i = 0; i < 7; i++)
     {
         int d = Pick::PickStr(week[i].c_str(), WEEKDAY, countof(WEEKDAY), true);
         if (d < 0)
         {
-            throw "'week' error";
+            throw invalid_argument("'week' error");
         }
         else
         {
@@ -1312,14 +1332,9 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
     }
     if (bweek == 0)
     {
-        throw "'week' error";
+        throw invalid_argument("'week' error");
     }
-    auto entries = msg["entries"].get<vector<json>>();
-    if (entries.size() == 0)
-    {
-        throw "There is no etry";
-    }
-
+    auto entries = GetVector<json>(msg, "entries");
     vector<uint8_t> cmd(entries.size() * 6 + 4 + (entries.size() == 6 ? 0 : 1));
     cmd.back() = 0;
     int id = GetInt(msg, "id", 1, 255);
@@ -1329,7 +1344,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
     uint8_t *p = cmd.data() + 4;
     auto GetHM = [](json &js, const char *str, uint8_t *p) -> uint8_t *
     {
-        string s = js[str].get<string>();
+        string s = GetStr(js, str);
         int h, m;
         if (sscanf(s.c_str(), "%d:%d", &h, &m) == 2)
         {
@@ -1340,7 +1355,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
                 return p;
             }
         }
-        throw "Invalid time";
+        throw invalid_argument("Invalid time");
     };
     for (int i = 0; i < entries.size(); i++)
     {
@@ -1359,7 +1374,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
 
     vector<int> disable_g;
     vector<int> enable_g;
-    auto enabled_group = msg["enabled_group"].get<vector<int>>();
+    auto enabled_group = GetVector<int>(msg, "enabled_group");
     auto grp = ctrller->GetGroups();
     for (auto g : grp)
     {
@@ -1474,7 +1489,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
     cmd[3] = 255;
     cmd[4] = 255;
     auto &p = DbHelper::Instance().GetUciProd();
-    string colour = msg["colour"].get<string>();
+    string colour = GetStr(msg, "colour");
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (strcasecmp(FrameColour::COLOUR_NAME[i], colour.c_str()) == 0)
@@ -1482,7 +1497,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
             cmd[3] = i;
         }
     }
-    string pixels = msg["pixels"].get<string>();
+    string pixels = GetStr(msg, "pixels");
     for (int i = 0; i < TEST_PIXELS_SIZE; i++)
     {
         if (strcasecmp(TestPixels[i], pixels.c_str()) == 0)
@@ -1496,7 +1511,7 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
 {
-    vector<json> content = msg["content"].get<vector<json>>();
+    vector<json> content = GetVector<json>(msg, "content");
     int len = content.size();
     unique_ptr<uint8_t[]> cmd(new uint8_t[3 + len * 2]);
     cmd[0] = 0x2B;

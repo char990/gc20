@@ -8,6 +8,7 @@
 
 
 using namespace Utils;
+using namespace std;
 
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
@@ -15,7 +16,7 @@ GroupIslus::GroupIslus(uint8_t id)
     auto &prod = db.GetUciProd();
     if (prod.SlavesPerSign() != 1)
     {
-        throw std::invalid_argument("ISLUS: Sign can only have ONE slave");
+        throw invalid_argument("ISLUS: Sign can only have ONE slave");
     }
     vSlaves.resize(SignCnt());
     for (int i = 0; i < SignCnt(); i++)
@@ -156,7 +157,7 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
         auto frm = db.GetUciFrm().GetFrm(uciFrmId);
         if (frm == nullptr)
         {
-            throw std::runtime_error(FmtException("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId));
+            throw runtime_error(StrFn::PrintfStr("ERROR: MakeFrameForSlave(frmId=%d): Frm is null", uciFrmId));
         }
         MakeFrameForSlave(frm);
     }
@@ -173,7 +174,7 @@ int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
         auto frm = db.GetUciFrm().GetFrm(uciFrmId);
         if (frm == nullptr)
         {
-            throw std::runtime_error(FmtException("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId));
+            throw runtime_error(StrFn::PrintfStr("ERROR: TransFrmWithOrBuf(frmId=%d): Frm is null", uciFrmId));
         }
         return TransFrmWithOrBuf(frm, dst);
     }

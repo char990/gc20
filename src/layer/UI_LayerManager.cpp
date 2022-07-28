@@ -3,7 +3,12 @@
 #include <layer/LayerWeb.h>
 #include <layer/LayerDL.h>
 #include <module/MyDbg.h>
-UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
+#include <module/Utils.h>
+
+using namespace std;
+using namespace Utils;
+
+UI_LayerManager::UI_LayerManager(string name_, string aType)
 {
     if(aType.compare("NTS")==0)
     {
@@ -26,7 +31,7 @@ UI_LayerManager::UI_LayerManager(std::string name_, std::string aType)
     }
     else
     {
-        throw std::invalid_argument(FmtException ("Unkown adaptor type:%s", aType.c_str()));
+        throw invalid_argument(StrFn::PrintfStr("Unkown adaptor type:%s", aType.c_str()));
     }
     // lowerLayer<->dlLayer<->midLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer

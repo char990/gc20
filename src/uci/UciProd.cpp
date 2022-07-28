@@ -11,6 +11,7 @@
 extern const char *FirmwareVer;
 
 using namespace Utils;
+using namespace std;
 
 int SignCfg::bps_port = 0;
 
@@ -118,7 +119,7 @@ void UciProd::LoadConfig()
     {
         ThrowError(_SlaveCmdDly, "SlaveCmdDly should greater than SlaveSetStFrmDly");
 
-        throw std::invalid_argument(FmtException("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)",
+        throw invalid_argument(StrFn::PrintfStr("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)",
                                                  slaveCmdDly, slaveSetStFrmDly));
     }
     if (slaveCmdDly > slaveDispDly)
@@ -367,7 +368,7 @@ void UciProd::LoadConfig()
                     {
                         if (com != _sign.com_ip)
                         {
-                            throw std::invalid_argument(FmtException("%s.%s_.%s Error: Signs in Group[%d] should have same COM",
+                            throw invalid_argument(StrFn::PrintfStr("%s.%s_.%s Error: Signs in Group[%d] should have same COM",
                                                                      PACKAGE, _SectionSign, _COM, g));
                         }
                     }
@@ -454,7 +455,7 @@ void UciProd::LoadConfig()
     }
     else
     {
-        throw std::invalid_argument(FmtException("Unknown extStSignType:%d(MfcCode[5] error?)", sesrtype));
+        throw invalid_argument(StrFn::PrintfStr("Unknown extStSignType:%d(MfcCode[5] error?)", sesrtype));
     }
 }
 

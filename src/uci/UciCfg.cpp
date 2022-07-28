@@ -7,6 +7,11 @@
 #include <uci/UciCfg.h>
 #include <uci/DbHelper.h>
 #include <module/MyDbg.h>
+#include <module/Utils.h>
+
+using namespace Utils;
+using namespace std;
+
 
 UciCfg::UciCfg()
 	: ctx(nullptr)
@@ -27,7 +32,7 @@ struct uci_section *UciCfg::GetSection(const char *name)
 	struct uci_section *uciSec = uci_lookup_section(ctx, pkg, name);
 	if (uciSec == NULL)
 	{
-		throw std::invalid_argument(FmtException("Can't load %s/%s.%s", PATH, PACKAGE, name));
+		throw invalid_argument(StrFn::PrintfStr("Can't load %s/%s.%s", PATH, PACKAGE, name));
 	}
 	return uciSec;
 }
@@ -38,7 +43,7 @@ struct uci_section *UciCfg::GetSection(const char *type, const char *name)
 	uciSec = GetSection(name);
 	if (strcmp(type, uciSec->type) != 0)
 	{
-		throw std::invalid_argument(FmtException("Section type not matched: %s/%s.%s : %s!=%s",
+		throw invalid_argument(StrFn::PrintfStr("Section type not matched: %s/%s.%s : %s!=%s",
 												 PATH, PACKAGE, name, type, uciSec->type));
 	}
 	return uciSec;
@@ -48,12 +53,12 @@ const char *UciCfg::GetStr(struct uci_section *section, const char *option, bool
 {
 	if (ctx == nullptr || section == nullptr)
 	{
-		throw std::invalid_argument(FmtException("OPEN '%s/%s' and get *section before calling", PATH, PACKAGE));
+		throw invalid_argument(StrFn::PrintfStr("OPEN '%s/%s' and get *section before calling", PATH, PACKAGE));
 	}
 	const char *str = uci_lookup_option_string(ctx, section, option);
 	if (str == NULL && ex)
 	{
-		throw std::invalid_argument(FmtException("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option));
+		throw invalid_argument(StrFn::PrintfStr("Uci Error: %s/%s.%s.%s is not defined", PATH, PACKAGE, section->e.name, option));
 	}
 	return str;
 }
@@ -65,7 +70,7 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	{
 		if (ex)
 		{
-			throw std::invalid_argument(FmtException("Uci Error: %s/%s.%s.%s is not defined",
+			throw invalid_argument(StrFn::PrintfStr("Uci Error: %s/%s.%s.%s is not defined",
 													 PATH, PACKAGE, section->e.name, option));
 		}
 		else
@@ -77,7 +82,7 @@ int UciCfg::GetInt(struct uci_section *section, const char *option, int min, int
 	int x = strtol(str, NULL, 0);
 	if (errno != 0 || x < min || x > max)
 	{
-		throw std::invalid_argument(FmtException("Invalid option: %s.%s.%s='%d' [%d-%d]",
+		throw invalid_argument(StrFn::PrintfStr("Invalid option: %s.%s.%s='%d' [%d-%d]",
 												 PACKAGE, section->e.name, option, x, min, max));
 	}
 	return x;
@@ -88,7 +93,7 @@ void UciCfg::Open()
 	ctx = uci_alloc_context();
 	if (ctx == nullptr)
 	{
-		throw std::invalid_argument(FmtException("Open '%s/%s' error. Can't alloc context.", PATH, PACKAGE));
+		throw invalid_argument(StrFn::PrintfStr("Open '%s/%s' error. Can't alloc context.", PATH, PACKAGE));
 	}
 	uci_set_confdir(ctx, PATH);
 	uci_set_savedir(ctx, _SAVEDIR);
@@ -97,7 +102,7 @@ void UciCfg::Open()
 		uci_free_context(ctx);
 		ctx = nullptr;
 		pkg = nullptr;
-		throw std::invalid_argument(FmtException("Can't load '%s/%s'.", PATH, PACKAGE));
+		throw invalid_argument(StrFn::PrintfStr("Can't load '%s/%s'.", PATH, PACKAGE));
 	}
 }
 
@@ -128,7 +133,7 @@ bool UciCfg::LoadPtr(const char *section)
 	snprintf(bufSecSave, 255, "%s.%s", PACKAGE, section);
 	if (uci_lookup_ptr(ctx, &ptrSecSave, bufSecSave, true) != UCI_OK)
 	{
-		throw std::invalid_argument(FmtException("Can't load package:%s", PACKAGE));
+		throw invalid_argument(StrFn::PrintfStr("Can't load package:%s", PACKAGE));
 	}
 	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
@@ -138,7 +143,7 @@ bool UciCfg::LoadPtr(const char *section, const char *option)
 	snprintf(bufSecSave, 255, "%s.%s.%s", PACKAGE, section, option);
 	if (uci_lookup_ptr(ctx, &ptrSecSave, bufSecSave, true) != UCI_OK)
 	{
-		throw std::invalid_argument(FmtException("Can't load package:%s", PACKAGE));
+		throw invalid_argument(StrFn::PrintfStr("Can't load package:%s", PACKAGE));
 	}
 	return (ptrSecSave.flags & uci_ptr::UCI_LOOKUP_COMPLETE) != 0;
 }
@@ -189,7 +194,7 @@ void UciCfg::SetByPtr()
 	int r = uci_set(ctx, &ptrSecSave);
 	if (r != UCI_OK)
 	{
-		throw std::runtime_error(FmtException("SetByPtr failed(return %d): %s.%s.%s=%s", r,
+		throw runtime_error(StrFn::PrintfStr("SetByPtr failed(return %d): %s.%s.%s=%s", r,
 											  ptrSecSave.package, ptrSecSave.section, ptrSecSave.option, ptrSecSave.value));
 	}
 }
@@ -199,7 +204,7 @@ void UciCfg::OpenSectionForSave(const char *section)
 	Open();
 	if (!LoadPtr(section))
 	{
-		throw std::invalid_argument(FmtException("OpenSectionForSave failed : section=%s", section));
+		throw invalid_argument(StrFn::PrintfStr("OpenSectionForSave failed : section=%s", section));
 	}
 }
 
@@ -269,7 +274,7 @@ void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bit
 	int ibuf[256];
 	if (bo.Size() == 0 || bo.Size() > 256)
 	{
-		throw std::invalid_argument(FmtException("Uci Error: %s.%s, ReadBits: bo.size=%d", uciSec->e.name, option, bo.Size()));
+		throw invalid_argument(StrFn::PrintfStr("Uci Error: %s.%s, ReadBits: bo.size=%d", uciSec->e.name, option, bo.Size()));
 	}
 	bo.ClrAll();
 	try
@@ -287,9 +292,9 @@ void UciCfg::ReadBits(struct uci_section *uciSec, const char *option, Utils::Bit
 				return;
 			}
 		}
-		throw std::invalid_argument(FmtException("Uci Error: %s.%s", uciSec->e.name, option));
+		throw invalid_argument(StrFn::PrintfStr("Uci Error: %s.%s", uciSec->e.name, option));
 	}
-	catch (std::exception e)
+	catch (exception e)
 	{
 		if (ex)
 		{
@@ -303,7 +308,7 @@ int UciCfg::GetIndexFromStrz(struct uci_section *uciSec, const char *option, con
 	const char *str = GetStr(uciSec, option);
 	int x = Utils::Pick::PickStr(str, collection, cSize);
 	if (x == -1)
-		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str));
+		throw invalid_argument(StrFn::PrintfStr("Uci Error: option %s.%s '%s' is not a valid value", uciSec->e.name, option, str));
 	return x;
 }
 
@@ -317,7 +322,7 @@ int UciCfg::GetInt(struct uci_section *uciSec, const char *option, const int *co
 	}
 	else if (ex)
 	{
-		throw std::invalid_argument(FmtException("Uci Error: option %s.%s '%d' is not a valid value", uciSec->e.name, option, x));
+		throw invalid_argument(StrFn::PrintfStr("Uci Error: option %s.%s '%d' is not a valid value", uciSec->e.name, option, x));
 	}
 	return 0;
 }
@@ -329,7 +334,7 @@ void UciCfg::ClrSECTION()
 	int dstfd = open(dst, O_WRONLY | O_TRUNC, 0660);
 	if (dstfd < 0)
 	{
-		throw std::runtime_error(FmtException("Can't open %s to write", dst));
+		throw runtime_error(StrFn::PrintfStr("Can't open %s to write", dst));
 	}
 	int len = snprintf(dst, 255, "config %s '%s'\n", PACKAGE, SECTION);
 	if (len > 255)
@@ -341,10 +346,10 @@ void UciCfg::ClrSECTION()
 
 void UciCfg::ThrowError(const char * option, const char * str)
 {
-    throw std::invalid_argument(FmtException("%s.%s.%s error:%s", PACKAGE, SECTION, option, str));
+    throw invalid_argument(StrFn::PrintfStr("%s.%s.%s error:%s", PACKAGE, SECTION, option, str));
 }
 
 void UciCfg::ThrowError(const char * option, const int i)
 {
-    throw std::invalid_argument(FmtException("%s.%s.%s error:%d", PACKAGE, SECTION, option, i));
+    throw invalid_argument(StrFn::PrintfStr("%s.%s.%s error:%d", PACKAGE, SECTION, option, i));
 }

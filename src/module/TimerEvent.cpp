@@ -5,8 +5,12 @@
 #include <module/MyDbg.h>
 #include <module/Epoll.h>
 #include <module/TimerEvent.h>
+#include <module/Utils.h>
 
-TimerEvent::TimerEvent(int ms, std::string name):name(name)
+using namespace Utils;
+using namespace std;
+
+TimerEvent::TimerEvent(int ms, string name):name(name)
 {
     int tv_sec=ms/1000;
     long tv_nsec=(ms%1000)*1000*1000;
@@ -20,12 +24,12 @@ TimerEvent::TimerEvent(int ms, std::string name):name(name)
     eventFd = timerfd_create(CLOCK_BOOTTIME, TFD_NONBLOCK);
     if(eventFd == -1)
     {
-		throw std::runtime_error("timerfd_create() failed");
+		throw runtime_error("timerfd_create() failed");
     }
 
     if(timerfd_settime(eventFd, 0, &new_value, NULL) == -1)
     {
-		throw std::runtime_error("timerfd_settime() failed");
+		throw runtime_error("timerfd_settime() failed");
     }
     //ticks = 1000 / ms;
     //sec=0;
@@ -48,7 +52,7 @@ void TimerEvent::EventsHandle(uint32_t events)
         int r = read(eventFd,&buf,sizeof(uint64_t));
         if(r<0)
         {
-            throw std::runtime_error(FmtException("%s:EventsHandle(): read failed", name.c_str()));
+            throw runtime_error(StrFn::PrintfStr("%s:EventsHandle(): read failed", name.c_str()));
         }
         /*
         if(++cnt==ticks)

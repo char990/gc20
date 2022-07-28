@@ -6,6 +6,7 @@
 #include <module/DebugConsole.h>
 #include <module/Epoll.h>
 #include <module/Utils.h>
+#include <module/MyDbg.h>
 
 using namespace std;
 using namespace Utils;

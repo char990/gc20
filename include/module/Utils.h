@@ -5,6 +5,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <stdexcept>
 #include <sys/time.h>
 
 #define GIGA(x) (x * 1024 * 1024 * 1024ULL)
@@ -421,7 +422,7 @@ namespace Utils
         }
         if (sizeof(T) != sizeof(char))
         {
-            throw "CharCpy: sizeof(T)!=sizeof(char)";
+            throw std::invalid_argument("CharCpy: sizeof(T)!=sizeof(char)");
         }
         int len = strlen(from);
         if (len > n)
@@ -445,6 +446,7 @@ namespace Utils
     public:
         static std::vector<std::string> Split(const std::string &i_str, const std::string &i_delim);
         static int vsPrint(std::vector<std::string> *vs);
+        static std::string PrintfStr(const char * fmt, ...);
     };
 
     class Pick

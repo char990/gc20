@@ -536,12 +536,12 @@ void Exec::CopyFile(const char *src, const char *dst)
     int srcfd = open(src, O_RDONLY);
     if (srcfd < 0)
     {
-        throw std::runtime_error(FmtException("Can't open %s to read", src));
+        throw runtime_error(StrFn::PrintfStr("Can't open %s to read", src));
     }
     int dstfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
     if (dstfd < 0)
     {
-        throw std::runtime_error(FmtException("Can't open %s to write", dst));
+        throw runtime_error(StrFn::PrintfStr("Can't open %s to write", dst));
     }
     uint8_t buf[1024];
     while (1)
@@ -551,7 +551,7 @@ void Exec::CopyFile(const char *src, const char *dst)
         {
             close(srcfd);
             close(dstfd);
-            throw std::runtime_error(FmtException("Read %s error", src));
+            throw runtime_error(StrFn::PrintfStr("Read %s error", src));
         }
         if (rd == 0)
             break;
@@ -560,7 +560,7 @@ void Exec::CopyFile(const char *src, const char *dst)
         {
             close(srcfd);
             close(dstfd);
-            throw std::runtime_error(FmtException("Write %s error", dst));
+            throw runtime_error(StrFn::PrintfStr("Write %s error", dst));
         }
     }
     fdatasync(dstfd);
@@ -605,7 +605,7 @@ int Exec::Shell(const char *fmt, ...)
     va_end(args);
     if (len >= 256)
     {
-        throw std::out_of_range(FmtException("Shell command is too long:%s", buf));
+        throw out_of_range(StrFn::PrintfStr("Shell command is too long:%s", buf));
     }
     return system(buf);
 }
@@ -759,7 +759,7 @@ char *Time::ParseTimeToLocalStr(time_t t, char *p)
     return p + len;
 }
 
-std::string Time::ParseTimeToLocalStr(time_t t)
+string Time::ParseTimeToLocalStr(time_t t)
 {
     struct tm tp;
     if (localtime_r(&t, &tp) != &tp)
@@ -769,7 +769,7 @@ std::string Time::ParseTimeToLocalStr(time_t t)
     char p[32];
     int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
                       tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
-    return std::string(p);
+    return string(p);
 }
 
 int Time::ParseLocalStrToTm(const char *pbuf, struct tm *stm)
@@ -874,7 +874,7 @@ bool Bits::GetBit(int bitOffset)
     return BitOffset::Get07Bit(data.data(), bitOffset);
 }
 
-std::string Bits::ToString()
+string Bits::ToString()
 {
     char buf[1024];
     int len = 0;
@@ -885,14 +885,14 @@ std::string Bits::ToString()
             len += sprintf(buf + len, (len == 0) ? "%d" : ",%d", i);
         }
     }
-    return (len == 0) ? " " : std::string{buf};
+    return (len == 0) ? " " : string{buf};
 }
 
 void Bits::Check(int bitOffset)
 {
     if (bitOffset >= size)
     {
-        throw std::out_of_range(FmtException("Bits(size=%d):out_of_range: bit[%d]", size, bitOffset));
+        throw out_of_range(StrFn::PrintfStr("Bits(size=%d):out_of_range: bit[%d]", size, bitOffset));
     }
 }
 
@@ -952,6 +952,17 @@ int StrFn::vsPrint(vector<string> *vs)
         }
     }
     return len;
+}
+
+
+string StrFn::PrintfStr(const char *fmt, ...)
+{
+	char buf[256];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buf, 255, fmt, args);
+	va_end(args);
+	return string(buf);
 }
 
 int Pick::PickStr(const char * v, const char ** src, const int len, const bool ignore_case)

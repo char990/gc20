@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <module/MyDbg.h>
 
 template <class T>
 class ObjectPool;

@@ -14,6 +14,8 @@
 #include <layer/LayerNTS.h>
 
 using namespace Utils;
+using namespace std;
+
 extern time_t GetTime(time_t *);
 
 Controller::Controller()
@@ -64,7 +66,7 @@ Controller::Controller()
         }
         break;
     default:
-        throw std::invalid_argument(FmtException("Unknown ProdType:%d", static_cast<int>(prod.ProdType())));
+        throw invalid_argument(StrFn::PrintfStr("Unknown ProdType:%d", static_cast<int>(prod.ProdType())));
         break;
     }
     for (int i = 0; i < groups.size(); i++)
@@ -100,7 +102,7 @@ void Controller::Init(TimerEvent *tmrEvt_)
 {
     if (tmrEvt != nullptr)
     {
-        throw std::runtime_error("Re-invoke Controller::Init() is not allowed");
+        throw runtime_error("Re-invoke Controller::Init() is not allowed");
     }
     tmrEvt = tmrEvt_;
     tmrEvt->Add(this);
@@ -141,7 +143,7 @@ void Controller::PeriodicRun()
                 const char *_re = " -> -> -> restart";
                 Ldebug("\n%s...", _re);
                 system("sync");
-                throw std::runtime_error(_re);
+                throw runtime_error(_re);
             }
             rr_flag = 0;
             rrTmr.Clear();
@@ -442,7 +444,7 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
         auto &prod = db.GetUciProd();
         if (prod.ProdType() == PRODUCT::ISLUS)
         {
-            std::vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+            vector<uint8_t> frms(prod.NumberOfSigns(), 0);
             auto &gs = grp->GetSigns();
             for (auto &s : gs)
             {
@@ -485,7 +487,7 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     auto columns = prod.PixelColumns();
     auto corelen = prod.Gfx1CoreLen();
     int f_offset;
-    std::vector<uint8_t> frm;
+    vector<uint8_t> frm;
     if (rows < 255 && columns < 255)
     {
         f_offset = 9;
@@ -583,7 +585,7 @@ APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
     auto &prod = db.GetUciProd();
     if (prod.ProdType() == PRODUCT::ISLUS)
     {
-        std::vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+        vector<uint8_t> frms(prod.NumberOfSigns(), 0);
         auto pnext = cmd + 3;
         for (int i = 0; i < gsCnt; i++)
         {
@@ -815,7 +817,7 @@ int Controller::CmdRequestEnabledPlans(uint8_t *txbuf)
     return bytes;
 }
 
-APP::ERROR Controller::CheckAdjacentLane(std::vector<uint8_t> &frms)
+APP::ERROR Controller::CheckAdjacentLane(vector<uint8_t> &frms)
 {
 // ISLUS lane checking
 #define UP_LEFT_0 182

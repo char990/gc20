@@ -1,13 +1,16 @@
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 #include <layer/LayerPrst.h>
+#include <module/Utils.h>
+
+using namespace Utils;
 
 LayerPrst::LayerPrst(int maxlen)
 :maxlen(maxlen)
 {
     if(maxlen<=0)
     {
-        throw std::invalid_argument(FmtException("LayerPrst::maxlen error : %d",maxlen));
+        throw std::invalid_argument(StrFn::PrintfStr("LayerPrst::maxlen error : %d",maxlen));
     }
     buf = new uint8_t[maxlen*2];
 }
