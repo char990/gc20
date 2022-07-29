@@ -1107,7 +1107,6 @@ JSON:
 ```JSON
 {
 "cmd":"SignTest",
-"group_id": 1, // only one group
 "colour": "Red", // predefined colour
 "pixels": "All pixels" // predefined
 }

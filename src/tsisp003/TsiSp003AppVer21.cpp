@@ -174,6 +174,13 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     {
         return;
     }
+    if (data[1] == 0)
+    {
+        sprintf(rejectStr,"SignSetFrame Error:FrameID=0");
+        Reject(APP::ERROR::SyntaxError);
+        return;
+    }
+
     auto r = ctrller.SignSetFrame(data, len, rejectStr);
     (r == APP::ERROR::AppNoError) ? SignStatusReply() : Reject(r);
 }

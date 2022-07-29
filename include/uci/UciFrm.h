@@ -1,12 +1,10 @@
 #pragma once
 
-
 #include <string>
 #include <array>
 #include <uci/UciProd.h>
 #include <tsisp003/Frame.h>
 #include <module/Utils.h>
-
 
 /*
 Filename: "./config/frm_xxx"
@@ -33,20 +31,20 @@ public:
     /// \brief  load frms & mapped_frms from "UciFrm"
     void LoadConfig();
 
-    void LoadFrms(const char * FMT);
+    void LoadFrms(const char *FMT);
 
     /// \brief  Sum all frames's crc
     uint16_t ChkSum();
 
-    /// \brief  Get frms[i-1]->stFrm, frms[0]/undefined frm return nullptr
-    StFrm* GetStFrm(uint8_t i);
+    /// \brief  Get frms[i]->stFrm
+    StFrm *GetStFrm(uint8_t i);
 
-    /// \brief  Get frms[i-1], check frm->micode to get type, frms[0] is nullptr
-    Frame* GetFrm(uint8_t i);
+    /// \brief  Get frms[i]
+    Frame *GetFrm(uint8_t i);
 
     bool IsFrmDefined(uint8_t i);
 
-    /// \brief  Get stFrms[i-1]->frmRev, stFrms[0] is 0
+    /// \brief  Get stFrms[i]->frmRev
     uint8_t GetFrmRev(uint8_t i);
 
     /// \brief  Set a frame from hex array, e.g. app layer data of SighSetTextFrame
@@ -54,22 +52,31 @@ public:
     /// \param  buf: hex array
     /// \param  len: array length
     /// \return APP::ERROR
-    APP::ERROR SetFrm(uint8_t * buf, int len);
+    APP::ERROR SetFrm(uint8_t *buf, int len);
 
-    /// \brief  Save stFrms[i-1] to "UciFrm" and frame_xxx.bmp
+    /// \brief  Save stFrms[i] to "UciFrm" and frame_xxx.bmp
     ///         When TsiSp003 set a frame, call SetFrm then SaveFrm
-    /// \param  i: frm id
+    /// \param  i: frm id, 0 is NOT valid
     void SaveFrm(uint8_t i);
 
+    /// \brief  delete frms[0] and set frms[0] as nullptr. This is for SignTest
+    void DeleteFrm0()
+    {
+        if (frms[0] != nullptr)
+        {
+            delete frms[0];
+            frms[0] = nullptr;
+        }
+    }
 
     void Reset();
 
     bool IsFrmFlashing(uint8_t i);
 
 private:
-    const char * PATH;
+    const char *PATH;
     int maxFrmSize{0};
     uint16_t chksum{0};
-    std::array<Frame *, 255> frms;
+    std::array<Frame *, 256> frms;
     void Dump();
 };

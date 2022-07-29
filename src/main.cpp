@@ -66,9 +66,9 @@ void PrintVersion(bool start)
     char buf[64];
     memset(buf, '*', len);
     buf[len] = '\0';
-    Ldebug("%s", buf);
-    Ldebug("%s", sbuf);
-    Ldebug("%s", buf);
+    Ldebug(buf);
+    Ldebug(sbuf);
+    Ldebug(buf);
 }
 
 // a wrapper for time()

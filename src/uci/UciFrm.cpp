@@ -50,7 +50,6 @@ void UciFrm::LoadFrms(const char *FMT)
 	{
 		for (int i = 1; i <= 255; i++)
 		{
-			frms.at(i - 1) = nullptr;
 			snprintf(filename, 255, FMT, PATH, i);
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
@@ -81,18 +80,18 @@ void UciFrm::LoadFrms(const char *FMT)
 	{
 		Ldebug("%s", e.what());
 	}
-	//Dump();
+	// Dump();
 }
 
 void UciFrm::Dump()
 {
 	PrintDash('<');
 	printf("%s/frm_xxx\n", PATH);
-	for (int i = 0; i < 255; i++)
+	for (int i = 1; i <= 255; i++)
 	{
 		if (frms[i] != nullptr)
 		{
-			printf("\tfrm_%03d: %s\n", i + 1, frms[i]->ToString().c_str());
+			printf("\tfrm_%03d: %s\n", i, frms[i]->ToString().c_str());
 		}
 	}
 	PrintDash('>');
@@ -105,22 +104,22 @@ uint16_t UciFrm::ChkSum()
 
 bool UciFrm::IsFrmDefined(uint8_t i)
 {
-	return (i != 0 && frms[i - 1] != nullptr);
+	return (frms[i] != nullptr);
 }
 
 StFrm *UciFrm::GetStFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? &(frms[i - 1]->stFrm) : nullptr;
+	return IsFrmDefined(i) ? &(frms[i]->stFrm) : nullptr;
 }
 
 Frame *UciFrm::GetFrm(uint8_t i)
 {
-	return IsFrmDefined(i) ? frms[i - 1] : nullptr;
+	return frms[i];
 }
 
 uint8_t UciFrm::GetFrmRev(uint8_t i)
 {
-	return IsFrmDefined(i) ? frms[i - 1]->frmRev : 0;
+	return IsFrmDefined(i) ? frms[i]->frmRev : 0;
 }
 
 APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
@@ -149,21 +148,24 @@ APP::ERROR UciFrm::SetFrm(uint8_t *buf, int len)
 		return r;
 	}
 	// refresh all-frame crc
-	auto &vFrm = frms.at(pFrm->frmId - 1);
-	if (vFrm != nullptr)
+	auto &vFrm = frms.at(pFrm->frmId);
+	if (pFrm->frmId > 0)
 	{
-		chksum -= vFrm->crc;
-		delete vFrm;
+		if (vFrm != nullptr)
+		{
+			chksum -= vFrm->crc;
+			delete vFrm;
+		}
+		chksum += pFrm->crc;
 	}
 	vFrm = pFrm;
-	chksum += vFrm->crc;
 	return APP::ERROR::AppNoError;
 }
 
 void UciFrm::SaveFrm(uint8_t i)
 {
 	auto stfrm = GetStFrm(i);
-	if (stfrm == nullptr)
+	if (stfrm == nullptr || i == 0)
 	{
 		return;
 	}
@@ -181,7 +183,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		snprintf(buf, 63, "Open frm_%03d failed", i);
 		alm.Push(0, buf);
-		Ldebug("%s", buf);
+		Ldebug(buf);
 	}
 	else
 	{
@@ -189,7 +191,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		{
 			snprintf(buf, 63, "Write frm_%03d failed", i);
 			alm.Push(0, buf);
-			Ldebug("%s", buf);
+			Ldebug(buf);
 		}
 		fdatasync(frm_fd);
 		close(frm_fd);
@@ -217,6 +219,5 @@ bool UciFrm::IsFrmFlashing(uint8_t i)
 	{
 		return false;
 	}
-	return frms[i - 1]->conspicuity != 0;
+	return frms[i]->conspicuity != 0;
 }
-

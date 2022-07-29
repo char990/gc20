@@ -643,7 +643,7 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
 
 int TsiSp003App::FA30_SignTest(uint8_t *data, int len)
 {
-    if (ChkLen(len, 5))
+    if (ChkLen(len, 4))
     {
         auto r = Controller::Instance().CmdSignTest(data);
         (r != APP::ERROR::AppNoError) ? Reject(r) : Ack();

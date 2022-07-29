@@ -99,7 +99,7 @@ private:
     static void CMD_ResetAlarmLog(struct mg_connection *c, json &msg, json &reply);
     static void CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply);
     static void CMD_SignTest(struct mg_connection *c, json &msg, json &reply);
-    static void CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_DisplayAtomic(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetFrameCrc(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetMessageCrc(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetPlanCrc(struct mg_connection *c, json &msg, json &reply);

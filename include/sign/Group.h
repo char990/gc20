@@ -87,9 +87,14 @@ public:
     APP::ERROR EnablePlan(uint8_t id);
     APP::ERROR DisablePlan(uint8_t id);
 
-    APP::ERROR DispFrm(uint8_t id, bool chk);
-    APP::ERROR DispMsg(uint8_t id, bool chk);
-    APP::ERROR DispAtmFrm(uint8_t *cmd, bool chk);
+    static const uint8_t CHK_PWR{0x01};    // check power
+    static const uint8_t CHK_FS{0x02};     // check facility switch
+    static const uint8_t CHK_FE{0x04};     // check fatal error
+    APP::ERROR DispFrm(uint8_t id, bool log);
+    APP::ERROR DispMsg(uint8_t id, bool log);
+    APP::ERROR DispAtomic(uint8_t *cmd, bool log);
+    APP::ERROR SignTestDispFrm();
+
     virtual APP::ERROR DispAtomicFrm(uint8_t *cmd) = 0;
 
     APP::ERROR SetDimming(uint8_t v);
@@ -136,6 +141,9 @@ protected:
     int CheckAllSlavesCurrent();
     int allSlavesCurrent;
     void AllSlavesUpdateCurrentBak();
+
+    uint8_t dispMode{0};
+    void DispMode(uint8_t);
 
     // display status
     DispStatus *dsBak;
@@ -228,7 +236,10 @@ private:
 
     Utils::State5 fatalError;
 
-    APP::ERROR DispChk(bool chk);
+    APP::ERROR DispChk(uint8_t chk);
+
+    void SignTestMode();
+    void NormalMode();
 
     /******************** Task Plan ********************/
     uint8_t onDispPlnId;
@@ -290,6 +301,17 @@ private:
         msgSetEntry = 0;
     }
     void InitMsgOverlayBuf(Message *pMsg);
+
+    /******************** Task SignTest ********************/
+    #define SIGN_TEST_FRAME_ID 255
+    bool TaskSignTest(int *_ptLine);
+    int taskSignTestLine{0};
+    uint8_t signTestFrmId;
+    BootTimer taskSignTestTmr;
+    void TaskSignTestReset()
+    {
+        taskSignTestLine = 0;
+    }
 
     /******************** Task Frame ********************/
     uint8_t

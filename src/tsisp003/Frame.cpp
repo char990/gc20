@@ -32,12 +32,6 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         appErr = APP::ERROR::DataChksumError;
         return 1;
     }
-    if (frmId == 0)
-    {
-        Ldebug("Frame Error:FrameID=0");
-        appErr = APP::ERROR::SyntaxError;
-        return 1;
-    }
     if (len != (frmOffset + 2 + frmBytes))
     {
         Ldebug("Frame[%d] Error:length mismatch:%d:%d", frmId, len, (frmOffset + 2 + frmBytes));

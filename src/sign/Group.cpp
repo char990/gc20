@@ -160,7 +160,7 @@ void Group::LoadLastDisp()
                 DispMsg(disp[3], false);
                 break;
             case static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames):
-                DispAtmFrm(disp + 1, false);
+                DispAtomic(disp + 1, false);
                 break;
             default:
                 throw invalid_argument(StrFn::PrintfStr("Syntax Error: UciProcess.Group[%d].Display", groupId));
@@ -183,7 +183,23 @@ void Group::PeriodicRun()
     {
         return;
     }
+    if (dispMode == 0)
+    {
+        NormalMode();
+    }
+    else
+    {
+        SignTestMode();
+    }
+}
 
+void Group::SignTestMode()
+{
+    TaskSignTest(&taskSignTestLine);
+}
+
+void Group::NormalMode()
+{
     // fatal error
     bool fatal = false;
     for (auto &sign : vSigns)
@@ -327,7 +343,7 @@ void Group::FcltSwitchFunc()
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[256];
         snprintf(buf, 255, "Group[%d]%s", groupId, fcltSw.ToStr());
-        Ldebug("%s", buf);
+        Ldebug(buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
@@ -384,7 +400,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // previouse is not BLANK
                     char buf[256];
                     snprintf(buf, 255, "Group[%d]TaskPln:Display BLANK", groupId);
-                    Ldebug("%s", buf);
+                    Ldebug(buf);
                     db.GetUciEvent().Push(0, buf);
                     TaskFrmReset();
                     TaskMsgReset();
@@ -404,7 +420,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // reset active frm/msg
                     char buf[256];
                     snprintf(buf, 255, "Group[%d]TaskPln:Plan[%d] start", groupId, plnmin.plnId);
-                    Ldebug("%s", buf);
+                    Ldebug(buf);
                     db.GetUciEvent().Push(0, buf);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -749,6 +765,39 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
     }
 }
 
+bool Group::TaskSignTest(int *_ptLine)
+{
+    if (!IsBusFree())
+        return PT_RUNNING;
+    PT_BEGIN();
+    // step1: set frame
+    onDispPlnId = 0;
+    onDispFrmId = SIGN_TEST_FRAME_ID;
+    onDispPlnId = 0;
+    GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+    activeMsg.ClrAll();
+    activeFrm.ClrAll();
+    taskSignTestTmr.Setms(SlaveSetFrame(0xFF, 1, SIGN_TEST_FRAME_ID) + 100);
+    PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
+    // step2: display frame
+    SlaveSetStoredFrame(0xFF, 1);
+    taskSignTestTmr.Setms(60 * 1000);
+    PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
+    {
+        uint8_t buf[3];
+        buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+        buf[1] = groupId;
+        buf[2] = 0;
+        db.GetUciProcess().SetDisp(groupId, buf, 3);
+        db.GetUciEvent().Push(0, "Group[%d]Exit test mode. SignDisplayFrame:[%d]", groupId, 0);
+        DispMode(0);
+        ReloadCurrent(1); // force to reload
+        dsNext->N_A();    // avoid to call LoadDsNext()
+        dsCurrent->Frm0(); // set current, force TaskFrm to display Frm[0]
+    }
+    PT_END();
+}
+
 bool Group::TaskFrm(int *_ptLine)
 {
     if (!IsBusFree())
@@ -773,6 +822,7 @@ bool Group::TaskFrm(int *_ptLine)
         onDispNewFrm = 0;
         onDispMsgId = 0;
     }
+
     PT_BEGIN();
     while (true)
     {
@@ -826,7 +876,7 @@ bool Group::TaskFrm(int *_ptLine)
             {
                 do
                 {
-                    SlaveSetFrame(0xFF, (onDispFrmId == 0) ? 0 : 1, onDispFrmId);
+                    SlaveSetFrame(0xFF, 1, onDispFrmId);
                     ClrAllSlavesRxStatus();
                     PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
                 } while (allSlavesNext == 1);
@@ -1296,7 +1346,10 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
-    Ldebug("Group[%d]%sable plan[%d]", groupId, endis == 0 ? "Dis" : "En", id);
+    char buf[64];
+    snprintf(buf, 63, "Group[%d] %sable Plan[%d]", groupId, (endis == 0) ? "Dis" : "En", id);
+    db.GetUciEvent().Push(0, buf);
+    Ldebug(buf);
     // PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
@@ -1427,29 +1480,33 @@ void Group::DispBackup()
     }
 }
 
-APP::ERROR Group::DispChk(bool chk)
+APP::ERROR Group::DispChk(uint8_t chk)
 {
-    if (chk)
+    if ((chk & CHK_PWR) && (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF))
     {
-        if (mainPwr == PWR_STATE::OFF || cmdPwr == PWR_STATE::OFF)
-        {
-            return APP::ERROR::PowerIsOff;
-        }
-        if (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get())
-        {
-            return APP::ERROR::FacilitySwitchOverride;
-        }
-        if(fatalError.IsHigh())
-        {
-            return APP::ERROR::DeviceControllerOffline;
-        }
+        return APP::ERROR::PowerIsOff;
+    }
+    else if ((chk & CHK_FS) && (FacilitySwitch::FS_STATE::AUTO != fcltSw.Get()))
+    {
+        return APP::ERROR::FacilitySwitchOverride;
+    }
+    else if ((chk & CHK_FE) && (fatalError.IsHigh()))
+    {
+        return APP::ERROR::MiNotSupported;
     }
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DispFrm(uint8_t id, bool chk)
+APP::ERROR Group::SignTestDispFrm()
 {
-    auto r = DispChk(chk);
+    DispMode(1);
+    TaskSignTestReset();
+    return dispMode == 1 ? APP::ERROR::AppNoError : APP::ERROR::FrmMsgPlnUndefined;
+}
+
+APP::ERROR Group::DispFrm(uint8_t id, bool log)
+{
+    auto r = (id == 0) ? APP::ERROR::AppNoError : DispChk(0xFF);
     if (r != APP::ERROR::AppNoError)
     {
         return r;
@@ -1466,53 +1523,61 @@ APP::ERROR Group::DispFrm(uint8_t id, bool chk)
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
     buf[1] = groupId;
     buf[2] = id;
-    if (chk)
+    if (log)
     {
         db.GetUciProcess().SetDisp(groupId, buf, 3);
+        db.GetUciEvent().Push(0, "Group[%d]SignDisplayFrame:[%d]", groupId, id);
     }
+    DispMode(0);
     DispNext(DISP_TYPE::FRM, id);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DispMsg(uint8_t id, bool chk)
+APP::ERROR Group::DispMsg(uint8_t id, bool log)
 {
-    auto r = DispChk(chk);
+    auto r = (id == 0) ? APP::ERROR::AppNoError : DispChk(0xFF);
     if (r != APP::ERROR::AppNoError)
     {
         return r;
     }
+    DispNext(DISP_TYPE::MSG, id);
     uint8_t buf[3];
     buf[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
     buf[1] = groupId;
     buf[2] = id;
-    if (chk)
+    if (log)
     {
         db.GetUciProcess().SetDisp(groupId, buf, 3);
+        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", groupId, id);
     }
-    DispNext(DISP_TYPE::MSG, id);
+    DispMode(0);
     return APP::ERROR::AppNoError;
 }
 
-APP::ERROR Group::DispAtmFrm(uint8_t *cmd, bool chk)
+APP::ERROR Group::DispAtomic(uint8_t *cmd, bool log)
 {
-    auto r = DispChk(chk);
+    auto r = DispChk(0xFF);
     if (r != APP::ERROR::AppNoError)
     {
         return r;
     }
     auto atm = DispAtomicFrm(cmd);
-    if (chk && atm == APP::ERROR::AppNoError)
+    if (atm == APP::ERROR::AppNoError)
     {
-        db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
-        char buf[64];
-        int len = sprintf(buf, "Group[%d]DispAtmFrm:", cmd[1]);
-        uint8_t *p = cmd + 3;
-        for (int i = 0; i < cmd[2] && len < 63; i++)
+        DispMode(0);
+        if (log)
         {
-            len += snprintf(buf + len, 63 - len, "[%d]%d", p[0], p[1]);
-            p += 2;
+            db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
+            char buf[64];
+            int len = sprintf(buf, "Group[%d]DispAtomic:", cmd[1]);
+            uint8_t *p = cmd + 3;
+            for (int i = 0; i < cmd[2] && len < 63; i++)
+            {
+                len += snprintf(buf + len, 63 - len, "[%d]%d", p[0], p[1]);
+                p += 2;
+            }
+            db.GetUciEvent().Push(0, buf);
         }
-        db.GetUciEvent().Push(0, buf);
     }
     return atm;
 }
@@ -1756,8 +1821,8 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
 {
     if (slvFrmId == 0 || uciFrmId == 0)
     {
-        throw invalid_argument(StrFn::PrintfStr("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)",
-                                                 slvId, slvFrmId, uciFrmId));
+        Ldebug("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)", slvId, slvFrmId, uciFrmId);
+        return 10;
     }
     int ms = 10;
     if (deviceEnDisCur)
@@ -2085,4 +2150,9 @@ void Group::PrintOrBuf()
             putchar('\n');
         }
     }
+}
+
+void Group::DispMode(uint8_t m)
+{
+    dispMode = (db.GetUciFrm().IsFrmDefined(SIGN_TEST_FRAME_ID)) ? m : 0;
 }

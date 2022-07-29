@@ -195,7 +195,7 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ResetAlarmLog),
     CMD_ITEM(ResetEventLog),
     CMD_ITEM(SignTest),
-    CMD_ITEM(DispAtomic),
+    CMD_ITEM(DisplayAtomic),
     CMD_ITEM(GetFrameCrc),
     CMD_ITEM(GetMessageCrc),
     CMD_ITEM(GetPlanCrc),
@@ -1477,19 +1477,14 @@ void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply
 
 void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 {
-    uint8_t cmd[5];
-    cmd[0] = 0xFA;
-    cmd[1] = 0x30;
-    cmd[2] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
-    cmd[3] = 255;
-    cmd[4] = 255;
+    uint8_t cmd[4]{0xFA, 0x30, 0xFF,0xFF};
     auto &p = DbHelper::Instance().GetUciProd();
     string colour = GetStr(msg, "colour");
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
         if (strcasecmp(FrameColour::COLOUR_NAME[i], colour.c_str()) == 0)
         {
-            cmd[3] = i;
+            cmd[2] = i;
         }
     }
     string pixels = GetStr(msg, "pixels");
@@ -1497,14 +1492,14 @@ void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
     {
         if (strcasecmp(TestPixels[i], pixels.c_str()) == 0)
         {
-            cmd[4] = i;
+            cmd[3] = i;
         }
     }
     APP::ERROR r = ctrller->CmdSignTest(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
-void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
+void WsServer::CMD_DisplayAtomic(struct mg_connection *c, json &msg, json &reply)
 {
     vector<json> content = GetVector<json>(msg, "content");
     int len = content.size();
@@ -1514,9 +1509,8 @@ void WsServer::CMD_DispAtomic(struct mg_connection *c, json &msg, json &reply)
     cmd[2] = len;
     for (int i = 0; i < len; i++)
     {
-        json &x = content[i];
-        cmd[3 + i * 2] = GetInt(msg, "sign_id", 1, ctrller->SignCnt());
-        cmd[3 + i * 2 + 1] = GetInt(msg, "frame_id", 1, 255);
+        cmd[3 + i * 2] = GetInt(content[i], "sign_id", 1, ctrller->SignCnt());
+        cmd[3 + i * 2 + 1] = GetInt(content[i], "frame_id", 1, 255);
     }
     auto r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));

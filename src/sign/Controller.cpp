@@ -378,7 +378,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
     }
     if (lvl > 1 && grpId != 0)
     {
-        snprintf(rejectStr, 63, "Group[%d]SystemReset Level[%d] is only for Group[0])", grpId, lvl);
+        snprintf(rejectStr, 63, "SystemReset: Level[%d] is only for Group[0])", lvl);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId > groups.size())
@@ -422,7 +422,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
             db.GetUciUserCfg().LoadFactoryDefault();
         }
     }
-    db.GetUciEvent().Push(0, "SystemReset: Group[%d]Level=%d", grpId, lvl);
+    db.GetUciEvent().Push(0, "SystemReset: Group[%d], Level=%d", grpId, lvl);
     return APP::ERROR::AppNoError;
 }
 
@@ -456,24 +456,13 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
             }
         }
     }
-    auto r = grp->DispFrm(frmId, true);
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "Group[%d]SignDisplayFrame:[%d]", cmd[1], cmd[2]);
-    }
-    return r;
+    return grp->DispFrm(frmId, true);
 }
 
 APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
 {
-    auto grpId = cmd[2];
-    auto colourId = cmd[3];
-    auto pixels = cmd[4];
-    auto grp = GetGroup(grpId);
-    if (grp == nullptr)
-    {
-        return APP::ERROR::UndefinedDeviceNumber;
-    }
+    auto colourId = cmd[2];
+    auto pixels = cmd[3];
     if (pixels > 5)
     {
         return APP::ERROR::FrmMsgPlnUndefined;
@@ -493,8 +482,6 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
         f_offset = 9;
         frm.resize(corelen + f_offset + 2);
         frm[0] = static_cast<uint8_t>(MI::CODE::SignSetGraphicsFrame);
-        frm[1] = 255;
-        frm[2] = 255;
         frm[3] = rows;
         frm[4] = columns;
         frm[5] = colourId;
@@ -506,14 +493,14 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
         f_offset = 13;
         frm.resize(corelen + f_offset + 2);
         frm[0] = static_cast<uint8_t>(MI::CODE::SignSetHighResolutionGraphicsFrame);
-        frm[1] = 255;
-        frm[2] = 255;
         Cnvt::PutU16(rows, frm.data() + 3);
         Cnvt::PutU16(columns, frm.data() + 5);
         frm[7] = colourId;
         frm[8] = 0;
         Utils::Cnvt::PutU32(corelen, frm.data() + 9);
     }
+    frm[1] = SIGN_TEST_FRAME_ID; // frmId
+    frm[2] = 0;                  // frmRev
 
     if (pixels == 1 || pixels == 2)
     { // odd(1)/even(2) rows
@@ -541,10 +528,17 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     {
         return r;
     }
-    ucifrm.SaveFrm(255);
-    db.GetUciEvent().Push(0, "SignTest:SetFrame[255]:Colour:%s,Pixels:%s",
-                          FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
-    return grp->DispFrm(255, true);
+    db.GetUciEvent().Push(0, "SignTest:SetFrame[%d],Colour:%s,Pixels:%s",
+                          SIGN_TEST_FRAME_ID, FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
+    for (auto g : groups)
+    {
+        r = g->SignTestDispFrm();
+        if (r != APP::ERROR::AppNoError)
+        {
+            return r;
+        }
+    }
+    return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
@@ -562,12 +556,7 @@ APP::ERROR Controller::CmdDispMsg(uint8_t *cmd)
             return APP::ERROR::FrmMsgPlnUndefined;
         }
     }
-    auto r = grp->DispMsg(msgId, true);
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", cmd[1], cmd[2]);
-    }
-    return r;
+    return grp->DispMsg(msgId, true);
 }
 
 APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
@@ -608,37 +597,23 @@ APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
             return APP::ERROR::OverlaysNotSupported;
         }
     }
-    auto r = grp->DispAtmFrm(cmd, true);
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "Group[%d]SignDisplayMessage:[%d]", cmd[1], cmd[2]);
-    }
-    return r;
+    return grp->DispAtomic(cmd, true);
 }
 
 APP::ERROR Controller::CmdEnDisPlan(uint8_t *cmd)
 {
     uint8_t grpId = cmd[1];
     uint8_t plnId = cmd[2];
-    APP::ERROR r = APP::ERROR::AppNoError;
     bool endis = cmd[0] == static_cast<uint8_t>(MI::CODE::EnablePlan);
     if (grpId > groups.size() || grpId == 0)
     {
-        r = APP::ERROR::UndefinedDeviceNumber;
+        return APP::ERROR::UndefinedDeviceNumber;
     }
     else if (endis && plnId != 0 && !db.GetUciPln().IsPlnDefined(plnId))
     {
-        r = APP::ERROR::FrmMsgPlnUndefined;
+        return APP::ERROR::FrmMsgPlnUndefined;
     }
-    else
-    {
-        r = GetGroup(grpId)->EnDisPlan(plnId, endis);
-    }
-    if (r == APP::ERROR::AppNoError)
-    {
-        db.GetUciEvent().Push(0, "Group[%d] %sable Plan[%d]", grpId, endis ? "En" : "Dis", plnId);
-    }
-    return r;
+    return GetGroup(grpId)->EnDisPlan(plnId, endis);
 }
 
 APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
@@ -874,7 +849,7 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
             sprintf(p, "->");
             Time::ParseTimeToLocalStr(t, p + 2);
             db.GetUciEvent().Push(0, buf);
-            Ldebug("%s", buf);
+            Ldebug(buf);
             if (Time::SetLocalTime(stm) < 0)
             {
                 const char *s = "UpdateTime: Set system time failed(MemoryError)";
