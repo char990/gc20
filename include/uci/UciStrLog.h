@@ -24,7 +24,7 @@ public:
     virtual int GetLog(nlohmann::json & reply);
     
 
-    /// \brief  Push a string log into Log and save to Ucixxx
+    /// \brief  Push a string log into Log and Open-Save-Close to Ucixxx
     virtual void Push(uint8_t id, const char *fmt, ...);
 
     void Reset();

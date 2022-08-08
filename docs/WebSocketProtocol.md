@@ -29,9 +29,8 @@
     - [GetStatus](#getstatus)
     - [ChangePassword](#changepassword)
     - [GetUserConfig](#getuserconfig)
+    - [DefaultUserConfig](#defaultuserconfig)
     - [SetUserConfig](#setuserconfig)
-    - [GetDimmingConfig](#getdimmingconfig)
-    - [SetDimmingConfig](#setdimmingconfig)
     - [GetNetworkConfig](#getnetworkconfig)
     - [SetNetworkConfig](#setnetworkconfig)
     - [ControlDimming](#controldimming)
@@ -56,6 +55,8 @@
     - [SignTest](#signtest)
     - [DisplayAtomic](#displayatomic)
     - [Reboot](#reboot)
+    - [ExportConfig](#exportconfig)
+    - [ImportConfig](#importconfig)
 
 ---
 
@@ -354,9 +355,63 @@ JSON:
 "locked_frame":2,  // 0-255
 "city":"Sydney",
 "last_frame_time":3, // 0-255
-"locked_msg":2  // 0-255
+"locked_msg":2,  // 0-255
+"night_level":1,   // 1-16, night < dawn/dusk < day
+"dawn_dusk_level":8,
+"daytime_level":16,
+"night_max_lux":50,  // 1-9999, night < day < 18-hour
+"daytime_min_lux":400,
+"18_hours_min_lux":600
 }
 ```
+
+### DefaultUserConfig
+
+Direction: Master -> Controller
+Description: Set user configuration to default
+JSON:
+
+```JSON
+{
+"cmd":"DefaultUserConfig",
+}
+```
+
+Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"DefaultUserConfig",
+"seed":"0xab",   // hex 0x00-0xFF
+"password":"0x27ef", // hex 0x0000-0xFFFF
+"device_id":1,
+"broadcast_id":0,
+"session_timeout":180,  // seconds
+"display_timeout":3,  // minutes
+"tmc_com_port":"Modem"/"COM1-6"
+"baudrate":38400,  // 19200/38400/57600/115200
+"multiled_fault":16, // 1-255
+"tmc_tcp_port":38400,
+"over_temp":65,  // 0-99
+"locked_frame":2,  // 0-255
+"city":"Sydney",
+"last_frame_time":3, // 0-255
+"locked_msg":2,  // 0-255
+"night_level":1,   // 1-16, night < dawn/dusk < day
+"dawn_dusk_level":8,
+"daytime_level":16,
+"night_max_lux":50,  // 1-9999, night < day < 18-hour
+"daytime_min_lux":400,
+"18_hours_min_lux":600,
+"result":"'Reboot' to active new setting"
+}
+```
+
+Note:
+This command tells controller to load default user config. There is a "result" in answer, because controller needs to reboot.
+
 
 ### SetUserConfig
 
@@ -381,59 +436,8 @@ JSON:
 "locked_frame":2,  // 0-255
 "city":"Sydney",
 "last_frame_time":3, // 0-255
-"locked_msg":2  // 0-255
-}
-```
-
-Controller reply:
-JSON:
-
-```JSON
-{
-"replyms":13274693458,
-"cmd":"SetUserConfig",
-"result":"OK" or error message
-}
-```
-
-### GetDimmingConfig
-
-Direction: Master -> Controller
-Description: Get dimmin configuration
-JSON:
-
-```JSON
-{
-"cmd":"GetDimmingConfig",
-}
-```
-
- Controller reply:
-JSON:
-
-```JSON
-{
-"replyms":13274693458,
-"cmd":"GetDimmingConfig",
-"night_level":1,   // 1-16, night<dawn/dusk<day
-"dawn_dusk_level":8,
-"day_level":16,
-"night_max_lux":50,  // 1-9999, night < day < 18-hour
-"day_min_lux":400,
-"18_hours_min_lux":600
-}
-```
-
-### SetDimmingConfig
-
-Direction: Master -> Controller
-Description: Set dimming configuration
-JSON:
-
-```JSON
-{
-"cmd":"SetDimmingConfig",
-"night_level":1,   // 1-16, night<dawn/dusk<day
+"locked_msg":2,  // 0-255
+"night_level":1,   // 1-16, night < dawn/dusk < day
 "dawn_dusk_level":8,
 "daytime_level":16,
 "night_max_lux":50,  // 1-9999, night < day < 18-hour
@@ -448,7 +452,7 @@ JSON:
 ```JSON
 {
 "replyms":13274693458,
-"cmd":"SetDimmingConfig",
+"cmd":"SetUserConfig",
 "result":"OK" or error message
 }
 ```
@@ -1185,3 +1189,55 @@ JSON:
 "result": "Controller will reboot after 5 seconds"
 }
 ```
+
+### ExportConfig
+
+Direction: Master -> Controller
+Description: Export all configurations
+JSON:
+
+```JSON
+{
+"cmd":"ExportConfig",
+}
+```
+
+Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"ExportConfig",
+"file":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
+}
+```
+
+The "file" was firstly made by "tar cz -f allconfig ./config/*", which means all files in path "config".
+Then a CRC32 was attched to end of "allconfig" and encoded to Base64.
+
+### ImportConfig
+
+Direction: Master -> Controller
+Description: Import all configurations
+JSON:
+
+```JSON
+{
+"cmd":"ImportConfig",
+"file":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
+}
+```
+
+Controller reply:
+JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"result":"OK" or error message
+}
+```
+
+When "file" was received. First decode it by Base64 and check the CRC32 at the tail.
+If CRC32 is correct, save file to "allconfig" and unpack it: "tar xf allconfig ./".

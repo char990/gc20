@@ -36,11 +36,11 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		len = p - MyDbgBuf;
 		va_list args;
 		va_start(args, fmt);
-		int xs = MyDbgBuf_SIZE - 8 - len;
+		int xs = MyDbgBuf_SIZE - len - 1;
 		int xlen = vsnprintf(p, xs, fmt, args);
 		va_end(args);
 		if (xlen >= xs)
-		{
+		{// MyDbgBuf full
 			sprintf(MyDbgBuf + MyDbgBuf_SIZE - 9, " ......");
 			len = MyDbgBuf_SIZE - 2;
 		}

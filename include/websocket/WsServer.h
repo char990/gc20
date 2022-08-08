@@ -74,8 +74,7 @@ private:
     static void CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply);
-    static void CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json &reply);
-    static void CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_DefaultUserConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply);
@@ -104,6 +103,8 @@ private:
     static void CMD_GetMessageCrc(struct mg_connection *c, json &msg, json &reply);
     static void CMD_GetPlanCrc(struct mg_connection *c, json &msg, json &reply);
     static void CMD_Reboot(struct mg_connection *c, json &msg, json &reply);
-
+    static void CMD_ExportConfig(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_ImportConfig(struct mg_connection *c, json &msg, json &reply);
+    
     static void cmd_ResetLog(uint8_t logcode, json &reply);
 };

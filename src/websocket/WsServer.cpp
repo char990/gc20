@@ -170,8 +170,7 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ChangePassword),
     CMD_ITEM(GetUserConfig),
     CMD_ITEM(SetUserConfig),
-    CMD_ITEM(GetDimmingConfig),
-    CMD_ITEM(SetDimmingConfig),
+    CMD_ITEM(DefaultUserConfig),
     CMD_ITEM(GetNetworkConfig),
     CMD_ITEM(SetNetworkConfig),
     CMD_ITEM(ControlDimming),
@@ -200,6 +199,8 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(GetMessageCrc),
     CMD_ITEM(GetPlanCrc),
     CMD_ITEM(Reboot),
+    CMD_ITEM(ExportConfig),
+    CMD_ITEM(ImportConfig),
 };
 
 void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -514,6 +515,12 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("locked_msg", usercfg.LockedMsg());
     reply.emplace("city", usercfg.City());
     reply.emplace("last_frame_time", usercfg.LastFrmTime());
+    reply.emplace("night_level", usercfg.NightDimmingLevel());
+    reply.emplace("dawn_dusk_level", usercfg.DawnDimmingLevel());
+    reply.emplace("day_level", usercfg.DayDimmingLevel());
+    reply.emplace("night_max_lux", usercfg.LuxNightMax());
+    reply.emplace("day_min_lux", usercfg.LuxDayMin());
+    reply.emplace("18_hours_min_lux", usercfg.Lux18HoursMin());
 }
 
 void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply)
@@ -566,6 +573,14 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     {
         throw invalid_argument("'city' NOT valid");
     }
+
+    auto night_level = GetInt(msg, "night_level", 1, 8);
+    auto dawn_dusk_level = GetInt(msg, "dawn_dusk_level", night_level + 1, 15);
+    auto day_level = GetInt(msg, "day_level", dawn_dusk_level + 1, 16);
+    auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
+    auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
+    auto _18_hours_min_lux = GetInt(msg, "18_hours_min_lux", day_min_lux + 1, 65535);
+
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     auto &evt = DbHelper::Instance().GetUciEvent();
 
@@ -665,30 +680,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
                  usercfg.LastFrmTime(), last_frame_time);
         usercfg.LastFrmTime(last_frame_time);
     }
-    reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
-}
 
-void WsServer::CMD_GetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
-{
-    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
-    reply.emplace("night_level", usercfg.NightDimmingLevel());
-    reply.emplace("dawn_dusk_level", usercfg.DawnDimmingLevel());
-    reply.emplace("day_level", usercfg.DayDimmingLevel());
-    reply.emplace("night_max_lux", usercfg.LuxNightMax());
-    reply.emplace("day_min_lux", usercfg.LuxDayMin());
-    reply.emplace("18_hours_min_lux", usercfg.Lux18HoursMin());
-}
-
-void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &reply)
-{
-    auto night_level = GetInt(msg, "night_level", 1, 8);
-    auto dawn_dusk_level = GetInt(msg, "dawn_dusk_level", night_level + 1, 15);
-    auto day_level = GetInt(msg, "day_level", dawn_dusk_level + 1, 16);
-    auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
-    auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
-    auto _18_hours_min_lux = GetInt(msg, "18_hours_min_lux", day_min_lux + 1, 65535);
-    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
-    auto &evt = DbHelper::Instance().GetUciEvent();
     if (night_level != usercfg.NightDimmingLevel())
     {
         evt.Push(0, "User.NightDimmingLevel changed: %d->%d", usercfg.NightDimmingLevel(), night_level);
@@ -719,7 +711,15 @@ void WsServer::CMD_SetDimmingConfig(struct mg_connection *c, json &msg, json &re
         evt.Push(0, "User.Lux18HoursMin changed: %d->%d", usercfg.Lux18HoursMin(), _18_hours_min_lux);
         usercfg.Lux18HoursMin(_18_hours_min_lux);
     }
-    reply.emplace("result", "OK");
+    reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
+}
+
+void WsServer::CMD_DefaultUserConfig(struct mg_connection *c, json &msg, json &reply)
+{
+    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
+    usercfg.LoadFactoryDefault();
+    CMD_GetUserConfig(c, msg, reply);
+    reply.emplace("result", "'Reboot' to active new setting");
 }
 
 void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
@@ -1477,7 +1477,7 @@ void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply
 
 void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 {
-    uint8_t cmd[4]{0xFA, 0x30, 0xFF,0xFF};
+    uint8_t cmd[4]{0xFA, 0x30, 0xFF, 0xFF};
     auto &p = DbHelper::Instance().GetUciProd();
     string colour = GetStr(msg, "colour");
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
@@ -1555,5 +1555,18 @@ void WsServer::CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nloh
 void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     reply.emplace("result", "Controller will reboot after 5 seconds");
-    ctrller->RR_flag(RQST_NETWORK);
+    ctrller->RR_flag(RQST_REBOOT);
+}
+
+void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+
+    reply.emplace("file", "");
+}
+
+void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+
+    reply.emplace("result", "Controller will reboot after 5 seconds");
+    ctrller->RR_flag(RQST_REBOOT);
 }
