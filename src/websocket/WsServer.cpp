@@ -520,7 +520,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("day_level", usercfg.DayDimmingLevel());
     reply.emplace("night_max_lux", usercfg.LuxNightMax());
     reply.emplace("day_min_lux", usercfg.LuxDayMin());
-    reply.emplace("18_hours_min_lux", usercfg.Lux18HoursMin());
+    reply.emplace("min_lux_18_hours", usercfg.Lux18HoursMin());
 }
 
 void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply)
@@ -579,7 +579,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     auto day_level = GetInt(msg, "day_level", dawn_dusk_level + 1, 16);
     auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
     auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
-    auto _18_hours_min_lux = GetInt(msg, "18_hours_min_lux", day_min_lux + 1, 65535);
+    auto min_lux_18_hours = GetInt(msg, "min_lux_18_hours", day_min_lux + 1, 65535);
 
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     auto &evt = DbHelper::Instance().GetUciEvent();
@@ -706,10 +706,10 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         evt.Push(0, "User.LuxDayMin changed: %d->%d", usercfg.LuxDayMin(), day_min_lux);
         usercfg.LuxDayMin(day_min_lux);
     }
-    if (_18_hours_min_lux != usercfg.Lux18HoursMin())
+    if (min_lux_18_hours != usercfg.Lux18HoursMin())
     {
-        evt.Push(0, "User.Lux18HoursMin changed: %d->%d", usercfg.Lux18HoursMin(), _18_hours_min_lux);
-        usercfg.Lux18HoursMin(_18_hours_min_lux);
+        evt.Push(0, "User.Lux18HoursMin changed: %d->%d", usercfg.Lux18HoursMin(), min_lux_18_hours);
+        usercfg.Lux18HoursMin(min_lux_18_hours);
     }
     reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
 }

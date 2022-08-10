@@ -361,7 +361,7 @@ JSON:
 "daytime_level":16,
 "night_max_lux":50,  // 1-9999, night < day < 18-hour
 "daytime_min_lux":400,
-"18_hours_min_lux":600
+"min_lux_18_hours":600
 }
 ```
 
@@ -404,7 +404,7 @@ JSON:
 "daytime_level":16,
 "night_max_lux":50,  // 1-9999, night < day < 18-hour
 "daytime_min_lux":400,
-"18_hours_min_lux":600,
+"min_lux_18_hours":600,
 "result":"'Reboot' to active new setting"
 }
 ```
@@ -442,7 +442,7 @@ JSON:
 "daytime_level":16,
 "night_max_lux":50,  // 1-9999, night < day < 18-hour
 "daytime_min_lux":400,
-"18_hours_min_lux":600
+"min_lux_18_hours":600
 }
 ```
 
