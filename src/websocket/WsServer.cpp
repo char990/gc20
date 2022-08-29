@@ -273,25 +273,29 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
 void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
-    const char *r;
+    const char *r = nullptr;
     auto msgp = GetStr(msg, "password");
     auto msgu = GetStr(msg, "user");
-    if (msgu.compare("Administrator") == 0)
+    auto ps = DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu);
+    if (ps == nullptr)
     {
-        wsMsg[c]->login = (msgp.compare("Br1ghtw@y") == 0);
-        r = wsMsg[c]->login ? "OK" : "Wrong password";
+        wsMsg[c]->user.clear();
+        wsMsg[c]->login = false;
+        r = "Invalid user";
     }
     else
     {
-        auto ps = DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu);
-        if (ps == nullptr)
+        if (msgp.compare(DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu)->passwd) == 0)
         {
-            r = "Invalid user";
+            wsMsg[c]->user.assign(msgu);
+            wsMsg[c]->login = true;
+            r = "OK";
         }
         else
         {
-            wsMsg[c]->login = (msgp.compare(DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu)->passwd) == 0);
-            r = wsMsg[c]->login ? "OK" : "Wrong password";
+            wsMsg[c]->user.clear();
+            wsMsg[c]->login = false;
+            r = "Wrong password";
         }
     }
     reply.emplace("user", msgu);
@@ -316,7 +320,7 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &repl
         {
             r = "Invalid user";
         }
-        if (cp.compare(ps->passwd) == 0)
+        if (msgu.compare(wsMsg[c]->user) == 0 && cp.compare(ps->passwd) == 0)
         {
             bool invalid = false;
             for (auto s : np)

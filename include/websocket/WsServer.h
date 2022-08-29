@@ -26,6 +26,7 @@ public:
     int len{0};
     char buf[WsMsgBuf_SIZE];
     bool login{false};
+    std::string user;
 };
 class WsServer : public IPeriodicRun
 {
