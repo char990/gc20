@@ -5,7 +5,6 @@
 #include <cstring>
 #include <module/DebugConsole.h>
 #include <module/Epoll.h>
-#include <module/Utils.h>
 #include <module/MyDbg.h>
 
 using namespace std;
@@ -49,13 +48,13 @@ void DebugConsole::EventsHandle(uint32_t events)
         while (1)
         {
             char *p = inbuf + cnt;
-            int numRead = read(0, p, DC_INBUF_SIZE - cnt - 1);
+            int numRead = read(0, p, DC_PRINT_BUF_SIZE - cnt - 1);
             if (numRead <= 0)
             {
                 return;
             }
             cnt += numRead;
-            if (cnt >= DC_INBUF_SIZE - 1)
+            if (cnt >= DC_PRINT_BUF_SIZE - 1)
             {
                 cnt = 0;
             }
@@ -80,7 +79,7 @@ void DebugConsole::EventsHandle(uint32_t events)
 void DebugConsole::Process()
 {
     int len = strlen(inbuf);
-    if (len == 0 || len >= DC_INBUF_SIZE)
+    if (len == 0 || len >= DC_PRINT_BUF_SIZE)
     {
         printf("\n=>");
         fflush(stdout);

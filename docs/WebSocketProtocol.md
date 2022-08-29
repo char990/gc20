@@ -119,8 +119,10 @@ JSON:
 ### Login
 
 Direction: Master -> Controller
+
 Description: This is the first command which master sent to controller. Other commands are not accepted until login is OK.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -130,8 +132,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -145,8 +146,10 @@ JSON:
 ### GetGroupConfig
 
 Direction: Master -> Controller
+
 Description: Request the device controller to respond with its group setting.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -154,8 +157,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -185,6 +187,7 @@ JSON:
 ### SetGroupConfig
 
 Direction: Master -> Controller
+
 Description: Set group of signs.
 
 **Because group configuration related to hardware (signs in same group should at same COM port).**
@@ -193,7 +196,7 @@ Description: Set group of signs.
 
 **Igonre this command. Controller reply "result":"Unspupported command".**
 
-JSON:
+Master send: JSON:
 
 ```JSON
 {
@@ -219,13 +222,12 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
 "replyms":13274693458,
-"cmd":"SetGroupConfig"
+"cmd":"SetGroupConfig",
 "result": "OK" or error message
 }
 ```
@@ -233,8 +235,10 @@ JSON:
 ### GetStatus
 
 Direction: Master -> Controller
+
 Description: Master sends this command to Controller periodically to get Sign Status.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -242,8 +246,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -299,8 +302,10 @@ JSON:
 ### ChangePassword
 
 Direction: Master -> Controller
+
 Description: Change user password. Max length is 10 letters.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -311,8 +316,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -325,17 +329,18 @@ JSON:
 ### GetUserConfig
 
 Direction: Master -> Controller
+
 Description: Get user configuration
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetUserConfig",
+"cmd":"GetUserConfig"
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -350,7 +355,7 @@ JSON:
 "tmc_com_port":"Modem"/"COM1-6"
 "baudrate":38400,  // 19200/38400/57600/115200
 "multiled_fault":16, // 1-255
-"tmc_tcp_port":38400,
+"tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
 "over_temp":65,  // 0-99
 "locked_frame":2,  // 0-255
 "city":"Sydney",
@@ -368,17 +373,18 @@ JSON:
 ### DefaultUserConfig
 
 Direction: Master -> Controller
+
 Description: Set user configuration to default
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"DefaultUserConfig",
+"cmd":"DefaultUserConfig"
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -393,7 +399,7 @@ JSON:
 "tmc_com_port":"Modem"/"COM1-6"
 "baudrate":38400,  // 19200/38400/57600/115200
 "multiled_fault":16, // 1-255
-"tmc_tcp_port":38400,
+"tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
 "over_temp":65,  // 0-99
 "locked_frame":2,  // 0-255
 "city":"Sydney",
@@ -405,19 +411,21 @@ JSON:
 "night_max_lux":50,  // 1-9999, night < day < 18-hour
 "daytime_min_lux":400,
 "min_lux_18_hours":600,
-"result":"'Reboot' to active new setting"
+"result":"Controller will reboot after 5 seconds"
 }
 ```
 
 Note:
-This command tells controller to load default user config. There is a "result" in answer, because controller needs to reboot.
 
+This command tells controller to load default user config. There is a "result" in answer, because controller needs to reboot.
 
 ### SetUserConfig
 
 Direction: Master -> Controller
+
 Description: Set user configuration
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -431,7 +439,7 @@ JSON:
 "tmc_com_port":"Modem"/"COM1-6",
 "baudrate":38400,  // 19200/38400/57600/115200
 "multiled_fault":16, // 1-255
-"tmc_tcp_port":38400,
+"tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
 "over_temp":65,  // 0-99
 "locked_frame":2,  // 0-255
 "city":"Sydney",
@@ -446,8 +454,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -460,8 +467,10 @@ JSON:
 ### GetNetworkConfig
 
 Direction: Master -> Controller
+
 Description: Get two ethernet cards' setting and NTP in controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -469,8 +478,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -500,8 +508,10 @@ JSON:
 ### SetNetworkConfig
 
 Direction: Master -> Controller
+
 Description: The SET NETWORK command is used to set two ethernet cards and NTP in controller. Only one gateway is allowed.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -527,8 +537,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -541,19 +550,20 @@ JSON:
 ### ControlDimming
 
 Direction: Master -> Controller
+
 Description: Set controller dimming level
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"ControlDimming",
-"groups":[0]/[1,2,3],
+"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
 "setting":0 // Auto:0, 1-16
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -566,19 +576,20 @@ JSON:
 ### ControlPower
 
 Direction: Master -> Controller
+
 Description: Controller power ON/OFF
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"ControlPower",
-"groups":[0]/[1,2,3],
+"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
 "setting":0/1  //0:OFF, 1:ON
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -591,19 +602,20 @@ JSON:
 ### ControlDevice
 
 Direction: Master -> Controller
+
 Description: Enable/disable device
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"ControlDevice",
-"groups":[0]/[1,2,3],
+"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
 "setting":0/1  // 0:disable, 1:enable
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -616,19 +628,20 @@ JSON:
 ### SystemReset
 
 Direction: Master -> Controller
+
 Description: The SYSTEM RESET command is used to reset the device controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"SystemReset",
-"group_id": 0, // group_id could be 0-max id, 0 for all group
+"group_id": 0, // group_id could be 0-max id, 0 for all groups
 "level":0 // could be 0, 1, 2, 3 and 255. Level 2,3,255 only for group_id=0
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -641,8 +654,10 @@ JSON:
 ### UpdateTime
 
 Direction: Master -> Controller
+
 Description: The UPDATE TIME command is used to update the rtc in the device controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -651,8 +666,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -665,8 +679,10 @@ JSON:
 ### GetFrameSetting
 
 Direction: Master -> Controller
+
 Description: The Get Frame Setting command is used to get the setting from controller to initialise Set Frame Page.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -674,8 +690,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -702,18 +717,19 @@ Note:
 ### GetStoredFrame
 
 Direction: Master -> Controller
+
 Description: The Get Stored Frame command is used to request the frame data in controller. Frame image is Windows BMP format with no compression and 24-bit colour depth.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetStoredFrame",
-"id":1
+"cmd":"GetStoredFrame"
+"id":1 // 1-255, NOT 0
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -734,18 +750,18 @@ JSON:
 ### GetFrameCrc
 
 Direction: Master -> Controller
+
 Description: The Get Frame Crc command is used to request all frames(0-255) crc in controller. Crc is 0-65535. If frame is undefined, CRC is -1. Crc of Frame[0] is always -1.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetFrameCrc",
-"id":1
+"cmd":"GetFrameCrc"
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -758,13 +774,15 @@ JSON:
 ### SetFrame
 
 Direction: Master -> Controller
+
 Description: The Set Frame command is used to set the frame to controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"SetFrame",
-"id": 1,
+"id": 1, // 1-255, NOT 0
 "revision": 1,
 "type":"Text Frame"/"Graphics Frame"/"HR Graphics Frame",
 "colour":"Default "/"Red"/"Yellow"/"Green"/……/"Multiple"/"24-bit",
@@ -776,8 +794,7 @@ JSON:
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -790,19 +807,20 @@ JSON:
 ### DisplayFrame
 
 Direction: Master -> Controller
+
 Description: The DisplayFrame command is used to display frame in a group.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"DisplayFrame",
 "group_id":1, // only one group
-"frame_id":1
+"frame_id":1 // 0 - 255
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -815,18 +833,18 @@ JSON:
 ### GetMessageCrc
 
 Direction: Master -> Controller
+
 Description: The Get Message Crc command is used to request all messages(0-255) crc in controller. Crc is 0-65535. If message is undefined, CRC is -1. Crc of Message[0] is always -1.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetMessageCrc",
-"id":1
+"cmd":"GetMessageCrc"
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -839,18 +857,19 @@ JSON:
 ### GetStoredMessage
 
 Direction: Master -> Controller
+
 Description: The Get Stored Message command is used to request the message data in controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"GetStoredMessage",
-"id":1
+"id":1 // 1-255, NOT 0
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -877,31 +896,32 @@ JSON:
 ### SetMessage
 
 Direction: Master -> Controller
+
 Description: The Set Message command is used to set message to controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"SetMessage",
-"id":1,
+"id":1, // 1-255, NOT 0
 "revision":1,
 "transition":100,  //0.01 second
 "entries":[
   {
-  "id":1,
-  "ontime":100
+  "id":1, // 1-255, NOT 0
+  "ontime":100  // 0.1 second, 0 - 255
   },
   {
-  "id":2,
-  "ontime":100  // 0.1 second
+  "id":2, // 1-255, NOT 0
+  "ontime":100  // 0.1 second, 0 - 255
   },
   …… // max 6 entries
   ]
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -914,19 +934,20 @@ JSON:
 ### DisplayMessage
 
 Direction: Master -> Controller
+
 Description: The DisplayMessage command is used to display message in a group.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"DisplayMessage",
 "group_id":1, // only one group
-"message_id":1
+"message_id":1 // 0 - 255
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -939,18 +960,18 @@ JSON:
 ### GetPlanCrc
 
 Direction: Master -> Controller
+
 Description: The Get Plan Crc command is used to request all plans(0-255) crc in controller. Crc is 0-65535. If plan is undefined, CRC is -1. Crc of Plan[0] is always -1.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetPlanCrc",
-"id":1
+"cmd":"GetPlanCrc"
 }
 ```
 
- Controller reply:
-JSON:
+ Controller reply: JSON:
 
 ```JSON
 {
@@ -963,18 +984,19 @@ JSON:
 ### GetStoredPlan
 
 Direction: Master -> Controller
+
 Description: The Get Stored Plan command is used to request the plan data in controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"GetStoredPlan",
-"id":1
+"id":1 // 1-255, NOT 0
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1006,25 +1028,27 @@ JSON:
 ### SetPlan
 
 Direction: Master -> Controller
+
 Description: The Set Plan command is used to set plan to controller.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
 "cmd":"SetPlan",
-"id":1,
+"id":1,  // 1 - 255, Not 0
 "revision":1,
 "week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
 "entries":[
   {
   "type":"frame"/"message",
-  "id":1,
+  "id":1,  // 1 - 255, Not 0
   "start":"0:00",
   "stop":"12:00"
   },
   {
   "type":"frame"/"message",
-  "id":2,
+  "id":2,  // 1 - 255, Not 0
   "start":"0:00",  // start time: hour:minute
   "stop":"12:00"  // stop time: hour:minute
   },
@@ -1034,8 +1058,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1048,8 +1071,10 @@ JSON:
 ### RetrieveLogs
 
 Direction: Master -> Controller
+
 Description: The RETRIEVE LOG command is used to retrieve the logs stored in the device controller's memory. There are 3 types of logs: Fault log (500 entries), Alarm log (500 entries) and Event log (1000 entries).
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1057,8 +1082,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1082,8 +1106,10 @@ JSON:
 ### ResetLogs
 
 Direction: Master -> Controller
+
 Description: The RESET LOG command is used to reset the logs stored in the device controller's memory.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1091,8 +1117,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1105,8 +1130,10 @@ JSON:
 ### SignTest
 
 Direction: Master -> Controller
+
 Description: The SignTest command is used to display a test frame.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1122,8 +1149,7 @@ There are 5 predefined frames for "pixels":
 All pixels / Odd rows / Even rows / Odd columns / Even columns
 Controller will use frame_id:255 as current display. So, the "frame_id" in HeartbeatPoll will be 255 when displaying a test frame.
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1136,8 +1162,10 @@ JSON:
 ### DisplayAtomic
 
 Direction: Master -> Controller
+
 Description: The DisplayAtomic command is used to display atomic frames in a group.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1146,18 +1174,17 @@ JSON:
 "content":[
   {
   "sign_id":1,
-  "frame_id":1
+  "frame_id":1   // 1 - 255, NOT 0
   },
   {
   "sign_id":2,
-  "frame_id":2
+  "frame_id":2   // 1 - 255, NOT 0
   }
   ]
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1170,17 +1197,18 @@ JSON:
 ### Reboot
 
 Direction: Master -> Controller
+
 Description: Tell the controller to reboot.
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
-"cmd":"Reboot",
+"cmd":"Reboot"
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1193,8 +1221,10 @@ JSON:
 ### ExportConfig
 
 Direction: Master -> Controller
+
 Description: Export all configurations
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1202,25 +1232,26 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
 "replyms":13274693458,
 "cmd":"ExportConfig",
+"result":"OK" or error message,
 "file":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
 }
 ```
 
-The "file" was firstly made by "tar cz -f allconfig ./config/*", which means all files in path "config".
-Then a CRC32 was attched to end of "allconfig" and encoded to Base64.
+The "file" was firstly made by "tar cz -f cfg_export ./config/*", which means all files in path "config".
 
 ### ImportConfig
 
 Direction: Master -> Controller
+
 Description: Import all configurations
-JSON:
+
+Master send: JSON:
 
 ```JSON
 {
@@ -1229,8 +1260,7 @@ JSON:
 }
 ```
 
-Controller reply:
-JSON:
+Controller reply: JSON:
 
 ```JSON
 {
@@ -1239,5 +1269,4 @@ JSON:
 }
 ```
 
-When "file" was received. First decode it by Base64 and check the CRC32 at the tail.
-If CRC32 is correct, save file to "allconfig" and unpack it: "tar xf allconfig ./".
+Make a backup to "cfg_yyyyMMdd_HHmmss". Then save file to "cfg_import" and unpack it: "tar xf cfg_import".

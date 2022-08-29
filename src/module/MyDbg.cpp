@@ -12,7 +12,7 @@
 using namespace Utils;
 using namespace std;
 
-#define MyDbgBuf_SIZE 1024
+#define MyDbgBuf_SIZE PRINT_BUF_SIZE
 static char MyDbgBuf[MyDbgBuf_SIZE];
 
 void Log(int);

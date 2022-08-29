@@ -13,6 +13,8 @@
 #define KILO(x) (x * 1024UL)
 #define SEC_PER_DAY (24 * 3600)
 
+#define PRINT_BUF_SIZE 4096
+
 namespace Utils
 {
     enum class STATE3
@@ -209,6 +211,17 @@ namespace Utils
         static int16_t GetS16hl(uint8_t *p);
         /// \brief  Get int16_t from uint8_t array, [0]=low byte,[1]=high byte
         static int16_t GetS16lh(uint8_t *p);
+
+        /// \brief  Convert a binary file to base64
+        /// \return nullptr: failed
+        static std::vector<char> File2Base64(const char * filename);
+        /// \brief  Convert a binary file to base64
+        /// \return -1:failed; 0:success
+        static int File2Base64(const char * filename, std::vector<char> & vc);
+
+        /// \brief  Convert a base64 string to file
+        /// \return -1:failed; 0:success
+        static int Base64ToFile(std::string s, const char * filename);
     };
 
     class Crc

@@ -10,8 +10,10 @@
 #include <string>
 #include <sstream>
 #include <cstdarg>
+#include <memory>
 #include <module/Utils.h>
 #include <module/MyDbg.h>
+#include <3rdparty/mongoose/mongoose.h>
 
 using namespace Utils;
 using namespace std;
@@ -185,9 +187,9 @@ char *Cnvt::ParseU32ToAsc(uint32_t h, char *p)
 
 int Cnvt::GetIntArray(const char *src, int srcmax, int *dst, int min, int max)
 {
-    char buf[4096];
-    memcpy(buf, src, 4095);
-    buf[4096] = '\0'; // copy max 4095 chars
+    char buf[PRINT_BUF_SIZE];
+    memcpy(buf, src, PRINT_BUF_SIZE - 1);
+    buf[PRINT_BUF_SIZE - 1] = '\0'; // copy max 4095 chars
     char delim[] = ",:;. ";
     char *ptr = strtok(buf, delim);
     int cnt = 0;
@@ -279,6 +281,54 @@ int16_t Cnvt::GetS16lh(uint8_t *p)
     s.u8a[0] = p[0];
     s.u8a[1] = p[1];
     return s.i16;
+}
+
+vector<char> Cnvt::File2Base64(const char *filename)
+{
+    vector<char> vc;
+    int r = File2Base64(filename, vc);
+    if (r < 0)
+    {
+        vc.clear();
+    }
+    return vc;
+}
+
+int Cnvt::File2Base64(const char *filename, vector<char> &vc)
+{
+    struct stat statbuf;
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1 || fstat(fd, &statbuf) == -1)
+    {
+        return -1;
+    }
+    int len = statbuf.st_size;
+    unique_ptr<unsigned char[]> filebuf(new unsigned char[len]);
+    unsigned char *p = filebuf.get();
+    int slen = read(fd, p, len);
+    close(fd);
+    if (slen != len)
+    {
+        return -1;
+    }
+    vc.resize((len + 2) / 3 * 4 + 1);
+    mg_base64_encode(filebuf.get(), len, vc.data());
+    vc.back() = '\0';
+    return 0;
+}
+
+int Cnvt::Base64ToFile(std::string s, const char *filename)
+{
+    unique_ptr<unsigned char[]> buf(new unsigned char[s.size() * 3 / 4]);
+    int len = mg_base64_decode(s.c_str(), s.size(), (char *)(buf.get()));
+    int fd = open(filename, O_WRONLY);
+    if (fd == -1)
+    {
+        return -1;
+    }
+    int wlen = write(fd, buf.get(), len);
+    close(fd);
+    return wlen == len ? 0 : -1;
 }
 
 const uint8_t Crc::crc8_table[256] =
@@ -543,7 +593,7 @@ void Exec::CopyFile(const char *src, const char *dst)
     {
         throw runtime_error(StrFn::PrintfStr("Can't open %s to write", dst));
     }
-    uint8_t buf[1024];
+    uint8_t buf[PRINT_BUF_SIZE];
     while (1)
     {
         ssize_t rd = read(srcfd, &buf[0], sizeof(buf));
@@ -598,12 +648,12 @@ bool Exec::DirExists(const char *dirname)
 
 int Exec::Shell(const char *fmt, ...)
 {
-    char buf[256];
+    char buf[PRINT_BUF_SIZE];
     va_list args;
     va_start(args, fmt);
-    int len = vsnprintf(buf, 256, fmt, args);
+    int len = vsnprintf(buf, PRINT_BUF_SIZE - 1, fmt, args);
     va_end(args);
-    if (len >= 256)
+    if (len >= PRINT_BUF_SIZE - 1)
     {
         throw out_of_range(StrFn::PrintfStr("Shell command is too long:%s", buf));
     }
@@ -876,7 +926,7 @@ bool Bits::GetBit(int bitOffset)
 
 string Bits::ToString()
 {
-    char buf[1024];
+    char buf[PRINT_BUF_SIZE];
     int len = 0;
     for (int i = 0; i < size && i < 256; i++)
     {
@@ -954,23 +1004,22 @@ int StrFn::vsPrint(vector<string> *vs)
     return len;
 }
 
-
 string StrFn::PrintfStr(const char *fmt, ...)
 {
-	char buf[256];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buf, 255, fmt, args);
-	va_end(args);
-	return string(buf);
+    char buf[PRINT_BUF_SIZE];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, PRINT_BUF_SIZE - 1, fmt, args);
+    va_end(args);
+    return string(buf);
 }
 
-int Pick::PickStr(const char * v, const char ** src, const int len, const bool ignore_case)
+int Pick::PickStr(const char *v, const char **src, const int len, const bool ignore_case)
 {
     auto F = (ignore_case) ? strcasecmp : strcmp;
     for (int i = 0; i < len; i++)
     {
-        if (F(v,*src++)==0)
+        if (F(v, *src++) == 0)
         {
             return i;
         }

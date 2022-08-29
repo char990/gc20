@@ -1,9 +1,10 @@
 #pragma once
 
 #include <module/IGcEvent.h>
+#include <module/Utils.h>
 
-#define DC_INBUF_SIZE 256
 
+#define DC_PRINT_BUF_SIZE PRINT_BUF_SIZE
 class Command
 {
 public:
@@ -19,7 +20,7 @@ public:
     ~DebugConsole();
     virtual void EventsHandle(uint32_t events) override;
 private:
-    char inbuf[DC_INBUF_SIZE];
+    char inbuf[DC_PRINT_BUF_SIZE];
     int cnt{0};
     void Process();
     int _fcntl;

@@ -168,10 +168,10 @@ void FrameImage::FillCoreFromUciFrame()
     WriteToFile(filename);
 }
 
-void FrameImage::LoadBmpFromBase64(const char *base64, int len)
+void FrameImage::LoadBmpFromBase64(const char *buf, int len)
 {
     vector<char> bmpbuf(len / 4 * 3);
-    int blen = mg_base64_encode((const unsigned char *)base64, len, bmpbuf.data());
+    int blen = mg_base64_encode((const unsigned char *)buf, len, bmpbuf.data());
 
     int fd = open(uci_frame, O_WRONLY);
     if(fd<0)
@@ -185,7 +185,7 @@ void FrameImage::LoadBmpFromBase64(const char *base64, int len)
 
     newImg = false;
     base64Img.resize(len + 1);
-    memcpy(base64Img.data(), base64, len);
+    memcpy(base64Img.data(), buf, len);
     base64Img.back() = '\0';
 }
 
@@ -210,30 +210,10 @@ std::vector<char> &FrameImage::Save2Base64()
             }
         }
 
-        int fd;
-        struct stat statbuf;
-
-        fd = open(filename, O_RDONLY);
-        if (fd == -1 || fstat(fd, &statbuf) == -1)
+        if(Cnvt::File2Base64(filename, base64Img)==0)
         {
-            return base64Img;
+            newImg = false;
         }
-        int len = statbuf.st_size;
-        unique_ptr<unsigned char[]> filebuf(new unsigned char[len]);
-        unsigned char *p = filebuf.get();
-        int n;
-        int slen = 0;
-        while ((n = read(fd, p, 4096)) > 0)
-        {
-            p += n;
-            slen += n;
-        }
-        close(fd);
-
-        base64Img.resize((len + 2) / 3 * 4 + 1);
-        mg_base64_encode(filebuf.get(), len, base64Img.data());
-        base64Img.back() = '\0';
-        newImg = false;
     }
     return base64Img;
 }

@@ -719,7 +719,8 @@ void WsServer::CMD_DefaultUserConfig(struct mg_connection *c, json &msg, json &r
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     usercfg.LoadFactoryDefault();
     CMD_GetUserConfig(c, msg, reply);
-    reply.emplace("result", "'Reboot' to active new setting");
+    reply.emplace("result", "Controller will reboot after 5 seconds");
+    ctrller->RR_flag(RQST_REBOOT);
 }
 
 void WsServer::CMD_GetNetworkConfig(struct mg_connection *c, json &msg, json &reply)
@@ -1560,13 +1561,48 @@ void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann
 
 void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-
-    reply.emplace("file", "");
+    const char *cfg_file = "cfg_export";
+    char cmd[PRINT_BUF_SIZE];
+    sprintf(cmd, "rm %s; tar cz -f %s ./config/*", cfg_file);
+    system(cmd);
+    vector<char> vc;
+    if (Exec::FileExists(cfg_file) && Cnvt::File2Base64(cfg_file, vc) == 0)
+    {
+        reply.emplace("result", "OK");
+        reply.emplace("file", vc.data());
+    }
+    else
+    {
+        throw std::runtime_error("Creating config file package failed");
+    }
 }
 
 void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
+    const char *cfg_file = "cfg_import";
+    string file = GetStr(msg, "file");
+    if (file.size() <= 0)
+    {
+        throw invalid_argument("Invalid 'file'");
+    }
+    if (Cnvt::Base64ToFile(file, cfg_file) < 0)
+    {
+        throw std::runtime_error("Saving config file failed");
+    }
 
+    struct tm stm;
+    Time::GetLocalTime(stm);
+    char cmd[PRINT_BUF_SIZE];
+    sprintf(cmd, "tar cz -f cfg_%04d%02d%02d_%02d%02d%02d ./config/*",
+            stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
+    system(cmd);
+    sprintf(cmd, "tar xf %s", cfg_file);
+    int r = system(cmd);
+    if (r != 0)
+    {
+        throw std::runtime_error(StrFn::PrintfStr("Unpacking(tar x) failed = %d", r));
+    }
+    DbHelper::Instance().GetUciEvent().Push(0, "Import config");
     reply.emplace("result", "Controller will reboot after 5 seconds");
     ctrller->RR_flag(RQST_REBOOT);
 }
