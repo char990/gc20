@@ -11,7 +11,6 @@ unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
-map<struct mg_connection *, WsMsg *> WsServer::wsMsg;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
     : tmrEvt(tmrEvt)
@@ -60,9 +59,8 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
             // Websocket connection, which will receive MG_EV_WS_MSG events.
             mg_ws_upgrade(c, hm, NULL);
             uint8_t *ip = (uint8_t *)&c->rem.ip;
-            Ldebug("Websocket '%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
-            wsMsg[c] = new WsMsg();
-            c->fn_data = (void *)uri_ws;
+            Ldebug("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            c->fn_data = new WsClient();
         }
     }
     else if (ev == MG_EV_WS_MSG)
@@ -71,26 +69,25 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
         if (wm->data.len > 0)
         {
-            if (c->fn_data == (void *)uri_ws)
+            if (c->fn_data != nullptr)
             {
-                VMSWebSokectProtocol(c, wm);
+                WebSokectProtocol(c, wm);
             }
         }
     }
     else if (ev == MG_EV_CLOSE)
     {
-        if (c->fn_data == uri_ws)
+        if (c->fn_data != nullptr)
         {
             uint8_t *ip = (uint8_t *)&c->rem.ip;
-            Ldebug("Websocket '%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
-            delete wsMsg[c];
-            wsMsg.erase(c);
+            Ldebug("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            delete (WsClient *)c->fn_data;
         }
     }
     //(void)fn_data;
 }
 
-size_t my_mg_ws_send(struct mg_connection *c, json &reply)
+size_t WsServer::WebSocketSend(struct mg_connection *c, json &reply)
 {
     timeval t;
     gettimeofday(&t, nullptr);
@@ -203,20 +200,21 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ImportConfig),
 };
 
-void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
+void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
 {
-    if ((wsMsg[c]->len + wm->data.len) >= WsMsgBuf_SIZE)
+    auto wsClient = (WsClient *)c->fn_data;
+    if ((wsClient->len + wm->data.len) >= WsMsgBuf_SIZE)
     {
-        wsMsg[c]->len = 0;
+        wsClient->len = 0;
         if (wm->data.len >= WsMsgBuf_SIZE)
         {
             return;
         }
     }
-    char *p = wsMsg[c]->buf + wsMsg[c]->len;
+    char *p = wsClient->buf + wsClient->len;
     memcpy(p, wm->data.ptr, wm->data.len);
     p[wm->data.len] = 0;
-    wsMsg[c]->len += wm->data.len;
+    wsClient->len += wm->data.len;
     if (ws_hexdump & 1)
     {
         Pdebug("<<<mg_ws_message<<<\n%s", p);
@@ -224,14 +222,14 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
 
     if (json::accept(p, true))
     {
-        wsMsg[c]->len = 0; // clear msgbuf
+        wsClient->len = 0; // clear msgbuf
     }
     else
     {
-        if (p != wsMsg[c]->buf && json::accept(wsMsg[c]->buf, true))
+        if (p != wsClient->buf && json::accept(wsClient->buf, true))
         {
-            wsMsg[c]->len = 0; // clear msgbuf
-            p = wsMsg[c]->buf;
+            wsClient->len = 0; // clear msgbuf
+            p = wsClient->buf;
         }
         else
         {
@@ -247,106 +245,77 @@ void WsServer::VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_messag
             json msg = json::parse(p, nullptr, true, true);
             cmd = GetStr(msg, "cmd");
             reply.emplace("cmd", cmd);
-            int j = (wsMsg[c]->login) ? countof(CMD_LIST) : 1;
+            int j = (wsClient->login) ? countof(CMD_LIST) : 1;
             for (int i = 0; i < j; i++)
             {
                 if (strcasecmp(cmd.c_str(), CMD_LIST[i].cmd) == 0)
                 {
                     CMD_LIST[i].function(c, msg, reply);
-                    my_mg_ws_send(c, reply);
+                    WebSocketSend(c, reply);
                     return;
                 }
             }
-            reply.emplace("result", "Unknown cmd:" + cmd);
+            reply["result"] = "Unknown cmd:" + cmd;
         }
         catch (exception &e)
         {
-            reply.emplace("result", e.what());
+            reply["result"] = e.what();
         }
-        catch (string &s)
-        {
-            reply.emplace("result", s);
-        }
-        my_mg_ws_send(c, reply);
+        WebSocketSend(c, reply);
     }
 }
 
 void WsServer::CMD_Login(struct mg_connection *c, json &msg, json &reply)
 {
-    const char *r = nullptr;
-    auto msgp = GetStr(msg, "password");
+    auto wsClient = (WsClient *)c->fn_data;
     auto msgu = GetStr(msg, "user");
+    reply.emplace("user", msgu);
     auto ps = DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu);
-    if (ps == nullptr)
+    if (ps != nullptr && ps->passwd.compare(GetStr(msg, "password")) == 0)
     {
-        wsMsg[c]->user.clear();
-        wsMsg[c]->login = false;
-        r = "Invalid user";
+        wsClient->user = msgu;
+        wsClient->login = true;
+        reply.emplace("result", "OK");
     }
     else
     {
-        if (msgp.compare(DbHelper::Instance().GetUciPasswd().GetUserPasswd(msgu)->passwd) == 0)
-        {
-            wsMsg[c]->user.assign(msgu);
-            wsMsg[c]->login = true;
-            r = "OK";
-        }
-        else
-        {
-            wsMsg[c]->user.clear();
-            wsMsg[c]->login = false;
-            r = "Wrong password";
-        }
+        wsClient->user.clear();
+        wsClient->login = false;
+        reply.emplace("result", "Invalid user or password");
     }
-    reply.emplace("user", msgu);
-    reply.emplace("result", r);
 }
 
 void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &reply)
 {
-    auto msgu = GetStr(msg, "user");
+    auto wsClient = (WsClient *)c->fn_data;
     auto cp = GetStr(msg, "current");
     auto np = GetStr(msg, "new");
-    const char *r;
     if (np.length() < 4 || np.length() > 10)
     {
-        r = "Length of password should be 4 - 10";
+        throw invalid_argument("Length of password should be 4 - 10");
     }
     else
     {
         auto &up = DbHelper::Instance().GetUciPasswd();
-        auto ps = up.GetUserPasswd(msgu);
+        auto ps = up.GetUserPasswd(wsClient->user);
         if (ps == nullptr)
         {
-            r = "Invalid user";
+            throw invalid_argument("Invalid user");
         }
-        if (msgu.compare(wsMsg[c]->user) == 0 && cp.compare(ps->passwd) == 0)
+        else if (ps->passwd.compare(cp) != 0)
         {
-            bool invalid = false;
-            for (auto s : np)
-            {
-                if (s <= 0x20 || s == '"' || s == '\'' || s == '\\' || s >= 0x7F)
-                {
-                    invalid = true;
-                    break;
-                }
-            }
-            if (invalid)
-            {
-                r = "result", "Invalid character in new password";
-            }
-            else
-            {
-                up.Set(msgu, np, ps->permission);
-                r = "OK";
-            }
+            throw invalid_argument("Current password NOT match");
         }
-        else
+        for (auto s : np)
         {
-            r = "Current password NOT matched";
+            if (s <= 0x20 || s == '"' || s == '\'' || s == '\\' || s >= 0x7F)
+            {
+                throw invalid_argument("Invalid character in new password");
+            }
         }
+        up.Set(wsClient->user, np, ps->permission);
+        reply.emplace("result", "Password changed");
     }
-    reply.emplace("result", r);
 }
 
 void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &reply)
@@ -884,22 +853,19 @@ void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json &reply)
 void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
 {
     auto cmd = GetStr(msg, "rtc");
-    if (cmd.length() > 0)
+    if (cmd.length() <= 0)
     {
-        struct tm stm;
-        if ((Time::ParseLocalStrToTm(cmd.c_str(), &stm) == 0) &&
-            (ctrller->CmdUpdateTime(stm) == APP::ERROR::AppNoError))
-        {
-            reply.emplace("result", "OK");
-        }
-        else
-        {
-            reply.emplace("result", "SyntaxError");
-        }
+        throw ("No 'rtc' in command");
+    }
+    struct tm stm;
+    if ((Time::ParseLocalStrToTm(cmd.c_str(), &stm) == 0) &&
+        (ctrller->CmdUpdateTime(stm) == APP::ERROR::AppNoError))
+    {
+        reply.emplace("result", "OK");
     }
     else
     {
-        reply.emplace("result", "No \"rtc\" in command");
+        throw ("Invalid 'rtc'");
     }
 }
 
@@ -1077,7 +1043,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     int annulus = Pick::PickStr(str.c_str(), Annulus, ANNULUS_SIZE, true);
     if (annulus < 0)
     {
-        throw invalid_argument("CMD_SetFrame: annulus error");
+        throw ("CMD_SetFrame: annulus error");
     }
     conspicuity = (conspicuity << 3) | annulus;
     char rejectStr[64];
@@ -1323,7 +1289,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
         int d = Pick::PickStr(week[i].c_str(), WEEKDAY, countof(WEEKDAY), true);
         if (d < 0)
         {
-            throw invalid_argument("'week' error");
+            throw invalid_argument("Invalid 'week'");
         }
         else
         {
@@ -1332,7 +1298,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
     }
     if (bweek == 0)
     {
-        throw invalid_argument("'week' error");
+        throw invalid_argument("Invalid 'week'");
     }
     auto entries = GetVector<json>(msg, "entries");
     vector<uint8_t> cmd(entries.size() * 6 + 4 + (entries.size() == 6 ? 0 : 1));
@@ -1355,7 +1321,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
                 return p;
             }
         }
-        throw invalid_argument("Invalid time");
+        throw invalid_argument("Invalid " + string(str) + " time");
     };
     for (int i = 0; i < entries.size(); i++)
     {
@@ -1577,7 +1543,7 @@ void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     }
     else
     {
-        throw std::runtime_error("Creating config file package failed");
+        throw runtime_error("Creating config file package failed");
     }
 }
 
@@ -1591,7 +1557,7 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     }
     if (Cnvt::Base64ToFile(file, cfg_file) < 0)
     {
-        throw std::runtime_error("Saving config file failed");
+        throw runtime_error("Saving config file failed");
     }
 
     struct tm stm;
@@ -1604,7 +1570,7 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     int r = system(cmd);
     if (r != 0)
     {
-        throw std::runtime_error(StrFn::PrintfStr("Unpacking(tar x) failed = %d", r));
+        throw runtime_error(StrFn::PrintfStr("Unpacking(tar x) failed = %d", r));
     }
     DbHelper::Instance().GetUciEvent().Push(0, "Import config");
     reply.emplace("result", "Controller will reboot after 5 seconds");

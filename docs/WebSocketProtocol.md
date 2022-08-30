@@ -303,14 +303,13 @@ Controller reply: JSON:
 
 Direction: Master -> Controller
 
-Description: Change user password. Max length is 10 letters.
+Description: Change current user password. Max length is 10 letters.
 
 Master send: JSON:
 
 ```JSON
 {
 "cmd":"ChangePassword",
-"user":"admin",
 "current":"123456",
 "new":"qwert"
 }

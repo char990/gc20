@@ -18,11 +18,11 @@ public:
     void (*function)(struct mg_connection *c, json &msg, json &rpl);
 };
 
-class WsMsg
+class WsClient
 {
 #define WsMsgBuf_SIZE 1024 * 1024
 public:
-    WsMsg() { buf[0] = '\0'; }
+    WsClient() { buf[0] = '\0'; }
     int len{0};
     char buf[WsMsgBuf_SIZE];
     bool login{false};
@@ -41,7 +41,7 @@ private:
     struct mg_mgr mgr; // Event manager
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
     TimerEvent *tmrEvt;
-    static std::map<struct mg_connection *, WsMsg *> wsMsg;
+
     static const char *uri_ws;
 
     static int GetInt(json &msg, const char *str, int min, int max);
@@ -65,7 +65,9 @@ private:
         }
     }
 
-    static void VMSWebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm);
+    static void WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm);
+    static size_t WebSocketSend(struct mg_connection *c, json &reply);
+
     static const WsCmd CMD_LIST[];
 
     static void CMD_Login(struct mg_connection *c, json &msg, json &reply);
