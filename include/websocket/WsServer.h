@@ -108,6 +108,9 @@ private:
     static void CMD_Reboot(struct mg_connection *c, json &msg, json &reply);
     static void CMD_ExportConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_ImportConfig(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_UpgradeFirmware(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_BackupFirmware(struct mg_connection *c, json &msg, json &reply);
     
     static void cmd_ResetLog(uint8_t logcode, json &reply);
+    static void BackupFirmware();
 };

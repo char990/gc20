@@ -57,6 +57,8 @@
     - [Reboot](#reboot)
     - [ExportConfig](#exportconfig)
     - [ImportConfig](#importconfig)
+    - [BackupFirmware](#backupfirmware)
+    - [UpgradeFirmware](#upgradefirmware)
 
 ---
 
@@ -303,7 +305,10 @@ Controller reply: JSON:
 
 Direction: Master -> Controller
 
-Description: Change current user password. Max length is 10 letters.
+Description: Change current user password. Max length is 10 characters.
+
+Note:
+Password characters are printable ASCII(from 0x20 to 0x7E) and exclude ```' '```(space), ```'#'```(hash), ```'"'```(double quote), ```'''```(single quote), ```'\'```(backslash)
 
 Master send: JSON:
 
@@ -1242,7 +1247,7 @@ Controller reply: JSON:
 }
 ```
 
-The "file" was firstly made by "tar cz -f cfg_export ./config/*", which means all files in path "config".
+The "file" was made by "tar -czf config.bak ./config/*", which means all files in path "config".
 
 ### ImportConfig
 
@@ -1264,8 +1269,63 @@ Controller reply: JSON:
 ```JSON
 {
 "replyms":13274693458,
+"cmd":"ImportConfig",
 "result":"OK" or error message
 }
 ```
 
-Make a backup to "cfg_yyyyMMdd_HHmmss". Then save file to "cfg_import" and unpack it: "tar xf cfg_import".
+First, make a backup of current config to "config.bak". Then save file to "cfg_import" and unpack it("tar xf cfg_import") to overwrite the files in "./config/".
+
+### BackupFirmware
+
+Direction: Master -> Controller
+
+Description: Backup firmware
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"BackupFirmware"
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"BackupFirmware",
+"file":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
+}
+```
+
+The "file" was created by "tar -czf goblin.tar.gz goblin goblin.md5".
+
+### UpgradeFirmware
+
+Direction: Master -> Controller
+
+Description: Upgrade firmware
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"UpgradeFirmware",
+"file":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……"
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"UpgradeFirmware",
+"result":"Controller will reboot after 5 seconds" or error message
+}
+```
+
+The "file" is saved to "goblin_temp/goblin.tar.gz". Then go into "goblin_temp" and unpack it "tar -xf goblin.tar.gz".
+If all files are good, exit. "goblind" will check and load new firmware.

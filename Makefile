@@ -36,29 +36,29 @@ $(APP_DIR)/$(TARGET): $(OBJECTS)
 
 -include $(DEPENDENCIES)
 
-.PHONY: all build clean debug release info zip
+.PHONY: all build clean debug release info pack
 
 build:
 	@touch $(SRC_ROOT)/main.cpp
 	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)
 
-zip:
-	-@./gz
+pack:
+	-@./pack
 
 debug: 
 	@echo "debug : $(BUILDTIME)" > buildtime
 debug: CXXFLAGS += -DDEBUG -g -O0
 debug: CFLAGS += -DDEBUG -g -O0
 debug: all
-debug: zip
+debug: pack
 
 release: 
 	@echo "release : $(BUILDTIME)" > buildtime
 release: CXXFLAGS += -O2
 release: CFLAGS += -O2
 release: all
-release: zip
+release: pack
 
 clean:
 	-@rm -rvf $(OBJ_DIR)/*

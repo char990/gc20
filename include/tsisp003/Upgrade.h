@@ -2,6 +2,11 @@
 
 #include <cstdint>
 
+extern const char *GDIR;
+extern const char *GFILE;
+extern const char *GMD5FILE;
+extern const char *UFILE;
+
 class Upgrade
 {
 public:
@@ -24,10 +29,8 @@ private:
 
     uint16_t pktN;
 
-    const char *GDIR = "goblin_temp";
-    const char *GFILE = "goblin";
-    const char *GMD5FILE = "goblin.md5";
-    const char *UFILE = "goblin.zip";
     void RemoveAllTempFiles();
     char md5[33]{0};
 };
+
+extern int UnpackFirmware(char *md5, char *buf);

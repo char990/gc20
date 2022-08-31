@@ -203,9 +203,10 @@ int TsiSp003App::FA12_StartUpgrading(uint8_t *data, int len)
     {
         if (prod.IsUpgradeAllowed())
         {
-            if (upgrade.Start())
+            int r = upgrade.Start();
+            if (r != 0)
             {
-                db.GetUciAlarm().Push(0, "Upgrading failed: zip/md5 error");
+                db.GetUciAlarm().Push(0, "Upgrading failed: packet/md5 error = %d", r);
                 Reject(APP::ERROR::DataChksumError);
             }
             else

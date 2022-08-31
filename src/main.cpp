@@ -35,6 +35,7 @@
 #include <3rdparty/catch2/enable_test.h>
 
 using namespace std;
+using namespace Utils;
 
 const char *FirmwareVer = "0120";
 const char *CONFIG_PATH = "config";
@@ -214,6 +215,7 @@ int main(int argc, char *argv[])
             throw invalid_argument("path is longer than 64 bytes.\n");
         }
         PrintVersion(true);
+
         pDS3231 = new DS3231{1};
         TickTock *pTickTock = new TickTock{};
 

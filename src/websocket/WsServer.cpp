@@ -3,6 +3,7 @@
 #include <module/MyDbg.h>
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
+#include <tsisp003/Upgrade.h>
 
 using namespace std;
 using namespace Utils;
@@ -198,6 +199,8 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(Reboot),
     CMD_ITEM(ExportConfig),
     CMD_ITEM(ImportConfig),
+    CMD_ITEM(UpgradeFirmware),
+    CMD_ITEM(BackupFirmware),
 };
 
 void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -239,11 +242,10 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
     if (p != nullptr)
     {
         json reply;
-        string cmd;
         try
         {
-            json msg = json::parse(p, nullptr, true, true);
-            cmd = GetStr(msg, "cmd");
+            auto msg = json::parse(p, nullptr, true, true);
+            auto cmd = GetStr(msg, "cmd");
             reply.emplace("cmd", cmd);
             int j = (wsClient->login) ? countof(CMD_LIST) : 1;
             for (int i = 0; i < j; i++)
@@ -308,7 +310,7 @@ void WsServer::CMD_ChangePassword(struct mg_connection *c, json &msg, json &repl
         }
         for (auto s : np)
         {
-            if (s <= 0x20 || s == '"' || s == '\'' || s == '\\' || s >= 0x7F)
+            if (s <= 0x20 || s == '#' || s == '"' || s == '\'' || s == '\\' || s >= 0x7F)
             {
                 throw invalid_argument("Invalid character in new password");
             }
@@ -855,7 +857,7 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
     auto cmd = GetStr(msg, "rtc");
     if (cmd.length() <= 0)
     {
-        throw ("No 'rtc' in command");
+        throw("No 'rtc' in command");
     }
     struct tm stm;
     if ((Time::ParseLocalStrToTm(cmd.c_str(), &stm) == 0) &&
@@ -865,7 +867,7 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
     }
     else
     {
-        throw ("Invalid 'rtc'");
+        throw("Invalid 'rtc'");
     }
 }
 
@@ -1043,7 +1045,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     int annulus = Pick::PickStr(str.c_str(), Annulus, ANNULUS_SIZE, true);
     if (annulus < 0)
     {
-        throw ("CMD_SetFrame: annulus error");
+        throw("CMD_SetFrame: annulus error");
     }
     conspicuity = (conspicuity << 3) | annulus;
     char rejectStr[64];
@@ -1529,14 +1531,12 @@ void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann
     ctrller->RR_flag(RQST_REBOOT);
 }
 
+const char *bak_file = "config.bak";
 void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-    const char *cfg_file = "cfg_export";
-    char cmd[PRINT_BUF_SIZE];
-    sprintf(cmd, "rm %s; tar cz -f %s ./config/*", cfg_file);
-    system(cmd);
     vector<char> vc;
-    if (Exec::FileExists(cfg_file) && Cnvt::File2Base64(cfg_file, vc) == 0)
+    Exec::Shell("tar -czf %s ./config/*", bak_file);
+    if (Exec::FileExists(bak_file) && Cnvt::File2Base64(bak_file, vc) == 0)
     {
         reply.emplace("result", "OK");
         reply.emplace("file", vc.data());
@@ -1560,14 +1560,10 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
         throw runtime_error("Saving config file failed");
     }
 
-    struct tm stm;
-    Time::GetLocalTime(stm);
-    char cmd[PRINT_BUF_SIZE];
-    sprintf(cmd, "tar cz -f cfg_%04d%02d%02d_%02d%02d%02d ./config/*",
-            stm.tm_year + 1900, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
-    system(cmd);
-    sprintf(cmd, "tar xf %s", cfg_file);
-    int r = system(cmd);
+    // make a backup
+    Exec::Shell("tar -czf %s ./config/*", bak_file);
+
+    int r = Exec::Shell("tar -xf %s", cfg_file);
     if (r != 0)
     {
         throw runtime_error(StrFn::PrintfStr("Unpacking(tar x) failed = %d", r));
@@ -1575,4 +1571,57 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     DbHelper::Instance().GetUciEvent().Push(0, "Import config");
     reply.emplace("result", "Controller will reboot after 5 seconds");
     ctrller->RR_flag(RQST_REBOOT);
+}
+
+void WsServer::BackupFirmware()
+{
+    Exec::Shell("md5sum %s>%s", GFILE, GMD5FILE);
+    Exec::Shell("tar -czf %s %s %s", UFILE, GFILE, GMD5FILE);
+}
+
+void WsServer::CMD_BackupFirmware(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    BackupFirmware();
+    vector<char> vc;
+    if (Exec::FileExists(UFILE) && Cnvt::File2Base64(UFILE, vc) == 0)
+    {
+        reply.emplace("result", "OK");
+        reply.emplace("file", vc.data());
+    }
+    else
+    {
+        throw runtime_error("Creating firmware file package failed");
+    }
+}
+
+void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    string file = GetStr(msg, "file");
+    if (file.size() <= 0)
+    {
+        throw invalid_argument("Invalid 'file'");
+    }
+    char gufile[64];
+    sprintf(gufile, "%s/%s", GDIR, UFILE);
+    if (Cnvt::Base64ToFile(file, gufile) < 0)
+    {
+        throw runtime_error(StrFn::PrintfStr("Saving %s failed", gufile));
+    }
+
+    BackupFirmware();
+
+    char buf[PRINT_BUF_SIZE];
+    char md5[33];
+    int r = UnpackFirmware(md5, buf);
+    Ldebug(buf);
+    if (r == 0)
+    {
+        DbHelper::Instance().GetUciEvent().Push(0, "Upgrading success: MD5=%s", md5);
+        reply.emplace("result", "Controller will reboot after 5 seconds");
+        ctrller->RR_flag(RQST_RESTART);
+    }
+    else
+    {
+        reply.emplace("result", buf);
+    }
 }

@@ -5,6 +5,11 @@
 #include <module/Utils.h>
 #include <module/MyDbg.h>
 
+const char *GDIR = "goblin_temp";
+const char *GFILE = "goblin";
+const char *GMD5FILE = "goblin.md5";
+const char *UFILE = "goblin.tar.gz";
+
 using namespace Utils;
 
 #define FILE_SIZE_MIN (64 * 1024)
@@ -29,7 +34,7 @@ int Upgrade::FileInfo(uint8_t *data)
     int fd = open(pf, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd < 0)
     {
-        Ldebug("Upgrade::FileInfo: Can't open '%s'",pf);
+        Ldebug("Upgrade::FileInfo: Can't open '%s'", pf);
         return fd;
     }
     close(fd);
@@ -124,58 +129,9 @@ int Upgrade::Start()
             return 2;
         }
     }
-    char cwd[256];
-    if (getcwd(cwd, 255) == nullptr)
-    {
-        Ldebug("Upgrade::CheckMD5: path is longer than 256 bytes.");
-        return 3;
-    }
-    if (chdir(GDIR) != 0)
-    {
-        Ldebug("Upgrade::CheckMD5: Can't change path to '%s'", GDIR);
-        return 4;
-    }
-    int r = Exec::Shell("unzip -o -q %s", UFILE);
-    if (r != 0)
-    {
-        Ldebug("Upgrade::Start: Fail to unzip '%s'", UFILE);
-        r = 5;
-    }
-    else
-    {
-        if (!Exec::FileExists(GFILE))
-        {
-            Ldebug("Upgrade::Start: Can't find '%s'", GFILE);
-            r = 6;
-        }
-        else if (!Exec::FileExists(GMD5FILE))
-        {
-            Ldebug("Upgrade::Start: Can't find '%s'", GMD5FILE);
-            r = 7;
-        }
-        else
-        {
-            Ldebug("Upgrade::Start: unzip '%s' success", UFILE);
-            r = Exec::Shell("md5sum -c %s", GMD5FILE);
-            if (r != 0)
-            {
-                Ldebug("Upgrade::Start: MD5 NOT matched");
-                r = 8;
-            }
-            else
-            {
-                Ldebug("Upgrade::Start: MD5 success");
-                int md5f = open(GMD5FILE, O_RDONLY);
-                if(md5f)
-                {
-                    read(md5f, md5, 32);
-                    md5[32]='\0';
-                    close(md5f);
-                }
-            }
-        }
-    }
-    chdir(cwd);
+    char buf[PRINT_BUF_SIZE];
+    int r = UnpackFirmware(md5, buf);
+    Ldebug(buf);
     filelen = 0;
     pktsizeK = 0;
     totalPkt = 0;
@@ -190,4 +146,64 @@ void Upgrade::RemoveAllTempFiles()
     remove(GFILE);
     remove(GMD5FILE);
     remove(UFILE);
+}
+
+int UnpackFirmware(char *md5, char *buf)
+{
+    if (chdir(GDIR) != 0)
+    {
+        sprintf(buf, "Upgrade::CheckMD5: Can't change path to '%s'", GDIR);
+        return 3;
+    }
+    int r = 0;
+    try
+    {
+        if (Exec::Shell("tar -xf %s", UFILE) != 0)
+        {
+            sprintf(buf, "Upgrade: Fail to unpack '%s'", UFILE);
+            r = 4;
+        }
+        else
+        {
+            if (!Exec::FileExists(GFILE))
+            {
+                sprintf(buf, "Upgrade: Can't find '%s'", GFILE);
+                r = 6;
+            }
+            else if (!Exec::FileExists(GMD5FILE))
+            {
+                sprintf(buf, "Upgrade: Can't find '%s'", GMD5FILE);
+                r = 7;
+            }
+            else
+            {
+                if (Exec::Shell("md5sum -c %s", GMD5FILE) != 0)
+                {
+                    sprintf(buf, "Upgrade: MD5 NOT matched");
+                    r = 8;
+                }
+                else
+                {
+                    int md5f = open(GMD5FILE, O_RDONLY);
+                    if (md5f > 0 && read(md5f, md5, 32) == 32)
+                    {
+                        md5[32] = '\0';
+                        sprintf(buf, "Upgrade: Unpack firmware success");
+                    }
+                    else
+                    {
+                        sprintf(buf, "Upgrade: Can't get MD5 from '%s'", GMD5FILE);
+                        r = 9;
+                    }
+                    close(md5f);
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        r = -1;
+    }
+    chdir("..");
+    return r;
 }
