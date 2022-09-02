@@ -116,7 +116,10 @@ Group::Group(uint8_t groupId)
     }
 
     bool pwr = (proc.GetPower(groupId) != 0);
-    pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, pwr);
+    if (pPinCmdPower == nullptr)
+    {
+        pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, pwr);
+    }
     for (auto &sign : vSigns)
     {
         sign->SignErr(DEV::ERROR::PoweredOffByCommand, !pwr);
@@ -127,7 +130,11 @@ Group::Group(uint8_t groupId)
 
 Group::~Group()
 {
-    delete pPinCmdPower;
+    if (pPinCmdPower != nullptr)
+    {
+        delete pPinCmdPower;
+        pPinCmdPower = nullptr;
+    }
     delete[] orBuf;
     delete[] txBuf;
     delete dsBak;
@@ -791,8 +798,8 @@ bool Group::TaskSignTest(int *_ptLine)
         db.GetUciProcess().SetDisp(groupId, buf, 3);
         db.GetUciEvent().Push(0, "Group[%d]Exit test mode. SignDisplayFrame:[%d]", groupId, 0);
         DispMode(0);
-        ReloadCurrent(1); // force to reload
-        dsNext->N_A();    // avoid to call LoadDsNext()
+        ReloadCurrent(1);  // force to reload
+        dsNext->N_A();     // avoid to call LoadDsNext()
         dsCurrent->Frm0(); // set current, force TaskFrm to display Frm[0]
     }
     PT_END();

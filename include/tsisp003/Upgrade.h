@@ -19,6 +19,13 @@ public:
     uint16_t TotalPkt() { return totalPkt; };
     const char *MD5() { return md5; };
 
+    static void BackupFirmware();
+
+    // Unpack Firmware and check MD5
+    // return:  0: success and info saved in buf and MD5 saved in md5
+    //          others: failed and error info saved in buf
+    static int UnpackFirmware(char *buf, char *md5);
+
 private:
     uint8_t filetype;
     uint8_t config;
@@ -32,5 +39,3 @@ private:
     void RemoveAllTempFiles();
     char md5[33]{0};
 };
-
-extern int UnpackFirmware(char *md5, char *buf);

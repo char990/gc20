@@ -1247,7 +1247,12 @@ Controller reply: JSON:
 }
 ```
 
-The "file" was made by "tar -czf config.bak ./config/*", which means all files in path "config".
+Making file:
+
+1. Make a .tar by "tar -cf cfg.tar ./config/*", which means all files in path "config"
+2. Make MD5 by "md5sum cfg.tar > cfg.md5"
+3. Make a .tar by "tar -cf config.tar cfg.tar cfg.md5"
+4. Encode config.tar to base64
 
 ### ImportConfig
 
@@ -1274,7 +1279,12 @@ Controller reply: JSON:
 }
 ```
 
-First, make a backup of current config to "config.bak". Then save file to "cfg_import" and unpack it("tar xf cfg_import") to overwrite the files in "./config/".
+Unpacking file:
+
+1. Make a backup of current config to "config.tar"
+2. Save file to "cfg_import"
+3. Unpack it("tar xf cfg_import") and there should be cfg.tar and cfg.md5
+4. Check MD5 and unpack cfg.tar("tar xf cfg.tar").File in "./config/" may be overwrited
 
 ### BackupFirmware
 
@@ -1300,7 +1310,7 @@ Controller reply: JSON:
 }
 ```
 
-The "file" was created by "tar -czf goblin.tar.gz goblin goblin.md5".
+The "file" was created by "tar -cf goblin.tar goblin goblin.md5".
 
 ### UpgradeFirmware
 
@@ -1327,5 +1337,5 @@ Controller reply: JSON:
 }
 ```
 
-The "file" is saved to "goblin_temp/goblin.tar.gz". Then go into "goblin_temp" and unpack it "tar -xf goblin.tar.gz".
+The "file" is saved to "goblin_temp/goblin.tar". Then go into "goblin_temp" and unpack it "tar -xf goblin.tar".
 If all files are good, exit. "goblind" will check and load new firmware.

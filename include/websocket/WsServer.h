@@ -20,7 +20,7 @@ public:
 
 class WsClient
 {
-#define WsMsgBuf_SIZE 1024 * 1024
+#define WsMsgBuf_SIZE (4 * 1024 * 1024)
 public:
     WsClient() { buf[0] = '\0'; }
     int len{0};
@@ -37,6 +37,7 @@ public:
     virtual void PeriodicRun() override;
 
 private:
+    static int activeCnt;
     static Controller *ctrller;
     struct mg_mgr mgr; // Event manager
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
@@ -53,7 +54,7 @@ private:
         try
         {
             auto x = msg[str].get<std::vector<T>>();
-            if (x.size()==0)
+            if (x.size() == 0)
             {
                 throw false;
             }
@@ -61,7 +62,7 @@ private:
         }
         catch (...)
         {
-            throw std::invalid_argument(Utils::StrFn::PrintfStr("Invalid '%s'",str));
+            throw std::invalid_argument(Utils::StrFn::PrintfStr("Invalid '%s'", str));
         }
     }
 
@@ -110,7 +111,7 @@ private:
     static void CMD_ImportConfig(struct mg_connection *c, json &msg, json &reply);
     static void CMD_UpgradeFirmware(struct mg_connection *c, json &msg, json &reply);
     static void CMD_BackupFirmware(struct mg_connection *c, json &msg, json &reply);
-    
+
     static void cmd_ResetLog(uint8_t logcode, json &reply);
-    static void BackupFirmware();
+    static void BackupConfig();
 };

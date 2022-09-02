@@ -12,6 +12,7 @@ unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
+int WsServer::activeCnt = 0;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
     : tmrEvt(tmrEvt)
@@ -56,12 +57,20 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         struct mg_http_message *hm = (struct mg_http_message *)ev_data;
         if (mg_http_match_uri(hm, uri_ws))
         {
-            // Upgrade to websocket. From now on, a connection is a full-duplex
-            // Websocket connection, which will receive MG_EV_WS_MSG events.
-            mg_ws_upgrade(c, hm, NULL);
-            uint8_t *ip = (uint8_t *)&c->rem.ip;
-            Ldebug("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
-            c->fn_data = new WsClient();
+            if (activeCnt < 4)
+            {
+                // Upgrade to websocket. From now on, a connection is a full-duplex
+                // Websocket connection, which will receive MG_EV_WS_MSG events.
+                mg_ws_upgrade(c, hm, NULL);
+                uint8_t *ip = (uint8_t *)&c->rem.ip;
+                Ldebug("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+                c->fn_data = new WsClient();
+                activeCnt++;
+            }
+            else
+            {
+                c->fn_data = nullptr;
+            }
         }
     }
     else if (ev == MG_EV_WS_MSG)
@@ -83,6 +92,10 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
             uint8_t *ip = (uint8_t *)&c->rem.ip;
             Ldebug("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             delete (WsClient *)c->fn_data;
+            if (activeCnt > 0)
+            {
+                activeCnt--;
+            }
         }
     }
     //(void)fn_data;
@@ -95,6 +108,9 @@ size_t WsServer::WebSocketSend(struct mg_connection *c, json &reply)
     long long int ms = t.tv_sec;
     ms = ms * 1000 + t.tv_usec / 1000;
     reply.emplace("replyms", ms);
+    char buf[32];
+    Time::ParseTimeToLocalStr(&t, buf);
+    reply.emplace("Datetime", buf);
     auto s = reply.dump();
     if (ws_hexdump & 1)
     {
@@ -223,6 +239,10 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
         Pdebug("<<<mg_ws_message<<<\n%s", p);
     }
 
+    if (wsClient->len <= 0 || wsClient->buf[wsClient->len - 1] != '}')
+    {
+        return;
+    }
     if (json::accept(p, true))
     {
         wsClient->len = 0; // clear msgbuf
@@ -1531,57 +1551,87 @@ void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann
     ctrller->RR_flag(RQST_REBOOT);
 }
 
-const char *bak_file = "config.bak";
-void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+const char *CONFIG_TAR = "config.tar";
+const char *CFG_TAR = "cfg.tar";
+const char *CFG_MD5 = "cfg.md5";
+const char *CFG_IMPORT = "cfg_imp.tar";
+
+void WsServer::BackupConfig()
 {
-    vector<char> vc;
-    Exec::Shell("tar -czf %s ./config/*", bak_file);
-    if (Exec::FileExists(bak_file) && Cnvt::File2Base64(bak_file, vc) == 0)
+    int r = 1;
+    Exec::Shell(TO_NULL("rm %s %s %s"), CONFIG_TAR, CFG_TAR, CFG_MD5);
+    Exec::Shell("tar -cf %s config/", CFG_TAR);
+    if (Exec::FileExists(CFG_TAR))
     {
-        reply.emplace("result", "OK");
-        reply.emplace("file", vc.data());
+        Exec::Shell("md5sum %s > %s", CFG_TAR, CFG_MD5);
+        if (Exec::FileExists(CFG_MD5))
+        {
+            Exec::Shell("tar -cf %s %s %s", CONFIG_TAR, CFG_TAR, CFG_MD5);
+            if (Exec::FileExists(CONFIG_TAR))
+            {
+                r = 0;
+            }
+        }
     }
-    else
+    Exec::Shell(TO_NULL("rm %s %s"), CFG_TAR, CFG_MD5);
+    if (r)
     {
         throw runtime_error("Creating config file package failed");
     }
 }
 
+void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    vector<char> vc;
+    BackupConfig();
+    if (Cnvt::File2Base64(CONFIG_TAR, vc) == 0)
+    {
+        reply.emplace("result", "OK");
+        reply.emplace("file", vc.data());
+        return;
+    }
+    throw runtime_error("Can't open config file package");
+}
+
 void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-    const char *cfg_file = "cfg_import";
     string file = GetStr(msg, "file");
     if (file.size() <= 0)
     {
         throw invalid_argument("Invalid 'file'");
     }
-    if (Cnvt::Base64ToFile(file, cfg_file) < 0)
+    if (Cnvt::Base64ToFile(file, CFG_IMPORT) < 0)
     {
         throw runtime_error("Saving config file failed");
     }
-
-    // make a backup
-    Exec::Shell("tar -czf %s ./config/*", bak_file);
-
-    int r = Exec::Shell("tar -xf %s", cfg_file);
-    if (r != 0)
+    BackupConfig();
+    char buf[PRINT_BUF_SIZE];
+    int len = 0;
+    if (Exec::Shell("tar -xf %s", CFG_IMPORT) != 0)
     {
-        throw runtime_error(StrFn::PrintfStr("Unpacking(tar x) failed = %d", r));
+        len = sprintf(buf, "Unpacking %s failed", CFG_IMPORT);
+    }
+    else if (Exec::Shell(TO_NULL("md5sum -c %s"), CFG_MD5) != 0)
+    {
+        len = sprintf(buf, "MD5 NOT match");
+    }
+    else if (Exec::Shell("tar -xf %s", CFG_TAR) != 0)
+    {
+        len = sprintf(buf, "Unpacking %s failed", CFG_TAR);
+    }
+    Exec::Shell(TO_NULL("rm %s %s"), CFG_TAR, CFG_MD5);
+    if (len > 0)
+    {
+        throw runtime_error(StrFn::PrintfStr("Unpacking %s failed", CFG_TAR));
     }
     DbHelper::Instance().GetUciEvent().Push(0, "Import config");
-    reply.emplace("result", "Controller will reboot after 5 seconds");
-    ctrller->RR_flag(RQST_REBOOT);
-}
-
-void WsServer::BackupFirmware()
-{
-    Exec::Shell("md5sum %s>%s", GFILE, GMD5FILE);
-    Exec::Shell("tar -czf %s %s %s", UFILE, GFILE, GMD5FILE);
+    reply.emplace("result", "Controller will restart after 5 seconds");
+    ctrller->RR_flag(RQST_RESTART);
 }
 
 void WsServer::CMD_BackupFirmware(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-    BackupFirmware();
+    Upgrade::BackupFirmware();
     vector<char> vc;
     if (Exec::FileExists(UFILE) && Cnvt::File2Base64(UFILE, vc) == 0)
     {
@@ -1608,20 +1658,19 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
         throw runtime_error(StrFn::PrintfStr("Saving %s failed", gufile));
     }
 
-    BackupFirmware();
+    Upgrade::BackupFirmware();
 
     char buf[PRINT_BUF_SIZE];
     char md5[33];
-    int r = UnpackFirmware(md5, buf);
-    Ldebug(buf);
-    if (r == 0)
+    if (Upgrade::UnpackFirmware(buf, md5) == 0)
     {
-        DbHelper::Instance().GetUciEvent().Push(0, "Upgrading success: MD5=%s", md5);
-        reply.emplace("result", "Controller will reboot after 5 seconds");
+        DbHelper::Instance().GetUciEvent().Push(0, buf);
+        reply.emplace("result", "Controller will restart after 5 seconds");
         ctrller->RR_flag(RQST_RESTART);
     }
     else
     {
         reply.emplace("result", buf);
     }
+    Ldebug(buf);
 }

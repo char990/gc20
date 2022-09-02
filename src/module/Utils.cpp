@@ -303,8 +303,8 @@ int Cnvt::File2Base64(const char *filename, vector<char> &vc)
         return -1;
     }
     int len = statbuf.st_size;
-    unique_ptr<unsigned char[]> filebuf(new unsigned char[len]);
-    unsigned char *p = filebuf.get();
+    vector<unsigned char> filebuf(len);
+    unsigned char *p = filebuf.data();
     int slen = read(fd, p, len);
     close(fd);
     if (slen != len)
@@ -312,21 +312,22 @@ int Cnvt::File2Base64(const char *filename, vector<char> &vc)
         return -1;
     }
     vc.resize((len + 2) / 3 * 4 + 1);
-    mg_base64_encode(filebuf.get(), len, vc.data());
+    mg_base64_encode(p, len, vc.data());
     vc.back() = '\0';
     return 0;
 }
 
 int Cnvt::Base64ToFile(std::string s, const char *filename)
 {
-    unique_ptr<unsigned char[]> buf(new unsigned char[s.size() * 3 / 4]);
-    int len = mg_base64_decode(s.c_str(), s.size(), (char *)(buf.get()));
-    int fd = open(filename, O_WRONLY);
+    vector<char> filebuf(s.size() * 3 / 4);
+    char *p = filebuf.data();
+    int len = mg_base64_decode(s.c_str(), s.size(), p);
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd == -1)
     {
         return -1;
     }
-    int wlen = write(fd, buf.get(), len);
+    int wlen = write(fd, p, len);
     close(fd);
     return wlen == len ? 0 : -1;
 }
@@ -653,7 +654,7 @@ int Exec::Shell(const char *fmt, ...)
     va_start(args, fmt);
     int len = vsnprintf(buf, PRINT_BUF_SIZE - 1, fmt, args);
     va_end(args);
-    if (len >= PRINT_BUF_SIZE - 1)
+    if (len >= PRINT_BUF_SIZE - 32)
     {
         throw out_of_range(StrFn::PrintfStr("Shell command is too long:%s", buf));
     }

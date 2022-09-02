@@ -15,6 +15,9 @@
 
 #define PRINT_BUF_SIZE 4096
 
+
+#define TO_NULL(cmd) (cmd " >/dev/null 2>&1")
+
 namespace Utils
 {
     enum class STATE3

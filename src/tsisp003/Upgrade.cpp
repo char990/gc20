@@ -8,7 +8,7 @@
 const char *GDIR = "goblin_temp";
 const char *GFILE = "goblin";
 const char *GMD5FILE = "goblin.md5";
-const char *UFILE = "goblin.tar.gz";
+const char *UFILE = "goblin.tar";
 
 using namespace Utils;
 
@@ -129,8 +129,15 @@ int Upgrade::Start()
             return 2;
         }
     }
+
+    BackupFirmware();
+
     char buf[PRINT_BUF_SIZE];
-    int r = UnpackFirmware(md5, buf);
+    int r = UnpackFirmware(buf, md5);
+    if (r != 0)
+    {
+        memset(md5, 0, 33);
+    }
     Ldebug(buf);
     filelen = 0;
     pktsizeK = 0;
@@ -148,12 +155,18 @@ void Upgrade::RemoveAllTempFiles()
     remove(UFILE);
 }
 
-int UnpackFirmware(char *md5, char *buf)
+void Upgrade::BackupFirmware()
+{
+    Exec::Shell("md5sum %s > %s", GFILE, GMD5FILE);
+    Exec::Shell("tar -cf %s %s %s", UFILE, GFILE, GMD5FILE);
+}
+
+int Upgrade::UnpackFirmware(char *buf, char *md5)
 {
     if (chdir(GDIR) != 0)
     {
-        sprintf(buf, "Upgrade::CheckMD5: Can't change path to '%s'", GDIR);
-        return 3;
+        sprintf(buf, "Upgrade: Can't change path to '%s'", GDIR);
+        return -1;
     }
     int r = 0;
     try
@@ -177,7 +190,7 @@ int UnpackFirmware(char *md5, char *buf)
             }
             else
             {
-                if (Exec::Shell("md5sum -c %s", GMD5FILE) != 0)
+                if (Exec::Shell(TO_NULL("md5sum -c %s"), GMD5FILE) != 0)
                 {
                     sprintf(buf, "Upgrade: MD5 NOT matched");
                     r = 8;
@@ -188,7 +201,7 @@ int UnpackFirmware(char *md5, char *buf)
                     if (md5f > 0 && read(md5f, md5, 32) == 32)
                     {
                         md5[32] = '\0';
-                        sprintf(buf, "Upgrade: Unpack firmware success");
+                        sprintf(buf, "Upgrade: MD5=%s. Restart...",md5);
                     }
                     else
                     {
@@ -200,9 +213,10 @@ int UnpackFirmware(char *md5, char *buf)
             }
         }
     }
-    catch (...)
+    catch (std::exception &e)
     {
         r = -1;
+        snprintf(buf, PRINT_BUF_SIZE-1, e.what());
     }
     chdir("..");
     return r;
