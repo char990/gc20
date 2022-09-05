@@ -43,11 +43,9 @@
     - [GetFrameCrc](#getframecrc)
     - [SetFrame](#setframe)
     - [DisplayFrame](#displayframe)
-    - [GetMessageCrc](#getmessagecrc)
     - [GetStoredMessage](#getstoredmessage)
     - [SetMessage](#setmessage)
     - [DisplayMessage](#displaymessage)
-    - [GetPlanCrc](#getplancrc)
     - [GetStoredPlan](#getstoredplan)
     - [SetPlan](#setplan)
     - [RetrieveLogs](#retrievelogs)
@@ -834,42 +832,17 @@ Controller reply: JSON:
 }
 ```
 
-### GetMessageCrc
-
-Direction: Master -> Controller
-
-Description: The Get Message Crc command is used to request all messages(0-255) crc in controller. Crc is 0-65535. If message is undefined, CRC is -1. Crc of Message[0] is always -1.
-
-Master send: JSON:
-
-```JSON
-{
-"cmd":"GetMessageCrc"
-}
-```
-
- Controller reply: JSON:
-
-```JSON
-{
-"replyms":13274693458,
-"cmd":"GetMessageCrc",
-"crc":[-1,23555,3458,......,24750]
-}
-```
-
 ### GetStoredMessage
 
 Direction: Master -> Controller
 
-Description: The Get Stored Message command is used to request the message data in controller.
+Description: The Get Stored Message command is used to request all message data in controller.
 
 Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetStoredMessage",
-"id":1 // 1-255, NOT 0
+"cmd":"GetStoredMessage"
 }
 ```
 
@@ -879,21 +852,25 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"GetStoredMessage",
-"id":1,
-"result":"OK"/"Undefined",  // if result is undefined, there is no following data
-"revision":1,
-"transition":100,  //0.01 second
-"entries":[
+"messages":[
   {
   "id":1,
-  "ontime":100
-  },
-  {
-  "id":2,
-  "ontime":100  // 0.1 second
-  },
-  …… // max 6 entries
+  "revision":1,
+  "transition":100,  //0.01 second
+  "entries":[
+    {
+    "id":1,
+    "ontime":100
+    },
+    {
+    "id":2,
+    "ontime":100  // 0.1 second
+    },
+    ...... // max 6 entries
   ]
+  },
+  ...... // all pre-defined message from 1 to 255
+  // if not defined, not data
 }
 ```
 
@@ -961,42 +938,17 @@ Controller reply: JSON:
 }
 ```
 
-### GetPlanCrc
-
-Direction: Master -> Controller
-
-Description: The Get Plan Crc command is used to request all plans(0-255) crc in controller. Crc is 0-65535. If plan is undefined, CRC is -1. Crc of Plan[0] is always -1.
-
-Master send: JSON:
-
-```JSON
-{
-"cmd":"GetPlanCrc"
-}
-```
-
- Controller reply: JSON:
-
-```JSON
-{
-"replyms":13274693458,
-"cmd":"GetPlanCrc",
-"crc":[-1,23555,3458,......,24750]
-}
-```
-
 ### GetStoredPlan
 
 Direction: Master -> Controller
 
-Description: The Get Stored Plan command is used to request the plan data in controller.
+Description: The Get Stored Plan command is used to request all plan data in controller.
 
 Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetStoredPlan",
-"id":1 // 1-255, NOT 0
+"cmd":"GetStoredPlan"
 }
 ```
 
@@ -1006,26 +958,30 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"GetStoredPlan",
-"id":1,
-"result":"OK"/"Undefined",  // if result is undefined, there is no following data
-"revision":1,
-"week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
-"entries":[
+"plans":[
   {
-  "type":"frame"/"message",
   "id":1,
-  "start":"0:00",
-  "stop":"12:00"
-  },
-  {
-  "type":"frame"/"message",
-  "id":2,
-  "start":"0:00",  // start time: hour:minute
-  "stop":"12:00"  // stop time: hour:minute
-  },
-  …… // max 6 entries. Entry should not overlay others.
+  "revision":1,
+  "week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+  "entries":[
+    {
+    "type":"frame"/"message",
+    "id":1,
+    "start":"0:00",
+    "stop":"12:00"
+    },
+    {
+    "type":"frame"/"message",
+    "id":2,
+    "start":"0:00",  // start time: hour:minute
+    "stop":"12:00"  // stop time: hour:minute
+    },
+  ...... // max 6 entries. Entry should not overlay others.
   ],
-"enabled_group":[0]/[1,2,3]   // 0 means NO group is selected
+  "enabled_group":[0]/[1,2,3]   // 0 means NO group is selected
+  },
+  ...... // all pre-defined plans from 1 to 255
+  // if not defined, not data
 }
 ```
 

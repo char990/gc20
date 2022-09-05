@@ -993,8 +993,7 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
 {
     auto id = GetInt(msg, "id", 1, 255);
     reply.emplace("id", id);
-    auto &ucifrm = DbHelper::Instance().GetUciFrm();
-    auto frm = ucifrm.GetFrm(id);
+    auto frm = DbHelper::Instance().GetUciFrm().GetFrm(id);
     if (frm == nullptr)
     {
         reply.emplace("text", "UNDEFINED");
@@ -1201,26 +1200,28 @@ void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, js
 
 void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &reply)
 {
-    auto id = GetInt(msg, "id", 1, 255);
-    reply.emplace("id", id);
-    auto m = DbHelper::Instance().GetUciMsg().GetMsg(id);
-    if (m == nullptr)
+    vector<json> messages;
+    auto & ucimsg = DbHelper::Instance().GetUciMsg();
+    for (int id = 1; id <= 255; id++)
     {
-        reply.emplace("result", "UNDEFINED");
-    }
-    else
-    {
-        reply.emplace("result", "OK");
-        reply.emplace("revision", m->msgRev);
-        reply.emplace("transition", m->transTime);
-        vector<json> entries(m->entries);
-        for (int i = 0; i < m->entries; i++)
+        auto m = ucimsg.GetMsg(id);
+        if (m != nullptr)
         {
-            entries[i].emplace("id", m->msgEntries[i].frmId);
-            entries[i].emplace("ontime", m->msgEntries[i].onTime);
+            json message;
+            message.emplace("id", id);
+            message.emplace("revision", m->msgRev);
+            message.emplace("transition", m->transTime);
+            vector<json> entries(m->entries);
+            for (int i = 0; i < m->entries; i++)
+            {
+                entries[i].emplace("id", m->msgEntries[i].frmId);
+                entries[i].emplace("ontime", m->msgEntries[i].onTime);
+            }
+            message.emplace("entries", entries);
+            messages.push_back(message);
         }
-        reply.emplace("entries", entries);
     }
+    reply.emplace("messages", messages);
 }
 
 void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
@@ -1253,53 +1254,57 @@ void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, 
 
 void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply)
 {
-    auto id = GetInt(msg, "id", 1, 255);
-    reply.emplace("id", id);
-    auto m = DbHelper::Instance().GetUciPln().GetPln(id);
-    if (m == nullptr)
-    {
-        reply.emplace("result", "UNDEFINED");
-    }
-    else
-    {
-        reply.emplace("result", "OK");
-        reply.emplace("revision", m->plnRev);
-        vector<const char *> week;
-        for (int i = 0; i < 7; i++)
-        {
-            if (m->weekdays & MASK_BIT[i])
-            {
-                week.emplace_back(WEEKDAY[i]);
-            }
-        }
-        reply.emplace("week", week);
-        vector<json> entries(m->entries);
-        for (int i = 0; i < m->entries; i++)
-        {
-            entries[i].emplace("type", m->plnEntries[i].fmType == 1 ? "frame" : "message");
-            entries[i].emplace("id", m->plnEntries[i].fmId);
-            char buf[64];
-            sprintf(buf, "%d:%02d", m->plnEntries[i].start.hour, m->plnEntries[i].start.min);
-            entries[i].emplace("start", buf);
-            sprintf(buf, "%d:%02d", m->plnEntries[i].stop.hour, m->plnEntries[i].stop.min);
-            entries[i].emplace("stop", buf);
-        }
-        reply.emplace("entries", entries);
-    }
     auto grp = ctrller->GetGroups();
-    vector<int> enabled_group;
-    for (auto g : grp)
+    auto & uciplan = DbHelper::Instance().GetUciPln();
+    vector<json> plans;
+    for (int id = 1; id <= 255; id++)
     {
-        if (g->IsPlanEnabled(id))
+        auto m = uciplan.GetPln(id);
+        if (m != nullptr)
         {
-            enabled_group.emplace_back(g->GroupId());
+            json plan;
+            plan.emplace("id", id);
+            plan.emplace("revision", m->plnRev);
+            vector<const char *> week;
+            for (int i = 0; i < 7; i++)
+            {
+                if (m->weekdays & MASK_BIT[i])
+                {
+                    week.emplace_back(WEEKDAY[i]);
+                }
+            }
+            plan.emplace("week", week);
+            vector<json> entries(m->entries);
+            for (int i = 0; i < m->entries; i++)
+            {
+                entries[i].emplace("type", m->plnEntries[i].fmType == 1 ? "frame" : "message");
+                entries[i].emplace("id", m->plnEntries[i].fmId);
+                char buf[64];
+                sprintf(buf, "%d:%02d", m->plnEntries[i].start.hour, m->plnEntries[i].start.min);
+                entries[i].emplace("start", buf);
+                sprintf(buf, "%d:%02d", m->plnEntries[i].stop.hour, m->plnEntries[i].stop.min);
+                entries[i].emplace("stop", buf);
+            }
+            plan.emplace("entries", entries);
+
+            vector<int> enabled_group;
+            for (auto g : grp)
+            {
+                if (g->IsPlanEnabled(id))
+                {
+                    enabled_group.emplace_back(g->GroupId());
+                }
+            }
+            if (enabled_group.size() == 0)
+            {
+                enabled_group.emplace_back(0);
+            }
+            plan.emplace("enabled_group", enabled_group);
+
+            plans.push_back(plan);
         }
     }
-    if (enabled_group.size() == 0)
-    {
-        enabled_group.emplace_back(0);
-    }
-    reply.emplace("enabled_group", enabled_group);
+    reply.emplace("plans", plans);
 }
 
 void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &reply)
