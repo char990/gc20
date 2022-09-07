@@ -21,6 +21,14 @@ void FrameImage::SetId(uint8_t signId, uint8_t frmId)
     this->frmId = frmId;
 }
 
+void FrameImage::SetRGBA(int colour, RGBApixel &rgba)
+{
+    rgba.Alpha = 0;
+    rgba.Red = (colour >> 16) & 0xFF;
+    rgba.Green = (colour >> 8) & 0xFF;
+    rgba.Blue = (colour)&0xFF;
+}
+
 void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame)
 { // Both unmapped & mapped colour are allowed as f_colour
     int annulus = (f_conspicuity >> 3) & 0x03;
@@ -42,12 +50,8 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     int coreColumns = prod.PixelColumns();
     if (f_colour >= 0 && f_colour <= 9)
     {
-        int colour = FrameColour::GetRGB8(prod.GetMappedColour(f_colour));
         RGBApixel rgba;
-        rgba.Alpha = 0;
-        rgba.Red = (colour >> 16) & 0xFF;
-        rgba.Green = (colour >> 8) & 0xFF;
-        rgba.Blue = (colour)&0xFF;
+        SetRGBA(FrameColour::GetRGB8(prod.GetMappedColour(f_colour)), rgba);
         uint8_t *p = frame;
         int bitOffset = 0;
         for (int j = coreOffsetY; j < (coreOffsetY + coreRows); j++)
@@ -65,13 +69,10 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     else if (f_colour == 0x0D)
     {
         RGBApixel rgba[10];
-        for (int i = 0; i < 10; i++)
+        SetRGBA(0, rgba[0]);
+        for (int i = 1; i < 10; i++)
         {
-            int colour = FrameColour::GetRGB8(prod.GetMappedColour(i));
-            rgba[i].Alpha = 0;
-            rgba[i].Red = (colour >> 16) & 0xFF;
-            rgba[i].Green = (colour >> 8) & 0xFF;
-            rgba[i].Blue = (colour)&0xFF;
+            SetRGBA(FrameColour::GetRGB8(prod.GetMappedColour(i)), rgba[i]);
         }
         uint8_t *p = frame;
         int bitOffset = 0;
@@ -80,7 +81,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
             for (int i = coreOffsetX; i < (coreOffsetX + coreColumns); i++)
             {
                 uint8_t b = p[bitOffset / 2];
-                if ((bitOffset & 1) == 0)
+                if (bitOffset & 1)
                 {
                     b >>= 4;
                 }
@@ -174,7 +175,7 @@ void FrameImage::LoadBmpFromBase64(const char *buf, int len)
     int blen = mg_base64_encode((const unsigned char *)buf, len, bmpbuf.data());
 
     int fd = open(uci_frame, O_WRONLY);
-    if(fd<0)
+    if (fd < 0)
     {
         throw invalid_argument(StrFn::PrintfStr("Can't open %s", uci_frame));
     }
@@ -210,7 +211,7 @@ std::vector<char> &FrameImage::Save2Base64()
             }
         }
 
-        if(Cnvt::File2Base64(filename, base64Img)==0)
+        if (Cnvt::File2Base64(filename, base64Img) == 0)
         {
             newImg = false;
         }
@@ -218,18 +219,18 @@ std::vector<char> &FrameImage::Save2Base64()
     return base64Img;
 }
 
-bool FrameImage::ReadFromFile(const char * filename)
+bool FrameImage::ReadFromFile(const char *filename)
 {
-    if(bmp.ReadFromFile(filename)==false)
+    if (bmp.ReadFromFile(filename) == false)
     {
         throw runtime_error(StrFn::PrintfStr("Read file error: %s", filename));
     }
     return true;
 }
 
-bool FrameImage::WriteToFile(const char * filename)
+bool FrameImage::WriteToFile(const char *filename)
 {
-    if(bmp.WriteToFile(filename)==false)
+    if (bmp.WriteToFile(filename) == false)
     {
         throw runtime_error(StrFn::PrintfStr("Write file error: %s", filename));
     }

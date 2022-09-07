@@ -281,7 +281,8 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
         }
         catch (exception &e)
         {
-            reply["result"] = e.what();
+            reply.clear();
+            reply.emplace("result", e.what());
         }
         WebSocketSend(c, reply);
     }
@@ -1067,7 +1068,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     {
         throw("CMD_SetFrame: annulus error");
     }
-    conspicuity = (conspicuity << 3) | annulus;
+    conspicuity = (conspicuity) | (annulus<<3);
     char rejectStr[64];
     vector<uint8_t> frm;
     if (frmType == MI::CODE::SignSetTextFrame)

@@ -132,5 +132,5 @@ protected:
 private:
     time_t timeSt{-1};
     time_t timeExtSt{-1};
-    uint8_t slaveFrameId;
+    uint8_t slaveFrameId{0};
 };

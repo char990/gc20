@@ -20,6 +20,8 @@ private:
     uint8_t frmId{0};  // Slave: 0 - 6, UciFrame: 1 - 255
     std::vector<char> base64Img;
     bool newImg{true};
+    void SetRGBA(int colour, RGBApixel &rgba);
+
     void FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame);
 
     bool ReadFromFile(const char *);
