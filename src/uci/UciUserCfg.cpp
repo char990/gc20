@@ -191,12 +191,12 @@ void UciUserCfg::LoadConfig()
     {
         if (comPort == prod.GetSignCfg(i).com_ip)
         {
-            ThrowError(_ComPort, "Assigned to UciProd.Sign");
+            ThrowError(_ComPort, "Assigned to UciHardware.Sign");
         }
     }
     if (comPort == prod.MonitoringPort())
     {
-        ThrowError(_ComPort, "Assigned to UciProd.MonitoringPort");
+        ThrowError(_ComPort, "Assigned to UciHardware.MonitoringPort");
     }
 
     Close();

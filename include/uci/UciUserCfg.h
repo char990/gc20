@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <uci/UciCfg.h>
-#include <uci/UciProd.h>
+#include <uci/UciHardware.h>
 #include <module/Tz_AU.h>
 
 typedef struct ExtSw

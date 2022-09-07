@@ -17,11 +17,11 @@ public:
     Utils::Bits rejectFrms{256};
 };
 
-class UciProd : public UciCfg
+class UciHardware : public UciCfg
 {
 public:
-    UciProd();
-    ~UciProd();
+    UciHardware();
+    ~UciHardware();
 
     void LoadConfig() override;
     void Dump() override;

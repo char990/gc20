@@ -364,7 +364,7 @@ void WsServer::CMD_GetGroupConfig(struct mg_connection *c, json &msg, json &repl
 void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &reply)
 {
     // TODO: Because group configuration related to hardware (signs in same group should at same COM port).
-    // SO changing group configuration should directly edit "config/UciProd" file.
+    // SO changing group configuration should directly edit "config/UciHardware" file.
     reply.emplace("result", "Unsupported command");
     return;
 #if 0
@@ -996,10 +996,11 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
     auto frm = DbHelper::Instance().GetUciFrm().GetFrm(id);
     if (frm == nullptr)
     {
-        reply.emplace("text", "UNDEFINED");
+        reply.emplace("result", "Error: Undefined frame");
     }
     else
     {
+        reply.emplace("result", "OK");
         reply.emplace("revision", frm->frmRev);
         reply.emplace("colour", FrameColour::GetColourName(frm->colour));
         reply.emplace("conspicuity", Conspicuity[frm->conspicuity & 0x07]);

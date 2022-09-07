@@ -115,7 +115,7 @@ public:
 
 protected:
     DbHelper &db;
-    UciProd &prod;
+    UciHardware &prod;
     UciUserCfg &usercfg;
     uint8_t groupId;
     OprSp *oprSp;

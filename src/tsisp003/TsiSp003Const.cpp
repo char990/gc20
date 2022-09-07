@@ -15,16 +15,16 @@ const char *WEEKDAY[WEEKDAY_SIZE] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "
 
 // index is coulur code
 const char *FrameColour::COLOUR_NAME[ALL_COLOUR_NAME_SIZE] = {
-    "DEFAULT",
-    "RED",
-    "YELLOW",
-    "GREEN",
-    "CYAN",
-    "BLUE",
-    "MAGENTA",
-    "WHITE",
-    "ORANGE",
-    "AMBER",
+    "Default",
+    "Red",
+    "Yellow",
+    "Green",
+    "Cyan",
+    "Blue",
+    "Magenta",
+    "White",
+    "Orange",
+    "Amber",
     "Multi(4-bit)",
     "RGB(24-bit)"};
 

@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <uci/UciProd.h>
+#include <uci/UciHardware.h>
 #include <uci/UciUserCfg.h>
 #include <uci/UciFrm.h>
 #include <uci/UciMsg.h>
@@ -30,7 +30,7 @@ public:
     
     uint16_t HdrChksum();
 
-    UciProd & GetUciProd() { return uciProd; };
+    UciHardware & GetUciProd() { return uciProd; };
     UciUserCfg & GetUciUserCfg() { return uciUserCfg; };
     UciNetwork & GetUciNetwork() {return uciNetwork;};
 
@@ -49,7 +49,7 @@ public:
     const char * Path(){ return dbPath; };
 
 protected:
-    UciProd uciProd;
+    UciHardware uciProd;
     UciUserCfg uciUserCfg;
     UciNetwork uciNetwork;
 

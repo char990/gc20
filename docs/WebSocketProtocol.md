@@ -737,6 +737,7 @@ Master send: JSON:
 {
 "replyms":13274693458,
 "cmd":"GetStoredFrame",
+"result":"OK" or error message,
 "id":1,
 "revision":1,
 "type":"Text Frame"/"Graphics Frame"/"HR Graphics Frame",

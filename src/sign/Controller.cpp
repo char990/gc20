@@ -33,7 +33,7 @@ Controller::Controller()
     }
     groups.assign(groups.size(), nullptr);
 
-    UciProd &prod = db.GetUciProd();
+    UciHardware &prod = db.GetUciProd();
 
     ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
     overtempFault.SetCNT(prod.OverTempDebounce());

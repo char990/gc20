@@ -15,7 +15,7 @@ using namespace std;
 
 int SignCfg::bps_port = 0;
 
-UciProd::UciProd()
+UciHardware::UciHardware()
 {
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
@@ -23,7 +23,7 @@ UciProd::UciProd()
     }
 }
 
-UciProd::~UciProd()
+UciHardware::~UciHardware()
 {
     for (int i = 0; i < MAX_FONT + 1; i++)
     {
@@ -47,10 +47,10 @@ UciProd::~UciProd()
     }*/
 }
 
-void UciProd::LoadConfig()
+void UciHardware::LoadConfig()
 {
     PATH = DbHelper::Instance().Path();
-    PACKAGE = "UciProd";
+    PACKAGE = "UciHardware";
     Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
     char cbuf[16];
     int ibuf[16];
@@ -118,9 +118,6 @@ void UciProd::LoadConfig()
     if (slaveCmdDly > slaveSetStFrmDly)
     {
         ThrowError(_SlaveCmdDly, "SlaveCmdDly should greater than SlaveSetStFrmDly");
-
-        throw invalid_argument(StrFn::PrintfStr("UciProd Error: SlaveCmdDly(%d) > SlaveSetStFrmDly(%d)",
-                                                 slaveCmdDly, slaveSetStFrmDly));
     }
     if (slaveCmdDly > slaveDispDly)
     {
@@ -459,7 +456,7 @@ void UciProd::LoadConfig()
     }
 }
 
-void UciProd::Dump()
+void UciHardware::Dump()
 {
     PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, _SectionCtrller);
@@ -581,19 +578,19 @@ void UciProd::Dump()
     PrintDash('>');
 }
 
-uint8_t UciProd::CharRows(int i)
+uint8_t UciHardware::CharRows(int i)
 {
     return (bFont.GetBit(i)) ? (pixelRows + fonts[i]->LineSpacing()) / (fonts[i]->RowsPerCell() + fonts[i]->LineSpacing())
                              : 0;
 }
 
-uint8_t UciProd::CharColumns(int i)
+uint8_t UciHardware::CharColumns(int i)
 {
     return (bFont.GetBit(i)) ? (pixelColumns + fonts[i]->CharSpacing()) / (fonts[i]->ColumnsPerCell() + fonts[i]->CharSpacing())
                              : 0;
 }
 
-uint8_t UciProd::GetColourXbit(uint8_t c)
+uint8_t UciHardware::GetColourXbit(uint8_t c)
 {
     auto c1 = (c > 9) ? mappedColoursTable[0] : mappedColoursTable[c];
     return mappedColoursBitTable[c1];

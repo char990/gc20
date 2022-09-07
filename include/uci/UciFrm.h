@@ -2,7 +2,7 @@
 
 #include <string>
 #include <array>
-#include <uci/UciProd.h>
+#include <uci/UciHardware.h>
 #include <tsisp003/Frame.h>
 #include <module/Utils.h>
 
