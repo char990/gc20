@@ -9,10 +9,8 @@
 #include <uci/DbHelper.h>
 #include <module/MyDbg.h>
 
-
 using namespace Utils;
 using namespace std;
-
 
 Frame::Frame()
 {
@@ -202,7 +200,7 @@ int Frame::ToBit(uint8_t colourbit, uint8_t *buf)
 #else
             memcpy(buf, stFrm.rawData.data() + frmOffset, frmLen);
 #endif
-// TODO : 24-bit 
+            // TODO : 24-bit
         }
         else // TODO : to 24-bit
         {
@@ -305,7 +303,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     if (lines > rows)
     {
         Ldebug("Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d] lines",
-                 frmId, columns, rows, font, lines);
+               frmId, columns, rows, font, lines);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
@@ -397,7 +395,7 @@ void FrmTxt::CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t
 
 vector<string> FrmTxt::ToStringVector()
 {
-    auto & prod = DbHelper::Instance().GetUciProd();
+    auto &prod = DbHelper::Instance().GetUciProd();
     auto pFont = prod.Fonts(font);
     auto char_space = pFont->CharSpacing();
     auto line_space = pFont->LineSpacing();
@@ -407,7 +405,7 @@ vector<string> FrmTxt::ToStringVector()
     auto offset = frmOffset;
     int rx = 0;
     int cx = 0;
-    for(int i=0;i<frmBytes;i++, offset++)
+    for (int i = 0; i < frmBytes; i++, offset++)
     {
         auto v = stFrm.rawData.at(offset);
         if (v != ' ')
@@ -435,9 +433,12 @@ vector<string> FrmTxt::ToStringVector()
         }
     }
     vector<string> v;
-    for(int i=0;i<texts.size();i++)
+    for (int i = 0; i < texts.size(); i++)
     {
-        v.emplace_back(texts.at(i).data());
+        if(texts.at(i).at(0)!=0)
+        {
+            v.emplace_back(texts.at(i).data());
+        }
     }
     return v;
 }

@@ -11,9 +11,30 @@ const char *annulus_on = "config/annulus_on.bmp";
 const char *annulus_off = "config/annulus_off.bmp";
 const char *lantern_on = "config/lantern_on.bmp";
 const char *lantern_off = "config/lantern_off.bmp";
+const char *lantern_flash = "config/lantern_flash.bmp";
 const char *islus_sp_frm = "config/islus_%03d.bmp";
 const char *uci_frame = "/tmp/uci_frame.bmp";
 const char *tmp_sign_frm = "/tmp/Sign%d_Frm%d.bmp";
+
+FrameImage::FrameImage()
+{
+    if (bmpLanternOn.ReadFromFile(lantern_on) == false)
+    {
+        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_on));
+    }
+    if (bmpLanternOff.ReadFromFile(lantern_off) == false)
+    {
+        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_off));
+    }
+    if (bmpLanternFlash.ReadFromFile(lantern_flash) == false)
+    {
+        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_flash));
+    }
+}
+
+FrameImage::~FrameImage()
+{
+}
 
 void FrameImage::SetId(uint8_t signId, uint8_t frmId)
 {
@@ -29,25 +50,84 @@ void FrameImage::SetRGBA(int colour, RGBApixel &rgba)
     rgba.Blue = (colour)&0xFF;
 }
 
+void FrameImage::BmpMask(BMP *mask, BMP *base, int offsetx, int offsety)
+{
+    auto width = mask->TellWidth();
+    auto height = mask->TellHeight();
+    for (int x = 0; x < width; x++)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            base->SetPixel(offsetx + x, offsety + y, mask->GetPixel(x, y));
+        }
+    }
+}
+
 void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame)
 { // Both unmapped & mapped colour are allowed as f_colour
     int annulus = (f_conspicuity >> 3) & 0x03;
     if (annulus == 3)
         annulus = 0;
     ReadFromFile(annulus ? annulus_on : annulus_off);
-    int lantern = f_conspicuity & 0x07;
-    if (lantern > 5)
-        lantern = 0;
-    if (lantern > 0)
-    {
-        // TODO: set lantern
-    }
-
     auto &prod = DbHelper::Instance().GetUciProd();
     int coreOffsetX = prod.CoreOffsetX();
     int coreOffsetY = prod.CoreOffsetY();
     int coreRows = prod.PixelRows();
     int coreColumns = prod.PixelColumns();
+    int lantern = f_conspicuity & 0x07;
+    if (lantern > 0)
+    {
+        BMP *lanterns[2][2];
+        switch (lantern)
+        {
+        case 1:
+            lanterns[0][0] = &bmpLanternOn;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternOn;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        case 2:
+            lanterns[0][0] = &bmpLanternOn;
+            lanterns[0][1] = &bmpLanternOn;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        case 3:
+            lanterns[0][0] = &bmpLanternOn;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternOn;
+            break;
+        case 4:
+            lanterns[0][0] = &bmpLanternFlash;
+            lanterns[0][1] = &bmpLanternFlash;
+            lanterns[1][0] = &bmpLanternFlash;
+            lanterns[1][1] = &bmpLanternFlash;
+            break;
+        case 5:
+            lanterns[0][0] = &bmpLanternOn;
+            lanterns[0][1] = &bmpLanternOn;
+            lanterns[1][0] = &bmpLanternOn;
+            lanterns[1][1] = &bmpLanternOn;
+            break;
+        default:
+            lanterns[0][0] = &bmpLanternOff;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        }
+        // TODO: set lantern
+        int X[2]{0, bmpSign.TellWidth()-bmpLanternOff.TellWidth()};
+        int Y[2]{0, bmpSign.TellHeight()-bmpLanternOff.TellHeight()};
+        for (int x = 0; x < 2; x++)
+        {
+            for (int y = 0; y < 2; y++)
+            {
+                BmpMask(lanterns[x][y], &bmpSign, X[x], Y[y]);
+            }
+        }
+    }
     if (f_colour >= 0 && f_colour <= 9)
     {
         RGBApixel rgba;
@@ -60,7 +140,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
             {
                 if (BitOffset::Get70Bit(p, bitOffset))
                 {
-                    bmp.SetPixel(i, j, rgba);
+                    bmpSign.SetPixel(i, j, rgba);
                 }
                 bitOffset++;
             }
@@ -90,7 +170,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
                 {
                     b = 0;
                 }
-                bmp.SetPixel(i, j, rgba[b]);
+                bmpSign.SetPixel(i, j, rgba[b]);
                 bitOffset++;
             }
         }
@@ -221,7 +301,7 @@ std::vector<char> &FrameImage::Save2Base64()
 
 bool FrameImage::ReadFromFile(const char *filename)
 {
-    if (bmp.ReadFromFile(filename) == false)
+    if (bmpSign.ReadFromFile(filename) == false)
     {
         throw runtime_error(StrFn::PrintfStr("Read file error: %s", filename));
     }
@@ -230,7 +310,7 @@ bool FrameImage::ReadFromFile(const char *filename)
 
 bool FrameImage::WriteToFile(const char *filename)
 {
-    if (bmp.WriteToFile(filename) == false)
+    if (bmpSign.WriteToFile(filename) == false)
     {
         throw runtime_error(StrFn::PrintfStr("Write file error: %s", filename));
     }
