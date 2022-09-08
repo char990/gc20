@@ -146,7 +146,7 @@ public:
     int GetWidth(char c);
 
     /// \brief Get string width
-    int GetWidth(char *s);
+    int GetWidth(const char *s);
 
 private:
     char fontName[16]{};

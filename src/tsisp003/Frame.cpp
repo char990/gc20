@@ -340,59 +340,22 @@ int FrmTxt::ToBit(uint8_t colourbit, uint8_t *buf)
     auto &prod = DbHelper::Instance().GetUciProd();
     int frmLen = (colourbit == 1) ? prod.Gfx1CoreLen() : ((colourbit == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen());
     memset(buf, 0, frmLen);
+    auto vtext = ToStringVector();
     auto pFont = prod.Fonts(font);
-    auto char_space = pFont->CharSpacing();
-    auto line_space = pFont->LineSpacing();
-    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
-    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
-    std::vector<std::vector<char>> text(rows, std::vector<char>(columns + 1, 0));
-    auto offset = frmOffset;
-    int rx = 0;
-    int cx = 0;
-    for(int i=0;i<frmBytes;i++, offset++)
-    {
-        auto v = stFrm.rawData.at(offset);
-        if (v != ' ')
-        {
-            text.at(rx).at(cx) = v;
-            cx++;
-            if (cx == columns)
-            {
-                rx++;
-                if (rx == rows)
-                {
-                    break;
-                }
-                cx = 0;
-            }
-        }
-        else
-        {
-            if (cx > 0)
-            {
-                rx++;
-                if (rx == rows)
-                {
-                    break;
-                }
-                cx = 0;
-            }
-        }
-    }
     uint8_t monocolour = prod.GetMappedColour(colour);
-    int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * rx - pFont->LineSpacing())) / 2;
-    for (int i = 0; i < rows; i++)
+    int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * vtext.size() - pFont->LineSpacing())) / 2;
+    for (int i = 0; i < vtext.size(); i++)
     {
-        int width = pFont->GetWidth(text.at(i).data());
+        int width = pFont->GetWidth(vtext.at(i).c_str());
         int start_x = (prod.PixelColumns() - width) / 2;
-        StrToBitmap(colourbit, buf, start_x, start_y, monocolour, text.at(i).data(), pFont);
+        StrToBitmap(colourbit, buf, start_x, start_y, monocolour, vtext.at(i).c_str(), pFont);
         start_y += pFont->CharHeightWS();
     }
     // finish
     return frmLen;
 }
 
-void FrmTxt::StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font *pfont)
+void FrmTxt::StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, const char *str, Font *pfont)
 {
     while (*str != '\0')
     {
@@ -430,6 +393,53 @@ void FrmTxt::CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t
             line <<= 1;
         }
     }
+}
+
+vector<string> FrmTxt::ToStringVector()
+{
+    auto & prod = DbHelper::Instance().GetUciProd();
+    auto pFont = prod.Fonts(font);
+    auto char_space = pFont->CharSpacing();
+    auto line_space = pFont->LineSpacing();
+    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
+    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
+    std::vector<std::vector<char>> texts(rows, std::vector<char>(columns + 1, 0));
+    auto offset = frmOffset;
+    int rx = 0;
+    int cx = 0;
+    for(int i=0;i<frmBytes;i++, offset++)
+    {
+        auto v = stFrm.rawData.at(offset);
+        if (v != ' ')
+        {
+            texts.at(rx).at(cx) = v;
+            if (++cx == columns)
+            {
+                if (++rx == rows)
+                {
+                    break;
+                }
+                cx = 0;
+            }
+        }
+        else
+        {
+            if (cx > 0)
+            {
+                if (++rx == rows)
+                {
+                    break;
+                }
+                cx = 0;
+            }
+        }
+    }
+    vector<string> v;
+    for(int i=0;i<texts.size();i++)
+    {
+        v.emplace_back(texts.at(i).data());
+    }
+    return v;
 }
 
 /****************************** FrmGfx *******************************/

@@ -805,21 +805,15 @@ char *Time::ParseTimeToLocalStr(time_t t, char *p)
     {
         ClearTm(&tp);
     }
-    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
+    int len = sprintf(p, "%02d/%02d/%d %2d:%02d:%02d",
                       tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
     return p + len;
 }
 
 string Time::ParseTimeToLocalStr(time_t t)
 {
-    struct tm tp;
-    if (localtime_r(&t, &tp) != &tp)
-    {
-        ClearTm(&tp);
-    }
     char p[32];
-    int len = sprintf(p, "%2d/%02d/%d %2d:%02d:%02d",
-                      tp.tm_mday, tp.tm_mon + 1, tp.tm_year + 1900, tp.tm_hour, tp.tm_min, tp.tm_sec);
+    ParseTimeToLocalStr(t, p);
     return string(p);
 }
 

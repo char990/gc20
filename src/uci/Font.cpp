@@ -99,7 +99,7 @@ int Font::GetWidth(char c)
     return (*cell) & 0x7F;
 }
 
-int Font::GetWidth(char *s)
+int Font::GetWidth(const char *s)
 {
     int len = strlen(s);
     if (len == 0)

@@ -152,12 +152,15 @@ void Controller::PeriodicRun()
 
     if (displayTimeout.IsExpired())
     {
-        if (!IsPlnActive(0))
+        if (db.GetUciUserCfg().DisplayTimeoutMin() > 0)
         {
-            ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
-            for (auto &g : groups)
+            if (!IsPlnActive(0))
             {
-                g->DispFrm(0, true);
+                ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 1);
+                for (auto &g : groups)
+                {
+                    g->DispFrm(0, true);
+                }
             }
         }
         displayTimeout.Clear();
@@ -165,10 +168,13 @@ void Controller::PeriodicRun()
 
     if (sessionTimeout.IsExpired())
     {
-        if (LayerNTS::IsAnySessionTimeout())
+        if (db.GetUciUserCfg().SessionTimeoutSec() > 0)
         {
-            LayerNTS::ClearAllSessionTimeout();
-            ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+            if (LayerNTS::IsAnySessionTimeout())
+            {
+                LayerNTS::ClearAllSessionTimeout();
+                ctrllerError.Push(DEV::ERROR::CommunicationsTimeoutError, 1);
+            }
         }
         sessionTimeout.Clear();
     }
@@ -292,11 +298,15 @@ void Controller::ExtInputFunc()
 void Controller::RefreshDispTime()
 {
     long ms = db.GetUciUserCfg().DisplayTimeoutMin();
-    if (ms > 0)
+    if (ms == 0)
+    {
+        displayTimeout.Clear();
+    }
+    else
     {
         displayTimeout.Setms(ms * 60000);
-        ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
     }
+    ctrllerError.Push(DEV::ERROR::DisplayTimeoutError, 0);
 }
 
 void Controller::RefreshSessionTime()

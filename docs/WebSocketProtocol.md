@@ -560,7 +560,7 @@ Master send: JSON:
 ```JSON
 {
 "cmd":"ControlDimming",
-"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
+"group_id": 0, // group_id could be 0-max id, 0 for all groups
 "setting":0 // Auto:0, 1-16
 }
 ```
@@ -586,7 +586,7 @@ Master send: JSON:
 ```JSON
 {
 "cmd":"ControlPower",
-"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
+"group_id": 0, // group_id could be 0-max id, 0 for all groups
 "setting":0/1  //0:OFF, 1:ON
 }
 ```
@@ -612,7 +612,7 @@ Master send: JSON:
 ```JSON
 {
 "cmd":"ControlDevice",
-"groups":[0]/[1,2,3], // 0 means all groups, otherwise array of group_id
+"group_id": 0, // group_id could be 0-max id, 0 for all groups
 "setting":0/1  // 0:disable, 1:enable
 }
 ```
@@ -745,7 +745,7 @@ Master send: JSON:
 "font":0/1/2/3/4/5,
 "conspicuity":"Off"/"Up Down"/"Left Right"/"Wig Wag"/"All Flash"/"All On",
 "annulus":"Off"/"Flashing"/"On",
-"text":"UNDEFINED", // if Text Frame, or
+"text":["Row1","Row2","Row3"], // if Text Frame, or
 "image":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……" // if Gfx/Hrg
 }
 ```

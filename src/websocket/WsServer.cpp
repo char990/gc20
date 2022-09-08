@@ -32,6 +32,15 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
 
 WsServer::~WsServer()
 {
+    auto c = mgr.conns;
+    while (c != nullptr)
+    {
+        if (c->fn_data != nullptr)
+        {
+            delete (WsClient *)c->fn_data;
+        }
+        c = c->next;
+    };
     mg_mgr_free(&mgr);
     tmrEvt->Remove(this);
     tmrEvt = nullptr;
@@ -274,6 +283,10 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
                 {
                     CMD_LIST[i].function(c, msg, reply);
                     WebSocketSend(c, reply);
+                    if (wsClient->login)
+                    {
+                        Controller::Instance().RefreshDispTime();
+                    }
                     return;
                 }
             }
@@ -539,7 +552,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     auto last_frame_time = GetInt(msg, "last_frame_time", 0, 255);
 
     auto seed = GetIntFromStr(msg, "seed", 0, 0xFF);
-    auto password = GetIntFromStr(msg, "password", 0, 0xFF);
+    auto password = GetIntFromStr(msg, "password", 0, 0xFFFF);
 
     int tmc_com_port = -1;
     auto tmc_com_port_str = GetStr(msg, "tmc_com_port");
@@ -817,49 +830,32 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
 
 void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = GetVector<int>(msg, "groups");
-    auto setting = GetInt(msg, "setting", 0, 16);
-    uint8_t cmd[2 + grp.size() * 3];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
-    {
-        *p++ = grp[i];
-        *p++ = setting == 0 ? 0 : 1;
-        *p++ = setting;
-    }
+    uint8_t cmd[5];
+    cmd[1] = 1;
+    cmd[2] = GetInt(msg, "group_id", 0, 255);
+    cmd[4] = GetInt(msg, "setting", 0, 16);
+    cmd[3] = cmd[4] == 0 ? 0 : 1;
+
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdSetDimmingLevel(cmd, buf)) ? "OK" : buf);
 }
 
 void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = GetVector<int>(msg, "groups");
-    auto setting = GetInt(msg, "setting", 0, 1);
-    uint8_t cmd[2 + grp.size() * 2];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
-    {
-        *p++ = grp[i];
-        *p++ = setting;
-    }
+    uint8_t cmd[4];
+    cmd[1] = 1;
+    cmd[2] = GetInt(msg, "group_id", 0, 255);
+    cmd[3] = GetInt(msg, "setting", 0, 1);
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
 }
 
 void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json &reply)
 {
-    auto grp = GetVector<int>(msg, "groups");
-    auto setting = GetInt(msg, "setting", 0, 1);
-    uint8_t cmd[2 + grp.size() * 2];
-    cmd[1] = grp.size();
-    uint8_t *p = cmd + 2;
-    for (int i = 0; i < grp.size(); i++)
-    {
-        *p++ = grp[i];
-        *p++ = setting;
-    }
+    uint8_t cmd[4];
+    cmd[1] = 1;
+    cmd[2] = GetInt(msg, "group_id", 0, 255);
+    cmd[3] = GetInt(msg, "setting", 0, 1);
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
 }
@@ -1015,6 +1011,8 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
             memcpy(txt.data(), rawdata.data() + 7, rawdata[6]);
             txt.back() = '\0';
             reply.emplace("text", txt.data());
+            //                        auto txtFrm = static_cast<FrmTxt*>(frm);
+            //            reply.emplace("text", txtFrm->ToStringVector());
         }
         else if (frm->micode == 0x0B || frm->micode == 0x1D)
         {
@@ -1068,7 +1066,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     {
         throw("CMD_SetFrame: annulus error");
     }
-    conspicuity = (conspicuity) | (annulus<<3);
+    conspicuity = (conspicuity) | (annulus << 3);
     char rejectStr[64];
     vector<uint8_t> frm;
     if (frmType == MI::CODE::SignSetTextFrame)
@@ -1203,7 +1201,7 @@ void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, js
 void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &reply)
 {
     vector<json> messages;
-    auto & ucimsg = DbHelper::Instance().GetUciMsg();
+    auto &ucimsg = DbHelper::Instance().GetUciMsg();
     for (int id = 1; id <= 255; id++)
     {
         auto m = ucimsg.GetMsg(id);
@@ -1257,7 +1255,7 @@ void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, 
 void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply)
 {
     auto grp = ctrller->GetGroups();
-    auto & uciplan = DbHelper::Instance().GetUciPln();
+    auto &uciplan = DbHelper::Instance().GetUciPln();
     vector<json> plans;
     for (int id = 1; id <= 255; id++)
     {

@@ -95,15 +95,15 @@ public:
     /// \param  colourbit:0/1/4/24
     /// \param  buf: buffer, be cleared in this function
     int ToBit(uint8_t colourbit, uint8_t *buf) override;
-    void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char *str, Font *pfont);
+    void StrToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, const char *str, Font *pfont);
     void CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour, char c, Font *pfont);
+    std::vector<std::string> ToStringVector();
 
 private:
     virtual int CheckColour() override;
     virtual int CheckLength(int len) override;
     virtual int CheckSub(uint8_t *frm, int len) override;
 };
-
 
 class FrmGfx : public Frame
 {

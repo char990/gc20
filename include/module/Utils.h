@@ -333,6 +333,7 @@ namespace Utils
     {
     public:
         static uint8_t monthday[12];
+
         /// \brief      Print time
         static void PrintBootTime();
 
@@ -370,15 +371,15 @@ namespace Utils
         /// \return next byte of output buf
         static char *ParseTimeToLocalStr(time_t t, char *pbuf);
 
-        /// \brief  Parse timeval to localtime string and wrtie to char *pbuf
-        ///         string format: d/M/yyyy h:mm:ss.mmm
-        /// \return next byte of output buf
-        static char *ParseTimeToLocalStr(struct timeval *t, char *p);
-
         /// \brief  Parse time_t to localtime string
         ///         string format: d/M/yyyy h:mm:ss.mmm
         /// \return string
         static std::string ParseTimeToLocalStr(time_t t);
+
+        /// \brief  Parse timeval to localtime string and wrtie to char *pbuf
+        ///         string format: d/M/yyyy h:mm:ss.mmm
+        /// \return next byte of output buf
+        static char *ParseTimeToLocalStr(struct timeval *t, char *p);
 
         /// \brief  Parse localtime string to tm_t
         /// !!! NOTE !!! When the time is between the override hour of 2:00-3:00, can't get correct time_t, so don not use this function
