@@ -18,8 +18,7 @@
 #include <module/OprTcp.h>
 #include <module/OprSp.h>
 #include <layer/LayerNTS.h>
-#include <layer/LayerWeb.h>
-#include <layer/UI_LayerManager.h>
+#include <layer/TMC_LayerManager.h>
 #include <layer/SLV_LayerManager.h>
 
 #include <sign/Controller.h>
@@ -244,12 +243,12 @@ int main(int argc, char *argv[])
         {
             oprSp[i] = nullptr;
         }
-        // TSI-SP-003 RS232/485
-        IUpperLayer *uiLayer = new UI_LayerManager(COM_NAME[usercfg.ComPort()], "NTS");
-        oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
+        // TSI-SP-003 RS232/485 monitor
+            IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.ComPort()]);
+            oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
         if (prod.MonitoringPort() >= 0)
         {
-            LayerWeb::monitor = LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
+            LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
                 new OprSp{(uint8_t)prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024 * 1024};
         }
         // Slaves
@@ -261,7 +260,7 @@ int main(int argc, char *argv[])
                 if (oprSp[cn.com_ip] == nullptr)
                 {
                     auto g = Controller::Instance().GetGroup(cn.groupId);
-                    IUpperLayer *upperLayer = new SLV_LayerManager(COM_NAME[cn.com_ip], g);
+                    IUpperLayer *upperLayer = new SLV_LayerManager(COM_NAME[cn.com_ip], cn.groupId, g);
                     oprSp[cn.com_ip] = new OprSp{(uint8_t)cn.com_ip, SignCfg::bps_port, upperLayer};
                     g->SetOprSp(oprSp[cn.com_ip]);
                 }
@@ -272,11 +271,10 @@ int main(int argc, char *argv[])
             throw runtime_error("TODO: Slave on IP:Port");
         }
 
-        // TSI-SP-003 Web
-        // auto tcpServerWeb = new TcpServer {usercfg.WebPort(), "WEB", prod.TcpServerWEB(), tmrEvt1Sec};
+        // Web
         auto wsServer = new WsServer{usercfg.WebPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
-        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), "NTS", prod.TcpServerNTS(), tmrEvt1Sec};
+        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), TcpSvrType::TMC, prod.TcpServerTMC(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
         Ldebug(">>> DONE >>>");

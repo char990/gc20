@@ -4,6 +4,7 @@
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
 #include <tsisp003/Upgrade.h>
+#include <module/QueueLtd.h>
 
 using namespace std;
 using namespace Utils;
@@ -226,6 +227,8 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ImportConfig),
     CMD_ITEM(UpgradeFirmware),
     CMD_ITEM(BackupFirmware),
+    CMD_ITEM(TestTMC),
+    CMD_ITEM(TestSlave),
 };
 
 void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -1007,12 +1010,24 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
             reply.emplace("type", "Text Frame");
             auto &rawdata = frm->stFrm.rawData;
             reply.emplace("font", rawdata[3]);
-            vector<char> txt(rawdata[6] + 1);
-            memcpy(txt.data(), rawdata.data() + 7, rawdata[6]);
-            txt.back() = '\0';
-            reply.emplace("text", txt.data());
-            //                        auto txtFrm = static_cast<FrmTxt*>(frm);
-            //            reply.emplace("text", txtFrm->ToStringVector());
+
+            // vector<char> txt(rawdata[6] + 1);
+            // memcpy(txt.data(), rawdata.data() + 7, rawdata[6]);
+            // txt.back() = '\0';
+            // reply.emplace("text", txt.data());
+
+            auto vtxt = static_cast<FrmTxt *>(frm)->ToStringVector();
+            string text;
+            int s = vtxt.size() - 1;
+            for (int vi = 0; vi <= s; vi++)
+            {
+                text.append(vtxt.at(vi));
+                if (vi < s)
+                {
+                    text.append("\n");
+                }
+            }
+            reply.emplace("text", text);
         }
         else if (frm->micode == 0x0B || frm->micode == 0x1D)
         {
@@ -1675,7 +1690,26 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
     }
     else
     {
-        reply.emplace("result", buf);
     }
     Ldebug(buf);
+}
+
+void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    string text;
+    while (qltdTmc->size() > 0)
+    {
+        text += qltdTmc->Pop() + "\n";
+    }
+    reply.emplace("Text", text);
+}
+
+void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    string text;
+    while (qltdSlave->size() > 0)
+    {
+        text += qltdSlave->Pop() + "\n";
+    }
+    reply.emplace("Text", text);
 }

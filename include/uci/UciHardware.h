@@ -27,8 +27,7 @@ public:
     void Dump() override;
 
     // getter
-    uint8_t TcpServerNTS() { return tcpServerNTS; };
-    uint8_t TcpServerWEB() { return tcpServerWEB; };
+    uint8_t TcpServerTMC() { return tcpServerTMC; };
     char *MfcCode() { return &mfcCode[0]; };
     Font *Fonts(int i) { return fonts[i]; };
     SignCfg &GetSignCfg(uint8_t id) { return signCfg.at(id - 1); };
@@ -163,8 +162,7 @@ private:
     const char *_TcpTimeout = "TcpTimeout";
 
     /// uint8_t
-    const char *_TcpServerNTS = "TcpServerNTS";
-    const char *_TcpServerWEB = "TcpServerWEB";
+    const char *_TcpServerNTS = "TcpServerTMC";
     const char *_TsiSp003Ver = "TsiSp003Ver";
     const char *_NumberOfSigns = "NumberOfSigns";
     const char *_NumberOfGroups = "NumberOfGroups";
@@ -228,8 +226,7 @@ private:
         lightSensorScale;
 
     uint8_t
-        tcpServerNTS,
-        tcpServerWEB,
+        tcpServerTMC,
         tsiSp003Ver,
         slavePowerUpDelay,
         colourBits, // 1,4,24

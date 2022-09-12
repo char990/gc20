@@ -16,7 +16,7 @@
 class TcpServer : IGcEvent
 {
 public:
-    TcpServer(int listenPort, std::string serverType, int poolsize, TimerEvent * tmr);
+    TcpServer(int listenPort, TcpSvrType serverType, int poolsize, TimerEvent * tmr);
     ~TcpServer();
 
     /// \brief  Incoming... Accept
@@ -31,7 +31,7 @@ public:
 
 private:
     int listenPort;
-    std::string serverType;
+    TcpSvrType serverType;
     int poolsize;
     TimerEvent * tmrEvt;
 

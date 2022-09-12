@@ -8,6 +8,7 @@
 #include <layer/ISession.h>
 #include <tsisp003/Upgrade.h>
 
+
 /// \brief TSiSp003 Application Layer base
 class TsiSp003App : public IUpperLayer
 {
@@ -53,7 +54,7 @@ public:
     /*------------------------------------------------------------------>*/
 
     /// \brief call lowerlayer->Tx
-    virtual int Tx(uint8_t *data, int len) { return lowerLayer->Tx(data, len); }
+    virtual int Tx(uint8_t *data, int len);
 
     void SetSession(ISession *v) { session = v; };
 
@@ -63,6 +64,7 @@ protected:
     UciUserCfg &usercfg;
     Controller &ctrller;
     ISession *session{nullptr};
+
 
     uint8_t micode{0};
     APP::ERROR appErr{APP::ERROR::AppNoError};

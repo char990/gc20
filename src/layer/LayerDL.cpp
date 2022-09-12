@@ -5,16 +5,21 @@
 
 #include <layer/LayerDL.h>
 #include <module/MyDbg.h>
+#include <module/QueueLtd.h>
 
-LayerDL::LayerDL(std::string name_, int size):maxPktSize(size)
+QueueLtd *qltdTmc;
+
+LayerDL::LayerDL(std::string name_, int size) : maxPktSize(size)
 {
     name = name_ + ":" + "DL";
     buf = new uint8_t[size];
+    qltdTmc = new QueueLtd(20);
 }
 
 LayerDL::~LayerDL()
 {
-    delete [] buf;
+    delete[] buf;
+    delete qltdTmc;
 }
 
 int LayerDL::Rx(uint8_t *data, int len)
@@ -24,15 +29,15 @@ int LayerDL::Rx(uint8_t *data, int len)
     {
         uint8_t c = *p++;
         if (c == static_cast<uint8_t>(CTRL_CHAR::SOH))
-        {// packet start, clear buffer
+        { // packet start, clear buffer
             buf[0] = c;
             length = 1;
-            //Pdebug("SOH");
+            // Pdebug("SOH");
         }
-        else if(c == static_cast<uint8_t>(CTRL_CHAR::NAK))
+        else if (c == static_cast<uint8_t>(CTRL_CHAR::NAK))
         {
-            //Pdebug("NAK");
-        }  // TODO : CTRL_CHAR::NAK
+            // Pdebug("NAK");
+        } // TODO : CTRL_CHAR::NAK
         else
         {
             if (length > 0)
@@ -42,10 +47,11 @@ int LayerDL::Rx(uint8_t *data, int len)
                     buf[length++] = c;
                     if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
-                        //Pdebug("ETX");
+                        // Pdebug("ETX");
                         upperLayer->Rx(buf, length);
+                        qltdTmc->Push(' ', buf, length, 0);
                         length = 0;
-                        return 0;   // only deal with one pkt. Discard other data. 
+                        return 0; // only deal with one pkt. Discard other data.
                     }
                 }
                 else
@@ -58,7 +64,6 @@ int LayerDL::Rx(uint8_t *data, int len)
     return 0;
 }
 
-
 bool LayerDL::IsTxReady()
 {
     return lowerLayer->IsTxReady();
@@ -66,6 +71,7 @@ bool LayerDL::IsTxReady()
 
 int LayerDL::Tx(uint8_t *data, int len)
 {
+    qltdTmc->Push(' ', data, len, 1);
     return lowerLayer->Tx(data, len);
 }
 

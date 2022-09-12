@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 #include <module/BootTimer.h>
 #include <module/IOperator.h>
@@ -7,7 +8,12 @@
 
 #include <module/ObjectPool.h>
 
-class TcpServer;
+enum class TcpSvrType
+{
+    TMC
+};
+
+extern std::string TcpSvrTypeName(TcpSvrType t);
 
 /// \brief  Operator from tcp
 class OprTcp : public IOperator, public IPeriodicRun, public Poolable<OprTcp>
@@ -37,7 +43,7 @@ public:
     /*--------------------------------------------------------->*/
 
     /// \brief  Called only after object was created
-    virtual void Init(std::string name_, std::string aType);
+    virtual void Init(std::string name_, TcpSvrType aType);
 
     /// \brief  Called when accept
     virtual void Accept(int fd, TimerEvent *tmr, const char *ip);
@@ -48,7 +54,6 @@ public:
 
 private:
     std::string name;
-    TcpServer *server{nullptr};
     TimerEvent *tmrEvt{nullptr};
     BootTimer tcpIdleTmr;
     long IdleMs();

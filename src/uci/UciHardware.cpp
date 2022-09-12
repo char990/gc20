@@ -61,8 +61,7 @@ void UciHardware::LoadConfig()
     SECTION = _SectionCtrller;
     struct uci_section *uciSec = GetSection(SECTION);
 
-    tcpServerNTS = GetInt(uciSec, _TcpServerNTS, 1, 8);
-    tcpServerWEB = GetInt(uciSec, _TcpServerWEB, 1, 4);
+    tcpServerTMC = GetInt(uciSec, _TcpServerNTS, 1, 8);
     tcpTimeout = GetInt(uciSec, _TcpTimeout, 60, 0xFFFF);
 
     tsiSp003Ver = GetIndexFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
@@ -461,8 +460,7 @@ void UciHardware::Dump()
     PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, _SectionCtrller);
 
-    PrintOption_d(_TcpServerNTS, TcpServerNTS());
-    PrintOption_d(_TcpServerWEB, TcpServerWEB());
+    PrintOption_d(_TcpServerNTS, TcpServerTMC());
     PrintOption_d(_TcpTimeout, TcpTimeout());
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);

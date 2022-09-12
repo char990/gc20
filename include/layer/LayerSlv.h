@@ -9,7 +9,7 @@
 class LayerSlv : public ILayer
 {
 public:
-    LayerSlv(std::string name_, int maxPktSzie);
+    LayerSlv(std::string name_, int groupId, int maxPktSzie);
     ~LayerSlv();
 
     int Rx(uint8_t *data, int len) override;
@@ -26,4 +26,5 @@ private:
     int length;
     uint8_t *buf;
     int maxPktSize;
+    int groupId;
 };

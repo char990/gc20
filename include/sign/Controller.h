@@ -13,10 +13,10 @@
 #include <module/TcpServer.h>
 #include <module/Debounce.h>
 
+
 #define RQST_NETWORK (1 << 0)
 #define RQST_RESTART (1 << 1)
 #define RQST_REBOOT (1 << 2)
-
 
 class Controller : public IPeriodicRun
 {
@@ -98,6 +98,7 @@ public:
         }
     };
 
+
 private:
     Controller();
     ~Controller();
@@ -105,6 +106,7 @@ private:
 
     std::vector<Sign *> signs;
     std::vector<Group *> groups;
+
 
     bool isOnline{false};
 

@@ -2,10 +2,20 @@
 #include <module/OprTcp.h>
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
-#include <layer/UI_LayerManager.h>
+#include <layer/TMC_LayerManager.h>
 #include <uci/DbHelper.h>
 
 #define TCPSPEED 1000000 // 1M bytes per seconds
+
+std::string TcpSvrTypeName(TcpSvrType t)
+{
+    switch (t)
+    {
+    case TcpSvrType::TMC:
+        return "TMC";
+    }
+    throw "Unkown";
+}
 
 OprTcp::OprTcp()
 {
@@ -13,7 +23,7 @@ OprTcp::OprTcp()
 
 OprTcp::~OprTcp()
 {
-    if (upperLayer!=nullptr)
+    if (upperLayer != nullptr)
     {
         delete upperLayer;
     }
@@ -46,14 +56,21 @@ long OprTcp::IdleMs()
 {
     long s = DbHelper::Instance().GetUciUserCfg().SessionTimeoutSec();
     long t = DbHelper::Instance().GetUciProd().TcpTimeout();
-    return (s + t)*1000;
+    return (s + t) * 1000;
 }
 
 /// \brief  Called when instantiation
-void OprTcp::Init(std::string name_, std::string aType)
+void OprTcp::Init(std::string name_, TcpSvrType aType)
 {
     name = name_;
-    upperLayer = new UI_LayerManager(name, aType);
+    if (aType == TcpSvrType::TMC)
+    {
+        upperLayer = new TMC_LayerManager(name);
+    }
+    else
+    {
+        throw "Unknown server type";
+    }
     upperLayer->LowerLayer(this);
 }
 

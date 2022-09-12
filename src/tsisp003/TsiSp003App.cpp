@@ -65,6 +65,11 @@ void TsiSp003App::ClrRx()
     appErr = APP::ERROR::AppNoError;
 }
 
+int TsiSp003App::Tx(uint8_t *data, int len)
+{
+    return lowerLayer->Tx(data, len);
+}
+
 void TsiSp003App::Reject(APP::ERROR error)
 {
     uint8_t buf[3];

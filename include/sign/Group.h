@@ -12,6 +12,8 @@
 #include <uci/DbHelper.h>
 #include <module/Utils.h>
 #include <module/OprSp.h>
+
+    
 class PlnMinute
 {
 public:
@@ -119,6 +121,7 @@ protected:
     UciUserCfg &usercfg;
     uint8_t groupId;
     OprSp *oprSp;
+
     std::vector<Sign *> vSigns;
     std::vector<Slave *> vSlaves;
 

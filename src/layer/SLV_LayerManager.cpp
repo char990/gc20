@@ -4,11 +4,11 @@
 #include <uci/DbHelper.h>
 #include <sign/Slave.h>
 
-SLV_LayerManager::SLV_LayerManager(std::string name_,  IUpperLayer * upperLayer)
+SLV_LayerManager::SLV_LayerManager(std::string name_, int groupId, IUpperLayer * upperLayer)
 {
     maxPktSize = 1 + 9 + DbHelper::Instance().GetUciProd().MaxCoreLen() + 2;
     prstLayer = new LayerPrst(maxPktSize);
-    dlLayer = new LayerSlv(name_, (maxPktSize+2)*2+2);  // 0x02 + ([packet] + 2-byte CRC)*2 + 0x03
+    dlLayer = new LayerSlv(name_, groupId, (maxPktSize+2)*2+2);  // 0x02 + ([packet] + 2-byte CRC)*2 + 0x03
     appLayer = upperLayer;
     // lowerLayer<->dlLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer

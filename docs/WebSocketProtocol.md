@@ -57,6 +57,8 @@
     - [ImportConfig](#importconfig)
     - [BackupFirmware](#backupfirmware)
     - [UpgradeFirmware](#upgradefirmware)
+    - [TestTMC](#testtmc)
+    - [TestSlave](#testslave)
 
 ---
 
@@ -745,7 +747,7 @@ Master send: JSON:
 "font":0/1/2/3/4/5,
 "conspicuity":"Off"/"Up Down"/"Left Right"/"Wig Wag"/"All Flash"/"All On",
 "annulus":"Off"/"Flashing"/"On",
-"text":["Row1","Row2","Row3"], // if Text Frame, or
+"text":["Row1\nRow2\nRow3"], // if Text Frame, '\n' is new line
 "image":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……" // if Gfx/Hrg
 }
 ```
@@ -1296,3 +1298,51 @@ Controller reply: JSON:
 
 The "file" is saved to "goblin_temp/goblin.tar". Then go into "goblin_temp" and unpack it "tar -xf goblin.tar".
 If all files are good, exit. "goblind" will check and load new firmware.
+
+### TestTMC
+
+Direction: Master -> Controller
+
+Description: Display communication between TMC and controller
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"TestTMC"
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"TestTMC",
+"Text":"12:34:56.235=><02><05>Command from TMC<03>\n12:34:56.235<=<02><05>Reply from controller<03>\n........"
+}
+```
+
+### TestSlave
+
+Direction: Master -> Controller
+
+Description: Display communication between controller and slave
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"TestSlave"
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"TestSlave",
+"Text":"12:34:56.235>>>Command from Controller\n12:34:56.235<<<Reply from slave\n........"
+}
+```

@@ -14,19 +14,19 @@
 using namespace Utils;
 using namespace std;
 
-TcpServer::TcpServer(int listenPort, string serverType, int poolsize, TimerEvent *tmr)
+TcpServer::TcpServer(int listenPort, TcpSvrType serverType, int poolsize, TimerEvent *tmr)
     : listenPort(listenPort),
       serverType(serverType),
       poolsize(poolsize),
       tmrEvt(tmr)
 {
-    name = serverType + " server:" + to_string(listenPort);
+    name = TcpSvrTypeName(serverType) + " server:" + to_string(listenPort);
 
     objPool = new ObjectPool<OprTcp>(poolsize);
     auto ipool = objPool->Pool();
     for (int i = 0; i < ipool.size(); i++)
     {
-        ipool[i]->Init(serverType + to_string(i), serverType);
+        ipool[i]->Init(TcpSvrTypeName(serverType) + to_string(i), serverType);
     }
     eventFd = -1;
     Open();
@@ -76,7 +76,7 @@ void TcpServer::Open()
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
-    Ldebug("Starting %s listener on 0.0.0.0:%d", serverType.c_str(), listenPort);
+    Ldebug("Starting %s listener on 0.0.0.0:%d", TcpSvrTypeName(serverType).c_str(), listenPort);
 }
 
 void TcpServer::Close()
