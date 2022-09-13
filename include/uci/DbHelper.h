@@ -30,7 +30,7 @@ public:
     
     uint16_t HdrChksum();
 
-    UciHardware & GetUciProd() { return uciProd; };
+    UciHardware & GetUciHardware() { return uciHardware; };
     UciUserCfg & GetUciUserCfg() { return uciUserCfg; };
     UciNetwork & GetUciNetwork() {return uciNetwork;};
 
@@ -49,7 +49,7 @@ public:
     const char * Path(){ return dbPath; };
 
 protected:
-    UciHardware uciProd;
+    UciHardware uciHardware;
     UciUserCfg uciUserCfg;
     UciNetwork uciNetwork;
 

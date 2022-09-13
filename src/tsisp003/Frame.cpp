@@ -46,10 +46,10 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         return 1;
     }
     // int CheckConspicuity();
-    auto &prod = DbHelper::Instance().GetUciProd();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
     if ((conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03) > 2 ||
-        !prod.IsConspicuity(conspicuity & 0x07) ||
-        !prod.IsAnnulus((conspicuity >> 3) & 0x03))
+        !ucihw.IsConspicuity(conspicuity & 0x07) ||
+        !ucihw.IsAnnulus((conspicuity >> 3) & 0x03))
     {
         Ldebug("Frame[%d] Error:conspicuity=%d;annulus=%d", frmId, (conspicuity & 0x07), ((conspicuity >> 3) & 0x03));
         appErr = APP::ERROR::ConspicuityNotSupported;
@@ -61,18 +61,18 @@ int Frame::FrameCheck(uint8_t *frm, int len)
 
 int Frame::CheckLength(int len)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
-    if (len < frmOffset + 2 + prod.Gfx1CoreLen())
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    if (len < frmOffset + 2 + ucihw.Gfx1CoreLen())
     {
         Ldebug("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooSmall;
     }
-    else if (len > frmOffset + 2 + prod.MaxCoreLen())
+    else if (len > frmOffset + 2 + ucihw.MaxCoreLen())
     {
         Ldebug("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooLarge;
     }
-    else if (pixelRows != prod.PixelRows() || pixelColumns != prod.PixelColumns()) // rows & columns
+    else if (pixelRows != ucihw.PixelRows() || pixelColumns != ucihw.PixelColumns()) // rows & columns
     {
         Ldebug("Frame[%d] Error:pixelRows=%d;pixelColumns=%d", frmId, pixelRows, pixelColumns);
         appErr = APP::ERROR::SizeMismatch;
@@ -82,15 +82,15 @@ int Frame::CheckLength(int len)
         int x = 0;
         if (colour < static_cast<uint8_t>(FRMCOLOUR::MonoFinished))
         {
-            x = prod.Gfx1CoreLen();
+            x = ucihw.Gfx1CoreLen();
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         {
-            x = prod.Gfx4CoreLen();
+            x = ucihw.Gfx4CoreLen();
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB_24bit))
         {
-            x = prod.Gfx24CoreLen();
+            x = ucihw.Gfx24CoreLen();
         }
         if (x != 0)
         {
@@ -114,7 +114,7 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
     if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
     {
         auto p = frm + frmOffset;
-        auto &prod = DbHelper::Instance().GetUciProd();
+        auto &ucihw = DbHelper::Instance().GetUciHardware();
         auto monoFinished = static_cast<uint8_t>(FRMCOLOUR::MonoFinished);
         for (int i = 0; i < frmBytes; i++)
         {
@@ -126,7 +126,7 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
                 {
                     continue;
                 }
-                if (d2 >= monoFinished || !prod.IsGfxFrmColourValid(d2))
+                if (d2 >= monoFinished || !ucihw.IsGfxFrmColourValid(d2))
                 {
                     appErr = APP::ERROR::ColourNotSupported;
                     Ldebug("Frame[%d] Error:MultipleColours(frame contains coulour:%d)", frmId, d2);
@@ -140,9 +140,9 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
 
 void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t monocolour)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
-    int columns = prod.PixelColumns();
-    int rows = prod.PixelRows();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    int columns = ucihw.PixelColumns();
+    int rows = ucihw.PixelRows();
     int offset = y * columns + x;
     if (colourbit == 1)
     {
@@ -151,7 +151,7 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
     else if (colourbit == 4)
     {
 #ifdef HALF_BYTE
-        monocolour = prod.GetColourXbit(monocolour);
+        monocolour = ucihw.GetColourXbit(monocolour);
 #endif
         *(buf + offset / 2) |= (offset & 1) ? (monocolour * 0x10) : monocolour;
     }
@@ -159,17 +159,17 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
 
 int Frame::ToBit(uint8_t colourbit, uint8_t *buf)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
-    int frmLen = (colourbit == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    int frmLen = (colourbit == 4) ? ucihw.Gfx4CoreLen() : ucihw.Gfx24CoreLen();
     memset(buf, 0, frmLen);
     if (colour < (uint8_t)FRMCOLOUR::MonoFinished)
     { // 1-bit frame
         if (colourbit == 4)
         { // mono to 4-bit/half-byte
 #ifdef HALF_BYTE
-            auto mappedcolour = prod.GetColourXbit(colour);
+            auto mappedcolour = ucihw.GetColourXbit(colour);
 #else
-            auto mappedcolour = prod.GetMappedColour(colour);
+            auto mappedcolour = ucihw.GetMappedColour(colour);
 #endif
             uint8_t mappedcolourH = mappedcolour * 0x10;
             auto offset = frmOffset;
@@ -195,7 +195,7 @@ int Frame::ToBit(uint8_t colourbit, uint8_t *buf)
             for (int i = 0; i < frmBytes; i++)
             {
                 auto data = *p++;
-                *buf++ = prod.GetColourXbit((data & 0xF0) >> 4) * 0x10 + prod.GetColourXbit(data & 0x0F);
+                *buf++ = ucihw.GetColourXbit((data & 0xF0) >> 4) * 0x10 + ucihw.GetColourXbit(data & 0x0F);
             }
 #else
             memcpy(buf, stFrm.rawData.data() + frmOffset, frmLen);
@@ -252,7 +252,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     {
         return 1;
     }
-    auto &prod = DbHelper::Instance().GetUciProd();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
     if (micode != static_cast<uint8_t>(MI::CODE::SignSetTextFrame))
     {
         appErr = APP::ERROR::UnknownMi;
@@ -264,15 +264,15 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
         appErr = APP::ERROR::TextNonASC;
         return 1;
     }
-    else if (!prod.IsFont(font))
+    else if (!ucihw.IsFont(font))
     {
         Ldebug("Frame[%d] Error:font=%d", frmId, font);
         appErr = APP::ERROR::FontNotSupported;
         return 1;
     }
-    auto pFont = prod.Fonts(font);
-    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
-    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
+    auto pFont = ucihw.Fonts(font);
+    int columns = (ucihw.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
+    int rows = (ucihw.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
     char *p = (char *)(frm + frmOffset);
     int lines = 0;
     int chars = 0;
@@ -312,7 +312,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
 
 int FrmTxt::CheckColour()
 {
-    if (DbHelper::Instance().GetUciProd().IsTxtFrmColourValid(colour))
+    if (DbHelper::Instance().GetUciHardware().IsTxtFrmColourValid(colour))
     {
         return 0;
     }
@@ -335,17 +335,17 @@ int FrmTxt::ToBit(uint8_t colourbit, uint8_t *buf)
     {
         colourbit = 1;
     }
-    auto &prod = DbHelper::Instance().GetUciProd();
-    int frmLen = (colourbit == 1) ? prod.Gfx1CoreLen() : ((colourbit == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen());
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    int frmLen = (colourbit == 1) ? ucihw.Gfx1CoreLen() : ((colourbit == 4) ? ucihw.Gfx4CoreLen() : ucihw.Gfx24CoreLen());
     memset(buf, 0, frmLen);
     auto vtext = ToStringVector();
-    auto pFont = prod.Fonts(font);
-    uint8_t monocolour = prod.GetMappedColour(colour);
-    int start_y = (prod.PixelRows() - (pFont->CharHeightWS() * vtext.size() - pFont->LineSpacing())) / 2;
+    auto pFont = ucihw.Fonts(font);
+    uint8_t monocolour = ucihw.GetMappedColour(colour);
+    int start_y = (ucihw.PixelRows() - (pFont->CharHeightWS() * vtext.size() - pFont->LineSpacing())) / 2;
     for (int i = 0; i < vtext.size(); i++)
     {
         int width = pFont->GetWidth(vtext.at(i).c_str());
-        int start_x = (prod.PixelColumns() - width) / 2;
+        int start_x = (ucihw.PixelColumns() - width) / 2;
         StrToBitmap(colourbit, buf, start_x, start_y, monocolour, vtext.at(i).c_str(), pFont);
         start_y += pFont->CharHeightWS();
     }
@@ -395,12 +395,12 @@ void FrmTxt::CharToBitmap(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t
 
 vector<string> FrmTxt::ToStringVector()
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
-    auto pFont = prod.Fonts(font);
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    auto pFont = ucihw.Fonts(font);
     auto char_space = pFont->CharSpacing();
     auto line_space = pFont->LineSpacing();
-    int columns = (prod.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
-    int rows = (prod.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
+    int columns = (ucihw.PixelColumns() + pFont->CharSpacing()) / pFont->CharWidthWS();
+    int rows = (ucihw.PixelRows() + pFont->LineSpacing()) / pFont->CharHeightWS();
     std::vector<std::vector<char>> texts(rows, std::vector<char>(columns + 1, 0));
     auto offset = frmOffset;
     int rx = 0;
@@ -473,7 +473,7 @@ int FrmGfx::CheckSub(uint8_t *frm, int len)
 
 int FrmGfx::CheckColour()
 {
-    if (DbHelper::Instance().GetUciProd().IsGfxFrmColourValid(colour))
+    if (DbHelper::Instance().GetUciHardware().IsGfxFrmColourValid(colour))
     {
         return 0;
     }
@@ -520,7 +520,7 @@ int FrmHrg::CheckSub(uint8_t *frm, int len)
 
 int FrmHrg::CheckColour()
 {
-    if (DbHelper::Instance().GetUciProd().IsHrgFrmColourValid(colour))
+    if (DbHelper::Instance().GetUciHardware().IsHrgFrmColourValid(colour))
     {
         return 0;
     }

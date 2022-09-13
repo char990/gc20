@@ -13,8 +13,8 @@ using namespace std;
 GroupIslus::GroupIslus(uint8_t id)
     : Group(id)
 {
-    auto &prod = db.GetUciProd();
-    if (prod.SlavesPerSign() != 1)
+    auto &ucihw = db.GetUciHardware();
+    if (ucihw.SlavesPerSign() != 1)
     {
         throw invalid_argument("ISLUS: Sign can only have ONE slave");
     }
@@ -76,7 +76,7 @@ APP::ERROR GroupIslus::DispAtomicFrm(uint8_t *cmd)
             }
         }
         // reject frames => check exit
-        if (db.GetUciProd().GetSignCfg(sign_id).rejectFrms.GetBit(frm_id))
+        if (db.GetUciHardware().GetSignCfg(sign_id).rejectFrms.GetBit(frm_id))
         {
             return APP::ERROR::SyntaxError;
         }
@@ -142,9 +142,9 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
 
 void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 {
-    if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
+    if (db.GetUciHardware().IsIslusSpFrm(uciFrmId))
     {
-        //auto &prod = db.GetUciProd();
+        //auto &ucihw = db.GetUciHardware();
         //auto &usercfg = db.GetUciUserCfg();
         uint8_t *p = txBuf + 1;
         *p++ = SET_ISLUS_SP_FRM; // ISLUS special frame
@@ -165,7 +165,7 @@ void GroupIslus::IMakeFrameForSlave(uint8_t uciFrmId)
 
 int GroupIslus::ITransFrmWithOrBuf(uint8_t uciFrmId, uint8_t *dst)
 {
-    if (db.GetUciProd().IsIslusSpFrm(uciFrmId))
+    if (db.GetUciHardware().IsIslusSpFrm(uciFrmId))
     {
         return 0;
     }

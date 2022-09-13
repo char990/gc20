@@ -20,19 +20,19 @@ using namespace Utils;
 Group::Group(uint8_t groupId)
     : groupId(groupId),
       db(DbHelper::Instance()),
-      prod(DbHelper::Instance().GetUciProd()),
+      ucihw(DbHelper::Instance().GetUciHardware()),
       usercfg(DbHelper::Instance().GetUciUserCfg()),
       fcltSw(PIN_G1_AUTO, PIN_G1_MSG1, PIN_G1_MSG2)
 {
     busLockTmr.Setms(0);
     dimmingAdjTimer.Setms(0);
-    int totalSign = prod.NumberOfSigns();
-    switch (prod.ExtStsRplSignType())
+    int totalSign = ucihw.NumberOfSigns();
+    switch (ucihw.ExtStsRplSignType())
     {
     case SESR_SIGN_TYPE::TEXT:
         for (int i = 1; i <= totalSign; i++)
         {
-            if (prod.GetGroupIdOfSign(i) == groupId)
+            if (ucihw.GetGroupIdOfSign(i) == groupId)
             {
                 vSigns.push_back(new SignTxt(i));
             }
@@ -41,7 +41,7 @@ Group::Group(uint8_t groupId)
     case SESR_SIGN_TYPE::GFX:
         for (int i = 1; i <= totalSign; i++)
         {
-            if (prod.GetGroupIdOfSign(i) == groupId)
+            if (ucihw.GetGroupIdOfSign(i) == groupId)
             {
                 vSigns.push_back(new SignGfx(i));
             }
@@ -50,7 +50,7 @@ Group::Group(uint8_t groupId)
     case SESR_SIGN_TYPE::ADVGFX:
         for (int i = 1; i <= totalSign; i++)
         {
-            if (prod.GetGroupIdOfSign(i) == groupId)
+            if (ucihw.GetGroupIdOfSign(i) == groupId)
             {
                 vSigns.push_back(new SignAdg(i));
             }
@@ -69,20 +69,20 @@ Group::Group(uint8_t groupId)
     dsNext->dispType = DISP_TYPE::BLK;
     dsNext->fmpid[0] = 0;
 
-    maxTxSize = 1 + 9 + prod.MaxCoreLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
+    maxTxSize = 1 + 9 + ucihw.MaxCoreLen() + 2; // slaveId(1) + MIcode-datalen(9) + bitmapdata(x) + appcrc(2)
     txBuf = new uint8_t[maxTxSize];
     txLen = 0;
 
-    switch (prod.ColourBits())
+    switch (ucihw.ColourBits())
     {
     case 1:
-        orLen = prod.Gfx1CoreLen();
+        orLen = ucihw.Gfx1CoreLen();
         break;
     case 4:
-        orLen = prod.Gfx4CoreLen();
+        orLen = ucihw.Gfx4CoreLen();
         break;
     case 24:
-        orLen = prod.Gfx24CoreLen();
+        orLen = ucihw.Gfx24CoreLen();
         break;
     }
     orBuf = new uint8_t[orLen];
@@ -153,7 +153,7 @@ Group::~Group()
 
 void Group::LoadLastDisp()
 { // load disp
-    if (prod.LoadLastDisp())
+    if (ucihw.LoadLastDisp())
     {
         auto disp = db.GetUciProcess().GetDisp(groupId);
         if (disp[0] > 0)
@@ -306,7 +306,7 @@ void Group::PowerFunc()
         { // any one is rising
             if (pwrUpTmr.IsClear())
             { // start power-up
-                pwrUpTmr.Setms(prod.SlavePowerUpDelay() * 1000);
+                pwrUpTmr.Setms(ucihw.SlavePowerUpDelay() * 1000);
             }
             else if (pwrUpTmr.IsExpired())
             {
@@ -326,7 +326,7 @@ void Group::PowerFunc()
                 // power-up done
                 pwrUpTmr.Clear();
                 extDispTmr.Clear();
-                // rqstNoRplTmr.Setms((prod.OfflineDebounce() - 1) * 1000);
+                // rqstNoRplTmr.Setms((hw.OfflineDebounce() - 1) * 1000);
                 TaskRqstSlaveReset();
                 mainPwr = PWR_STATE::ON;
                 cmdPwr = PWR_STATE::ON;
@@ -554,7 +554,7 @@ bool Group::TaskMsg(int *_ptLine)
                     ClrAllSlavesRxStatus();
                     do
                     {
-                        taskFrmTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+                        taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
                         PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                     } while (allSlavesCurrent == 0); // all good
                 };
@@ -669,7 +669,7 @@ bool Group::TaskMsg(int *_ptLine)
                     {      // OnTime is for displayed frm only
                         do // +++++++++ OnTime
                         {
-                            taskFrmTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+                            taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
                             PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                             if (msgDispEntry == pMsg->entries - 1)
                             {
@@ -754,7 +754,7 @@ void Group::InitMsgOverlayBuf(Message *pMsg)
         {
             if (i != (pMsg->entries - 1))
             { // NOT last entry
-                msgOverlay = prod.ColourBits();
+                msgOverlay = ucihw.ColourBits();
                 if (onTime1)
                 { // had an entry with ontime>0
                     msgSetEntryMax = pMsg->entries + i;
@@ -905,7 +905,7 @@ bool Group::TaskFrm(int *_ptLine)
                     SlaveSync();
                     PT_YIELD();
                 }
-                taskFrmTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+                taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
                 PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
                 if (allSlavesCurrent == 0)
                 {
@@ -960,7 +960,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
     {
         PT_WAIT_UNTIL(IsBusFree());
         // currentDimmingLvl = 1;
-        setDimming = prod.Dimming(currentDimmingLvl);
+        setDimming = ucihw.Dimming(currentDimmingLvl);
         RqstExtStatus(0xFF); // set 1
         targetDimmingLvl &= 0x7F;
     }
@@ -974,20 +974,20 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         }
         if (tdl > currentDimmingLvl)
         {
-            targetDimmingV = prod.Dimming(currentDimmingLvl + 1);
+            targetDimmingV = ucihw.Dimming(currentDimmingLvl + 1);
         }
         else
         {
-            targetDimmingV = prod.Dimming(currentDimmingLvl - 1);
+            targetDimmingV = ucihw.Dimming(currentDimmingLvl - 1);
         }
-        currentDimmingV = prod.Dimming(currentDimmingLvl);
+        currentDimmingV = ucihw.Dimming(currentDimmingLvl);
 #ifdef DEBUG_ADJ_DIMMING
         Ldebug("Group[%d]Dimming:current:lvl=%d,V=%d; target:lvl=%d,V=%d",
                groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
 #endif
         for (adjDimmingSteps = 0; adjDimmingSteps < 16; adjDimmingSteps++)
         {
-            dimmingAdjTimer.Setms(prod.DimmingAdjTime() * 1000 / 16);
+            dimmingAdjTimer.Setms(ucihw.DimmingAdjTime() * 1000 / 16);
             uint8_t dv;
             if (adjDimmingSteps == 15)
             {
@@ -1043,14 +1043,14 @@ bool Group::TaskRqstSlave(int *_ptLine)
         // Request status 1-n
         do
         {
-            taskRqstSlaveTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+            taskRqstSlaveTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
             RqstStatus(rqstSt_slvindex);
             {
                 auto slave = vSlaves.at(rqstSt_slvindex);
                 slave->rxStatus = 0;
                 if (slave->rqstNoRplTmr.IsClear())
                 {
-                    slave->rqstNoRplTmr.Setms(prod.OfflineDebounce() * 1000);
+                    slave->rqstNoRplTmr.Setms(ucihw.OfflineDebounce() * 1000);
                 }
             }
             PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
@@ -1089,7 +1089,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
         } while (rqstSt_slvindex != 0);
 
         // Request Ext-status x
-        taskRqstSlaveTmr.Setms(prod.SlaveRqstInterval() - MS_SHIFT);
+        taskRqstSlaveTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
         RqstExtStatus(rqstExtSt_slvindex);
         vSlaves.at(rqstExtSt_slvindex)->rxExtSt = 0;
         PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
@@ -1520,7 +1520,7 @@ APP::ERROR Group::DispFrm(uint8_t id, bool log)
     }
     for (auto &sign : vSigns)
     {
-        auto &signCfg = prod.GetSignCfg(sign->SignId());
+        auto &signCfg = ucihw.GetSignCfg(sign->SignId());
         if (signCfg.rejectFrms.GetBit(id))
         {
             return APP::ERROR::SyntaxError;
@@ -1770,21 +1770,21 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 
 int Group::RqstStatus(uint8_t slvindex)
 {
-    LockBus(prod.SlaveRqstStTo());
+    LockBus(ucihw.SlaveRqstStTo());
     Slave *s = vSlaves[slvindex];
     s->rxStatus = 0;
     txBuf[0] = s->SlaveId();
     txBuf[1] = SLVCMD::RQST_STATUS;
     txLen = 2;
     Tx();
-    int ms = prod.SlaveRqstStTo();
+    int ms = ucihw.SlaveRqstStTo();
     LockBus(ms);
     return ms;
 }
 
 int Group::RqstExtStatus(uint8_t slvindex)
 {
-    LockBus(prod.SlaveRqstExtTo());
+    LockBus(ucihw.SlaveRqstExtTo());
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;
@@ -1799,8 +1799,8 @@ int Group::RqstExtStatus(uint8_t slvindex)
     uint8_t *p = txBuf + 1;
     *p++ = SLVCMD::RQST_EXT_ST;
     *p++ = 0; // TODO control byte
-    uint8_t *pc = prod.ColourRatio();
-    bool dmode = prod.DriverMode();
+    uint8_t *pc = ucihw.ColourRatio();
+    bool dmode = ucihw.DriverMode();
     for (int i = 0; i < 4; i++)
     {
         uint16_t dim = dmode ? (pc[i] * 0x100 + setDimming) : (setDimming * 0x100 + pc[i]);
@@ -1808,7 +1808,7 @@ int Group::RqstExtStatus(uint8_t slvindex)
     }
     txLen = 11;
     Tx();
-    int ms = prod.SlaveRqstExtTo();
+    int ms = ucihw.SlaveRqstExtTo();
     LockBus(ms);
     return ms;
 }
@@ -1819,7 +1819,7 @@ int Group::SlaveSync()
     txBuf[1] = SLVCMD::SYNC;
     txLen = 2;
     Tx();
-    int ms = prod.SlaveDispDly();
+    int ms = ucihw.SlaveDispDly();
     LockBus(ms);
     return ms;
 }
@@ -1857,7 +1857,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
                 s->frameImages[slvFrmId].FillCoreFromSlaveFrame(txBuf);
             }
         }
-        ms = Tx() + prod.SlaveSetStFrmDly();
+        ms = Tx() + ucihw.SlaveSetStFrmDly();
     }
     LockBus(ms);
     return ms;
@@ -1882,7 +1882,7 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
     txBuf[2] = slvFrmId;
     txLen = 3;
     Tx();
-    int ms = (slvFrmId == 0) ? prod.SlaveRqstInterval() : prod.SlaveDispDly();
+    int ms = (slvFrmId == 0) ? ucihw.SlaveRqstInterval() : ucihw.SlaveDispDly();
     LockBus(ms);
     return ms;
 }
@@ -2023,11 +2023,11 @@ void Group::MakeFrameForSlave(Frame *frm)
     uint8_t *p = txBuf + 1;
     *p++ = SET_GFX_FRM; // Gfx frame
     p++;                // skip slave frame id
-    *p++ = prod.PixelRows();
-    p = Cnvt::PutU16(prod.PixelColumns(), p);
+    *p++ = ucihw.PixelRows();
+    p = Cnvt::PutU16(ucihw.PixelColumns(), p);
     if (msgOverlay == 0 || msgOverlay == 1)
     {
-        *p++ = (frm->colour >= (uint8_t)FRMCOLOUR::MonoFinished) ? frm->colour : prod.GetMappedColour(frm->colour);
+        *p++ = (frm->colour >= (uint8_t)FRMCOLOUR::MonoFinished) ? frm->colour : ucihw.GetMappedColour(frm->colour);
     }
     else if (msgOverlay == 4)
     {
@@ -2067,7 +2067,7 @@ int Group::TransFrmWithOrBuf(Frame *frm, uint8_t *dst)
         }
     }
     // overlay
-    int frmlen = (msgOverlay == 1) ? prod.Gfx1CoreLen() : ((msgOverlay == 4) ? prod.Gfx4CoreLen() : prod.Gfx24CoreLen());
+    int frmlen = (msgOverlay == 1) ? ucihw.Gfx1CoreLen() : ((msgOverlay == 4) ? ucihw.Gfx4CoreLen() : ucihw.Gfx24CoreLen());
     vector<uint8_t> buf;
     uint8_t *orsrc;
     if (txtfrm != nullptr)
@@ -2142,7 +2142,7 @@ void Group::SetWithOrBuf4(uint8_t *dst, uint8_t *src, int len)
 void Group::PrintOrBuf()
 {
     puts("OrBuf:\n");
-    auto Y = prod.PixelColumns() / 8;
+    auto Y = ucihw.PixelColumns() / 8;
     for (int i = 0; i < orLen; i++)
     {
         uint8_t x = *(orBuf + i);

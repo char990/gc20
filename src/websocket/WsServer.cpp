@@ -438,7 +438,7 @@ extern const char *FirmwareVer;
 void WsServer::CMD_GetStatus(struct mg_connection *c, json &msg, json &reply)
 {
     char buf[64];
-    reply.emplace("manufacturer_code", DbHelper::Instance().GetUciProd().MfcCode());
+    reply.emplace("manufacturer_code", DbHelper::Instance().GetUciHardware().MfcCode());
     reply.emplace("firmware", FirmwareVer);
     reply.emplace("is_online", ctrller->IsOnline());
     reply.emplace("application_error", "0x00:No error");
@@ -893,9 +893,9 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
 
 void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &reply)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
     vector<string> frametype{"Text Frame"};
-    if (prod.PixelRows() < 255 && prod.PixelColumns() < 255)
+    if (ucihw.PixelRows() < 255 && ucihw.PixelColumns() < 255)
     {
         frametype.push_back("Graphics Frame");
     }
@@ -905,7 +905,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     vector<string> txt_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
-        if (prod.IsTxtFrmColourValid(i))
+        if (ucihw.IsTxtFrmColourValid(i))
         {
             txt_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
@@ -915,16 +915,16 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     vector<string> gfx_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
-        if (prod.IsGfxFrmColourValid(i))
+        if (ucihw.IsGfxFrmColourValid(i))
         {
             gfx_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
     }
-    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
+    if (ucihw.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
         gfx_c.push_back(string("Multi(4-bit)"));
     }
-    if (prod.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
+    if (ucihw.IsGfxFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
         gfx_c.push_back(string("RGB(24-bit)"));
     }
@@ -933,25 +933,25 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     vector<string> hrg_c;
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
-        if (prod.IsHrgFrmColourValid(i))
+        if (ucihw.IsHrgFrmColourValid(i))
         {
             hrg_c.push_back(string(FrameColour::COLOUR_NAME[i]));
         }
     }
-    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
+    if (ucihw.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::Multi_4bit)))
     {
         hrg_c.push_back(string("Multi(4-bit)"));
     }
-    if (prod.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
+    if (ucihw.IsHrgFrmColourValid(static_cast<int>(FRMCOLOUR::RGB_24bit)))
     {
         hrg_c.push_back(string("RGB(24-bit)"));
     }
     reply.emplace("hrg_frame_colours", hrg_c);
 
     vector<int> fonts;
-    for (int i = 0; i < prod.MaxFont(); i++)
+    for (int i = 0; i < ucihw.MaxFont(); i++)
     {
-        if (prod.IsFont(i))
+        if (ucihw.IsFont(i))
         {
             fonts.push_back(i);
         }
@@ -962,16 +962,16 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     vector<int> txt_rows;
     for (auto f : fonts)
     {
-        txt_columns.emplace_back(prod.CharColumns(f));
-        txt_rows.emplace_back(prod.CharRows(f));
+        txt_columns.emplace_back(ucihw.CharColumns(f));
+        txt_rows.emplace_back(ucihw.CharRows(f));
     }
     reply.emplace("txt_columns", txt_columns);
     reply.emplace("txt_rows", txt_rows);
 
     vector<string> conspicuity;
-    for (int i = 0; i < prod.MaxConspicuity(); i++)
+    for (int i = 0; i < ucihw.MaxConspicuity(); i++)
     {
-        if (prod.IsConspicuity(i))
+        if (ucihw.IsConspicuity(i))
         {
             conspicuity.push_back(string(Conspicuity[i]));
         }
@@ -979,9 +979,9 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     reply.emplace("conspicuity", conspicuity);
 
     vector<string> annulus;
-    for (int i = 0; i < prod.MaxAnnulus(); i++)
+    for (int i = 0; i < ucihw.MaxAnnulus(); i++)
     {
-        if (prod.IsAnnulus(i))
+        if (ucihw.IsAnnulus(i))
         {
             annulus.push_back(string(Annulus[i]));
         }
@@ -1042,7 +1042,7 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
 
 void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
     string str;
     auto id = GetInt(msg, "id", 1, 255);
     auto rev = GetInt(msg, "revision", 1, 255);
@@ -1107,8 +1107,8 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         unique_ptr<FrameImage> frmImg(new FrameImage);
         frmImg->LoadBmpFromBase64(str.c_str(), str.length());
         auto &bmp = frmImg->GetBmp();
-        auto rows = prod.PixelRows();
-        auto columns = prod.PixelColumns();
+        auto rows = ucihw.PixelRows();
+        auto columns = ucihw.PixelColumns();
         if (bmp.TellHeight() != rows || bmp.TellWidth() != columns)
         {
             throw invalid_argument("Image size NOT matched with sign");
@@ -1116,17 +1116,17 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         int corelen;
         if (colour <= 9)
         { // mono
-            corelen = prod.Gfx1CoreLen();
+            corelen = ucihw.Gfx1CoreLen();
         }
         if (colour == 10)
         {
             colour = static_cast<uint8_t>(FRMCOLOUR::Multi_4bit);
-            corelen = prod.Gfx4CoreLen();
+            corelen = ucihw.Gfx4CoreLen();
         }
         else if (colour == 11)
         {
             colour = static_cast<uint8_t>(FRMCOLOUR::RGB_24bit);
-            corelen = prod.Gfx24CoreLen();
+            corelen = ucihw.Gfx24CoreLen();
         }
         int f_offset;
         if (rows < 255 && columns < 255)
@@ -1491,7 +1491,6 @@ void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply
 void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[4]{0xFA, 0x30, 0xFF, 0xFF};
-    auto &p = DbHelper::Instance().GetUciProd();
     string colour = GetStr(msg, "colour");
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
@@ -1608,9 +1607,11 @@ void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     {
         reply.emplace("result", "OK");
         reply.emplace("file", vc.data());
-        return;
     }
-    throw runtime_error("Can't open config file package");
+    else
+    {
+        throw runtime_error("Can't open config file package");
+    }
 }
 
 void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
@@ -1642,9 +1643,9 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     Exec::Shell(TO_NULL("rm %s %s"), CFG_TAR, CFG_MD5);
     if (len > 0)
     {
-        throw runtime_error(StrFn::PrintfStr("Unpacking %s failed", CFG_TAR));
+        throw runtime_error(StrFn::PrintfStr("Unpacking %s failed", buf));
     }
-    DbHelper::Instance().GetUciEvent().Push(0, "Import config");
+    DbHelper::Instance().GetUciEvent().Push(0, "Import configuration");
     reply.emplace("result", "Controller will restart after 5 seconds");
     ctrller->RR_flag(RQST_RESTART);
 }

@@ -22,7 +22,7 @@ void UciProcess::LoadConfig()
 	struct uci_section *uciSec;
 
 	/************************** GroupX *************************/
-	grpCnt = db.GetUciProd().NumberOfGroups();
+	grpCnt = db.GetUciHardware().NumberOfGroups();
 	grpProc.resize(grpCnt);
 	for (int i = 0; i < grpCnt; i++)
 	{
@@ -62,7 +62,7 @@ void UciProcess::LoadConfig()
 	uciSec = GetSection(SECTION);
 	ReadBits(uciSec, _CtrllerError, ctrllerErr, false);
 	/************************** SignX *************************/
-	signCnt = db.GetUciProd().NumberOfSigns();
+	signCnt = db.GetUciHardware().NumberOfSigns();
 	signErr.resize(signCnt);
 	for (int i = 0; i < signCnt; i++)
 	{

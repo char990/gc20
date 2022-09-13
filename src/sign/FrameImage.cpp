@@ -69,11 +69,11 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     if (annulus == 3)
         annulus = 0;
     ReadFromFile(annulus ? annulus_on : annulus_off);
-    auto &prod = DbHelper::Instance().GetUciProd();
-    int coreOffsetX = prod.CoreOffsetX();
-    int coreOffsetY = prod.CoreOffsetY();
-    int coreRows = prod.PixelRows();
-    int coreColumns = prod.PixelColumns();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    int coreOffsetX = ucihw.CoreOffsetX();
+    int coreOffsetY = ucihw.CoreOffsetY();
+    int coreRows = ucihw.PixelRows();
+    int coreColumns = ucihw.PixelColumns();
     int lantern = f_conspicuity & 0x07;
     if (lantern > 0)
     {
@@ -131,7 +131,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     if (f_colour >= 0 && f_colour <= 9)
     {
         RGBApixel rgba;
-        SetRGBA(FrameColour::GetRGB8(prod.GetMappedColour(f_colour)), rgba);
+        SetRGBA(FrameColour::GetRGB8(ucihw.GetMappedColour(f_colour)), rgba);
         uint8_t *p = frame;
         int bitOffset = 0;
         for (int j = coreOffsetY; j < (coreOffsetY + coreRows); j++)
@@ -152,7 +152,7 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
         SetRGBA(0, rgba[0]);
         for (int i = 1; i < 10; i++)
         {
-            SetRGBA(FrameColour::GetRGB8(prod.GetMappedColour(i)), rgba[i]);
+            SetRGBA(FrameColour::GetRGB8(ucihw.GetMappedColour(i)), rgba[i]);
         }
         uint8_t *p = frame;
         int bitOffset = 0;
@@ -201,7 +201,7 @@ void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
     sprintf(filename, tmp_sign_frm, signId, frmId);
     if (frame[1] == 0xFC)
     {
-        if (DbHelper::Instance().GetUciProd().IsIslusSpFrm(frame[6]))
+        if (DbHelper::Instance().GetUciHardware().IsIslusSpFrm(frame[6]))
         {
             char islus_xxx[256];
             sprintf(islus_xxx, islus_sp_frm, frame[6]);
@@ -231,8 +231,8 @@ void FrameImage::FillCoreFromUciFrame()
     }
     newImg = true;
     const char *filename = uci_frame;
-    if (DbHelper::Instance().GetUciProd().ProdType() == PRODUCT::ISLUS &&
-        DbHelper::Instance().GetUciProd().IsIslusSpFrm(frmId))
+    if (DbHelper::Instance().GetUciHardware().ProdType() == PRODUCT::ISLUS &&
+        DbHelper::Instance().GetUciHardware().IsIslusSpFrm(frmId))
     {
         char islus_xxx[256];
         sprintf(islus_xxx, islus_sp_frm, frmId);

@@ -53,7 +53,7 @@ void TsiSp003AppVer50::SignConfigurationRequest(uint8_t *data, int len)
     }
     uint8_t *p = txbuf;
     *p++ = static_cast<uint8_t>(MI::CODE::SignConfigurationReply);
-    memcpy(p, prod.MfcCode(), 10);
+    memcpy(p, ucihw.MfcCode(), 10);
     p += 10;
     auto &groups = Controller::Instance().GetGroups();
     *p++ = groups.size();

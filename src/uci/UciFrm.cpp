@@ -34,14 +34,14 @@ void UciFrm::LoadConfig()
 	Ldebug(">>> Loading 'frames'");
 	auto &db = DbHelper::Instance();
 	PATH = db.Path();
-	auto prodtype = db.GetUciProd().ProdType();
+	auto prodtype = db.GetUciHardware().ProdType();
 	LoadFrms("%s/frm_%03d");
 }
 
 void UciFrm::LoadFrms(const char *FMT)
 {
 	// using HRGFRM to allocate the memory
-	maxFrmSize = DbHelper::Instance().GetUciProd().MaxCoreLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
+	maxFrmSize = DbHelper::Instance().GetUciHardware().MaxCoreLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	chksum = 0;
 	char filename[256];
 	vector<uint8_t> b(maxFrmSize);

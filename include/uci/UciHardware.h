@@ -28,7 +28,10 @@ public:
 
     // getter
     uint8_t TcpServerTMC() { return tcpServerTMC; };
+    uint8_t TestTMC() { return testTMC; };
+    uint8_t TestSlave() { return testSlave; };
     char *MfcCode() { return &mfcCode[0]; };
+
     Font *Fonts(int i) { return fonts[i]; };
     SignCfg &GetSignCfg(uint8_t id) { return signCfg.at(id - 1); };
     uint8_t *MappedColoursTable() { return &mappedColoursTable[0]; };
@@ -162,7 +165,7 @@ private:
     const char *_TcpTimeout = "TcpTimeout";
 
     /// uint8_t
-    const char *_TcpServerNTS = "TcpServerTMC";
+    const char *_TcpServerTMC = "TcpServerTMC";
     const char *_TsiSp003Ver = "TsiSp003Ver";
     const char *_NumberOfSigns = "NumberOfSigns";
     const char *_NumberOfGroups = "NumberOfGroups";
@@ -178,6 +181,8 @@ private:
     const char *_Dimming = "Dimming";
     const char *_DimmingAdjTime = "DimmingAdjTime";
     const char *_LoadLastDisp = "LoadLastDisp";
+    const char *_TestTMC = "TestTMC";
+    const char *_TestSlave = "TestSlave";
 
     // float
     const char *_LightSensorScale = "LightSensorScale";
@@ -228,6 +233,8 @@ private:
     uint8_t
         tcpServerTMC,
         tsiSp003Ver,
+        testTMC,
+        testSlave,
         slavePowerUpDelay,
         colourBits, // 1,4,24
         isResetLogAllowed,

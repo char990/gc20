@@ -27,7 +27,7 @@ void UciUserCfg::LoadConfig()
     DEFAULT_FILE = "UciUserCfg.def";
     SECTION = "user_cfg";
     Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
-    auto &prod = DbHelper::Instance().GetUciProd();
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     char cbuf[16];
@@ -49,7 +49,7 @@ void UciUserCfg::LoadConfig()
     humidity = GetInt(uciSec, _Humidity, 0, 100);
     /*
     defaultFont = GetInt(uciSec, _DefaultFont, 1, MAX_FONT);
-    if (!prod.IsFont(defaultFont))
+    if (!ucihw.IsFont(defaultFont))
     {
         throw invalid_argument(FmtException("%s.%s.%s(%d) is not valid", PACKAGE, SECTION, _DefaultFont, defaultFont));
     }
@@ -184,17 +184,17 @@ void UciUserCfg::LoadConfig()
         ThrowError(_Luminance, "cnt!=16");
     }
 
-    int numberOfSigns = prod.NumberOfSigns();
+    int numberOfSigns = ucihw.NumberOfSigns();
 
     comPort = GetIndexFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
     for (uint8_t i = 1; i <= numberOfSigns; i++)
     {
-        if (comPort == prod.GetSignCfg(i).com_ip)
+        if (comPort == ucihw.GetSignCfg(i).com_ip)
         {
             ThrowError(_ComPort, "Assigned to UciHardware.Sign");
         }
     }
-    if (comPort == prod.MonitoringPort())
+    if (comPort == ucihw.MonitoringPort())
     {
         ThrowError(_ComPort, "Assigned to UciHardware.MonitoringPort");
     }

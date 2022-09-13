@@ -114,7 +114,7 @@ void TsiSp003AppVer21::SignStatusReply()
     p = Time2Buf(p);
     p = Cnvt::PutU16(db.HdrChksum(),p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
-    int scnt = prod.NumberOfSigns();
+    int scnt = ucihw.NumberOfSigns();
     *p++ = scnt;
     for (int j = 1; j <= scnt; j++)
     {
@@ -377,10 +377,10 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     *p++ = static_cast<uint8_t>(MI::CODE::SignExtendedStatusReply);
     *p++ = IsOnline() ? 1 : 0;
     *p++ = static_cast<uint8_t>(appErr);
-    memcpy(p, prod.MfcCode(), 10); p+=10;
+    memcpy(p, ucihw.MfcCode(), 10); p+=10;
     p=Time2Buf(p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
-    int scnt = prod.NumberOfSigns();
+    int scnt = ucihw.NumberOfSigns();
     *p++ = scnt;
     for (int j = 1; j <= scnt; j++)
     {
@@ -418,7 +418,7 @@ void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    if(prod.IsResetLogAllowed())
+    if(ucihw.IsResetLogAllowed())
     {
         db.GetUciFault().Reset();
         db.GetUciEvent().Push(0, "ResetFaultLog");

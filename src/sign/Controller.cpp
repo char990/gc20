@@ -20,8 +20,8 @@ extern time_t GetTime(time_t *);
 
 Controller::Controller()
     : db(DbHelper::Instance()),
-      groups(DbHelper::Instance().GetUciProd().NumberOfGroups()),
-      signs(DbHelper::Instance().GetUciProd().NumberOfSigns())
+      groups(DbHelper::Instance().GetUciHardware().NumberOfGroups()),
+      signs(DbHelper::Instance().GetUciHardware().NumberOfSigns())
 {
     pMainPwr = new GpioIn(10, 10, PIN_MAIN_FAILURE);
     pBatLow = new GpioIn(10, 10, PIN_BATTERY_LOW);
@@ -33,10 +33,10 @@ Controller::Controller()
     }
     groups.assign(groups.size(), nullptr);
 
-    UciHardware &prod = db.GetUciProd();
+    auto &ucihw = db.GetUciHardware();
 
     ctrllerError.SetV(db.GetUciProcess().CtrllerErr());
-    overtempFault.SetCNT(prod.OverTempDebounce());
+    overtempFault.SetCNT(ucihw.OverTempDebounce());
     overtempFault.SetState(ctrllerError.IsSet(DEV::ERROR::EquipmentOverTemperature));
     tempTmr.Setms(0);
     ms100Tmr.Setms(0);
@@ -51,7 +51,7 @@ Controller::Controller()
         displayTimeout.Setms(dt * 60000);
     }
 
-    switch (prod.ProdType())
+    switch (ucihw.ProdType())
     {
     case PRODUCT::VMS:
         for (int i = 0; i < groups.size(); i++)
@@ -66,7 +66,7 @@ Controller::Controller()
         }
         break;
     default:
-        throw invalid_argument(StrFn::PrintfStr("Unknown ProdType:%d", static_cast<int>(prod.ProdType())));
+        throw invalid_argument(StrFn::PrintfStr("Unknown ProdType:%d", static_cast<int>(ucihw.ProdType())));
         break;
     }
     for (int i = 0; i < groups.size(); i++)
@@ -409,7 +409,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
         auto &db = DbHelper::Instance();
         if (lvl >= 2)
         {
-            if (db.GetUciProd().IsResetLogAllowed())
+            if (db.GetUciHardware().IsResetLogAllowed())
             {
                 db.GetUciFault().Reset();
             }
@@ -419,7 +419,7 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
         }
         if (lvl >= 3)
         {
-            if (db.GetUciProd().ProdType() == PRODUCT::VMS)
+            if (db.GetUciHardware().ProdType() == PRODUCT::VMS)
             { // Clearing all frame/msg is for VMS only
                 // ISLUS's frame/msg can not be changed
                 db.GetUciFrm().Reset();
@@ -451,10 +451,10 @@ APP::ERROR Controller::CmdDispFrm(uint8_t *cmd)
         {
             return APP::ERROR::FrmMsgPlnUndefined;
         }
-        auto &prod = db.GetUciProd();
-        if (prod.ProdType() == PRODUCT::ISLUS)
+        auto &ucihw = db.GetUciHardware();
+        if (ucihw.ProdType() == PRODUCT::ISLUS)
         {
-            vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+            vector<uint8_t> frms(ucihw.NumberOfSigns(), 0);
             auto &gs = grp->GetSigns();
             for (auto &s : gs)
             {
@@ -481,10 +481,10 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     {
         return APP::ERROR::ColourNotSupported;
     }
-    auto &prod = DbHelper::Instance().GetUciProd();
-    auto rows = prod.PixelRows();
-    auto columns = prod.PixelColumns();
-    auto corelen = prod.Gfx1CoreLen();
+    auto &ucihw = db.GetUciHardware();
+    auto rows = ucihw.PixelRows();
+    auto columns = ucihw.PixelColumns();
+    auto corelen = ucihw.Gfx1CoreLen();
     int f_offset;
     vector<uint8_t> frm;
     if (rows < 255 && columns < 255)
@@ -581,10 +581,10 @@ APP::ERROR Controller::CmdDispAtomicFrm(uint8_t *cmd, int len)
     {
         return APP::ERROR::SyntaxError;
     }
-    auto &prod = db.GetUciProd();
-    if (prod.ProdType() == PRODUCT::ISLUS)
+    auto &ucihw = db.GetUciHardware();
+    if (ucihw.ProdType() == PRODUCT::ISLUS)
     {
-        vector<uint8_t> frms(prod.NumberOfSigns(), 0);
+        vector<uint8_t> frms(ucihw.NumberOfSigns(), 0);
         auto pnext = cmd + 3;
         for (int i = 0; i < gsCnt; i++)
         {
@@ -902,7 +902,7 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
         snprintf(rejectStr, 63, "Frame[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // locked frame
     }
-    else if (db.GetUciProd().ProdType() == PRODUCT::ISLUS && db.GetUciProd().IsIslusSpFrm(id))
+    else if (db.GetUciHardware().ProdType() == PRODUCT::ISLUS && db.GetUciHardware().IsIslusSpFrm(id))
     {
         snprintf(rejectStr, 63, "Frame[%d] is special ISLUS frame, can't be changed", id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined ISLUS special framaes and can't be changed
@@ -1034,7 +1034,7 @@ APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
 
 APP::ERROR Controller::CmdResetLog(uint8_t *cmd)
 {
-    if (!DbHelper::Instance().GetUciProd().IsResetLogAllowed())
+    if (!db.GetUciHardware().IsResetLogAllowed())
     {
         return APP::ERROR::MiNotSupported;
     }

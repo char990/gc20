@@ -10,17 +10,17 @@ extern time_t GetTime(time_t *);
 Sign::Sign(uint8_t id)
     : signId(id), frameImages(7)
 {
-    auto &prod = DbHelper::Instance().GetUciProd();
-    chainFault.SetCNT(prod.DriverFaultDebounce());
-    multiLedFault.SetCNT(prod.LedFaultDebounce());
-    singleLedFault.SetCNT(prod.LedFaultDebounce());
-    selftestFault.SetCNT(prod.SelftestDebounce());
-    voltageFault.SetCNT(prod.SlaveVoltageDebounce());
-    lanternFault.SetCNT(prod.LanternFaultDebounce());
-    overtempFault.SetCNT(prod.OverTempDebounce());
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
+    chainFault.SetCNT(ucihw.DriverFaultDebounce());
+    multiLedFault.SetCNT(ucihw.LedFaultDebounce());
+    singleLedFault.SetCNT(ucihw.LedFaultDebounce());
+    selftestFault.SetCNT(ucihw.SelftestDebounce());
+    voltageFault.SetCNT(ucihw.SlaveVoltageDebounce());
+    lanternFault.SetCNT(ucihw.LanternFaultDebounce());
+    overtempFault.SetCNT(ucihw.OverTempDebounce());
 
-    lsConnectionFault.SetCNT(prod.LightSensorFaultDebounce());
-    // light sensor fault debounce 1 minute in slave. If true_cnt - prod.LightSensorFaultDebounce() is 120, report after 3 minutes
+    lsConnectionFault.SetCNT(ucihw.LightSensorFaultDebounce());
+    // light sensor fault debounce 1 minute in slave. If true_cnt - ucihw.LightSensorFaultDebounce() is 120, report after 3 minutes
     // If receive LightsensorFault=0 && Lux>0, clear lsConnectionFault immediately
     ls18hoursFault.SetCNT(18 * 60 * 60, 15 * 60);
     lsMidnightFault.SetCNT(15 * 60);
@@ -190,7 +190,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     // over-temperature bits ignored. checked in ext_st
     char buf[64];
     auto &db = DbHelper::Instance();
-    auto &prod = db.GetUciProd();
+    auto &ucihw = db.GetUciHardware();
     auto &usercfg = db.GetUciUserCfg();
 
     // ----------------------Check ext-status
@@ -228,12 +228,12 @@ void Sign::RefreshSlaveStatusAtExtSt()
         faultLeds = 65535;
     }
     // *** voltage
-    if (minvoltage < prod.SlaveVoltageLow())
+    if (minvoltage < ucihw.SlaveVoltageLow())
     {
         voltageFault.Check(true, t2);
         voltage = minvoltage;
     }
-    else if (maxvoltage > prod.SlaveVoltageHigh())
+    else if (maxvoltage > ucihw.SlaveVoltageHigh())
     {
         voltageFault.Check(true, t2);
         voltage = maxvoltage;

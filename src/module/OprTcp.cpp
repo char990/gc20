@@ -57,7 +57,7 @@ void OprTcp::EventsHandle(uint32_t events)
 long OprTcp::IdleMs()
 {
     long s = DbHelper::Instance().GetUciUserCfg().SessionTimeoutSec();
-    long t = DbHelper::Instance().GetUciProd().TcpTimeout();
+    long t = DbHelper::Instance().GetUciHardware().TcpTimeout();
     return (s + t) * 1000;
 }
 

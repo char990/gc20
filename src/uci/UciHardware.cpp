@@ -61,7 +61,7 @@ void UciHardware::LoadConfig()
     SECTION = _SectionCtrller;
     struct uci_section *uciSec = GetSection(SECTION);
 
-    tcpServerTMC = GetInt(uciSec, _TcpServerNTS, 1, 8);
+    tcpServerTMC = GetInt(uciSec, _TcpServerTMC, 1, 8);
     tcpTimeout = GetInt(uciSec, _TcpTimeout, 60, 0xFFFF);
 
     tsiSp003Ver = GetIndexFromStrz(uciSec, _TsiSp003Ver, TSISP003VER, TSISP003VER_SIZE);
@@ -74,6 +74,9 @@ void UciHardware::LoadConfig()
     {
         ThrowError(_MfcCode, "Should be 6 bytes");
     }
+
+    testTMC = GetInt(uciSec, _TestTMC, 10, 99);
+    testSlave = GetInt(uciSec, _TestSlave, 10, 99);
 
     pixelRows = GetInt(uciSec, _PixelRows, 8, 4096);
     pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
@@ -460,12 +463,15 @@ void UciHardware::Dump()
     PrintDash('<');
     printf("%s/%s.%s\n", PATH, PACKAGE, _SectionCtrller);
 
-    PrintOption_d(_TcpServerNTS, TcpServerTMC());
+    PrintOption_d(_TcpServerTMC, TcpServerTMC());
     PrintOption_d(_TcpTimeout, TcpTimeout());
 
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);
     PrintOption_str(_MfcCode, MfcCode());
+
+    PrintOption_d(_TestTMC, TestTMC());
+    PrintOption_d(_TestSlave, TestSlave());
 
     PrintOption_d(_PixelRows, PixelRows());
     PrintOption_d(_PixelColumns, PixelColumns());

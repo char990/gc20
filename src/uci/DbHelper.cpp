@@ -6,7 +6,7 @@
 void DbHelper::Init(const char * dbPath1)
 {
     dbPath = dbPath1;
-    uciProd.LoadConfig();
+    uciHardware.LoadConfig();
     uciUserCfg.LoadConfig();
     uciNetwork.LoadConfig();
     uciFrm.LoadConfig();

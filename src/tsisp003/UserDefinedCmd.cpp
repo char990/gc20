@@ -143,7 +143,7 @@ int TsiSp003App::FA10_SendFileInfo(uint8_t *data, int len)
     {
         if (shake_hands_status == 2)
         {
-            if (prod.IsUpgradeAllowed())
+            if (ucihw.IsUpgradeAllowed())
             {
                 if (upgrade.FileInfo(data))
                 {
@@ -172,7 +172,7 @@ int TsiSp003App::FA11_SendFilePacket(uint8_t *data, int len)
 {
     if (shake_hands_status == 2)
     {
-        if (prod.IsUpgradeAllowed())
+        if (ucihw.IsUpgradeAllowed())
         {
             if (upgrade.FilePacket(data, len))
             {
@@ -201,7 +201,7 @@ int TsiSp003App::FA12_StartUpgrading(uint8_t *data, int len)
 {
     if (shake_hands_status == 2)
     {
-        if (prod.IsUpgradeAllowed())
+        if (ucihw.IsUpgradeAllowed())
         {
             int r = upgrade.Start();
             if (r != 0)
@@ -564,7 +564,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = usercfg.Humidity();
         *pt++ = usercfg.CityId();
         *pt++ = 0;                       // usercfg.DefaultFont();
-        *pt++ = prod.GetMappedColour(0); // DefaultColour();
+        *pt++ = ucihw.GetMappedColour(0); // DefaultColour();
         pt = Cnvt::PutU16(usercfg.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
         pt += 10;
@@ -629,10 +629,10 @@ int TsiSp003App::FA22_RqstUserExt(uint8_t *data, int len)
         *pt++ = curTemp / cnt; // avg of all current temperatures
         *pt++ = ctrller.MaxTemp();
         *pt++ = ctrller.CurTemp();
-        voltage = (voltagemin < prod.SlaveVoltageLow()) ? voltagemin : ((voltagemax > prod.SlaveVoltageHigh()) ? voltagemax : (voltage / cnt));
+        voltage = (voltagemin < ucihw.SlaveVoltageLow()) ? voltagemin : ((voltagemax > ucihw.SlaveVoltageHigh()) ? voltagemax : (voltage / cnt));
         pt = Cnvt::PutU16(voltage, pt);
         pt = Cnvt::PutU16(lux / cnt, pt);
-        char *mfcCode = prod.MfcCode();
+        char *mfcCode = ucihw.MfcCode();
         *pt++ = mfcCode[4]; // Get PCB revision from MANUFACTURER_CODE
         *pt++ = mfcCode[5]; // Get Sign type from MANUFACTURER_CODE
         memcpy(pt, FirmwareVer, 4);
@@ -901,7 +901,7 @@ int TsiSp003App::FE_SetGuiConfig(uint8_t *data, int len)
             (displayt != 0 && sessiont > displayt * 60) ||
             devId == broadcastId ||
             overtemp > 99 || fan1temp > 99 || fan2temp > 99 || humid > 99 ||
-            prod.IsFont(defaultFont) == false)
+            ucihw.IsFont(defaultFont) == false)
         {
             Reject(APP::ERROR::SyntaxError);
         }
@@ -1005,7 +1005,7 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         int maxTemp = 0;
         int curTemp = 0;
         int lux = 0;
-        int cnt = prod.NumberOfSigns();
+        int cnt = ucihw.NumberOfSigns();
         for (auto &g : groups)
         {
             auto &signs = g->GetSigns();
@@ -1030,9 +1030,9 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         p = Cnvt::PutU16(0, p);                           // light sensor 2
         *p++ = 'V';                                       // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
         *p++ = 'B';                                       // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
-        *p++ = prod.MaxConspicuity();                     // conspicuity
-        *p++ = prod.MaxFont();                            // max. number of fonts
-        *p++ = prod.GetMappedColour(0);                   // user.DefaultColour();                // 09
+        *p++ = ucihw.MaxConspicuity();                     // conspicuity
+        *p++ = ucihw.MaxFont();                            // max. number of fonts
+        *p++ = ucihw.GetMappedColour(0);                   // user.DefaultColour();                // 09
         *p++ = 0;                                         // GUIconfigure.PARA.BYTE.max_template=0;		// 00
         *p++ = 1;                                         // GUIconfigure.PARA.BYTE.wk1=1;                // 01
         *p++ = 0;                                         // GUIconfigure.PARA.BYTE.group_offset=0;		// 00

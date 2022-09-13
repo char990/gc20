@@ -10,7 +10,9 @@ using namespace Utils;
 extern time_t GetTime(time_t *);
 
 TsiSp003App::TsiSp003App()
-    : db(DbHelper::Instance()), prod(db.GetUciProd()), usercfg(db.GetUciUserCfg()),
+    : db(DbHelper::Instance()),
+      ucihw(db.GetUciHardware()),
+      usercfg(db.GetUciUserCfg()),
       ctrller(Controller::Instance())
 {
     rejectStr[0] = '\0';

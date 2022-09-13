@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
         LogResetTime();
         // AllGroupPowerOn();
 
-        auto &prod = DbHelper::Instance().GetUciProd();
+        auto &ucihw = DbHelper::Instance().GetUciHardware();
         auto &usercfg = DbHelper::Instance().GetUciUserCfg();
         // init serial ports
         OprSp *oprSp[COMPORT_SIZE];
@@ -246,17 +246,17 @@ int main(int argc, char *argv[])
         // TSI-SP-003 RS232/485 monitor
             IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.ComPort()]);
             oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
-        if (prod.MonitoringPort() >= 0)
+        if (ucihw.MonitoringPort() >= 0)
         {
-            LayerNTS::monitor = oprSp[prod.MonitoringPort()] =
-                new OprSp{(uint8_t)prod.MonitoringPort(), prod.MonitoringBps(), nullptr, 1024 * 1024};
+            LayerNTS::monitor = oprSp[ucihw.MonitoringPort()] =
+                new OprSp{(uint8_t)ucihw.MonitoringPort(), ucihw.MonitoringBps(), nullptr, 1024 * 1024};
         }
         // Slaves
         if (SignCfg::bps_port > 0)
         { // Slaves of Groups on RS485
-            for (int i = 1; i <= prod.NumberOfSigns(); i++)
+            for (int i = 1; i <= ucihw.NumberOfSigns(); i++)
             {
-                auto &cn = prod.GetSignCfg(i);
+                auto &cn = ucihw.GetSignCfg(i);
                 if (oprSp[cn.com_ip] == nullptr)
                 {
                     auto g = Controller::Instance().GetGroup(cn.groupId);
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
         // Web
         auto wsServer = new WsServer{usercfg.WebPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
-        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), TcpSvrType::TMC, prod.TcpServerTMC(), tmrEvt1Sec};
+        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), TcpSvrType::TMC, ucihw.TcpServerTMC(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
         Ldebug(">>> DONE >>>");

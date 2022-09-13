@@ -22,7 +22,7 @@ Slave::Slave(uint8_t id)
         throw std::invalid_argument("Error: Slave::numberOfColours is 0");
     }
     Reset();
-    isSimSlave = DbHelper::Instance().GetUciProd().IsSimSlave(id);
+    isSimSlave = DbHelper::Instance().GetUciHardware().IsSimSlave(id);
     if (isSimSlave)
     {
         printf("SLAVE[%d] EMULATOR\n", id);

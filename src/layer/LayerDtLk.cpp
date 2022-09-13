@@ -6,6 +6,7 @@
 #include <layer/LayerDtLk.h>
 #include <module/MyDbg.h>
 #include <module/QueueLtd.h>
+#include <uci/DbHelper.h>
 
 QueueLtd *qltdTmc;
 
@@ -13,7 +14,7 @@ LayerDtLk::LayerDtLk(std::string name_, int size) : maxPktSize(size)
 {
     name = name_ + ":LayerDtLk";
     buf = new uint8_t[size];
-    qltdTmc = new QueueLtd(20);
+    qltdTmc = new QueueLtd(DbHelper::Instance().GetUciHardware().TestTMC());
 }
 
 LayerDtLk::~LayerDtLk()
