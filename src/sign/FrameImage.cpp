@@ -65,16 +65,16 @@ void FrameImage::BmpMask(BMP *mask, BMP *base, int offsetx, int offsety)
 
 void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame)
 { // Both unmapped & mapped colour are allowed as f_colour
-    int annulus = (f_conspicuity >> 3) & 0x03;
+    auto annulus = GetAnnulus(f_conspicuity);
     if (annulus == 3)
         annulus = 0;
     ReadFromFile(annulus ? annulus_on : annulus_off);
     auto &ucihw = DbHelper::Instance().GetUciHardware();
-    int coreOffsetX = ucihw.CoreOffsetX();
-    int coreOffsetY = ucihw.CoreOffsetY();
-    int coreRows = ucihw.PixelRows();
-    int coreColumns = ucihw.PixelColumns();
-    int lantern = f_conspicuity & 0x07;
+    auto coreOffsetX = ucihw.CoreOffsetX();
+    auto coreOffsetY = ucihw.CoreOffsetY();
+    auto coreRows = ucihw.PixelRows();
+    auto coreColumns = ucihw.PixelColumns();
+    auto lantern = GetConspicuity(f_conspicuity);
     if (lantern > 0)
     {
         BMP *lanterns[2][2];

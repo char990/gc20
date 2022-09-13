@@ -47,11 +47,13 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     }
     // int CheckConspicuity();
     auto &ucihw = DbHelper::Instance().GetUciHardware();
-    if ((conspicuity & 0x07) > 5 || ((conspicuity >> 3) & 0x03) > 2 ||
-        !ucihw.IsConspicuity(conspicuity & 0x07) ||
-        !ucihw.IsAnnulus((conspicuity >> 3) & 0x03))
+    auto cons = GetConspicuity(conspicuity);
+    auto annu = GetAnnulus(conspicuity);
+    if (cons > 5 || annu > 2 ||
+        !ucihw.IsConspicuity(cons) ||
+        !ucihw.IsAnnulus(annu))
     {
-        Ldebug("Frame[%d] Error:conspicuity=%d;annulus=%d", frmId, (conspicuity & 0x07), ((conspicuity >> 3) & 0x03));
+        Ldebug("Frame[%d] Error:conspicuity=%d;annulus=%d", frmId, cons, annu);
         appErr = APP::ERROR::ConspicuityNotSupported;
         return 1;
     }
@@ -435,7 +437,7 @@ vector<string> FrmTxt::ToStringVector()
     vector<string> v;
     for (int i = 0; i < texts.size(); i++)
     {
-        if(texts.at(i).at(0)!=0)
+        if (texts.at(i).at(0) != 0)
         {
             v.emplace_back(texts.at(i).data());
         }

@@ -255,6 +255,9 @@ enum class FRMCOLOUR : uint8_t
     UNDEFINED = 0xFF
 };
 
+#define GetAnnulus(b) ((b>>3)&0x03)
+#define GetConspicuity(b) (b&0x07)
+
 enum class ANNULUS : uint8_t
 {
     Off = 0,

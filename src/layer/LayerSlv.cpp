@@ -18,7 +18,7 @@ LayerSlv::LayerSlv(std::string name_, int groupId, int maxPktSize)
     this->groupId = groupId;
     name = name_ + ":" + "SLV";
     buf = new uint8_t[maxPktSize];
-    qltdSlave = new QueueLtd(20);
+    qltdSlave = new QueueLtd(DbHelper::Instance().GetUciHardware().TestSlave());
 }
 
 LayerSlv::~LayerSlv()
