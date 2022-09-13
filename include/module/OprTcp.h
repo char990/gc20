@@ -43,7 +43,7 @@ public:
     /*--------------------------------------------------------->*/
 
     /// \brief  Called only after object was created
-    virtual void Init(std::string name_, TcpSvrType aType);
+    virtual void Init(int id, TcpSvrType serverType);
 
     /// \brief  Called when accept
     virtual void Accept(int fd, TimerEvent *tmr, const char *ip);

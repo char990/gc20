@@ -18,6 +18,11 @@ public:
 
     virtual std::string Version() = 0;
 
+    void SetName(std::string name_)
+    {
+        name = name_ + ":TsiSp003App";
+    };
+
     /*<------------------------------------------------------------------*/
     /// \brief Receiving Handle, called by Lower-Layer
     /// \param		data		data buffer
@@ -65,6 +70,7 @@ protected:
     Controller &ctrller;
     ISession *session{nullptr};
 
+    std::string name;
 
     uint8_t micode{0};
     APP::ERROR appErr{APP::ERROR::AppNoError};

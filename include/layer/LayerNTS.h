@@ -13,7 +13,7 @@
 
 /// \brief  LayerNTS is Network+Transport+Session Layer of TsiSp003
 ///         It's the upper of DataLink Layer and lower of Presentation Layer
-///         With Interface IOnline, it can get online status of Application Layer
+///         With Interface ISession, it can get online status of Application Layer
 class LayerNTS : public ILayer, public ISession
 {
 public:

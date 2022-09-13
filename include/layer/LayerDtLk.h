@@ -7,11 +7,11 @@
 #include <tsisp003/TsiSp003Const.h>
 
 /// \brief Data link layer: Pick up a data packet which starts with SOH and ends with ETX
-class LayerDL : public ILayer
+class LayerDtLk : public ILayer
 {
 public:
-    LayerDL(std::string name_, int size);
-    ~LayerDL();
+    LayerDtLk(std::string name_, int size);
+    ~LayerDtLk();
 
     int Rx(uint8_t * data, int len) override;
 

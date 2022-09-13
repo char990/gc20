@@ -1,6 +1,6 @@
 #include <layer/TMC_LayerManager.h>
 #include <layer/LayerNTS.h>
-#include <layer/LayerDL.h>
+#include <layer/LayerDtLk.h>
 #include <module/MyDbg.h>
 #include <module/Utils.h>
 
@@ -9,14 +9,14 @@ using namespace Utils;
 
 TMC_LayerManager::TMC_LayerManager(string name_)
 {
-
-        appFactory = new AppFactory();
-        appLayer = appFactory->GetApp();
-        prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
-        dlLayer = new LayerDL(name_, POWEROF2_MAX_DATA_PACKET_SIZE);
-        LayerNTS *layerNTS = new LayerNTS(name_);
-        midLayer = layerNTS;
-        appLayer->SetSession((ISession *)layerNTS);
+    appFactory = new AppFactory();
+    appLayer = appFactory->GetApp();
+    appLayer->SetName(name_);
+    prstLayer = new LayerPrst(MAX_APP_PACKET_SIZE);
+    dlLayer = new LayerDtLk(name_, POWEROF2_MAX_DATA_PACKET_SIZE);
+    LayerNTS *layerNTS = new LayerNTS(name_);
+    midLayer = layerNTS;
+    appLayer->SetSession((ISession *)layerNTS);
 
     // lowerLayer<->dlLayer<->midLayer<->prstLayer<->appLayer
     // dlLayer layer, need lower&upper layer
@@ -34,27 +34,27 @@ TMC_LayerManager::TMC_LayerManager(string name_)
 
 TMC_LayerManager::~TMC_LayerManager()
 {
-    if(appFactory)
+    if (appFactory)
     {
         delete appFactory;
     }
-    if(prstLayer)
+    if (prstLayer)
     {
         delete prstLayer;
     }
-    if(midLayer)
+    if (midLayer)
     {
         delete midLayer;
     }
-    if(dlLayer)
+    if (dlLayer)
     {
         delete dlLayer;
     }
 }
 
-int TMC_LayerManager::Rx(uint8_t * data, int len)
+int TMC_LayerManager::Rx(uint8_t *data, int len)
 {
-    return dlLayer->Rx(data,len);
+    return dlLayer->Rx(data, len);
 }
 
 void TMC_LayerManager::ClrRx()

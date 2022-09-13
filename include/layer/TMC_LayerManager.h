@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <string>
-#include <layer/LayerDL.h>
+#include <layer/LayerDtLk.h>
 #include <layer/LayerPrst.h>
 #include <tsisp003/TsiSp003App.h>
 #include <tsisp003/AppFactory.h>
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    LayerDL * dlLayer{nullptr};
+    LayerDtLk * dlLayer{nullptr};
     ILayer * midLayer{nullptr};  // middle layer: NTS or Web
     LayerPrst * prstLayer{nullptr}; // presentation layer
     TsiSp003App * appLayer{nullptr};  // app layer

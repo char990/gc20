@@ -1319,7 +1319,7 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"TestTMC",
-"Text":"12:34:56.235=><02><05>Command from TMC<03>\n12:34:56.235<=<02><05>Reply from controller<03>\n........"
+"text":"12:34:56.235=><02><05>Command from TMC<03>\n12:34:56.235<=<02><05>Reply from controller<03>\n........"
 }
 ```
 
@@ -1343,6 +1343,6 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"TestSlave",
-"Text":"12:34:56.235>>>Command from Controller\n12:34:56.235<<<Reply from slave\n........"
+"text":"12:34:56.235>>>Command from Controller\n12:34:56.235<<<Reply from slave\n........"
 }
 ```

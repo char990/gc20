@@ -1690,6 +1690,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
     }
     else
     {
+        reply.emplace("result", buf);
     }
     Ldebug(buf);
 }
@@ -1701,7 +1702,7 @@ void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohman
     {
         text += qltdTmc->Pop() + "\n";
     }
-    reply.emplace("Text", text);
+    reply.emplace("text", text);
 }
 
 void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
@@ -1711,5 +1712,5 @@ void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohm
     {
         text += qltdSlave->Pop() + "\n";
     }
-    reply.emplace("Text", text);
+    reply.emplace("text", text);
 }

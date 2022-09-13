@@ -1,4 +1,4 @@
-#include <cstring>
+#include <string>
 #include <module/OprTcp.h>
 #include <module/TcpServer.h>
 #include <module/Epoll.h>
@@ -7,6 +7,8 @@
 
 #define TCPSPEED 1000000 // 1M bytes per seconds
 
+using namespace std;
+
 std::string TcpSvrTypeName(TcpSvrType t)
 {
     switch (t)
@@ -14,7 +16,7 @@ std::string TcpSvrTypeName(TcpSvrType t)
     case TcpSvrType::TMC:
         return "TMC";
     }
-    throw "Unkown";
+    throw runtime_error("Unkown TcpSvrType");
 }
 
 OprTcp::OprTcp()
@@ -60,16 +62,18 @@ long OprTcp::IdleMs()
 }
 
 /// \brief  Called when instantiation
-void OprTcp::Init(std::string name_, TcpSvrType aType)
+void OprTcp::Init(int id, TcpSvrType serverType)
 {
-    name = name_;
-    if (aType == TcpSvrType::TMC)
+    char buf[PRINT_BUF_SIZE];
+    sprintf(buf, "%s[%d]", TcpSvrTypeName(serverType).c_str(), id);
+    name.assign(buf);
+    if (serverType == TcpSvrType::TMC)
     {
         upperLayer = new TMC_LayerManager(name);
     }
     else
     {
-        throw "Unknown server type";
+        throw runtime_error("Unkown TcpSvrType");
     }
     upperLayer->LowerLayer(this);
 }

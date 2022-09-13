@@ -33,7 +33,7 @@ OprSp *LayerNTS::monitor = nullptr;
 
 LayerNTS::LayerNTS(std::string name_)
 {
-    name = name_ + ":" + "NTS";
+    name = name_ + ":LayerNTS";
     storage.push_back(this);
 }
 

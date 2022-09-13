@@ -3,26 +3,26 @@
 #include <unistd.h>
 #include <stdexcept>
 
-#include <layer/LayerDL.h>
+#include <layer/LayerDtLk.h>
 #include <module/MyDbg.h>
 #include <module/QueueLtd.h>
 
 QueueLtd *qltdTmc;
 
-LayerDL::LayerDL(std::string name_, int size) : maxPktSize(size)
+LayerDtLk::LayerDtLk(std::string name_, int size) : maxPktSize(size)
 {
-    name = name_ + ":" + "DL";
+    name = name_ + ":LayerDtLk";
     buf = new uint8_t[size];
     qltdTmc = new QueueLtd(20);
 }
 
-LayerDL::~LayerDL()
+LayerDtLk::~LayerDtLk()
 {
     delete[] buf;
     delete qltdTmc;
 }
 
-int LayerDL::Rx(uint8_t *data, int len)
+int LayerDtLk::Rx(uint8_t *data, int len)
 {
     uint8_t *p = data;
     for (int i = 0; i < len; i++)
@@ -64,24 +64,24 @@ int LayerDL::Rx(uint8_t *data, int len)
     return 0;
 }
 
-bool LayerDL::IsTxReady()
+bool LayerDtLk::IsTxReady()
 {
     return lowerLayer->IsTxReady();
 }
 
-int LayerDL::Tx(uint8_t *data, int len)
+int LayerDtLk::Tx(uint8_t *data, int len)
 {
     qltdTmc->Push(' ', data, len, 1);
     return lowerLayer->Tx(data, len);
 }
 
-void LayerDL::ClrRx()
+void LayerDtLk::ClrRx()
 {
     length = 0;
     upperLayer->ClrRx();
 }
 
-void LayerDL::ClrTx()
+void LayerDtLk::ClrTx()
 {
     lowerLayer->ClrTx();
 }

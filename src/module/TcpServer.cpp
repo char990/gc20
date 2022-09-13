@@ -26,7 +26,7 @@ TcpServer::TcpServer(int listenPort, TcpSvrType serverType, int poolsize, TimerE
     auto ipool = objPool->Pool();
     for (int i = 0; i < ipool.size(); i++)
     {
-        ipool[i]->Init(TcpSvrTypeName(serverType) + to_string(i), serverType);
+        ipool[i]->Init(i, serverType);
     }
     eventFd = -1;
     Open();

@@ -92,8 +92,6 @@ void Log(int len)
 void PrintDash(char c)
 {
 #define DASH_LEN 80
-	char buf[DASH_LEN + 1];
-	memset(buf, c, DASH_LEN);
-	buf[DASH_LEN] = '\0';
-	puts(buf);
+	string dash(c,DASH_LEN);
+	puts(dash.c_str());
 }
