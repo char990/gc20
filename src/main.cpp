@@ -41,7 +41,6 @@ const char *CONFIG_PATH = "config";
 
 char *mainpath;
 
-
 #ifdef DEBUG
 const char *MAKE = "Debug";
 #else
@@ -54,16 +53,16 @@ const char *MAKE = "Release";
 
 int PrintfVersion_(bool start, char *buf)
 {
-    return snprintf(buf, 63, "%s* %s ver:%s @ %s *",
+    return snprintf(buf, PRINT_BUF_SIZE - 1, "%s* %s ver:%s @ %s *",
                     start ? ">>> START >>> " : "",
                     MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
 }
 
 void PrintVersion(bool start)
 {
-    char sbuf[64];
+    char sbuf[PRINT_BUF_SIZE];
     int len = PrintfVersion_(start, sbuf);
-    char buf[64];
+    char buf[PRINT_BUF_SIZE];
     memset(buf, '*', len);
     buf[len] = '\0';
     Ldebug(buf);
@@ -244,8 +243,8 @@ int main(int argc, char *argv[])
             oprSp[i] = nullptr;
         }
         // TSI-SP-003 RS232/485 monitor
-            IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.ComPort()]);
-            oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
+        IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.ComPort()]);
+        oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
         if (ucihw.MonitoringPort() >= 0)
         {
             LayerNTS::monitor = oprSp[ucihw.MonitoringPort()] =

@@ -40,7 +40,7 @@ void UciUserCfg::LoadConfig()
     if (deviceId == broadcastId)
     {
         throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
-                                                 PACKAGE, SECTION, _DeviceId, deviceId, _BroadcastId, broadcastId));
+                                                PACKAGE, SECTION, _DeviceId, deviceId, _BroadcastId, broadcastId));
     }
     seedOffset = GetInt(uciSec, _SeedOffset, 0, 255);
     fan1OnTemp = GetInt(uciSec, _Fan1OnTemp, 0, 100);
@@ -74,7 +74,7 @@ void UciUserCfg::LoadConfig()
     if (svcPort == webPort)
     {
         throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
-                                                 PACKAGE, SECTION, _SvcPort, svcPort, _WebPort, webPort));
+                                                PACKAGE, SECTION, _SvcPort, svcPort, _WebPort, webPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
@@ -205,10 +205,10 @@ void UciUserCfg::LoadConfig()
 
 void UciUserCfg::LoadFactoryDefault()
 {
-    char def[256];
-    char uci[256];
-    snprintf(uci, 255, "%s/%s", PATH, PACKAGE);
-    snprintf(def, 255, "%s/%s", PATH, DEFAULT_FILE);
+    char def[PRINT_BUF_SIZE];
+    char uci[PRINT_BUF_SIZE];
+    snprintf(uci, PRINT_BUF_SIZE - 1, "%s/%s", PATH, PACKAGE);
+    snprintf(def, PRINT_BUF_SIZE - 1, "%s/%s", PATH, DEFAULT_FILE);
     Exec::CopyFile(def, uci);
     OpenSaveClose(SECTION, _DeviceId, DeviceId());
     OpenSaveClose(SECTION, _BroadcastId, BroadcastId());
@@ -242,7 +242,7 @@ void UciUserCfg::Dump()
     PrintOption_str(_City, City());
     PrintOption_str(_ComPort, COM_NAME[ComPort()]);
 
-    char buf[256];
+    char buf[PRINT_BUF_SIZE];
 
     for (int i = 0; i < extSw.size(); i++)
     {
@@ -279,7 +279,7 @@ void UciUserCfg::PrintDawnDusk(char *buf)
     int len = 0;
     for (int i = 0; i < 8; i++)
     {
-        len += sprintf(buf + len, (i == 0) ? "%u:%02u" : ",%u:%02u", *p, *(p + 1));
+        len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, (i == 0) ? "%u:%02u" : ",%u:%02u", *p, *(p + 1));
         p += 2;
     }
 }
@@ -289,7 +289,7 @@ void UciUserCfg::PrintLuminance(char *buf)
     int len = 0;
     for (int i = 0; i < 16; i++)
     {
-        len += sprintf(buf + len, (i == 0) ? "%u" : ",%u", luminance[i]);
+        len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, (i == 0) ? "%u" : ",%u", luminance[i]);
     }
 }
 

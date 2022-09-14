@@ -26,7 +26,7 @@ Sign::Sign(uint8_t id)
     lsMidnightFault.SetCNT(15 * 60);
     lsMiddayFault.SetCNT(15 * 60);
 
-    for(int i=0;i<frameImages.size();i++)
+    for (int i = 0; i < frameImages.size(); i++)
     {
         frameImages[i].SetId(id, i);
     }
@@ -122,7 +122,7 @@ void Sign::RefreshSlaveStatusAtSt()
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
-    char buf[64];
+    char buf[STRLOG_SIZE];
     uint8_t check_chain_fault = 0;
     uint8_t check_selftest = 0;
     uint8_t check_lantern = 0;
@@ -137,7 +137,7 @@ void Sign::RefreshSlaveStatusAtSt()
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
     chainFault.Check(check_chain_fault > 0, t2);
-    sprintf(buf, "ChainFault=0x%02X", check_chain_fault);
+    snprintf(buf, STRLOG_SIZE - 1, "ChainFault=0x%02X", check_chain_fault);
     DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
     selftestFault.Check(check_selftest > 0, t2);
@@ -148,15 +148,15 @@ void Sign::RefreshSlaveStatusAtSt()
         {
             if (s->selfTest & 1)
             {
-                len += snprintf(buf + len, 63 - len, " %d", s->SlaveId());
-                if (len >= 63)
+                len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " %d", s->SlaveId());
+                if (len > STRLOG_SIZE - 1)
                 {
                     break;
                 }
             }
         }
     }
-    DbncFault(selftestFault, DEV::ERROR::UnderLocalControl);
+    DbncFault(selftestFault, DEV::ERROR::UnderLocalControl, buf);
 
     lanternFault.Check(check_lantern > 0, t2);
     sprintf(buf, "LanternFault=0x%02X", check_lantern);
@@ -466,14 +466,14 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
 
 void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
 {
-    char buf[64];
+    char buf[STRLOG_SIZE];
     int len = 0;
     if (dbc.IsRising())
     {
         if (!signErr.IsSet(err))
         {
             signErr.Push(signId, err, true);
-            len = snprintf(buf, 63, "Sign[%d] %s ONSET", signId, DEV::ToStr(err));
+            len = snprintf(buf, STRLOG_SIZE - 1, "Sign[%d] %s ONSET", signId, DEV::ToStr(err));
         }
     }
     else if (dbc.IsFalling())
@@ -481,15 +481,15 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
         if (signErr.IsSet(err))
         {
             signErr.Push(signId, err, false);
-            len = snprintf(buf, 63, "Sign[%d] %s CLEAR", signId, DEV::ToStr(err));
+            len = snprintf(buf, STRLOG_SIZE - 1, "Sign[%d] %s CLEAR", signId, DEV::ToStr(err));
         }
     }
     dbc.ClearEdge();
-    if (len > 0 && len < 63)
+    if (len > 0)
     {
-        if (info != nullptr)
+        if (info != nullptr && strlen(info) > 0)
         {
-            snprintf(buf + len, 63 - len, ": %s", info);
+            snprintf(buf + len, STRLOG_SIZE - 1 - len, ": %s", info);
         }
         DbHelper::Instance().GetUciAlarm().Push(signId, buf);
     }
@@ -515,7 +515,7 @@ void Sign::RefreshDevErr(DEV::ERROR err)
     }
 }
 
-const char * Sign::GetImageBase64()
+const char *Sign::GetImageBase64()
 {
     return frameImages[slaveFrameId].Save2Base64().data();
 }

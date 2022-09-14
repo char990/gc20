@@ -230,8 +230,8 @@ int Slave::CheckNext()
 
 void Slave::ReportOffline(bool v)
 {
-    char buf[64];
-    snprintf(buf, 63, "Sign[%d].Slave[%d] %s-line", sign->SignId(), slaveId, v ? "OFF" : "On");
+    char buf[STRLOG_SIZE];
+    snprintf(buf, STRLOG_SIZE-1, "Sign[%d].Slave[%d] %s-line", sign->SignId(), slaveId, v ? "OFF" : "On");
     Ldebug(buf);
     DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
     if (v)

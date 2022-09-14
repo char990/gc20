@@ -348,8 +348,8 @@ void Group::FcltSwitchFunc()
         fcltSw.ClearChanged();
         Controller::Instance().ctrllerError.Push(
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
-        char buf[256];
-        snprintf(buf, 255, "Group[%d]%s", groupId, fcltSw.ToStr());
+        char buf[PRINT_BUF_SIZE];
+        snprintf(buf, PRINT_BUF_SIZE - 1, "Group[%d]%s", groupId, fcltSw.ToStr());
         Ldebug(buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
@@ -405,8 +405,8 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != 0 || onDispMsgId != 0 || onDispFrmId != 0)
                 { // previouse is not BLANK
-                    char buf[256];
-                    snprintf(buf, 255, "Group[%d]TaskPln:Display BLANK", groupId);
+                    char buf[STRLOG_SIZE];
+                    snprintf(buf, STRLOG_SIZE - 1, "Group[%d]TaskPln:Display BLANK", groupId);
                     Ldebug(buf);
                     db.GetUciEvent().Push(0, buf);
                     TaskFrmReset();
@@ -425,8 +425,8 @@ bool Group::TaskPln(int *_ptLine)
             {
                 if (onDispPlnId != plnmin.plnId)
                 { // reset active frm/msg
-                    char buf[256];
-                    snprintf(buf, 255, "Group[%d]TaskPln:Plan[%d] start", groupId, plnmin.plnId);
+                    char buf[PRINT_BUF_SIZE];
+                    snprintf(buf, PRINT_BUF_SIZE - 1, "Group[%d]TaskPln:Plan[%d] start", groupId, plnmin.plnId);
                     Ldebug(buf);
                     db.GetUciEvent().Push(0, buf);
                     activeMsg.ClrAll();
@@ -849,11 +849,11 @@ bool Group::TaskFrm(int *_ptLine)
             TaskSetATFReset();
             PT_WAIT_TASK(TaskSetATF(&taskATFLine));
             {
-                char buf[256];
+                char buf[PRINT_BUF_SIZE];
                 int len = 0;
                 for (int i = 0; i < SlaveCnt(); i++)
                 {
-                    len += sprintf(buf + len, "[%d]%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
+                    len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, "[%d]%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
                 }
                 Ldebug("Group[%d]TaskFrm:Display ATF:%s", groupId, buf);
             }
@@ -1353,8 +1353,8 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
         }
     }
     db.GetUciProcess().EnDisPlan(groupId, id, endis);
-    char buf[64];
-    snprintf(buf, 63, "Group[%d] %sable Plan[%d]", groupId, (endis == 0) ? "Dis" : "En", id);
+    char buf[STRLOG_SIZE];
+    snprintf(buf, STRLOG_SIZE - 1, "Group[%d] %sable Plan[%d]", groupId, (endis == 0) ? "Dis" : "En", id);
     db.GetUciEvent().Push(0, buf);
     Ldebug(buf);
     // PrintPlnMin();
@@ -1575,12 +1575,12 @@ APP::ERROR Group::DispAtomic(uint8_t *cmd, bool log)
         if (log)
         {
             db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
-            char buf[64];
-            int len = sprintf(buf, "Group[%d]DispAtomic:", cmd[1]);
+            char buf[STRLOG_SIZE];
+            int len = snprintf(buf, STRLOG_SIZE-1, "Group[%d]DispAtomic:", cmd[1]);
             uint8_t *p = cmd + 3;
-            for (int i = 0; i < cmd[2] && len < 63; i++)
+            for (int i = 0; i < cmd[2] && len < STRLOG_SIZE - 1; i++)
             {
-                len += snprintf(buf + len, 63 - len, "[%d]%d", p[0], p[1]);
+                len += snprintf(buf + len, STRLOG_SIZE - 1 - len, "[%d]%d", p[0], p[1]);
                 p += 2;
             }
             db.GetUciEvent().Push(0, buf);

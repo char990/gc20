@@ -118,8 +118,8 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
             break;
         }
         // TODO: set lantern
-        int X[2]{0, bmpSign.TellWidth()-bmpLanternOff.TellWidth()};
-        int Y[2]{0, bmpSign.TellHeight()-bmpLanternOff.TellHeight()};
+        int X[2]{0, bmpSign.TellWidth() - bmpLanternOff.TellWidth()};
+        int Y[2]{0, bmpSign.TellHeight() - bmpLanternOff.TellHeight()};
         for (int x = 0; x < 2; x++)
         {
             for (int y = 0; y < 2; y++)
@@ -197,14 +197,14 @@ void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
         return;
     }
     newImg = true;
-    char filename[256];
-    sprintf(filename, tmp_sign_frm, signId, frmId);
+    char filename[PRINT_BUF_SIZE];
+    snprintf(filename, PRINT_BUF_SIZE - 1, tmp_sign_frm, signId, frmId);
     if (frame[1] == 0xFC)
     {
         if (DbHelper::Instance().GetUciHardware().IsIslusSpFrm(frame[6]))
         {
-            char islus_xxx[256];
-            sprintf(islus_xxx, islus_sp_frm, frame[6]);
+            char islus_xxx[PRINT_BUF_SIZE];
+            snprintf(islus_xxx, PRINT_BUF_SIZE - 1, islus_sp_frm, frame[6]);
             ReadFromFile(islus_xxx);
         }
         else
@@ -234,8 +234,8 @@ void FrameImage::FillCoreFromUciFrame()
     if (DbHelper::Instance().GetUciHardware().ProdType() == PRODUCT::ISLUS &&
         DbHelper::Instance().GetUciHardware().IsIslusSpFrm(frmId))
     {
-        char islus_xxx[256];
-        sprintf(islus_xxx, islus_sp_frm, frmId);
+        char islus_xxx[PRINT_BUF_SIZE];
+        snprintf(islus_xxx, PRINT_BUF_SIZE - 1, islus_sp_frm, frmId);
         ReadFromFile(islus_xxx);
         WriteToFile(filename);
         return;
@@ -274,7 +274,7 @@ std::vector<char> &FrameImage::Save2Base64()
 {
     if (newImg)
     {
-        char filename[256];
+        char filename[PRINT_BUF_SIZE];
         if (frmId == 0)
         {
             strcpy(filename, annulus_off);
@@ -287,7 +287,7 @@ std::vector<char> &FrameImage::Save2Base64()
             }
             else
             {
-                sprintf(filename, tmp_sign_frm, signId, frmId);
+                snprintf(filename, PRINT_BUF_SIZE - 1, tmp_sign_frm, signId, frmId);
             }
         }
 

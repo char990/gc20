@@ -490,16 +490,16 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                 {
                     if (m0 != 0)
                     {
-                        char ipbuf[64];
-                        sprintf(ipbuf, "network.ETH1.proto changed: %s -> %s", net->proto.c_str(), "static");
+                        char ipbuf[STRLOG_SIZE];
+                        snprintf(ipbuf, STRLOG_SIZE - 1, "network.ETH1.proto changed: %s -> %s", net->proto.c_str(), "static");
                         evt.Push(0, ipbuf);
                         net->proto.assign("static");
                     }
                     auto newip = [&evt](const char *str, Ipv4 &old_n, Ipv4 &new_p) -> void
                     {
-                        char ipbuf[64];
-                        sprintf(ipbuf, "network.ETH1.%s changed: %s -> %s",
-                                str, old_n.ToString().c_str(), new_p.ToString().c_str());
+                        char ipbuf[STRLOG_SIZE];
+                        snprintf(ipbuf, STRLOG_SIZE - 1, "network.ETH1.%s changed: %s -> %s",
+                                 str, old_n.ToString().c_str(), new_p.ToString().c_str());
                         evt.Push(0, ipbuf);
                         old_n.Set(new_p.ip.ipa);
                     };
@@ -563,7 +563,7 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = usercfg.Fan1OnTemp();
         *pt++ = usercfg.Humidity();
         *pt++ = usercfg.CityId();
-        *pt++ = 0;                       // usercfg.DefaultFont();
+        *pt++ = 0;                        // usercfg.DefaultFont();
         *pt++ = ucihw.GetMappedColour(0); // DefaultColour();
         pt = Cnvt::PutU16(usercfg.MultiLedFaultThreshold(), pt);
         memset(pt, 0, 10);
@@ -1030,9 +1030,9 @@ int TsiSp003App::FF_RqstGuiConfig(uint8_t *data, int len)
         p = Cnvt::PutU16(0, p);                           // light sensor 2
         *p++ = 'V';                                       // GUIconfigure.PARA.BYTE.device_type='V';		// "V"
         *p++ = 'B';                                       // GUIconfigure.PARA.BYTE.device_operation='B';	// "B"
-        *p++ = ucihw.MaxConspicuity();                     // conspicuity
-        *p++ = ucihw.MaxFont();                            // max. number of fonts
-        *p++ = ucihw.GetMappedColour(0);                   // user.DefaultColour();                // 09
+        *p++ = ucihw.MaxConspicuity();                    // conspicuity
+        *p++ = ucihw.MaxFont();                           // max. number of fonts
+        *p++ = ucihw.GetMappedColour(0);                  // user.DefaultColour();                // 09
         *p++ = 0;                                         // GUIconfigure.PARA.BYTE.max_template=0;		// 00
         *p++ = 1;                                         // GUIconfigure.PARA.BYTE.wk1=1;                // 01
         *p++ = 0;                                         // GUIconfigure.PARA.BYTE.group_offset=0;		// 00

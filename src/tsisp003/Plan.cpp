@@ -136,10 +136,9 @@ std::string Plan::ToString()
     {
         return "Plan undefined";
     }
-    #define PLAN_TO_STRING_SIZE 4096
-    char *buf = new char[PLAN_TO_STRING_SIZE+16];
+    auto buf = std::unique_ptr<char>(new char[PRINT_BUF_SIZE]);
     int len = 0;
-    len = snprintf(buf, PLAN_TO_STRING_SIZE, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
+    len = snprintf(buf.get(), PRINT_BUF_SIZE - 1, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
                    plnId, micode, plnId, plnRev);
     const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
@@ -147,32 +146,31 @@ std::string Plan::ToString()
     {
         if (k & weekdays)
         {
-            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "%s,", WEEK[i]);
+            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "%s,", WEEK[i]);
         }
         k <<= 1;
     }
-    len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, " Entries(%d)=", entries);
+    len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, " Entries(%d)=", entries);
     for (int i = 0; i < 6; i++)
     {
         if (plnEntries[i].fmType == PLN_ENTRY_FRM)
         {
-            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "(Frm");
+            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "(Frm");
         }
         else if (plnEntries[i].fmType == PLN_ENTRY_MSG)
         {
-            len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "(Msg");
+            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "(Msg");
         }
         else
         {
             break;
         }
-        len += snprintf(buf + len, PLAN_TO_STRING_SIZE - len, "[%d]%d:%02d-%d:%02d)", plnEntries[i].fmId,
+        len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "[%d]%d:%02d-%d:%02d)", plnEntries[i].fmId,
                         plnEntries[i].start.hour, plnEntries[i].start.min,
                         plnEntries[i].stop.hour, plnEntries[i].stop.min);
     }
-    snprintf(buf + len, PLAN_TO_STRING_SIZE - len, ", Crc=0x%04X", crc);
-    std::string s(buf);
-    delete [] buf;
+    snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, ", Crc=0x%04X", crc);
+    std::string s(buf.get());
     return s;
 }
 

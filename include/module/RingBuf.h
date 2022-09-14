@@ -25,7 +25,7 @@ public:
         {
             return 0;
         }
-        if(len > Vacancy())
+        if (len > Vacancy())
         {
             len = Vacancy();
         }
@@ -83,9 +83,9 @@ public:
 
     std::string ToString()
     {
-        char str[256];
-        sprintf(str, "\nthis=%p\nsize=%d\ncnt=%d\nvacancy=%d\npPush=%p\npPop=%p\nbuf=%p\nbufEnd=%p\n",
-                this, size, cnt, Vacancy(), pPush, pPop, buf, bufEnd);
+        char str[PRINT_BUF_SIZE];
+        snprintf(str, PRINT_BUF_SIZE - 1, "\nthis=%p\nsize=%d\ncnt=%d\nvacancy=%d\npPush=%p\npPop=%p\nbuf=%p\nbufEnd=%p\n",
+                 this, size, cnt, Vacancy(), pPush, pPop, buf, bufEnd);
         return std::string(str);
     };
 

@@ -383,17 +383,17 @@ APP::ERROR Controller::CmdSystemReset(uint8_t *cmd, char *rejectStr)
     auto lvl = cmd[2];
     if (lvl > 3 && lvl < 255)
     {
-        snprintf(rejectStr, 63, "Invalid SystemReset level[%d]", lvl);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid SystemReset level[%d]", lvl);
         return APP::ERROR::SyntaxError;
     }
     if (lvl > 1 && grpId != 0)
     {
-        snprintf(rejectStr, 63, "SystemReset: Level[%d] is only for Group[0])", lvl);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "SystemReset: Level[%d] is only for Group[0])", lvl);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId > groups.size())
     {
-        snprintf(rejectStr, 63, "Group[%d] undefined", grpId);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Group[%d] undefined", grpId);
         return APP::ERROR::UndefinedDeviceNumber;
     }
     if (grpId != 0)
@@ -631,7 +631,7 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
     uint8_t entry = cmd[1];
     if (entry == 0 || entry > groups.size())
     {
-        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid number of entries:%d", entry);
         return (APP::ERROR::SyntaxError);
     }
     uint8_t *p;
@@ -640,12 +640,12 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
     {
         if (p[0] > groups.size())
         {
-            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] != 0 && (p[2] == 0 || p[2] > 16))
         {
-            snprintf(rejectStr, 63, "Dimming Level Not Supported:%d", p[2]);
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Dimming Level Not Supported:%d", p[2]);
             return APP::ERROR::DimmingLevelNotSupported;
         }
         p += 3;
@@ -667,12 +667,12 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
         }
         p += 3;
     }
-    char buf[64];
+    char buf[STRLOG_SIZE];
     int len = sprintf(buf, "SetDimming:");
     p = cmd + 2;
     for (int i = 0; i < cmd[1]; i++)
     {
-        len += snprintf(buf + len, 63 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
+        len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
         p += 3;
     }
     db.GetUciEvent().Push(0, buf);
@@ -684,7 +684,7 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, char *rejectStr)
     uint8_t entry = cmd[1];
     if (entry == 0 || entry > groups.size())
     {
-        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid number of entries:%d", entry);
         return (APP::ERROR::SyntaxError);
     }
     uint8_t *p;
@@ -693,11 +693,12 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, char *rejectStr)
     {
         if (p[0] > groups.size())
         {
-            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid setting:%d", p[1]);
             return APP::ERROR::SyntaxError;
         }
         p += 2;
@@ -718,12 +719,12 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, char *rejectStr)
         }
         p += 2;
     }
-    char buf[64];
+    char buf[STRLOG_SIZE];
     int slen = sprintf(buf, "Power ON/OFF:");
     p = cmd + 2;
-    for (int i = 0; i < cmd[1] && slen < 63; i++)
+    for (int i = 0; i < cmd[1] && slen < STRLOG_SIZE - 1; i++)
     {
-        slen += snprintf(buf + slen, 63 - slen, " Grp%d(%d)", p[0], p[1]);
+        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " Grp%d(%d)", p[0], p[1]);
         p += 2;
     }
     db.GetUciEvent().Push(0, buf);
@@ -735,7 +736,7 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr)
     uint8_t entry = cmd[1];
     if (entry == 0 || entry > groups.size())
     {
-        snprintf(rejectStr, 63, "Invalid number of entries:%d", entry);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid number of entries:%d", entry);
         return (APP::ERROR::SyntaxError);
     }
     uint8_t *p;
@@ -744,11 +745,12 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr)
     {
         if (p[0] > groups.size())
         {
-            snprintf(rejectStr, 63, "Invalid group id:%d", p[0]);
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid group id:%d", p[0]);
             return APP::ERROR::UndefinedDeviceNumber;
         }
         if (p[1] > 1)
         {
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Invalid setting:%d", p[1]);
             return APP::ERROR::SyntaxError;
         }
         p += 2;
@@ -769,12 +771,12 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr)
         }
         p += 2;
     }
-    char buf[64];
+    char buf[STRLOG_SIZE];
     int slen = sprintf(buf, "Dis/EnableDevice:");
     p = cmd + 2;
-    for (int i = 0; i < cmd[1] && slen < 63; i++)
+    for (int i = 0; i < cmd[1] && slen < STRLOG_SIZE - 1; i++)
     {
-        slen += snprintf(buf + slen, 63 - slen, " Grp%d(%d)", p[0], p[1]);
+        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " Grp%d(%d)", p[0], p[1]);
         p += 2;
     }
     db.GetUciEvent().Push(0, buf);
@@ -853,7 +855,7 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
         time_t t = mktime(&stm);
         if (t > 0)
         {
-            char buf[64];
+            char buf[STRLOG_SIZE];
             char *p = buf + sprintf(buf, "UpdateTime:");
             p = Time::ParseTimeToLocalStr(GetTime(nullptr), p);
             sprintf(p, "->");
@@ -876,6 +878,10 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
                     db.GetUciAlarm().Push(0, s);
                     db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 }
+                else
+                {
+                    return APP::ERROR::FAILED;
+                }
             }
             return APP::ERROR::AppNoError;
         }
@@ -889,22 +895,22 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
     uint8_t id = *(data + OFFSET_FRM_ID);
     if (id == 0)
     {
-        snprintf(rejectStr, 63, "Frame[0] is not valid");
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Frame[0] is not valid");
         r = APP::ERROR::SyntaxError;
     }
     else if (IsFrmActive(id))
     {
-        snprintf(rejectStr, 63, "Frame[%d] is active", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Frame[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUserCfg().LockedFrm()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
-        snprintf(rejectStr, 63, "Frame[%d] is locked", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Frame[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // locked frame
     }
     else if (db.GetUciHardware().ProdType() == PRODUCT::ISLUS && db.GetUciHardware().IsIslusSpFrm(id))
     {
-        snprintf(rejectStr, 63, "Frame[%d] is special ISLUS frame, can't be changed", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Frame[%d] is special ISLUS frame, can't be changed", id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined ISLUS special framaes and can't be changed
     }
     else
@@ -937,22 +943,22 @@ APP::ERROR Controller::SignSetMessage(uint8_t *data, int len, char *rejectStr)
     uint8_t id = *(data + OFFSET_MSG_ID);
     if (id == 0)
     {
-        strcpy(rejectStr, "Msg[0] is not valid");
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Msg[0] is not valid");
         r = APP::ERROR::SyntaxError;
     }
     else if (len > MSG_LEN_MAX)
     {
-        snprintf(rejectStr, 63, "len[%d] > MSG_LEN_MAX[%d]", len, MSG_LEN_MAX);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "len[%d] > MSG_LEN_MAX[%d]", len, MSG_LEN_MAX);
         r = APP::ERROR::LengthError;
     }
     else if (IsMsgActive(id))
     {
-        snprintf(rejectStr, 63, "Msg[%d] is active", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Msg[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (id <= db.GetUciUserCfg().LockedMsg()) // && pstatus->rFSstate() != Status::FS_OFF)
     {
-        snprintf(rejectStr, 63, "Msg[%d] is locked", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Msg[%d] is locked", id);
         r = APP::ERROR::OverlaysNotSupported; // pre-defined and can't be overlapped
     }
     else
@@ -1000,22 +1006,22 @@ APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
     uint8_t id = *(data + OFFSET_PLN_ID);
     if (id == 0)
     {
-        strcpy(rejectStr, "Plan[0] is not valid");
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Plan[0] is not valid");
         r = APP::ERROR::SyntaxError;
     }
     else if (len > PLN_LEN_MAX)
     {
-        sprintf(rejectStr, "len[%d]>PLN_LEN_MAX[%d]", len, PLN_LEN_MAX);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "len[%d]>PLN_LEN_MAX[%d]", len, PLN_LEN_MAX);
         r = APP::ERROR::LengthError;
     }
     else if (IsPlnActive(id))
     {
-        sprintf(rejectStr, "Plan[%d] is active", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Plan[%d] is active", id);
         r = APP::ERROR::FrmMsgPlnActive;
     }
     else if (IsPlnEnabled(id))
     {
-        sprintf(rejectStr, "Plan[%d] is enabled", id);
+        snprintf(rejectStr, REJECT_BUF_SIZE - 1, "Plan[%d] is enabled", id);
         r = APP::ERROR::PlanEnabled;
     }
     else

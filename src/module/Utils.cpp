@@ -245,18 +245,6 @@ uint8_t *Cnvt::PutU32(uint32_t v, uint8_t *p)
     return p + 5;
 }
 
-void Cnvt::split(const string &s, vector<string> &tokens, const string &delimiters)
-{
-    string::size_type lastPos = s.find_first_not_of(delimiters, 0);
-    string::size_type pos = s.find_first_of(delimiters, lastPos);
-    while (string::npos != pos || string::npos != lastPos)
-    {
-        tokens.push_back(s.substr(lastPos, pos - lastPos));
-        lastPos = s.find_first_not_of(delimiters, pos);
-        pos = s.find_first_of(delimiters, lastPos);
-    }
-}
-
 union si16_
 {
     uint8_t u8a[2];
@@ -927,7 +915,7 @@ string Bits::ToString()
     {
         if (BitOffset::Get07Bit(data.data(), i))
         {
-            len += sprintf(buf + len, (len == 0) ? "%d" : ",%d", i);
+            len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, (len == 0) ? "%d" : ",%d", i);
         }
     }
     return (len == 0) ? " " : string{buf};
@@ -960,22 +948,23 @@ void Bits::Clone(Bits &v)
     data = v.Data();
 }
 
-vector<string> StrFn::Split(const string &i_str, const string &i_delim)
+vector<string> StrFn::Split(const string &s, const string &delimiters)
 {
-    vector<string> result;
+    vector<string> tokens;
+    Split(s, tokens, delimiters);
+    return tokens;
+}
 
-    size_t found = i_str.find(i_delim);
-    size_t startIndex = 0;
-
-    while (found != string::npos)
+void StrFn::Split(const string &s, vector<string> &tokens, const string &delimiters)
+{
+    string::size_type lastPos = s.find_first_not_of(delimiters, 0);
+    string::size_type pos = s.find_first_of(delimiters, lastPos);
+    while (string::npos != pos || string::npos != lastPos)
     {
-        result.push_back(string(i_str.begin() + startIndex, i_str.begin() + found));
-        startIndex = found + i_delim.size();
-        found = i_str.find(i_delim, startIndex);
+        tokens.push_back(s.substr(lastPos, pos - lastPos));
+        lastPos = s.find_first_not_of(delimiters, pos);
+        pos = s.find_first_of(delimiters, lastPos);
     }
-    if (startIndex != i_str.size())
-        result.push_back(string(i_str.begin() + startIndex, i_str.end()));
-    return result;
 }
 
 int StrFn::vsPrint(vector<string> *vs)
@@ -1009,12 +998,26 @@ string StrFn::PrintfStr(const char *fmt, ...)
     return string(buf);
 }
 
+void StrFn::ReplaceAll(std::string &data, std::string toSearch, std::string replaceStr)
+{
+    // Get the first occurrence
+    size_t pos = data.find(toSearch);
+    // Repeat till end is reached
+    while (pos != std::string::npos)
+    {
+        // Replace this occurrence of Sub String
+        data.replace(pos, toSearch.size(), replaceStr);
+        // Get the next occurrence from the current position
+        pos = data.find(toSearch, pos + replaceStr.size());
+    }
+}
+
 int Pick::PickStr(const char *v, const char **src, const int len, const bool ignore_case)
 {
-    auto F = (ignore_case) ? strcasecmp : strcmp;
+    auto Cmp = (ignore_case) ? strcasecmp : strcmp;
     for (int i = 0; i < len; i++)
     {
-        if (F(v, *src++) == 0)
+        if (Cmp(v, *src++) == 0)
         {
             return i;
         }

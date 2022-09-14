@@ -65,7 +65,7 @@ long OprTcp::IdleMs()
 void OprTcp::Init(int id, TcpSvrType serverType)
 {
     char buf[PRINT_BUF_SIZE];
-    sprintf(buf, "%s[%d]", TcpSvrTypeName(serverType).c_str(), id);
+    snprintf(buf, PRINT_BUF_SIZE - 1, "%s[%d]", TcpSvrTypeName(serverType).c_str(), id);
     name.assign(buf);
     if (serverType == TcpSvrType::TMC)
     {

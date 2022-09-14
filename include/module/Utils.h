@@ -204,9 +204,6 @@ namespace Utils
         /// \brief Put uint32_t to uint8_t *
         static uint8_t *PutU32(uint32_t v, uint8_t *p);
 
-        /// \brief  split a string
-        static void split(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ");
-
         /// \brief  Swap byte of uint16_t
         static uint16_t SwapU16(uint16_t v);
 
@@ -461,9 +458,11 @@ namespace Utils
     class StrFn
     {
     public:
-        static std::vector<std::string> Split(const std::string &i_str, const std::string &i_delim);
+        static std::vector<std::string> Split(const std::string &s, const std::string &delimiters = " ");
+        static void Split(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ");
         static int vsPrint(std::vector<std::string> *vs);
         static std::string PrintfStr(const char * fmt, ...);
+        static void ReplaceAll(std::string & data, std::string toSearch, std::string replaceStr);
     };
 
     class Pick

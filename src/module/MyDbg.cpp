@@ -40,8 +40,8 @@ int PrintDbg(DBG_LEVEL level, const char *fmt, ...)
 		int xlen = vsnprintf(p, xs, fmt, args);
 		va_end(args);
 		if (xlen >= xs)
-		{// MyDbgBuf full
-			sprintf(MyDbgBuf + MyDbgBuf_SIZE - 9, " ......");
+		{ // MyDbgBuf full
+			strcat(MyDbgBuf + MyDbgBuf_SIZE - 9, " ......");
 			len = MyDbgBuf_SIZE - 2;
 		}
 		else
@@ -67,13 +67,13 @@ extern char *mainpath;
 int days = 0;
 void Log(int len)
 {
-	char filename[256];
+	char filename[PRINT_BUF_SIZE];
 	int d, m, y;
 	if (sscanf(MyDbgBuf, "[%d/%d/%d", &d, &m, &y) != 3)
 	{
 		return;
 	}
-	snprintf(filename, 255, "%s/log/%d_%02d_%02d", mainpath, y, m, d);
+	snprintf(filename, PRINT_BUF_SIZE - 1, "%s/log/%d_%02d_%02d", mainpath, y, m, d);
 	int today = ((y * 0x100) + m) * 0x100 + d;
 	if (days != 0 && days != today)
 	{
@@ -92,6 +92,6 @@ void Log(int len)
 void PrintDash(char c)
 {
 #define DASH_LEN 80
-	string dash(c,DASH_LEN);
+	string dash(DASH_LEN, c);
 	puts(dash.c_str());
 }

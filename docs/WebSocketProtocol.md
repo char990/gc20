@@ -747,7 +747,7 @@ Master send: JSON:
 "font":0/1/2/3/4/5,
 "conspicuity":"Off"/"Up Down"/"Left Right"/"Wig Wag"/"All Flash"/"All On",
 "annulus":"Off"/"Flashing"/"On",
-"text":["Row1\nRow2\nRow3"], // if Text Frame, '\n' is new line
+"text":"Row1\nRow2\nRow3", // if Text Frame, '\n' is line feed
 "image":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……" // if Gfx/Hrg
 }
 ```
@@ -788,13 +788,13 @@ Master send: JSON:
 {
 "cmd":"SetFrame",
 "id": 1, // 1-255, NOT 0
-"revision": 1,
+"revision": // 0-255
 "type":"Text Frame"/"Graphics Frame"/"HR Graphics Frame",
 "colour":"Default "/"Red"/"Yellow"/"Green"/……/"Multiple"/"24-bit",
 "font":0/1/2/3/4/5,
 "conspicuity":"Off"/"Up Down"/"Left Right"/"Wig Wag"/"All Flash"/"All On",
 "annulus":"Off"/"Flashing"/"On",
-"text":"UNDEFINED", // if Text Frame, or
+"text":"Row1\nRow2\nRow3", // if Text Frame, '\n' is line feed
 "image":"Qk022AAAAAAAADYAAAAoAAAAIAEAAEAAAAAB……" // if Gfx/Hrg
 }
 ```
@@ -808,6 +808,8 @@ Master send: JSON:
 "result":"OK" or error message
 }
 ```
+
+Note: In "text", '_' is not allowed and replaced with ' '
 
 ### DisplayFrame
 
@@ -889,7 +891,7 @@ Master send: JSON:
 {
 "cmd":"SetMessage",
 "id":1, // 1-255, NOT 0
-"revision":1,
+"revision": // 0-255
 "transition":100,  //0.01 second
 "entries":[
   {
@@ -1000,7 +1002,7 @@ Master send: JSON:
 {
 "cmd":"SetPlan",
 "id":1,  // 1 - 255, Not 0
-"revision":1,
+"revision": // 0-255
 "week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
 "entries":[
   {

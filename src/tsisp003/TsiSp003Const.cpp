@@ -250,7 +250,7 @@ std::vector<APP::sAppErrorStr> APP::apperror_str{
     {APP::ERROR::InterlockingNotActive, "InterlockingNotActive"},
     {APP::ERROR::InterlocckingActive, "InterlocckingActive"},
     {APP::ERROR::UserDefinedFE, "UserDefinedFE"},
-    {APP::ERROR::UNDEFINED, "UNDEFINED"},
+    {APP::ERROR::FAILED, "Failed"},
 };
 
 const char *APP::ToStr(uint8_t code)

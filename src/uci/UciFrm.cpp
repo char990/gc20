@@ -43,14 +43,14 @@ void UciFrm::LoadFrms(const char *FMT)
 	// using HRGFRM to allocate the memory
 	maxFrmSize = DbHelper::Instance().GetUciHardware().MaxCoreLen() + HRGFRM_HEADER_SIZE + 2; // 2 bytes crc
 	chksum = 0;
-	char filename[256];
+	char filename[PRINT_BUF_SIZE];
 	vector<uint8_t> b(maxFrmSize);
 	vector<char> v(maxFrmSize * 2 + 1); // with '\n' or '\0' at the end
 	try
 	{
 		for (int i = 1; i <= 255; i++)
 		{
-			snprintf(filename, 255, FMT, PATH, i);
+			snprintf(filename, PRINT_BUF_SIZE - 1, FMT, PATH, i);
 			int frm_fd = open(filename, O_RDONLY);
 			if (frm_fd > 0)
 			{
@@ -169,19 +169,19 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		return;
 	}
-	char filename[256];
+	char filename[PRINT_BUF_SIZE];
 	// save uci format
-	snprintf(filename, 255, "%s/frm_%03d", PATH, i);
+	snprintf(filename, PRINT_BUF_SIZE - 1, "%s/frm_%03d", PATH, i);
 	int len = stfrm->rawData.size() * 2;
 	char *v = new char[len + 1]; // 1 bytes space for '\n'
 	Cnvt::ParseToStr(stfrm->rawData.data(), v, stfrm->rawData.size());
 	v[len++] = '\n';
-	char buf[64];
+	char buf[STRLOG_SIZE];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	auto &alm = DbHelper::Instance().GetUciAlarm();
 	if (frm_fd < 0)
 	{
-		snprintf(buf, 63, "Open frm_%03d failed", i);
+		snprintf(buf, STRLOG_SIZE - 1, "Open frm_%03d failed", i);
 		alm.Push(0, buf);
 		Ldebug(buf);
 	}
@@ -189,7 +189,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		if (write(frm_fd, v, len) != len)
 		{
-			snprintf(buf, 63, "Write frm_%03d failed", i);
+			snprintf(buf, STRLOG_SIZE - 1, "Write frm_%03d failed", i);
 			alm.Push(0, buf);
 			Ldebug(buf);
 		}

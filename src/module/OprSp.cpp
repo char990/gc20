@@ -26,8 +26,8 @@ OprSp::OprSp(uint8_t comX, int bps, IUpperLayer *upperLayer, int rxbufsize)
     }
     if (sp->Open() < 0)
     {
-        char buf[64];
-        snprintf(buf, 63, "Open %s failed", sp->Config().name);
+        char buf[STRLOG_SIZE];
+        snprintf(buf, STRLOG_SIZE - 1, "Open %s failed", sp->Config().name);
         DbHelper::Instance().GetUciAlarm().Push(0, buf);
         throw std::runtime_error(buf);
     }
@@ -67,8 +67,8 @@ void OprSp::EventsHandle(uint32_t events)
 {
     if (events & (EPOLLRDHUP | EPOLLRDHUP | EPOLLERR))
     {
-        char buf[64];
-        snprintf(buf, 63, "%s closed: events=0x%08X", sp->Config().name, events);
+        char buf[STRLOG_SIZE];
+        snprintf(buf, STRLOG_SIZE - 1, "%s closed: events=0x%08X", sp->Config().name, events);
         DbHelper::Instance().GetUciAlarm().Push(0, buf);
         if (ReOpen() == -1)
         {

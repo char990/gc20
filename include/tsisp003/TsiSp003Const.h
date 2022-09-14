@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#define REJECT_BUF_SIZE 64
 class MI
 {
 public:
@@ -165,7 +166,7 @@ public:
         InterlockingNotActive,
         InterlocckingActive,
         UserDefinedFE = 0xFE,
-        UNDEFINED = 0xFF
+        FAILED = 0xFF
     };
 
     struct sAppErrorStr

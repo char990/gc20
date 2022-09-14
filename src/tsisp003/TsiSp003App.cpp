@@ -94,7 +94,7 @@ void TsiSp003App::SetRejectStr(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    vsnprintf(rejectStr, 63, fmt, args);
+    vsnprintf(rejectStr, REJECT_BUF_SIZE-1, fmt, args);
     va_end(args);
 }
 

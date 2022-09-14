@@ -12,11 +12,10 @@ void UciProcess::LoadConfig()
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+	Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
 	Open();
 	DbHelper &db = DbHelper::Instance();
 	char option[16];
-	int buf[255];
 	const char *str;
 	int d;
 	struct uci_section *uciSec;
@@ -28,7 +27,7 @@ void UciProcess::LoadConfig()
 	{
 		sprintf(sectionBuf, "%s%d", _Group, i + 1);
 		uciSec = GetSection(SECTION);
-		auto & p = grpProc.at(i);
+		auto &p = grpProc.at(i);
 		// _EnabledPlan
 		auto &enp = p.EnabledPln();
 		ReadBits(uciSec, _EnabledPlan, enp, false);
@@ -82,8 +81,8 @@ void UciProcess::Dump()
 	char buf[1024];
 	for (int i = 0; i < grpCnt; i++)
 	{
-		printf("%s%d:\n", _Group, i+1);
-		auto & p = grpProc.at(i);
+		printf("%s%d:\n", _Group, i + 1);
+		auto &p = grpProc.at(i);
 		PrintGrpPln(i, buf);
 		printf("\t%s \t'%s'\n", _EnabledPlan, buf);
 		uint8_t *disp = p.ProcDisp();
@@ -132,7 +131,7 @@ void UciProcess::SaveGrpPln(uint8_t gid)
 	if (gid == 0 || gid > grpCnt)
 		return;
 	sprintf(sectionBuf, "%s%d", _Group, gid);
-	char buf[1024];
+	char buf[PRINT_BUF_SIZE];
 	PrintGrpPln(gid, buf);
 	OpenSaveClose(SECTION, _EnabledPlan, buf);
 }
@@ -142,7 +141,7 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 	if (gid == 0 || gid > grpCnt)
 		return 0;
 	buf[0] = '\0';
-	auto & p = grpProc.at(gid - 1);
+	auto &p = grpProc.at(gid - 1);
 	int len = 0;
 	for (int i = 1; i <= 255; i++)
 	{
@@ -152,7 +151,7 @@ int UciProcess::PrintGrpPln(uint8_t gid, char *buf)
 			{
 				buf[len++] = ',';
 			}
-			len += sprintf(buf + len, "%d", i);
+			len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, "%d", i);
 		}
 	}
 	if (len == 0)

@@ -1027,6 +1027,7 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
                     text.append("\n");
                 }
             }
+            std::replace(text.begin(), text.end(), '_', ' ');
             reply.emplace("text", text);
         }
         else if (frm->micode == 0x0B || frm->micode == 0x1D)
@@ -1082,7 +1083,6 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         throw("CMD_SetFrame: annulus error");
     }
     conspicuity = (conspicuity) | (annulus << 3);
-    char rejectStr[64];
     vector<uint8_t> frm;
     if (frmType == MI::CODE::SignSetTextFrame)
     {
@@ -1091,6 +1091,8 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         {
             throw invalid_argument("'Text' is null");
         }
+        std::replace(str.begin(), str.end(), ' ', '_');
+        StrFn::ReplaceAll(str, "\n", " ");
         frm.resize(str.length() + 9);
         frm[0] = static_cast<uint8_t>(frmType);
         frm[1] = id;
@@ -1200,6 +1202,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         }
     }
     Cnvt::PutU16(Crc::Crc16_1021(frm.data(), frm.size() - 2), frm.data() + frm.size() - 2);
+    char rejectStr[REJECT_BUF_SIZE];
     auto r = ctrller->SignSetFrame(frm.data(), frm.size(), rejectStr);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : rejectStr);
 }
@@ -1672,8 +1675,8 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
     {
         throw invalid_argument("Invalid 'file'");
     }
-    char gufile[64];
-    sprintf(gufile, "%s/%s", GDIR, UFILE);
+    char gufile[STRLOG_SIZE];
+    snprintf(gufile, STRLOG_SIZE-1, "%s/%s", GDIR, UFILE);
     if (Cnvt::Base64ToFile(file, gufile) < 0)
     {
         throw runtime_error(StrFn::PrintfStr("Saving %s failed", gufile));

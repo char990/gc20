@@ -68,7 +68,7 @@ void UciHardware::LoadConfig()
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
-        sprintf(mfcCode, "%s%s", str, FirmwareVer);
+        snprintf(mfcCode, sizeof(mfcCode) - 1, "%s%s", str, FirmwareVer);
     }
     else
     {
@@ -314,7 +314,7 @@ void UciHardware::LoadConfig()
             ThrowError(_SlaveBpsPort, "Port should be '-'1024~65535");
         }
     }
-    char signx[8];
+    char signx[16];
     SECTION = signx;
     for (int i = 0; i < numberOfSigns; i++)
     {
@@ -368,7 +368,7 @@ void UciHardware::LoadConfig()
                         if (com != _sign.com_ip)
                         {
                             throw invalid_argument(StrFn::PrintfStr("%s.%s_.%s Error: Signs in Group[%d] should have same COM",
-                                                                     PACKAGE, _SectionSign, _COM, g));
+                                                                    PACKAGE, _SectionSign, _COM, g));
                         }
                     }
                 }

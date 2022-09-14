@@ -59,7 +59,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     {
         return APP::ERROR::OverlaysNotSupported;
     }
-   
+
     micode = static_cast<uint8_t>(MI::CODE::SignSetMessage);
     return APP::ERROR::AppNoError;
 }
@@ -90,19 +90,19 @@ std::string Message::ToString()
     {
         return "Message undefined";
     }
-    char buf[256];
+    char buf[PRINT_BUF_SIZE];
     int len = 0;
-    len = snprintf(buf, 255, "msg_%03d: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
+    len = snprintf(buf, PRINT_BUF_SIZE - 1, "msg_%03d: MI=0x%02X, Id=%d, Rev=%d, TransT=%d, Entries(%d)=",
                    msgId, micode, msgId, msgRev, transTime, entries);
     for (int i = 0; i < entries; i++)
     {
-        len += snprintf(buf + len, 255 - len, "(%d,%d)", msgEntries[i].frmId, msgEntries[i].onTime);
-        if(len>240)
+        len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, "(%d,%d)", msgEntries[i].frmId, msgEntries[i].onTime);
+        if (len > 240)
         {
             break;
         }
     }
-    snprintf(buf + len, 255 - len, ", Crc=0x%04X", crc);
+    snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, ", Crc=0x%04X", crc);
     std::string s(buf);
     return s;
 }
@@ -119,7 +119,6 @@ int Message::CheckEntries()
     }
     return 0;
 }
-
 
 int Message::CheckOverlay()
 {

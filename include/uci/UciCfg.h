@@ -34,7 +34,7 @@ protected:
 	struct uci_context *ctx;
 	struct uci_package *pkg;
 	struct uci_ptr ptrSecSave;
-	char bufSecSave[256];
+	char bufSecSave[PRINT_BUF_SIZE];
 
 
 	/// temp savedir, nullptr for default(/tmp/.uci)

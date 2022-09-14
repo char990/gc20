@@ -29,8 +29,8 @@ int Upgrade::FileInfo(uint8_t *data)
         Ldebug("Upgrade::FileInfo: PktSize=%d", sizeK);
         return 2;
     }
-    char pf[256];
-    snprintf(pf, 255, "%s/%s", GDIR, UFILE);
+    char pf[PRINT_BUF_SIZE];
+    snprintf(pf, PRINT_BUF_SIZE-1, "%s/%s", GDIR, UFILE);
     int fd = open(pf, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd < 0)
     {
@@ -82,8 +82,8 @@ int Upgrade::FilePacket(uint8_t *data, int len)
             return 4;
         }
     }
-    char pf[256];
-    snprintf(pf, 255, "%s/%s", GDIR, UFILE);
+    char pf[PRINT_BUF_SIZE];
+    snprintf(pf, PRINT_BUF_SIZE-1, "%s/%s", GDIR, UFILE);
     int fd = open(pf, O_WRONLY);
     if (fd < 0)
     {
@@ -165,7 +165,7 @@ int Upgrade::UnpackFirmware(char *buf, char *md5)
 {
     if (chdir(GDIR) != 0)
     {
-        sprintf(buf, "Upgrade: Can't change path to '%s'", GDIR);
+        snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Can't change path to '%s'", GDIR);
         return -1;
     }
     int r = 0;
@@ -173,26 +173,26 @@ int Upgrade::UnpackFirmware(char *buf, char *md5)
     {
         if (Exec::Shell("tar -xf %s", UFILE) != 0)
         {
-            sprintf(buf, "Upgrade: Fail to unpack '%s'", UFILE);
+            snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Fail to unpack '%s'", UFILE);
             r = 4;
         }
         else
         {
             if (!Exec::FileExists(GFILE))
             {
-                sprintf(buf, "Upgrade: Can't find '%s'", GFILE);
+                snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Can't find '%s'", GFILE);
                 r = 6;
             }
             else if (!Exec::FileExists(GMD5FILE))
             {
-                sprintf(buf, "Upgrade: Can't find '%s'", GMD5FILE);
+                snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Can't find '%s'", GMD5FILE);
                 r = 7;
             }
             else
             {
                 if (Exec::Shell(TO_NULL("md5sum -c %s"), GMD5FILE) != 0)
                 {
-                    sprintf(buf, "Upgrade: MD5 NOT matched");
+                    snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: MD5 NOT matched");
                     r = 8;
                 }
                 else
@@ -201,11 +201,11 @@ int Upgrade::UnpackFirmware(char *buf, char *md5)
                     if (md5f > 0 && read(md5f, md5, 32) == 32)
                     {
                         md5[32] = '\0';
-                        sprintf(buf, "Upgrade: MD5=%s. Restart...",md5);
+                        snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: MD5=%s. Restart...",md5);
                     }
                     else
                     {
-                        sprintf(buf, "Upgrade: Can't get MD5 from '%s'", GMD5FILE);
+                        snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Can't get MD5 from '%s'", GMD5FILE);
                         r = 9;
                     }
                     close(md5f);
@@ -216,7 +216,7 @@ int Upgrade::UnpackFirmware(char *buf, char *md5)
     catch (std::exception &e)
     {
         r = -1;
-        snprintf(buf, PRINT_BUF_SIZE-1, e.what());
+        snprintf(buf, PRINT_BUF_SIZE-1, "%s", e.what());
     }
     chdir("..");
     return r;

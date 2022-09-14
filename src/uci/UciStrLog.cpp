@@ -50,7 +50,7 @@ void UciStrLog::LoadConfig()
         log.id = id;
         log.entryNo = entryNo;
         log.logTime = t;
-        p = CharCpy(log.str, p, STR_SIZE - 1);
+        p = CharCpy(log.str, p, STRLOG_SIZE - 1);
         lastLog = i;
     }
     Close();
@@ -75,7 +75,7 @@ int UciStrLog::GetLog(uint8_t *dst)
             *p++ = log.id;
             p = Cnvt::PutU16(log.entryNo, p);
             p = Time::PutLocalTime(log.logTime, p);
-            p = CharCpy(p, log.str, STR_SIZE - 1);
+            p = CharCpy(p, log.str, STRLOG_SIZE - 1);
             p++;
             *p = '\0';
             cnt++;
@@ -138,7 +138,7 @@ void UciStrLog::Push(uint8_t id, const char *fmt, ...)
     log.logTime = t;
     va_list args;
     va_start(args, fmt);
-    vsnprintf(log.str, STR_SIZE - 1, fmt, args);
+    vsnprintf(log.str, STRLOG_SIZE - 1, fmt, args);
     va_end(args);
 
     char option[16];

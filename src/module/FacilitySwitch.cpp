@@ -70,7 +70,7 @@ void FacilitySwitch::PeriodicRun()
         }
         if (lastState != fsState)
         {
-            snprintf(fsbuf, FacilitySwitch_BUF_SIZE-1, "FacilitySwitch:%s->%s", FS_STR[lastState], FS_STR[fsState]);
+            snprintf(fsbuf, FacilitySwitch_BUF_SIZE - 1, "FacilitySwitch:%s->%s", FS_STR[lastState], FS_STR[fsState]);
             isChanged = true;
             lastState = fsState;
         }
