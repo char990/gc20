@@ -1210,10 +1210,10 @@ Controller reply: JSON:
 
 Making file:
 
-1. Make a .tar by "tar -cf cfg.tar ./config/*", which means all files in path "config"
-2. Make MD5 by "md5sum cfg.tar > cfg.md5"
-3. Make a .tar by "tar -cf config.tar cfg.tar cfg.md5"
-4. Encode config.tar to base64
+1. Make a .tar by "tar -czf config.gz.tar ./config/*", which means all files in path "config"
+2. Make MD5 by "md5sum config.gz.tar > config.md5"
+3. Make a .tar by "tar -cf cfg_bak.tar config.gz.tar config.md5"
+4. Encode cfg_bak.tar to base64
 
 ### ImportConfig
 
@@ -1242,10 +1242,10 @@ Controller reply: JSON:
 
 Unpacking file:
 
-1. Make a backup of current config to "config.tar"
-2. Save file to "cfg_import"
-3. Unpack it("tar xf cfg_import") and there should be cfg.tar and cfg.md5
-4. Check MD5 and unpack cfg.tar("tar xf cfg.tar").File in "./config/" may be overwrited
+1. Make a backup of current config to "cfg_bak.tar"
+2. Save file to "cfg_imp.tar"
+3. Unpack it("tar -xf cfg_imp.tar") and there should be config.gz.tar and config.md5
+4. Check MD5 and unpack config.gz.tar("tar xzf config.gz.tar"). File in "./config/" may be overwrited
 
 ### BackupFirmware
 

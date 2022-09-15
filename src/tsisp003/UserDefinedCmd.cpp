@@ -347,20 +347,20 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             }*/
 
             v = Cnvt::GetU32(pd + 8);
-            if (v != usercfg.Baudrate())
+            if (v != usercfg.TmcBaudrate())
             {
-                evt.Push(0, "UserCfg.Baudrate changed: %u->%u . Restart to load new setting",
-                         usercfg.Baudrate(), v);
-                usercfg.Baudrate(v);
+                evt.Push(0, "UserCfg.TmcBaudrate changed: %u->%u . Restart to load new setting",
+                         usercfg.TmcBaudrate(), v);
+                usercfg.TmcBaudrate(v);
                 rr_flag |= RQST_RESTART;
             }
 
             v = Cnvt::GetU16(pd + 12);
-            if (v != usercfg.SvcPort())
+            if (v != usercfg.TmcTcpPort())
             {
-                evt.Push(0, "UserCfg.SvcPort changed: %u->%u. Restart to load new setting",
-                         usercfg.SvcPort(), v);
-                usercfg.SvcPort(v);
+                evt.Push(0, "UserCfg.TmcTcpPort changed: %u->%u. Restart to load new setting",
+                         usercfg.TmcTcpPort(), v);
+                usercfg.TmcTcpPort(v);
                 rr_flag |= RQST_RESTART;
             }
 
@@ -555,8 +555,8 @@ int TsiSp003App::FA21_RqstUserCfg(uint8_t *data, int len)
         *pt++ = usercfg.DeviceId();
         *pt++ = usercfg.BroadcastId();
         *pt++ = 1; // TMC Path
-        pt = Cnvt::PutU32(usercfg.Baudrate(), pt);
-        pt = Cnvt::PutU16(usercfg.SvcPort(), pt);
+        pt = Cnvt::PutU32(usercfg.TmcBaudrate(), pt);
+        pt = Cnvt::PutU16(usercfg.TmcTcpPort(), pt);
         pt = Cnvt::PutU16(usercfg.SessionTimeoutSec(), pt);
         pt = Cnvt::PutU16(usercfg.DisplayTimeoutMin(), pt);
         *pt++ = usercfg.OverTemp();

@@ -9,6 +9,7 @@ using namespace Utils;
 
 const char *annulus_on = "config/annulus_on.bmp";
 const char *annulus_off = "config/annulus_off.bmp";
+const char *annulus_flash = "config/annulus_flash.bmp";
 const char *lantern_on = "config/lantern_on.bmp";
 const char *lantern_off = "config/lantern_off.bmp";
 const char *lantern_flash = "config/lantern_flash.bmp";
@@ -65,67 +66,70 @@ void FrameImage::BmpMask(BMP *mask, BMP *base, int offsetx, int offsety)
 
 void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *frame)
 { // Both unmapped & mapped colour are allowed as f_colour
-    auto annulus = GetAnnulus(f_conspicuity);
-    if (annulus == 3)
-        annulus = 0;
-    ReadFromFile(annulus ? annulus_on : annulus_off);
+    switch (GetAnnulus(f_conspicuity))
+    {
+    case 1:
+        ReadFromFile(annulus_flash);
+        break;
+    case 2:
+        ReadFromFile(annulus_on);
+        break;
+    default:
+        ReadFromFile(annulus_off);
+        break;
+    }
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     auto coreOffsetX = ucihw.CoreOffsetX();
     auto coreOffsetY = ucihw.CoreOffsetY();
     auto coreRows = ucihw.PixelRows();
     auto coreColumns = ucihw.PixelColumns();
-    auto lantern = GetConspicuity(f_conspicuity);
-    if (lantern > 0)
+    BMP *lanterns[2][2];
+    switch (GetConspicuity(f_conspicuity))
     {
-        BMP *lanterns[2][2];
-        switch (lantern)
+    case 1:
+        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][1] = &bmpLanternOff;
+        lanterns[1][0] = &bmpLanternOn;
+        lanterns[1][1] = &bmpLanternOff;
+        break;
+    case 2:
+        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][1] = &bmpLanternOn;
+        lanterns[1][0] = &bmpLanternOff;
+        lanterns[1][1] = &bmpLanternOff;
+        break;
+    case 3:
+        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][1] = &bmpLanternOff;
+        lanterns[1][0] = &bmpLanternOff;
+        lanterns[1][1] = &bmpLanternOn;
+        break;
+    case 4:
+        lanterns[0][0] = &bmpLanternFlash;
+        lanterns[0][1] = &bmpLanternFlash;
+        lanterns[1][0] = &bmpLanternFlash;
+        lanterns[1][1] = &bmpLanternFlash;
+        break;
+    case 5:
+        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][1] = &bmpLanternOn;
+        lanterns[1][0] = &bmpLanternOn;
+        lanterns[1][1] = &bmpLanternOn;
+        break;
+    default:
+        lanterns[0][0] = &bmpLanternOff;
+        lanterns[0][1] = &bmpLanternOff;
+        lanterns[1][0] = &bmpLanternOff;
+        lanterns[1][1] = &bmpLanternOff;
+        break;
+    }
+    int X[2]{0, bmpSign.TellWidth() - bmpLanternOff.TellWidth()};
+    int Y[2]{0, bmpSign.TellHeight() - bmpLanternOff.TellHeight()};
+    for (int x = 0; x < 2; x++)
+    {
+        for (int y = 0; y < 2; y++)
         {
-        case 1:
-            lanterns[0][0] = &bmpLanternOn;
-            lanterns[0][1] = &bmpLanternOff;
-            lanterns[1][0] = &bmpLanternOn;
-            lanterns[1][1] = &bmpLanternOff;
-            break;
-        case 2:
-            lanterns[0][0] = &bmpLanternOn;
-            lanterns[0][1] = &bmpLanternOn;
-            lanterns[1][0] = &bmpLanternOff;
-            lanterns[1][1] = &bmpLanternOff;
-            break;
-        case 3:
-            lanterns[0][0] = &bmpLanternOn;
-            lanterns[0][1] = &bmpLanternOff;
-            lanterns[1][0] = &bmpLanternOff;
-            lanterns[1][1] = &bmpLanternOn;
-            break;
-        case 4:
-            lanterns[0][0] = &bmpLanternFlash;
-            lanterns[0][1] = &bmpLanternFlash;
-            lanterns[1][0] = &bmpLanternFlash;
-            lanterns[1][1] = &bmpLanternFlash;
-            break;
-        case 5:
-            lanterns[0][0] = &bmpLanternOn;
-            lanterns[0][1] = &bmpLanternOn;
-            lanterns[1][0] = &bmpLanternOn;
-            lanterns[1][1] = &bmpLanternOn;
-            break;
-        default:
-            lanterns[0][0] = &bmpLanternOff;
-            lanterns[0][1] = &bmpLanternOff;
-            lanterns[1][0] = &bmpLanternOff;
-            lanterns[1][1] = &bmpLanternOff;
-            break;
-        }
-        // TODO: set lantern
-        int X[2]{0, bmpSign.TellWidth() - bmpLanternOff.TellWidth()};
-        int Y[2]{0, bmpSign.TellHeight() - bmpLanternOff.TellHeight()};
-        for (int x = 0; x < 2; x++)
-        {
-            for (int y = 0; y < 2; y++)
-            {
-                BmpMask(lanterns[x][y], &bmpSign, X[x], Y[y]);
-            }
+            BmpMask(lanterns[x][y], &bmpSign, X[x], Y[y]);
         }
     }
     if (f_colour >= 0 && f_colour <= 9)
@@ -190,7 +194,7 @@ void FrameImage::FillCoreFromSlaveFrame(uint8_t *frame)
 {
     if (signId == 0)
     {
-        throw invalid_argument("FrameImage::FillCoreFromSlaveFrame signId IS 0");
+        throw invalid_argument("FrameImage::FillCoreFromSlaveFrame signId is 0");
     }
     if (frmId == 0)
     {

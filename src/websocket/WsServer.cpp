@@ -518,10 +518,10 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("broadcast_id", usercfg.BroadcastId());
     reply.emplace("session_timeout", usercfg.SessionTimeoutSec());
     reply.emplace("display_timeout", usercfg.DisplayTimeoutMin());
-    reply.emplace("tmc_com_port", COM_NAME[usercfg.ComPort()]);
-    reply.emplace("baudrate", usercfg.Baudrate());
+    reply.emplace("tmc_com_port", COM_NAME[usercfg.TmcComPort()]);
+    reply.emplace("baudrate", usercfg.TmcBaudrate());
     reply.emplace("multiled_fault", usercfg.MultiLedFaultThreshold());
-    reply.emplace("tmc_tcp_port", usercfg.SvcPort());
+    reply.emplace("tmc_tcp_port", usercfg.TmcTcpPort());
     reply.emplace("over_temp", usercfg.OverTemp());
     reply.emplace("locked_frame", usercfg.LockedFrm());
     reply.emplace("locked_msg", usercfg.LockedMsg());
@@ -556,31 +556,17 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
 
     auto seed = GetIntFromStr(msg, "seed", 0, 0xFF);
     auto password = GetIntFromStr(msg, "password", 0, 0xFFFF);
-
-    int tmc_com_port = -1;
-    auto tmc_com_port_str = GetStr(msg, "tmc_com_port");
-    for (int i = 0; i < COMPORT_SIZE; i++)
-    {
-        if (strcasecmp(tmc_com_port_str.c_str(), COM_NAME[i]) == 0)
-        {
-            tmc_com_port = i;
-            break;
-        }
-    }
+    auto tmc_com_port = Pick::PickStr(GetStr(msg, "tmc_com_port").c_str(), COM_NAME, COMPORT_SIZE, true);
     if (tmc_com_port == -1)
     {
         throw invalid_argument("'tmc_com_port' NOT valid");
     }
-    int city = -1;
-    auto city_str = GetStr(msg, "city");
+    const char *CITY[NUMBER_OF_TZ];
     for (int i = 0; i < NUMBER_OF_TZ; i++)
     {
-        if (strcasecmp(city_str.c_str(), Tz_AU::tz_au[i].city) == 0)
-        {
-            city = i;
-            break;
-        }
+        CITY[i] = Tz_AU::tz_au[i].city;
     }
+    int city = Pick::PickStr(GetStr(msg, "city").c_str(), CITY, NUMBER_OF_TZ, true);
     if (city == -1)
     {
         throw invalid_argument("'city' NOT valid");
@@ -620,19 +606,27 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         usercfg.BroadcastId(broadcast_id);
     }
 
-    if (baudrate != usercfg.Baudrate())
+    if (tmc_com_port != usercfg.TmcComPort())
     {
-        evt.Push(0, "User.Baudrate changed: %u->%u . Restart to load new setting",
-                 usercfg.Baudrate(), baudrate);
-        usercfg.Baudrate(baudrate);
+        evt.Push(0, "User.TmcComPort changed: %s->%s . Restart to load new setting",
+                 COM_NAME[usercfg.TmcComPort()], COM_NAME[tmc_com_port]);
+        usercfg.TmcComPort(tmc_com_port);
         rr_flag |= RQST_RESTART;
     }
 
-    if (tmc_tcp_port != usercfg.SvcPort())
+    if (baudrate != usercfg.TmcBaudrate())
     {
-        evt.Push(0, "User.SvcPort changed: %u->%u. Restart to load new setting",
-                 usercfg.SvcPort(), tmc_tcp_port);
-        usercfg.SvcPort(tmc_tcp_port);
+        evt.Push(0, "User.TmcBaudrate changed: %u->%u . Restart to load new setting",
+                 usercfg.TmcBaudrate(), baudrate);
+        usercfg.TmcBaudrate(baudrate);
+        rr_flag |= RQST_RESTART;
+    }
+
+    if (tmc_tcp_port != usercfg.TmcTcpPort())
+    {
+        evt.Push(0, "User.TmcTcpPort changed: %u->%u. Restart to load new setting",
+                 usercfg.TmcTcpPort(), tmc_tcp_port);
+        usercfg.TmcTcpPort(tmc_tcp_port);
         rr_flag |= RQST_RESTART;
     }
 
@@ -1573,32 +1567,65 @@ void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann
     ctrller->RR_flag(RQST_REBOOT);
 }
 
-const char *CONFIG_TAR = "config.tar";
-const char *CFG_TAR = "cfg.tar";
-const char *CFG_MD5 = "cfg.md5";
+const char *CFG_BACKUP = "cfg_bak.tar";
+const char *CONFIG_GZ_TAR = "config.gz.tar";
+const char *CONFIG_MD5 = "config.md5";
 const char *CFG_IMPORT = "cfg_imp.tar";
 
 void WsServer::BackupConfig()
 {
-    int r = 1;
-    Exec::Shell(TO_NULL("rm %s %s %s"), CONFIG_TAR, CFG_TAR, CFG_MD5);
-    Exec::Shell("tar -cf %s config/", CFG_TAR);
-    if (Exec::FileExists(CFG_TAR))
+    char buf[PRINT_BUF_SIZE];
+    int len = 0;
+    auto CanNotRemove = [&buf](const char *file)
     {
-        Exec::Shell("md5sum %s > %s", CFG_TAR, CFG_MD5);
-        if (Exec::FileExists(CFG_MD5))
+        return snprintf(buf, PRINT_BUF_SIZE - 1, "Can NOT remove old file: %s", file);
+    };
+    Exec::Shell(TO_NULL("rm %s %s %s"), CFG_BACKUP, CONFIG_GZ_TAR, CONFIG_MD5);
+    if (Exec::FileExists(CFG_BACKUP) == true)
+    {
+        len = CanNotRemove(CFG_BACKUP);
+    }
+    else if (Exec::FileExists(CONFIG_GZ_TAR) == true)
+    {
+        len = CanNotRemove(CONFIG_GZ_TAR);
+    }
+    else if (Exec::FileExists(CONFIG_MD5) == true)
+    {
+        len = CanNotRemove(CONFIG_MD5);
+    }
+    else
+    {
+        auto CanNotCreat = [&buf](const char *file)
         {
-            Exec::Shell("tar -cf %s %s %s", CONFIG_TAR, CFG_TAR, CFG_MD5);
-            if (Exec::FileExists(CONFIG_TAR))
+            return snprintf(buf, PRINT_BUF_SIZE - 1, "Can NOT creat file: %s", file);
+        };
+        Exec::Shell("tar -czf %s config/", CONFIG_GZ_TAR);
+        if (Exec::FileExists(CONFIG_GZ_TAR) == false)
+        {
+            len = CanNotCreat(CONFIG_GZ_TAR);
+        }
+        else
+        {
+            Exec::Shell("md5sum %s > %s", CONFIG_GZ_TAR, CONFIG_MD5);
+            if (Exec::FileExists(CONFIG_MD5) == false)
             {
-                r = 0;
+                len = CanNotCreat(CONFIG_MD5);
+            }
+            else
+            {
+                Exec::Shell("tar -cf %s %s %s", CFG_BACKUP, CONFIG_GZ_TAR, CONFIG_MD5);
+                if (Exec::FileExists(CFG_BACKUP) == false)
+                {
+                    len = CanNotCreat(CFG_BACKUP);
+                }
             }
         }
     }
-    Exec::Shell(TO_NULL("rm %s %s"), CFG_TAR, CFG_MD5);
-    if (r)
+
+    Exec::Shell(TO_NULL("rm %s %s"), CONFIG_GZ_TAR, CONFIG_MD5);
+    if (len)
     {
-        throw runtime_error("Creating config file package failed");
+        throw runtime_error(buf);
     }
 }
 
@@ -1606,7 +1633,7 @@ void WsServer::CMD_ExportConfig(struct mg_connection *c, nlohmann::json &msg, nl
 {
     vector<char> vc;
     BackupConfig();
-    if (Cnvt::File2Base64(CONFIG_TAR, vc) == 0)
+    if (Cnvt::File2Base64(CFG_BACKUP, vc) == 0)
     {
         reply.emplace("result", "OK");
         reply.emplace("file", vc.data());
@@ -1635,18 +1662,18 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
     {
         len = sprintf(buf, "Unpacking %s failed", CFG_IMPORT);
     }
-    else if (Exec::Shell(TO_NULL("md5sum -c %s"), CFG_MD5) != 0)
+    else if (Exec::Shell(TO_NULL("md5sum -c %s"), CONFIG_MD5) != 0)
     {
         len = sprintf(buf, "MD5 NOT match");
     }
-    else if (Exec::Shell("tar -xf %s", CFG_TAR) != 0)
+    else if (Exec::Shell("tar -xzf %s", CONFIG_GZ_TAR) != 0)
     {
-        len = sprintf(buf, "Unpacking %s failed", CFG_TAR);
+        len = sprintf(buf, "Unpacking %s failed", CONFIG_GZ_TAR);
     }
-    Exec::Shell(TO_NULL("rm %s %s"), CFG_TAR, CFG_MD5);
+    Exec::Shell(TO_NULL("rm %s %s"), CONFIG_GZ_TAR, CONFIG_MD5);
     if (len > 0)
     {
-        throw runtime_error(StrFn::PrintfStr("Unpacking %s failed", buf));
+        throw runtime_error(buf);
     }
     DbHelper::Instance().GetUciEvent().Push(0, "Import configuration");
     reply.emplace("result", "Controller will restart after 5 seconds");
@@ -1676,7 +1703,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
         throw invalid_argument("Invalid 'file'");
     }
     char gufile[STRLOG_SIZE];
-    snprintf(gufile, STRLOG_SIZE-1, "%s/%s", GDIR, UFILE);
+    snprintf(gufile, STRLOG_SIZE - 1, "%s/%s", GDIR, UFILE);
     if (Cnvt::Base64ToFile(file, gufile) < 0)
     {
         throw runtime_error(StrFn::PrintfStr("Saving %s failed", gufile));

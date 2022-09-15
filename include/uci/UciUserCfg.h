@@ -48,17 +48,17 @@ public:
     uint8_t LockedFrm() { return lockedFrm; };
     uint8_t LockedMsg() { return lockedMsg; };
     uint8_t LastFrmTime() { return lastFrmTime; };
-    uint8_t ComPort() { return comPort; };
     uint8_t CityId() { return cityId; };
     const char *City();
     Tz_AU *tz_AU{nullptr};
     uint16_t PasswordOffset() { return passwordOffset; };
     uint16_t SessionTimeoutSec() { return sessionTimeoutSec; }; // seconds
     uint16_t DisplayTimeoutMin() { return displayTimeoutMin; }; // minutes
-    uint16_t SvcPort() { return svcPort; };
-    uint16_t WebPort() { return webPort; };
+    uint16_t TmcTcpPort() { return tmcTcpPort; };
+    uint16_t WsPort() { return wsPort; };
+    uint8_t TmcComPort() { return tmcComPort; };
+    int TmcBaudrate() { return tmcBaudrate; };
     uint16_t MultiLedFaultThreshold() { return multiLedFaultThreshold; };
-    int Baudrate() { return baudrate; };
     uint16_t *Luminance() { return luminance; };
     uint8_t GetLuxLevel(int lux); // level:1-16
     uint8_t *DawnDusk() { return dawnDusk; };
@@ -89,15 +89,15 @@ public:
     void LockedFrm(uint8_t);
     void LockedMsg(uint8_t);
     void LastFrmTime(uint8_t);
-    void ComPort(uint8_t);
     void CityId(uint8_t);
     void PasswordOffset(uint16_t);
     void SessionTimeoutSec(uint16_t); // seconds
     void DisplayTimeoutMin(uint16_t); // minutes
-    void SvcPort(uint16_t);
-    void WebPort(uint16_t);
+    void TmcTcpPort(uint16_t);
+    void WsPort(uint16_t);
+    void TmcComPort(uint8_t);
+    void TmcBaudrate(int);
     void MultiLedFaultThreshold(uint16_t);
-    void Baudrate(int);
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
     void ExtSwCfgX(int i, ExtSw &cfg);
@@ -122,7 +122,7 @@ private:
         // defaultColour,
         lockedFrm,
         lockedMsg,
-        comPort,
+        tmcComPort,
         cityId,
         lastFrmTime,
         nightDimmingLevel,
@@ -136,11 +136,11 @@ private:
         passwordOffset,
         sessionTimeoutSec,
         displayTimeoutMin,
-        svcPort,
-        webPort,
+        tmcTcpPort,
+        wsPort,
         multiLedFaultThreshold;
 
-    int baudrate;
+    int tmcBaudrate;
 
     char shakehandsPassword[11]{};
     uint16_t luminance[16];
@@ -152,9 +152,10 @@ private:
     const char *_BroadcastId = "BroadcastId";
     const char *_SeedOffset = "SeedOffset";
     const char *_PasswordOffset = "PasswordOffset";
-    const char *_SvcPort = "SvcPort";
-    const char *_WebPort = "WebPort";
-    const char *_Baudrate = "Baudrate";
+    const char *_TmcTcpPort = "TmcTcpPort";
+    const char *_WsPort = "WsPort";
+    const char *_TmcComPort = "TmcComPort";
+    const char *_TmcBaudrate = "TmcBaudrate";
 
     const char *_OverTemp = "OverTemp";
     const char *_Fan1OnTemp = "Fan1OnTemp";
@@ -176,7 +177,6 @@ private:
     const char *_ShakehandsPassword = "ShakehandsPassword";
     const char *_Luminance = "Luminance";
     const char *_DawnDusk = "DawnDusk";
-    const char *_ComPort = "ComPort";
     const char *_ExtSw = "ExtSw";
 
     const char *_LuxDayMin = "LuxDayMin";

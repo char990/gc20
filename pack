@@ -2,6 +2,6 @@
 echo Packing...
 cd build/apps/
 md5sum goblin > goblin.md5
-tar -cf goblin.tar goblin goblin.md5
+tar -czf goblin.gz.tar goblin goblin.md5
 cd ../../
 echo Done

@@ -69,16 +69,16 @@ void UciUserCfg::LoadConfig()
     passwordOffset = GetInt(uciSec, _PasswordOffset, 0, 0xFFFF);
     displayTimeoutMin = GetInt(uciSec, _DisplayTimeout, 0, 10080);
     sessionTimeoutSec = GetInt(uciSec, _SessionTimeout, 60, 0xFFFF);
-    svcPort = GetInt(uciSec, _SvcPort, 1024, 0xFFFF);
-    webPort = GetInt(uciSec, _WebPort, 1024, 0xFFFF);
-    if (svcPort == webPort)
+    tmcTcpPort = GetInt(uciSec, _TmcTcpPort, 1024, 0xFFFF);
+    wsPort = GetInt(uciSec, _WsPort, 1024, 0xFFFF);
+    if (tmcTcpPort == wsPort)
     {
         throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
-                                                PACKAGE, SECTION, _SvcPort, svcPort, _WebPort, webPort));
+                                                PACKAGE, SECTION, _TmcTcpPort, tmcTcpPort, _WsPort, wsPort));
     }
     multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
 
-    baudrate = GetInt(uciSec, _Baudrate, ALLOWEDBPS, STANDARDBPS_SIZE);
+    tmcBaudrate = GetInt(uciSec, _TmcBaudrate, ALLOWEDBPS, STANDARDBPS_SIZE);
 
     str = GetStr(uciSec, _ShakehandsPassword);
     if (str == NULL)
@@ -186,17 +186,17 @@ void UciUserCfg::LoadConfig()
 
     int numberOfSigns = ucihw.NumberOfSigns();
 
-    comPort = GetIndexFromStrz(uciSec, _ComPort, COM_NAME, COMPORT_SIZE);
+    tmcComPort = GetIndexFromStrz(uciSec, _TmcComPort, COM_NAME, COMPORT_SIZE);
     for (uint8_t i = 1; i <= numberOfSigns; i++)
     {
-        if (comPort == ucihw.GetSignCfg(i).com_ip)
+        if (tmcComPort == ucihw.GetSignCfg(i).com_ip)
         {
-            ThrowError(_ComPort, "Assigned to UciHardware.Sign");
+            ThrowError(_TmcComPort, "Assigned to UciHardware.Sign");
         }
     }
-    if (comPort == ucihw.MonitoringPort())
+    if (tmcComPort == ucihw.MonitoringPort())
     {
-        ThrowError(_ComPort, "Assigned to UciHardware.MonitoringPort");
+        ThrowError(_TmcComPort, "Assigned to UciHardware.MonitoringPort");
     }
 
     Close();
@@ -223,9 +223,9 @@ void UciUserCfg::Dump()
     PrintOption_d(_BroadcastId, BroadcastId());
     PrintOption_2x(_SeedOffset, SeedOffset());
     PrintOption_4x(_PasswordOffset, PasswordOffset());
-    PrintOption_d(_SvcPort, SvcPort());
-    PrintOption_d(_WebPort, WebPort());
-    PrintOption_d(_Baudrate, Baudrate());
+    PrintOption_d(_TmcTcpPort, TmcTcpPort());
+    PrintOption_d(_WsPort, WsPort());
+    PrintOption_d(_TmcBaudrate, TmcBaudrate());
     PrintOption_d(_OverTemp, OverTemp());
     PrintOption_d(_Fan1OnTemp, Fan1OnTemp());
     PrintOption_d(_Fan2OnTemp, Fan2OnTemp());
@@ -240,7 +240,7 @@ void UciUserCfg::Dump()
     PrintOption_d(_LastFrmTime, LastFrmTime());
 
     PrintOption_str(_City, City());
-    PrintOption_str(_ComPort, COM_NAME[ComPort()]);
+    PrintOption_str(_TmcComPort, COM_NAME[TmcComPort()]);
 
     char buf[PRINT_BUF_SIZE];
 
@@ -433,12 +433,12 @@ void UciUserCfg::LastFrmTime(uint8_t v)
     }
 }
 
-void UciUserCfg::ComPort(uint8_t v)
+void UciUserCfg::TmcComPort(uint8_t v)
 {
-    if (comPort != v)
+    if (tmcComPort != v)
     {
-        comPort = v;
-        OpenSaveClose(SECTION, _ComPort, COM_NAME[comPort]);
+        tmcComPort = v;
+        OpenSaveClose(SECTION, _TmcComPort, COM_NAME[tmcComPort]);
     }
 }
 
@@ -480,30 +480,30 @@ void UciUserCfg::DisplayTimeoutMin(uint16_t v)
     }
 }
 
-void UciUserCfg::SvcPort(uint16_t v)
+void UciUserCfg::TmcTcpPort(uint16_t v)
 {
-    if (svcPort != v)
+    if (tmcTcpPort != v)
     {
-        svcPort = v;
-        OpenSaveClose(SECTION, _SvcPort, v);
+        tmcTcpPort = v;
+        OpenSaveClose(SECTION, _TmcTcpPort, v);
     }
 }
 
-void UciUserCfg::WebPort(uint16_t v)
+void UciUserCfg::WsPort(uint16_t v)
 {
-    if (webPort != v)
+    if (wsPort != v)
     {
-        webPort = v;
-        OpenSaveClose(SECTION, _WebPort, v);
+        wsPort = v;
+        OpenSaveClose(SECTION, _WsPort, v);
     }
 }
 
-void UciUserCfg::Baudrate(int v)
+void UciUserCfg::TmcBaudrate(int v)
 {
-    if (baudrate != v)
+    if (tmcBaudrate != v)
     {
-        baudrate = v;
-        OpenSaveClose(SECTION, _Baudrate, v);
+        tmcBaudrate = v;
+        OpenSaveClose(SECTION, _TmcBaudrate, v);
     }
 }
 

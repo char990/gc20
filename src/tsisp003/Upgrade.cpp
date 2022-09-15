@@ -8,7 +8,7 @@
 const char *GDIR = "goblin_temp";
 const char *GFILE = "goblin";
 const char *GMD5FILE = "goblin.md5";
-const char *UFILE = "goblin.tar";
+const char *UFILE = "goblin.gz.tar";
 
 using namespace Utils;
 
@@ -158,7 +158,7 @@ void Upgrade::RemoveAllTempFiles()
 void Upgrade::BackupFirmware()
 {
     Exec::Shell("md5sum %s > %s", GFILE, GMD5FILE);
-    Exec::Shell("tar -cf %s %s %s", UFILE, GFILE, GMD5FILE);
+    Exec::Shell("tar -czf %s %s %s", UFILE, GFILE, GMD5FILE);
 }
 
 int Upgrade::UnpackFirmware(char *buf, char *md5)
@@ -171,7 +171,7 @@ int Upgrade::UnpackFirmware(char *buf, char *md5)
     int r = 0;
     try
     {
-        if (Exec::Shell("tar -xf %s", UFILE) != 0)
+        if (Exec::Shell("tar -xzf %s", UFILE) != 0)
         {
             snprintf(buf, PRINT_BUF_SIZE-1, "Upgrade: Fail to unpack '%s'", UFILE);
             r = 4;

@@ -243,8 +243,8 @@ int main(int argc, char *argv[])
             oprSp[i] = nullptr;
         }
         // TSI-SP-003 RS232/485 monitor
-        IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.ComPort()]);
-        oprSp[usercfg.ComPort()] = new OprSp{usercfg.ComPort(), usercfg.Baudrate(), uiLayer};
+        IUpperLayer *uiLayer = new TMC_LayerManager(COM_NAME[usercfg.TmcComPort()]);
+        oprSp[usercfg.TmcComPort()] = new OprSp{usercfg.TmcComPort(), usercfg.TmcBaudrate(), uiLayer};
         if (ucihw.MonitoringPort() >= 0)
         {
             LayerNTS::monitor = oprSp[ucihw.MonitoringPort()] =
@@ -271,9 +271,9 @@ int main(int argc, char *argv[])
         }
 
         // Web
-        auto wsServer = new WsServer{usercfg.WebPort(), timerEvt100ms};
+        auto wsServer = new WsServer{usercfg.WsPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
-        auto tcpServerNts = new TcpServer{usercfg.SvcPort(), TcpSvrType::TMC, ucihw.TcpServerTMC(), tmrEvt1Sec};
+        auto tcpServerNts = new TcpServer{usercfg.TmcTcpPort(), TcpSvrType::TMC, ucihw.TcpServerTMC(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
         Ldebug(">>> DONE >>>");
