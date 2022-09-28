@@ -130,7 +130,7 @@ size_t WsServer::WebSocketSend(struct mg_connection *c, json &reply)
     return s.length();
 }
 
-int WsServer::GetInt(json &msg, const char *str, int min, int max)
+int WsServer::GetUint(json &msg, const char *str, unsigned int min, unsigned int max)
 {
     try
     {
@@ -147,29 +147,41 @@ int WsServer::GetInt(json &msg, const char *str, int min, int max)
     }
 }
 
-int WsServer::GetIntFromStr(json &msg, const char *str, int min, int max)
+int WsServer::GetUintFromStr(json &msg, const char *str, unsigned int min, unsigned int max, bool chknull)
 {
     try
     {
-        auto x = stoi(msg[str].get<string>(), nullptr, 0);
-        if (x < min || x > max)
+        auto s = msg[str].get<string>();
+        if (s.length() == 0)
         {
             throw false;
+        }
+        auto x = stoi(s, nullptr, 0);
+        if (x < min || x > max)
+        {
+            throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
         }
         return x;
     }
     catch (...)
     {
-        throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+        if (chknull)
+        {
+            throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+        }
+        else
+        {
+            return -1;
+        }
     }
 }
 
-string WsServer::GetStr(json &msg, const char *str)
+string WsServer::GetStr(json &msg, const char *str, bool chknull)
 {
     try
     {
         auto x = msg[str].get<string>();
-        if (x.empty())
+        if (chknull && x.empty())
         {
             throw false;
         }
@@ -202,15 +214,18 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ControlDevice),
     CMD_ITEM(SystemReset),
     CMD_ITEM(UpdateTime),
+    CMD_ITEM(GetFrameCrc),
     CMD_ITEM(GetFrameSetting),
     CMD_ITEM(GetStoredFrame),
     CMD_ITEM(SetFrame),
     CMD_ITEM(DisplayFrame),
+    CMD_ITEM(GetMessageCrc),
     CMD_ITEM(GetStoredMessage),
     CMD_ITEM(SetMessage),
     CMD_ITEM(DisplayMessage),
+    CMD_ITEM(GetPlanCrc),
     CMD_ITEM(GetStoredPlan),
-    CMD_ITEM(SetFrame),
+    CMD_ITEM(SetPlan),
     CMD_ITEM(RetrieveFaultLog),
     CMD_ITEM(RetrieveAlarmLog),
     CMD_ITEM(RetrieveEventLog),
@@ -219,9 +234,6 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(ResetEventLog),
     CMD_ITEM(SignTest),
     CMD_ITEM(DisplayAtomic),
-    CMD_ITEM(GetFrameCrc),
-    CMD_ITEM(GetMessageCrc),
-    CMD_ITEM(GetPlanCrc),
     CMD_ITEM(Reboot),
     CMD_ITEM(ExportConfig),
     CMD_ITEM(ImportConfig),
@@ -394,7 +406,7 @@ void WsServer::CMD_SetGroupConfig(struct mg_connection *c, json &msg, json &repl
     vsign_gid.assign(sc, 0);
     for (int i = 0; i < gc; i++)
     {
-        auto gid = GetInt(vgroups[i], "group_id", 1, gc);
+        auto gid = GetUint(vgroups[i], "group_id", 1, gc);
         if (vgid[gid - 1] > 0)
         {
             throw invalid_argument(StrFn::PrintfStr("Repeated group id [%d]", gid));
@@ -538,24 +550,24 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
 void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply)
 {
     unsigned char rr_flag = 0;
-    auto device_id = GetInt(msg, "device_id", 0, 255);
-    auto broadcast_id = GetInt(msg, "broadcast_id", 0, 255);
+    auto device_id = GetUint(msg, "device_id", 0, 255);
+    auto broadcast_id = GetUint(msg, "broadcast_id", 0, 255);
     if (device_id == broadcast_id)
     {
         throw invalid_argument("device_id should not equal to broadcast_id");
     }
-    auto session_timeout = GetInt(msg, "session_timeout", 0, 65535);
-    auto display_timeout = GetInt(msg, "display_timeout", 0, 65535);
-    auto baudrate = GetInt(msg, "baudrate", 19200, 115200);
-    auto multiled_fault = GetInt(msg, "multiled_fault", 0, 255);
-    auto tmc_tcp_port = GetInt(msg, "tmc_tcp_port", 1024, 65535);
-    auto over_temp = GetInt(msg, "over_temp", 0, 99);
-    auto locked_frame = GetInt(msg, "locked_frame", 0, 255);
-    auto locked_msg = GetInt(msg, "locked_msg", 0, 255);
-    auto last_frame_time = GetInt(msg, "last_frame_time", 0, 255);
+    auto session_timeout = GetUint(msg, "session_timeout", 0, 65535);
+    auto display_timeout = GetUint(msg, "display_timeout", 0, 65535);
+    auto baudrate = GetUint(msg, "baudrate", 19200, 115200);
+    auto multiled_fault = GetUint(msg, "multiled_fault", 0, 255);
+    auto tmc_tcp_port = GetUint(msg, "tmc_tcp_port", 1024, 65535);
+    auto over_temp = GetUint(msg, "over_temp", 0, 99);
+    auto locked_frame = GetUint(msg, "locked_frame", 0, 255);
+    auto locked_msg = GetUint(msg, "locked_msg", 0, 255);
+    auto last_frame_time = GetUint(msg, "last_frame_time", 0, 255);
 
-    auto seed = GetIntFromStr(msg, "seed", 0, 0xFF);
-    auto password = GetIntFromStr(msg, "password", 0, 0xFFFF);
+    auto seed = GetUintFromStr(msg, "seed", 0, 0xFF);
+    auto password = GetUintFromStr(msg, "password", 0, 0xFFFF);
     auto tmc_com_port = Pick::PickStr(GetStr(msg, "tmc_com_port").c_str(), COM_NAME, COMPORT_SIZE, true);
     if (tmc_com_port == -1)
     {
@@ -572,12 +584,12 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         throw invalid_argument("'city' NOT valid");
     }
 
-    auto night_level = GetInt(msg, "night_level", 1, 8);
-    auto dawn_dusk_level = GetInt(msg, "dawn_dusk_level", night_level + 1, 15);
-    auto day_level = GetInt(msg, "day_level", dawn_dusk_level + 1, 16);
-    auto night_max_lux = GetInt(msg, "night_max_lux", 1, 9999);
-    auto day_min_lux = GetInt(msg, "day_min_lux", night_max_lux + 1, 65535);
-    auto min_lux_18_hours = GetInt(msg, "min_lux_18_hours", day_min_lux + 1, 65535);
+    auto night_level = GetUint(msg, "night_level", 1, 8);
+    auto dawn_dusk_level = GetUint(msg, "dawn_dusk_level", night_level + 1, 15);
+    auto day_level = GetUint(msg, "day_level", dawn_dusk_level + 1, 16);
+    auto night_max_lux = GetUint(msg, "night_max_lux", 1, 9999);
+    auto day_min_lux = GetUint(msg, "day_min_lux", night_max_lux + 1, 65535);
+    auto min_lux_18_hours = GetUint(msg, "min_lux_18_hours", day_min_lux + 1, 65535);
 
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     auto &evt = DbHelper::Instance().GetUciEvent();
@@ -798,7 +810,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
     json ntpjs = msg["NTP"].get<json>();
     NtpServer ntp;
     ntp.server = GetStr(msg, net._Server);
-    ntp.port = GetInt(ntpjs, net._Port, 1, 65535);
+    ntp.port = GetUint(ntpjs, net._Port, 1, 65535);
 
     if (interfaces[0].gateway.Isvalid() && interfaces[1].gateway.Isvalid())
     {
@@ -828,9 +840,10 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
 void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[5];
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignSetDimmingLevel);
     cmd[1] = 1;
-    cmd[2] = GetInt(msg, "group_id", 0, 255);
-    cmd[4] = GetInt(msg, "setting", 0, 16);
+    cmd[2] = GetUint(msg, "group_id", 0, 255);
+    cmd[4] = GetUint(msg, "setting", 0, 16);
     cmd[3] = cmd[4] == 0 ? 0 : 1;
 
     char buf[64];
@@ -840,9 +853,10 @@ void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &repl
 void WsServer::CMD_ControlPower(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[4];
+    cmd[0] = static_cast<uint8_t>(MI::CODE::PowerOnOff);
     cmd[1] = 1;
-    cmd[2] = GetInt(msg, "group_id", 0, 255);
-    cmd[3] = GetInt(msg, "setting", 0, 1);
+    cmd[2] = GetUint(msg, "group_id", 0, 255);
+    cmd[3] = GetUint(msg, "setting", 0, 1);
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdPowerOnOff(cmd, buf)) ? "OK" : buf);
 }
@@ -851,8 +865,8 @@ void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json &reply
 {
     uint8_t cmd[4];
     cmd[1] = 1;
-    cmd[2] = GetInt(msg, "group_id", 0, 255);
-    cmd[3] = GetInt(msg, "setting", 0, 1);
+    cmd[2] = GetUint(msg, "group_id", 0, 255);
+    cmd[3] = GetUint(msg, "setting", 0, 1);
     char buf[64];
     reply.emplace("result", (APP::ERROR::AppNoError == ctrller->CmdDisableEnableDevice(cmd, buf)) ? "OK" : buf);
 }
@@ -860,8 +874,9 @@ void WsServer::CMD_ControlDevice(struct mg_connection *c, json &msg, json &reply
 void WsServer::CMD_SystemReset(struct mg_connection *c, json &msg, json &reply)
 {
     uint8_t cmd[3];
-    cmd[1] = GetInt(msg, "group_id", 0, ctrller->GroupCnt());
-    cmd[2] = GetInt(msg, "level", 0, 255);
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SystemReset);
+    cmd[1] = GetUint(msg, "group_id", 0, ctrller->GroupCnt());
+    cmd[2] = GetUint(msg, "level", 0, 255);
     char buf[64];
     reply.emplace("result", (ctrller->CmdSystemReset(cmd, buf) == APP::ERROR::AppNoError) ? "OK" : buf);
 }
@@ -985,7 +1000,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
 
 void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &reply)
 {
-    auto id = GetInt(msg, "id", 1, 255);
+    auto id = GetUint(msg, "id", 1, 255);
     reply.emplace("id", id);
     auto frm = DbHelper::Instance().GetUciFrm().GetFrm(id);
     if (frm == nullptr)
@@ -1039,8 +1054,8 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
 {
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     string str;
-    auto id = GetInt(msg, "id", 1, 255);
-    auto rev = GetInt(msg, "revision", 1, 255);
+    auto id = GetUint(msg, "id", 1, 255);
+    auto rev = GetUint(msg, "revision", 0, 255);
     const char *FRM_TYPE[] = {"Text Frame", "Graphics Frame", "HR Graphics Frame"};
     str = msg["type"].get<std::string>();
     int ftype = Pick::PickStr(str.c_str(), FRM_TYPE, countof(FRM_TYPE), true);
@@ -1077,7 +1092,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         throw("CMD_SetFrame: annulus error");
     }
     conspicuity = (conspicuity) | (annulus << 3);
-    vector<uint8_t> frm;
+    vector<uint8_t> frm; // will be resized by frmType
     if (frmType == MI::CODE::SignSetTextFrame)
     {
         str = msg["text"].get<std::string>();
@@ -1091,7 +1106,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         frm[0] = static_cast<uint8_t>(frmType);
         frm[1] = id;
         frm[2] = rev;
-        frm[3] = GetInt(msg, "font", 0, 255);
+        frm[3] = GetUint(msg, "font", 0, 255);
         frm[4] = colour;
         frm[5] = conspicuity;
         frm[6] = str.length();
@@ -1204,8 +1219,9 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
 void WsServer::CMD_DisplayFrame(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
     uint8_t cmd[3];
-    cmd[1] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
-    cmd[2] = GetInt(msg, "frame_id", 0, 255);
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignDisplayFrame);
+    cmd[1] = GetUint(msg, "group_id", 1, ctrller->GroupCnt());
+    cmd[2] = GetUint(msg, "frame_id", 0, 255);
     auto r = ctrller->CmdDispFrm(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
@@ -1223,11 +1239,19 @@ void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &re
             message.emplace("id", id);
             message.emplace("revision", m->msgRev);
             message.emplace("transition", m->transTime);
-            vector<json> entries(m->entries);
-            for (int i = 0; i < m->entries; i++)
+            vector<json> entries(6);
+            for (int i = 0; i < 6; i++)
             {
-                entries[i].emplace("id", m->msgEntries[i].frmId);
-                entries[i].emplace("ontime", m->msgEntries[i].onTime);
+                if (m->msgEntries[i].frmId == 0)
+                {
+                    entries[i].emplace("id", "");
+                    entries[i].emplace("ontime", "");
+                }
+                else
+                {
+                    entries[i].emplace("id", std::to_string(m->msgEntries[i].frmId));
+                    entries[i].emplace("ontime", std::to_string(m->msgEntries[i].onTime));
+                }
             }
             message.emplace("entries", entries);
             messages.push_back(message);
@@ -1239,27 +1263,38 @@ void WsServer::CMD_GetStoredMessage(struct mg_connection *c, json &msg, json &re
 void WsServer::CMD_SetMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
     auto entries = GetVector<json>(msg, "entries");
-    vector<uint8_t> cmd(entries.size() * 2 + 4 + (entries.size() == 6 ? 0 : 1));
-    cmd.back() = 0;
-    cmd[1] = GetInt(msg, "id", 1, 255);
-    cmd[2] = GetInt(msg, "revision", 0, 255);
-    cmd[3] = GetInt(msg, "transition", 0, 255);
-    uint8_t *p = cmd.data() + 4;
-    for (int i = 0; i < entries.size(); i++)
+    if (entries.size() != 6)
     {
-        *p++ = GetInt(entries[i], "id", 1, 255);
-        *p++ = GetInt(entries[i], "ontime", 0, 255);
+        throw invalid_argument("Invalid 'entries'");
+    }
+    vector<uint8_t> cmd(6 * 2 + 4, 0);
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignSetMessage);
+    cmd[1] = GetUint(msg, "id", 1, 255);
+    cmd[2] = GetUint(msg, "revision", 0, 255);
+    cmd[3] = GetUint(msg, "transition", 0, 255);
+    uint8_t *p = cmd.data() + 4;
+    for (int i = 0; i < 6; i++)
+    {
+        auto fid = GetUintFromStr(entries[i], "id", 1, 255, false);
+        if (fid == -1)
+        {
+            p++;
+            break;
+        }
+        *p++ = fid;
+        *p++ = GetUintFromStr(entries[i], "ontime", 0, 255);
     }
     char rejectStr[64];
-    auto r = ctrller->SignSetMessage(cmd.data(), cmd.size(), rejectStr);
+    auto r = ctrller->SignSetMessage(cmd.data(), p - cmd.data(), rejectStr);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : rejectStr);
 }
 
 void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, json &reply)
 {
     uint8_t cmd[3];
-    cmd[1] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
-    cmd[2] = GetInt(msg, "message_id", 1, 255);
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
+    cmd[1] = GetUint(msg, "group_id", 1, ctrller->GroupCnt());
+    cmd[2] = GetUint(msg, "message_id", 1, 255);
     auto r = ctrller->CmdDispMsg(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
@@ -1286,30 +1321,34 @@ void WsServer::CMD_GetStoredPlan(struct mg_connection *c, json &msg, json &reply
                 }
             }
             plan.emplace("week", week);
-            vector<json> entries(m->entries);
-            for (int i = 0; i < m->entries; i++)
+            vector<json> entries(6);
+            int i = 0;
+            for (int i = 0; i < 6; i++)
             {
-                entries[i].emplace("type", m->plnEntries[i].fmType == 1 ? "frame" : "message");
-                entries[i].emplace("id", m->plnEntries[i].fmId);
-                char buf[64];
-                sprintf(buf, "%d:%02d", m->plnEntries[i].start.hour, m->plnEntries[i].start.min);
-                entries[i].emplace("start", buf);
-                sprintf(buf, "%d:%02d", m->plnEntries[i].stop.hour, m->plnEntries[i].stop.min);
-                entries[i].emplace("stop", buf);
+                if (m->plnEntries[i].fmType == 0)
+                {
+                    entries[i].emplace("type", "");
+                    entries[i].emplace("id", "");
+                    entries[i].emplace("start", "");
+                    entries[i].emplace("stop", "");
+                }
+                else
+                {
+                    entries[i].emplace("type", m->plnEntries[i].fmType == 1 ? "frame" : "message");
+                    entries[i].emplace("id", to_string(m->plnEntries[i].fmId));
+                    entries[i].emplace("start", m->plnEntries[i].start.ToString());
+                    entries[i].emplace("stop", m->plnEntries[i].stop.ToString());
+                }
             }
             plan.emplace("entries", entries);
 
-            vector<int> enabled_group;
+            vector<string> enabled_group;
             for (auto g : grp)
             {
                 if (g->IsPlanEnabled(id))
                 {
-                    enabled_group.emplace_back(g->GroupId());
+                    enabled_group.emplace_back(to_string(g->GroupId()));
                 }
-            }
-            if (enabled_group.size() == 0)
-            {
-                enabled_group.emplace_back(0);
             }
             plan.emplace("enabled_group", enabled_group);
 
@@ -1323,9 +1362,9 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
 {
     auto week = GetVector<string>(msg, "week");
     uint8_t bweek = 0;
-    for (int i = 0; i < 7; i++)
+    for (auto &w : week)
     {
-        int d = Pick::PickStr(week[i].c_str(), WEEKDAY, countof(WEEKDAY), true);
+        int d = Pick::PickStr(w.c_str(), WEEKDAY, countof(WEEKDAY), true);
         if (d < 0)
         {
             throw invalid_argument("Invalid 'week'");
@@ -1340,16 +1379,20 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
         throw invalid_argument("Invalid 'week'");
     }
     auto entries = GetVector<json>(msg, "entries");
-    vector<uint8_t> cmd(entries.size() * 6 + 4 + (entries.size() == 6 ? 0 : 1));
-    cmd.back() = 0;
-    int id = GetInt(msg, "id", 1, 255);
+    if (entries.size() != 6)
+    {
+        //        throw invalid_argument("Invalid 'entries'");
+    }
+    vector<uint8_t> cmd(6 * 6 + 4, 0);
+    int id = GetUint(msg, "id", 1, 255);
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignSetPlan);
     cmd[1] = id;
-    cmd[2] = GetInt(msg, "revision", 0, 255);
+    cmd[2] = GetUint(msg, "revision", 0, 255);
     cmd[3] = bweek;
     uint8_t *p = cmd.data() + 4;
-    auto GetHM = [](json &js, const char *str, uint8_t *p) -> uint8_t *
+    auto GetHM = [](vector<json> &js, int i, const char *str, uint8_t *p) -> uint8_t *
     {
-        string s = GetStr(js, str);
+        string s = GetStr(js[i], str);
         int h, m;
         if (sscanf(s.c_str(), "%d:%d", &h, &m) == 2)
         {
@@ -1360,17 +1403,44 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
                 return p;
             }
         }
-        throw invalid_argument("Invalid " + string(str) + " time");
+        throw invalid_argument(StrFn::PrintfStr("Invalid %s time in entry[%d]", str, i));
     };
     for (int i = 0; i < entries.size(); i++)
     {
-        *p++ = GetInt(entries[i], "type", 1, 2);
-        *p++ = GetInt(entries[i], "id", 1, 255);
-        p = GetHM(entries[i], "start", p);
-        p = GetHM(entries[i], "stop", p);
+        auto t = GetStr(entries[i], "type", false);
+        if (t.length() == 0)
+        {
+            p++;
+            break;
+        }
+        else if (t.compare("frame") == 0)
+        {
+            *p++ = 1;
+        }
+        else if (t.compare("message") == 0)
+        {
+            *p++ = 2;
+        }
+        else
+        {
+            throw invalid_argument(StrFn::PrintfStr("Invalid entry type in entry[%d]:%s", i, t));
+        }
+        auto fid = GetUintFromStr(entries[i], "id", 0, 255, false);
+        if (fid == -1)
+        {
+            fid = GetUint(entries[i], "id", 0, 255);
+            // throw invalid_argument(StrFn::PrintfStr("Invalid F/M id in entry[%d]", i));
+        }
+        *p++ = (uint8_t)fid;
+        p = GetHM(entries, i, "start", p);
+        p = GetHM(entries, i, "stop", p);
+    }
+    if (entries.size() < 6)
+    {
+        p++;
     }
     char rejectStr[64];
-    auto r = ctrller->SignSetPlan(cmd.data(), cmd.size(), rejectStr);
+    auto r = ctrller->SignSetPlan(cmd.data(), p - cmd.data(), rejectStr);
     if (r != APP::ERROR::AppNoError)
     {
         reply.emplace("result", rejectStr);
@@ -1379,18 +1449,22 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
 
     vector<int> disable_g;
     vector<int> enable_g;
-    auto enabled_group = GetVector<int>(msg, "enabled_group");
-    auto grp = ctrller->GetGroups();
-    for (auto g : grp)
+    auto enabled_group = GetVector<string>(msg, "enabled_group");
+    vector<int> egs;
+    for (auto eg : enabled_group)
+    {
+        egs.push_back(strtol(eg.c_str(), nullptr, 10));
+    }
+    for (auto g : ctrller->GetGroups())
     {
         int gid = g->GroupId();
-        if (Pick::PickInt(gid, enabled_group.data(), enabled_group.size()) == -1)
+        if (egs.size() > 0 && Pick::PickInt(gid, egs.data(), egs.size()) >= 0)
         {
-            disable_g.emplace_back(gid);
+            enable_g.emplace_back(gid);
         }
         else
         {
-            enable_g.emplace_back(gid);
+            disable_g.emplace_back(gid);
         }
     }
 
@@ -1465,6 +1539,8 @@ void WsServer::CMD_RetrieveEventLog(struct mg_connection *c, json &msg, json &re
 void WsServer::cmd_ResetLog(uint8_t logcode, json &reply)
 {
     uint8_t cmd[3];
+    cmd[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
+    cmd[1] = static_cast<uint8_t>(FACMD::FACMD_RESET_LOGS);
     cmd[2] = logcode;
     auto r = ctrller->CmdResetLog(cmd);
     reply.emplace("result", r == APP::ERROR::AppNoError ? "OK" : APP::ToStr(r));
@@ -1487,7 +1563,9 @@ void WsServer::CMD_ResetEventLog(struct mg_connection *c, json &msg, json &reply
 
 void WsServer::CMD_SignTest(struct mg_connection *c, json &msg, json &reply)
 {
-    uint8_t cmd[4]{0xFA, 0x30, 0xFF, 0xFF};
+    uint8_t cmd[4];
+    cmd[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
+    cmd[1] = static_cast<uint8_t>(FACMD::FACMD_SIGNTEST);
     string colour = GetStr(msg, "colour");
     for (int i = 0; i < MONO_COLOUR_NAME_SIZE; i++)
     {
@@ -1513,13 +1591,13 @@ void WsServer::CMD_DisplayAtomic(struct mg_connection *c, json &msg, json &reply
     vector<json> content = GetVector<json>(msg, "content");
     int len = content.size();
     unique_ptr<uint8_t[]> cmd(new uint8_t[3 + len * 2]);
-    cmd[0] = 0x2B;
-    cmd[1] = GetInt(msg, "group_id", 1, ctrller->GroupCnt());
+    cmd[0] = static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames);
+    cmd[1] = GetUint(msg, "group_id", 1, ctrller->GroupCnt());
     cmd[2] = len;
     for (int i = 0; i < len; i++)
     {
-        cmd[3 + i * 2] = GetInt(content[i], "sign_id", 1, ctrller->SignCnt());
-        cmd[3 + i * 2 + 1] = GetInt(content[i], "frame_id", 1, 255);
+        cmd[3 + i * 2] = GetUint(content[i], "sign_id", 1, ctrller->SignCnt());
+        cmd[3 + i * 2 + 1] = GetUint(content[i], "frame_id", 1, 255);
     }
     auto r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));

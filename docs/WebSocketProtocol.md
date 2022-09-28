@@ -864,14 +864,18 @@ Controller reply: JSON:
   "transition":100,  //0.01 second
   "entries":[
     {
-    "id":1,
-    "ontime":100
+    "id":"1",       // id: string, could be "", "0"-"255"
+    "ontime":"100"  // ontime string, could be "", "0"-"255"
     },
     {
-    "id":2,
-    "ontime":100  // 0.1 second
+    "id":"2",
+    "ontime":"100"
     },
-    ...... // max 6 entries
+    {
+    "id":"",
+    "ontime":""
+    },  // unused set id & ontime as null string
+    ...... // total 6 entries
   ]
   },
   ...... // all pre-defined message from 1 to 255
@@ -894,15 +898,19 @@ Master send: JSON:
 "revision": // 0-255
 "transition":100,  //0.01 second
 "entries":[
-  {
-  "id":1, // 1-255, NOT 0
-  "ontime":100  // 0.1 second, 0 - 255
-  },
-  {
-  "id":2, // 1-255, NOT 0
-  "ontime":100  // 0.1 second, 0 - 255
-  },
-  …… // max 6 entries
+    {
+    "id":"1",       // id: string, could be "", "1"-"255". !!! NOT "0"
+    "ontime":"100"  // ontime string, could be "", "0"-"255", 0.1 second
+    },
+    {
+    "id":"2",
+    "ontime":"100"
+    },
+    {
+    "id":"",
+    "ontime":""
+    }, // unused entry: set all fields as null
+    ...... // total 6 entries
   ]
 }
 ```
@@ -971,19 +979,25 @@ Controller reply: JSON:
   "entries":[
     {
     "type":"frame"/"message",
-    "id":1,
+    "id":"1",       // id: string, could be "", "0"-"255"
     "start":"0:00",
     "stop":"12:00"
     },
     {
     "type":"frame"/"message",
-    "id":2,
+    "id":"2",       // id: string, could be "", "0"-"255"
     "start":"0:00",  // start time: hour:minute
     "stop":"12:00"  // stop time: hour:minute
     },
-  ...... // max 6 entries. Entry should not overlay others.
+    {
+      "type":"",
+      "id":"",
+      "start":"",
+      "stop":""
+    }, // unused entry: set all fileds as null
+  …… // total 6 entries. Entry should not overlay others.
   ],
-  "enabled_group":[0]/[1,2,3]   // 0 means NO group is selected
+  "enabled_group":[]/["1","2","3"]   // [] empty array means NO group is selected
   },
   ...... // all pre-defined plans from 1 to 255
   // if not defined, not data
@@ -1007,19 +1021,25 @@ Master send: JSON:
 "entries":[
   {
   "type":"frame"/"message",
-  "id":1,  // 1 - 255, Not 0
+  "id":"1",       // id: string, could be "", "0"-"255"
   "start":"0:00",
   "stop":"12:00"
   },
   {
   "type":"frame"/"message",
-  "id":2,  // 1 - 255, Not 0
+  "id":"2",       // id: string, could be "", "0"-"255"
   "start":"0:00",  // start time: hour:minute
   "stop":"12:00"  // stop time: hour:minute
   },
-  …… // max 6 entries. Entry should not overlay others.
+  {
+  "type":"",
+  "id":"",
+  "start":"",
+  "stop":""
+  }, // unused entry: set all fields as null
+  …… // total 6 entries. Entry should not overlay others.
   ],
-"enabled_group":[0]/[1,2,3]   // 0 means NO group is selected
+  "enabled_group":[]/["1","2","3"]   // [] empty array means NO group is selected
 }
 ```
 

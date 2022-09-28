@@ -255,7 +255,7 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]%sable Plan[%d]", endis, data[1], data[2]);
+        SetRejectStr("Group[%d]%sable Plan[%d]", data[1], endis, data[2]);
         Reject(r);
     }
 }

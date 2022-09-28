@@ -1034,6 +1034,10 @@ APP::ERROR Controller::SignSetPlan(uint8_t *data, int len, char *rejectStr)
             pln.SavePln(id);
             db.GetUciEvent().Push(0, "SetPlan: [%d]", data[1]);
         }
+        else
+        {
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "%s", APP::ToStr(r));
+        }
     }
     return r;
 }

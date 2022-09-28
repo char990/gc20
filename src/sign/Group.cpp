@@ -1784,7 +1784,6 @@ int Group::RqstStatus(uint8_t slvindex)
 
 int Group::RqstExtStatus(uint8_t slvindex)
 {
-    LockBus(ucihw.SlaveRqstExtTo());
     if (slvindex == 0xFF)
     {
         txBuf[0] = 0xFF;

@@ -45,20 +45,15 @@ private:
 
     static const char *uri_ws;
 
-    static int GetInt(json &msg, const char *str, int min, int max);
-    static int GetIntFromStr(json &msg, const char *str, int min, int max);
-    static std::string GetStr(json &msg, const char *str);
+    static int GetUint(json &msg, const char *str, unsigned int min, unsigned int max);
+    static int GetUintFromStr(json &msg, const char *str, unsigned int min, unsigned int max, bool chknull=true);
+    static std::string GetStr(json &msg, const char *str, bool chknull=true);
     template <typename T>
     static std::vector<T> GetVector(json &msg, const char *str)
     {
         try
         {
-            auto x = msg[str].get<std::vector<T>>();
-            if (x.size() == 0)
-            {
-                throw false;
-            }
-            return x;
+            return msg[str].get<std::vector<T>>();
         }
         catch (...)
         {

@@ -9,6 +9,7 @@ struct Hm
 {
     uint8_t hour;
     uint8_t min;
+    std::string ToString();
 };
 
 enum PLN_ENTRY_TYPE{
@@ -22,6 +23,7 @@ struct PlnEntry
     uint8_t fmId;
     struct Hm start;
     struct Hm stop;
+    std::string ToString();
 };
 
 

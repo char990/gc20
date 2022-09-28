@@ -12,6 +12,18 @@
 
 using namespace Utils;
 
+std::string Hm::ToString()
+{
+    return StrFn::PrintfStr("%02d:%02d", hour, min);
+}
+
+const char *fm[2] = {"Frm", "Msg"};
+std::string PlnEntry::ToString()
+{
+    return StrFn::PrintfStr("(%s[%d]:%s-%s)", fm[fmType == PLN_ENTRY_FRM ? 0 : 1],
+                            fmId, start.ToString().c_str(), stop.ToString().c_str());
+}
+
 APP::ERROR Plan::Init(uint8_t *xpln, int xlen)
 {
     micode = 0;
@@ -130,47 +142,33 @@ int Plan::ToArray(uint8_t *pbuf)
     return p - pbuf;
 }
 
+const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 std::string Plan::ToString()
 {
     if (micode == 0)
     {
         return "Plan undefined";
     }
-    auto buf = std::unique_ptr<char>(new char[PRINT_BUF_SIZE]);
-    int len = 0;
-    len = snprintf(buf.get(), PRINT_BUF_SIZE - 1, "Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
+    auto s = StrFn::PrintfStr("Pln_%03d: MI=0x%02X, Id=%d, Rev=%d, Weekday=",
                    plnId, micode, plnId, plnRev);
-    const char *WEEK[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-
     for (int i = 0, k = 1; i < 7; i++)
     {
         if (k & weekdays)
         {
-            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "%s,", WEEK[i]);
+            s += WEEK[i];
         }
         k <<= 1;
     }
-    len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, " Entries(%d)=", entries);
+    s += StrFn::PrintfStr(", Entries=");
     for (int i = 0; i < 6; i++)
     {
-        if (plnEntries[i].fmType == PLN_ENTRY_FRM)
-        {
-            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "(Frm");
-        }
-        else if (plnEntries[i].fmType == PLN_ENTRY_MSG)
-        {
-            len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "(Msg");
-        }
-        else
+        if (plnEntries[i].fmType == PLN_ENTRY_NA)
         {
             break;
         }
-        len += snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, "[%d]%d:%02d-%d:%02d)", plnEntries[i].fmId,
-                        plnEntries[i].start.hour, plnEntries[i].start.min,
-                        plnEntries[i].stop.hour, plnEntries[i].stop.min);
+        s += StrFn::PrintfStr("%s,", plnEntries[i].ToString());
     }
-    snprintf(buf.get() + len, PRINT_BUF_SIZE - 1 - len, ", Crc=0x%04X", crc);
-    std::string s(buf.get());
+    s += StrFn::PrintfStr(" Crc=0x%04X", crc);
     return s;
 }
 
