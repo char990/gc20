@@ -17,7 +17,7 @@ TsiSp003AppVer21::~TsiSp003AppVer21()
 {
 }
 
-uint8_t * TsiSp003AppVer21::Time2Buf(uint8_t *p)
+uint8_t *TsiSp003AppVer21::Time2Buf(uint8_t *p)
 {
     struct tm t;
     time_t t_ = GetTime(nullptr);
@@ -107,12 +107,12 @@ void TsiSp003AppVer21::HeartbeatPoll(uint8_t *data, int len)
 
 void TsiSp003AppVer21::SignStatusReply()
 {
-    uint8_t * p = txbuf;
+    uint8_t *p = txbuf;
     *p++ = static_cast<uint8_t>(MI::CODE::SignStatusReply);
     *p++ = IsOnline() ? 1 : 0;
     *p++ = static_cast<uint8_t>(appErr);
     p = Time2Buf(p);
-    p = Cnvt::PutU16(db.HdrChksum(),p);
+    p = Cnvt::PutU16(db.HdrChksum(), p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
     int scnt = ucihw.NumberOfSigns();
     *p++ = scnt;
@@ -147,14 +147,19 @@ void TsiSp003AppVer21::UpdateTime(uint8_t *data, int len)
     stm.tm_min = *data++;
     stm.tm_sec = *data;
     stm.tm_isdst = -1;
-    if (ctrller.CmdUpdateTime(stm) == APP::ERROR::AppNoError)
+    switch (ctrller.CmdUpdateTime(stm))
     {
-        Ack();
-    }
-    else
-    {
+    case APP::ERROR::SyntaxError:
         SetRejectStr("Invalid time");
         Reject(APP::ERROR::SyntaxError);
+        break;
+    case APP::ERROR::TimeExpired:
+        SetRejectStr("UpdateTime failed");
+        Reject(APP::ERROR::TimeExpired);
+        break;
+    default:
+        Ack();
+        break;
     }
 }
 
@@ -165,7 +170,7 @@ void TsiSp003AppVer21::SystemReset(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdSystemReset(data, rejectStr);
-    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
@@ -176,7 +181,7 @@ void TsiSp003AppVer21::SignSetFrame(uint8_t *data, int len)
     }
     if (data[1] == 0)
     {
-        sprintf(rejectStr,"SignSetFrame Error:FrameID=0");
+        sprintf(rejectStr, "SignSetFrame Error:FrameID=0");
         Reject(APP::ERROR::SyntaxError);
         return;
     }
@@ -198,7 +203,7 @@ void TsiSp003AppVer21::SignDisplayFrame(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]SignDisplayFrame:[%d]",data[1],data[2]);
+        SetRejectStr("Group[%d]SignDisplayFrame:[%d]", data[1], data[2]);
         Reject(r);
     }
 }
@@ -226,7 +231,7 @@ void TsiSp003AppVer21::SignDisplayMessage(uint8_t *data, int len)
     }
     else
     {
-        SetRejectStr("Group[%d]SignDisplayMessage:[%d]",data[1],data[2]);
+        SetRejectStr("Group[%d]SignDisplayMessage:[%d]", data[1], data[2]);
         Reject(r);
     }
 }
@@ -248,7 +253,7 @@ void TsiSp003AppVer21::EnDisPlan(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdEnDisPlan(data);
-    const char * endis = data[0] == static_cast<uint8_t>(MI::CODE::EnablePlan)?"En":"Dis";
+    const char *endis = data[0] == static_cast<uint8_t>(MI::CODE::EnablePlan) ? "En" : "Dis";
     if (r == APP::ERROR::AppNoError)
     {
         Ack();
@@ -277,7 +282,7 @@ void TsiSp003AppVer21::SignSetDimmingLevel(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdSetDimmingLevel(data, rejectStr);
-    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
@@ -287,7 +292,7 @@ void TsiSp003AppVer21::PowerOnOff(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdPowerOnOff(data, rejectStr);
-    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
@@ -297,7 +302,7 @@ void TsiSp003AppVer21::DisableEnableDevice(uint8_t *data, int len)
         return;
     }
     auto r = ctrller.CmdDisableEnableDevice(data, rejectStr);
-    (r == APP::ERROR::AppNoError) ? Ack(): Reject(r);
+    (r == APP::ERROR::AppNoError) ? Ack() : Reject(r);
 }
 
 void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
@@ -308,7 +313,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
     }
     if (data[1] > 3)
     {
-        SetRejectStr("Unknow type:%d",data[1]);
+        SetRejectStr("Unknow type:%d", data[1]);
         Reject(APP::ERROR::SyntaxError);
     }
     if (data[2] == 0)
@@ -323,7 +328,7 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto frm = db.GetUciFrm().GetStFrm(data[2]);
         if (frm == nullptr)
         {
-            SetRejectStr("Frame[%d] undefined",data[2]);
+            SetRejectStr("Frame[%d] undefined", data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
@@ -337,14 +342,14 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto msg = db.GetUciMsg().GetMsg(data[2]);
         if (msg == nullptr)
         {
-            SetRejectStr("Msg[%d] undefined",data[2]);
+            SetRejectStr("Msg[%d] undefined", data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
         {
             uint8_t a[MSG_LEN_MAX + MSG_TAIL];
             int len = msg->ToArray(a);
-            Tx(a, len-2);   // do not include crc
+            Tx(a, len - 2); // do not include crc
         }
     }
     break;
@@ -353,14 +358,14 @@ void TsiSp003AppVer21::SignRequestStoredFMP(uint8_t *data, int len)
         auto pln = db.GetUciPln().GetPln(data[2]);
         if (pln == nullptr)
         {
-            SetRejectStr("Plan[%d] undefined",data[2]);
+            SetRejectStr("Plan[%d] undefined", data[2]);
             Reject(APP::ERROR::FrmMsgPlnUndefined);
         }
         else
         {
             uint8_t a[PLN_LEN_MAX + PLN_TAIL];
             int len = pln->ToArray(a);
-            Tx(a, len-2);   // do not include crc
+            Tx(a, len - 2); // do not include crc
         }
     }
     break;
@@ -373,12 +378,13 @@ void TsiSp003AppVer21::SignExtendedStatusRequest(uint8_t *data, int len)
     {
         return;
     }
-    uint8_t * p=txbuf;
+    uint8_t *p = txbuf;
     *p++ = static_cast<uint8_t>(MI::CODE::SignExtendedStatusReply);
     *p++ = IsOnline() ? 1 : 0;
     *p++ = static_cast<uint8_t>(appErr);
-    memcpy(p, ucihw.MfcCode(), 10); p+=10;
-    p=Time2Buf(p);
+    memcpy(p, ucihw.MfcCode(), 10);
+    p += 10;
+    p = Time2Buf(p);
     *p++ = static_cast<uint8_t>(ctrller.ctrllerError.GetErrorCode());
     int scnt = ucihw.NumberOfSigns();
     *p++ = scnt;
@@ -418,7 +424,7 @@ void TsiSp003AppVer21::ResetFaultLog(uint8_t *data, int len)
     {
         return;
     }
-    if(ucihw.IsResetLogAllowed())
+    if (ucihw.IsResetLogAllowed())
     {
         db.GetUciFault().Reset();
         db.GetUciEvent().Push(0, "ResetFaultLog");

@@ -137,7 +137,7 @@ int WsServer::GetUint(json &msg, const char *str, unsigned int min, unsigned int
         auto x = msg[str].get<int>();
         if (x < min || x > max)
         {
-            throw false;
+            throw out_of_range(StrFn::PrintfStr("'%s':%d (%d,%d) out_of_range", str, x, min, max));
         }
         return x;
     }
@@ -154,12 +154,12 @@ int WsServer::GetUintFromStr(json &msg, const char *str, unsigned int min, unsig
         auto s = msg[str].get<string>();
         if (s.length() == 0)
         {
-            throw false;
+            throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
         }
         auto x = stoi(s, nullptr, 0);
         if (x < min || x > max)
         {
-            throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
+            throw out_of_range(StrFn::PrintfStr("'%s':%d (%d,%d) out_of_range", str, x, min, max));
         }
         return x;
     }
@@ -183,7 +183,7 @@ string WsServer::GetStr(json &msg, const char *str, bool chknull)
         auto x = msg[str].get<string>();
         if (chknull && x.empty())
         {
-            throw false;
+            throw invalid_argument(StrFn::PrintfStr("Invalid '%s'", str));
         }
         return x;
     }
@@ -311,6 +311,10 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
         {
             reply.clear();
             reply.emplace("result", e.what());
+        }
+        catch (...)
+        {
+
         }
         WebSocketSend(c, reply);
     }
@@ -886,7 +890,7 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
     auto cmd = GetStr(msg, "rtc");
     if (cmd.length() <= 0)
     {
-        throw("No 'rtc' in command");
+        throw invalid_argument("No 'rtc' in command");
     }
     struct tm stm;
     if ((Time::ParseLocalStrToTm(cmd.c_str(), &stm) == 0) &&
@@ -896,7 +900,7 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
     }
     else
     {
-        throw("Invalid 'rtc'");
+        throw invalid_argument("Invalid 'rtc'");
     }
 }
 
@@ -958,7 +962,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     reply.emplace("hrg_frame_colours", hrg_c);
 
     vector<int> fonts;
-    for (int i = 0; i < ucihw.MaxFont(); i++)
+    for (int i = 0; i <= ucihw.MaxFont(); i++)
     {
         if (ucihw.IsFont(i))
         {
@@ -978,7 +982,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     reply.emplace("txt_rows", txt_rows);
 
     vector<string> conspicuity;
-    for (int i = 0; i < ucihw.MaxConspicuity(); i++)
+    for (int i = 0; i <= ucihw.MaxConspicuity(); i++)
     {
         if (ucihw.IsConspicuity(i))
         {
@@ -988,7 +992,7 @@ void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &rep
     reply.emplace("conspicuity", conspicuity);
 
     vector<string> annulus;
-    for (int i = 0; i < ucihw.MaxAnnulus(); i++)
+    for (int i = 0; i <= ucihw.MaxAnnulus(); i++)
     {
         if (ucihw.IsAnnulus(i))
         {
@@ -1115,6 +1119,10 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     else
     {
         str = msg["image"].get<std::string>();
+        if(str.length() < 120)     // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
+        {
+            throw invalid_argument("Invalid Base64 BMP data");
+        }
         unique_ptr<FrameImage> frmImg(new FrameImage);
         frmImg->LoadBmpFromBase64(str.c_str(), str.length());
         auto &bmp = frmImg->GetBmp();
@@ -1161,36 +1169,37 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
             Utils::Cnvt::PutU32(corelen, frm.data() + 9);
         }
         frm[0] = static_cast<uint8_t>(frmType);
-        frm[1] = 255;
-        frm[2] = 255;
+        frm[1] = id;
+        frm[2] = rev;
         int bitOffset = 0;
         if (colour <= 9)
         { // mono
             uint8_t *core = frm.data() + f_offset;
             memset(core, 0, corelen);
             int bitOffset = 0;
-            for (int j = 0; j < rows; j++)
+            for (int y = 0; y < rows; y++)
             {
-                for (int i = 0; i < columns; i++)
+                for (int x = 0; x < columns; x++)
                 {
-                    auto pixel = bmp.GetPixel(i, j);
+                    auto pixel = bmp.GetPixel(x, y);
                     if (pixel.Blue > 0 || pixel.Green > 0 || pixel.Red > 0)
                     {
-                        BitOffset::Set70Bit(core, bitOffset++);
+                        BitOffset::Set70Bit(core, bitOffset);
                     }
+                    bitOffset++;
                 }
             }
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::Multi_4bit))
         {
-            for (int j = 0; j < rows; j++)
+            for (int y = 0; y < rows; y++)
             {
-                for (int i = 0; i < columns; i++)
+                for (int x = 0; x < columns; x++)
                 {
-                    auto pixel = bmp.GetPixel(i, j);
+                    auto pixel = bmp.GetPixel(x, y);
                     uint8_t c = FrameColour::Rgb2Colour(((pixel.Red * 0x100) + pixel.Green) * 0x100 + pixel.Blue);
-                    int x = f_offset + bitOffset / 2;
-                    frm.at(x) |= (bitOffset & 1) ? (c << 4) : c;
+                    int p = f_offset + bitOffset / 2;
+                    frm.at(p) |= (bitOffset & 1) ? (c << 4) : c;
                     bitOffset++;
                 }
             }
@@ -1198,11 +1207,11 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB_24bit))
         {
             bitOffset = f_offset;
-            for (int j = 0; j < rows; j++)
+            for (int y = 0; y < rows; y++)
             {
-                for (int i = 0; i < columns; i++)
+                for (int x = 0; x < columns; x++)
                 {
-                    auto pixel = bmp.GetPixel(i, j);
+                    auto pixel = bmp.GetPixel(x, y);
                     frm.at(bitOffset++) = pixel.Red;
                     frm.at(bitOffset++) = pixel.Green;
                     frm.at(bitOffset++) = pixel.Blue;

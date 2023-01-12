@@ -255,14 +255,14 @@ void FrameImage::FillCoreFromUciFrame()
 
 void FrameImage::LoadBmpFromBase64(const char *buf, int len)
 {
-    if(len<168)     // a 16*16 mono bmp file is 126 bytes in binary and 168 bytes in base64
+    if(len < 120)     // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
     {
         throw invalid_argument("Invalid Base64 BMP data");
     }
     vector<char> bmpbuf(len / 4 * 3);
-    int blen = mg_base64_encode((const unsigned char *)buf, len, bmpbuf.data());
+    int blen = mg_base64_decode(buf, len, bmpbuf.data());
 
-    int fd = open(uci_frame, O_WRONLY);
+    int fd = open(uci_frame, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd < 0)
     {
         throw invalid_argument(StrFn::PrintfStr("Can't open %s", uci_frame));

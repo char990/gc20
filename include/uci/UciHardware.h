@@ -97,7 +97,7 @@ public:
     bool IsSimSlave(int i) { return bSimSlaves.GetBit(i); };
 
     uint8_t MaxConspicuity() { return bConspicuity.GetMaxBit(); };
-    uint8_t MaxFont() { return bConspicuity.GetMaxBit(); };
+    uint8_t MaxFont() { return bFont.GetMaxBit(); };
     uint8_t MaxAnnulus() { return bAnnulus.GetMaxBit(); };
 
     // configurations calculated from other configurations

@@ -868,20 +868,15 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
                 Ldebug(s);
                 db.GetUciAlarm().Push(0, s);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
+                return APP::ERROR::TimeExpired;
             }
-            else
+            if (pDS3231->SetTimet(t) < 0)
             {
-                if (pDS3231->SetTimet(t) < 0)
-                {
-                    const char *s = "UpdateTime: Set DS3231 time failed(MemoryError)";
-                    Ldebug(s);
-                    db.GetUciAlarm().Push(0, s);
-                    db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
-                }
-                else
-                {
-                    return APP::ERROR::FAILED;
-                }
+                const char *s = "UpdateTime: Set DS3231 time failed(IntComFail)";
+                Ldebug(s);
+                db.GetUciAlarm().Push(0, s);
+                db.GetUciFault().Push(0, DEV::ERROR::InternalCommunicationsFailure, 1);
+                return APP::ERROR::TimeExpired;
             }
             return APP::ERROR::AppNoError;
         }
