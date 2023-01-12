@@ -50,7 +50,7 @@ int LayerDtLk::Rx(uint8_t *data, int len)
                     {
                         // Pdebug("ETX");
                         upperLayer->Rx(buf, length);
-                        qltdTmc->Push(' ', buf, length, 0);
+                        qltdTmc->PushBack(' ', buf, length, 0);
                         length = 0;
                         return 0; // only deal with one pkt. Discard other data.
                     }
@@ -72,7 +72,7 @@ bool LayerDtLk::IsTxReady()
 
 int LayerDtLk::Tx(uint8_t *data, int len)
 {
-    qltdTmc->Push(' ', data, len, 1);
+    qltdTmc->PushBack(' ', data, len, 1);
     return lowerLayer->Tx(data, len);
 }
 

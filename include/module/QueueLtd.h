@@ -1,39 +1,39 @@
 #pragma once
 
 #include <string>
-#include <queue>
+#include <deque>
 #include <module/Utils.h>
 
-class QueueLtd : public std::queue<std::string>
+class QueueLtd : public std::deque<std::string>
 {
 public:
     QueueLtd(int size) : ltdSize(size){};
 
-    void Push(const std::string &value)
+    void PushBack(const std::string &value)
     {
         if (size() == ltdSize)
         {
-            pop();
+            pop_front();
         }
-        push(value);
+        push_back(value);
     }
 
-    void Push(const std::string &&value)
+    void PushBack(const std::string &&value)
     {
         if (size() == ltdSize)
         {
-            pop();
+            pop_front();
         }
-        push(value);
+        push_back(value);
     }
 
     // 1: in; 0:out
-    void Push(char id, uint8_t *buf, int len, int in_out)
+    void PushBack(char id, uint8_t *buf, int len, int in_out)
     {
         std::vector<char> pbuf(len + 23 + 3 + 1);
         struct timeval t;
         gettimeofday(&t, nullptr);
-        char *p = Utils::Time::ParseTimeToLocalStr(&t, pbuf.data()); // "dd/mm/yyyy hh:mm:ss.mmm" 23 bytes
+        char *p = Utils::Time::ParseTimeToLocalStr(&t, pbuf.data()); // "dd/mm/yyyy hh:mm:ss.mmm" max 23 bytes
         if (in_out)                                                  // 3 bytes
         {
             *p++ = '<';
@@ -64,13 +64,20 @@ public:
             p[1] = id;
             p[2] = ']';
         }
-        Push(std::string(p)); // skip data, start from "hh:mm:ss.mm"
+        PushBack(std::string(p)); // skip data, start from "hh:mm:ss.mm"
     }
 
-    std::string Pop()
+    std::string PopFront()
     {
         auto r = front();
-        pop();
+        pop_front();
+        return r;
+    }
+
+    std::string PopBack()
+    {
+        auto r = back();
+        pop_back();
         return r;
     }
 

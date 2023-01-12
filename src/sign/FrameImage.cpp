@@ -256,6 +256,10 @@ void FrameImage::FillCoreFromUciFrame()
 void FrameImage::LoadBmpFromBase64(const char *buf, int len)
 {
     vector<char> bmpbuf(len / 4 * 3);
+    if(bmpbuf.size()<14)
+    {
+        throw invalid_argument("Invalid Base64 BMP data");
+    }
     int blen = mg_base64_encode((const unsigned char *)buf, len, bmpbuf.data());
 
     int fd = open(uci_frame, O_WRONLY);

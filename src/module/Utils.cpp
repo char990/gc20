@@ -291,6 +291,10 @@ int Cnvt::File2Base64(const char *filename, vector<char> &vc)
         return -1;
     }
     int len = statbuf.st_size;
+    if(len<=0)
+    {
+        return -1;
+    }
     vector<unsigned char> filebuf(len);
     unsigned char *p = filebuf.data();
     int slen = read(fd, p, len);

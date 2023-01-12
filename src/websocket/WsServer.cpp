@@ -1809,7 +1809,7 @@ void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohman
     string text;
     while (qltdTmc->size() > 0)
     {
-        text += qltdTmc->Pop() + "\n";
+        text += qltdTmc->PopBack() + "\n";
     }
     reply.emplace("text", text);
 }
@@ -1819,7 +1819,7 @@ void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohm
     string text;
     while (qltdSlave->size() > 0)
     {
-        text += qltdSlave->Pop() + "\n";
+        text += qltdSlave->PopBack() + "\n";
     }
     reply.emplace("text", text);
 }

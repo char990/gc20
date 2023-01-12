@@ -55,7 +55,7 @@ int LayerSlv::Rx(uint8_t *data, int len)
                             {
                                 upperLayer->Rx(buf + 1, length - 6);
                             }
-                            qltdSlave->Push(groupId+'0', buf, length, 1);
+                            qltdSlave->PushBack(groupId+'0', buf, length, 1);
                         }
                         length = 0;
                         return 0; // only deal with one pkt. Discard other data.
@@ -86,7 +86,7 @@ int LayerSlv::Tx(uint8_t *data, int len)
     len += 4;
     *(buf + len) = static_cast<uint8_t>(CTRL_CHAR::ETX);
     len++;
-    qltdSlave->Push(groupId+'0', buf, len, 0);
+    qltdSlave->PushBack(groupId+'0', buf, len, 0);
     return lowerLayer->Tx(buf, len);
 }
 

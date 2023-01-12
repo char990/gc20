@@ -364,17 +364,17 @@ namespace Utils
         static void ClearTm(struct tm *tp);
 
         /// \brief  Parse time_t to localtime string and wrtie to char *pbuf
-        ///         string format: d/M/yyyy h:mm:ss
+        ///         string format: dd/MM/yyyy h:mm:ss
         /// \return next byte of output buf
         static char *ParseTimeToLocalStr(time_t t, char *pbuf);
 
         /// \brief  Parse time_t to localtime string
-        ///         string format: d/M/yyyy h:mm:ss.mmm
+        ///         string format: dd/MM/yyyy h:mm:ss.mmm
         /// \return string
         static std::string ParseTimeToLocalStr(time_t t);
 
         /// \brief  Parse timeval to localtime string and wrtie to char *pbuf
-        ///         string format: d/M/yyyy h:mm:ss.mmm
+        ///         string format: dd/MM/yyyy h:mm:ss.mmm
         /// \return next byte of output buf
         static char *ParseTimeToLocalStr(struct timeval *t, char *p);
 
