@@ -32,12 +32,12 @@ int DS3231::hex2bcd(int hex)
     return x10 * 0x10 + x1;
 }
 
-int DS3231::ReadRegs(int addr, int len, unsigned char *buf)
+int DS3231::ReadRegs(int addr, unsigned char *buf, int len)
 {
     return rd_i2c(_bus, 0x68, addr, len, buf);
 }
 
-int DS3231::WriteRegs(int addr, int len, const unsigned char *buf)
+int DS3231::WriteRegs(int addr, const unsigned char *buf, int len)
 {
     return wr_i2c(_bus, 0x68, addr, len, buf);
 }
@@ -46,7 +46,7 @@ int DS3231::GetUtcTime(struct tm *utctm)
 {
     unsigned char reg[7];
     int result;
-    result = ReadRegs(0x00, 7, reg);
+    result = ReadRegs(0x00, reg, 7);
     if (result < 7)
     {
         return -1;
@@ -139,7 +139,7 @@ int DS3231::SetTimet(time_t t)
         reg[5] = hex2bcd(utc.tm_mon + 1);
         reg[6] = hex2bcd(utc.tm_year);
     }
-    return WriteRegs(0x00, 7, reg);
+    return WriteRegs(0x00, reg, 7);
 }
 
 int DS3231::SetRtcRegs(char *rtc)
@@ -150,14 +150,14 @@ int DS3231::SetRtcRegs(char *rtc)
     {
         reg[i] = rtc[i];
     }
-    return WriteRegs(0x00, 7, reg);
+    return WriteRegs(0x00, reg, 7);
 }
 
 int DS3231::GetTemp(int *t)
 {
     unsigned char tt;
     int result;
-    result = ReadRegs(0x11, 1, &tt);
+    result = ReadRegs(0x11, &tt, 1);
     if (result < 1)
     {
         return -1;
@@ -171,7 +171,7 @@ int DS3231::GetControl(char *v)
 {
     unsigned char pr;
     int result;
-    result = ReadRegs(0x0E, 1, &pr);
+    result = ReadRegs(0x0E, &pr, 1);
     if (result < 1)
     {
         return -1;
@@ -182,14 +182,14 @@ int DS3231::GetControl(char *v)
 
 int DS3231::SetControl(char v)
 {
-    return WriteRegs(0x0E, 1, (const unsigned char *)&v);
+    return WriteRegs(0x0E, (const unsigned char *)&v, 1);
 }
 
 int DS3231::GetStatus(char *v)
 {
     unsigned char pr;
     int result;
-    result = ReadRegs(0x0F, 1, &pr);
+    result = ReadRegs(0x0F, &pr, 1);
     if (result < 1)
     {
         return -1;
@@ -200,7 +200,7 @@ int DS3231::GetStatus(char *v)
 
 int DS3231::SetStatus(char v)
 {
-    return WriteRegs(0x0F, 1, (const unsigned char *)&v);
+    return WriteRegs(0x0F, (const unsigned char *)&v, 1);
 }
 
 int DS3231::Print()
@@ -251,7 +251,7 @@ int DS3231::WriteTimeAlarm(time_t t)
 {
     unsigned char reg[7];
     unsigned char rd = 1;
-    WriteRegs(0x0D, 1, &rd);
+    WriteRegs(0x0D, &rd, 1);
     struct tm utctm;
     struct tm *r = gmtime_r(&t, &utctm);
     if (r == &utctm)
@@ -271,7 +271,7 @@ int DS3231::WriteTimeAlarm(time_t t)
         }
         printf("\n");
         */
-        return WriteRegs(0x07, 7, reg);
+        return WriteRegs(0x07, reg, 7);
     }
     return -1;
 }
@@ -284,7 +284,7 @@ int DS3231::WriteTimeAlarm(time_t t)
 int DS3231::ReadTimeAlarm(time_t *t)
 {
     unsigned char reg[7];
-    int r = ReadRegs(0x07, 7, reg);
+    int r = ReadRegs(0x07, reg, 7);
     *t = -1;
     if (r == 7 && reg[6] == ALARM_FLAG)
     {

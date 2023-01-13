@@ -41,10 +41,10 @@ public:
      int bcd2hex(int bcd);
 
      // return: -1:error; 0:OK
-     int WriteRegs(int addr, int len, const unsigned char * buf);
+     int WriteRegs(int addr, const unsigned char * buf, int len);
      
      // return: -1:read error; 0: "len is 0" error; n>0:n of bytes read 
-     int ReadRegs(int addr, int len, unsigned char * buf);
+     int ReadRegs(int addr, unsigned char * buf, int len);
 
      int WriteTimeAlarm(time_t t);
      int ReadTimeAlarm(time_t *t);
