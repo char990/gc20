@@ -39,8 +39,12 @@ public:
 
      int hex2bcd(int hex);
      int bcd2hex(int bcd);
-     int WriteRegs(int addr, int *buf, int len);
-     int ReadRegs(int addr, int *buf, int len);
+
+     // return: -1:error; 0:OK
+     int WriteRegs(int addr, int len, const unsigned char * buf);
+     
+     // return: -1:read error; 0: "len is 0" error; n>0:n of bytes read 
+     int ReadRegs(int addr, int len, unsigned char * buf);
 
      int WriteTimeAlarm(time_t t);
      int ReadTimeAlarm(time_t *t);

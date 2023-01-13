@@ -7,7 +7,6 @@
 #include "3rdparty/i2clib/i2c-dev.h"
 #include "3rdparty/i2clib/i2cbusses.h"
 
-
 /*
  * Params:
  * 	i2cbus   - bus number
@@ -19,39 +18,42 @@
 int i2cget(int i2cbus, int address, int daddress, int size)
 {
 	int res, file;
-        char filename[20];
-        int force = 0;
+	char filename[20];
+	int force = 0;
 
-        file = open_i2c_dev(i2cbus, filename, sizeof(filename), 0);
-        if (file < 0 || set_slave_addr(file, address, force))
-                return -1;
+	file = open_i2c_dev(i2cbus, filename, sizeof(filename), 0);
+	if (file < 0 || set_slave_addr(file, address, force))
+		return -1;
 
-        switch (size) {
-        case I2C_SMBUS_BYTE:
-                if (daddress >= 0) {
-                        res = i2c_smbus_write_byte(file, daddress);
-                        if (res < 0)
+	switch (size)
+	{
+	case I2C_SMBUS_BYTE:
+		if (daddress >= 0)
+		{
+			res = i2c_smbus_write_byte(file, daddress);
+			if (res < 0)
 			{
-                                fprintf(stderr, "Warning - write failed\n");
+				fprintf(stderr, "Warning - write failed\n");
 				return -2;
 			}
-                }
-                res = i2c_smbus_read_byte(file);
-                break;
-        case I2C_SMBUS_WORD_DATA:
-                res = i2c_smbus_read_word_data(file, daddress);
-                break;
-        default: /* I2C_SMBUS_BYTE_DATA */
-                res = i2c_smbus_read_byte_data(file, daddress);
-        }
-        close(file);
+		}
+		res = i2c_smbus_read_byte(file);
+		break;
+	case I2C_SMBUS_WORD_DATA:
+		res = i2c_smbus_read_word_data(file, daddress);
+		break;
+	default: /* I2C_SMBUS_BYTE_DATA */
+		res = i2c_smbus_read_byte_data(file, daddress);
+	}
+	close(file);
 
-        if (res < 0) {
-                //fprintf(stderr, "Error: I2C Read failed\n");
-                return -3;
-        }
+	if (res < 0)
+	{
+		// fprintf(stderr, "Error: I2C Read failed\n");
+		return -3;
+	}
 
-        //printf("0x%0*x\n", size == I2C_SMBUS_WORD_DATA ? 4 : 2, res);
+	// printf("0x%0*x\n", size == I2C_SMBUS_WORD_DATA ? 4 : 2, res);
 
 	return res;
 }
@@ -77,10 +79,12 @@ int i2cset(int i2cbus, int address, int daddress, int value, int size)
 	if (file < 0 || set_slave_addr(file, address, force))
 		return -1;
 
-	if (vmask) {
+	if (vmask)
+	{
 		int oldvalue;
 
-		switch (size) {
+		switch (size)
+		{
 		case I2C_SMBUS_BYTE:
 			oldvalue = i2c_smbus_read_byte(file);
 			break;
@@ -91,7 +95,8 @@ int i2cset(int i2cbus, int address, int daddress, int value, int size)
 			oldvalue = i2c_smbus_read_byte_data(file, daddress);
 		}
 
-		if (oldvalue < 0) {
+		if (oldvalue < 0)
+		{
 			fprintf(stderr, "Error: Failed to read old value\n");
 			return -1;
 		}
@@ -99,7 +104,8 @@ int i2cset(int i2cbus, int address, int daddress, int value, int size)
 		value = (value & vmask) | (oldvalue & ~vmask);
 	}
 
-	switch (size) {
+	switch (size)
+	{
 	case I2C_SMBUS_BYTE:
 		res = i2c_smbus_write_byte(file, daddress);
 		break;
@@ -116,18 +122,21 @@ int i2cset(int i2cbus, int address, int daddress, int value, int size)
 		res = i2c_smbus_write_byte_data(file, daddress, value);
 		break;
 	}
-	if (res < 0) {
+	if (res < 0)
+	{
 		fprintf(stderr, "Error: Write failed\n");
 		close(file);
 		return -1;
 	}
 
-	if (!readback) { /* We're done */
+	if (!readback)
+	{ /* We're done */
 		close(file);
 		return 0;
 	}
 
-	switch (size) {
+	switch (size)
+	{
 	case I2C_SMBUS_BYTE:
 		res = i2c_smbus_read_byte(file);
 		value = daddress;
@@ -140,19 +149,62 @@ int i2cset(int i2cbus, int address, int daddress, int value, int size)
 	}
 	close(file);
 
-	if (res < 0) {
+	if (res < 0)
+	{
 		printf("Warning - readback failed\n");
 	}
-	else if (res != value) {
+	else if (res != value)
+	{
 		printf("Warning - data mismatch - wrote "
-		       "0x%0*x, read back 0x%0*x\n",
-		       size == I2C_SMBUS_WORD_DATA ? 4 : 2, value,
-		       size == I2C_SMBUS_WORD_DATA ? 4 : 2, res);
-	} else {
+			   "0x%0*x, read back 0x%0*x\n",
+			   size == I2C_SMBUS_WORD_DATA ? 4 : 2, value,
+			   size == I2C_SMBUS_WORD_DATA ? 4 : 2, res);
+	}
+	else
+	{
 		printf("Value 0x%0*x written, readback matched\n",
-		       size == I2C_SMBUS_WORD_DATA ? 4 : 2, value);
+			   size == I2C_SMBUS_WORD_DATA ? 4 : 2, value);
 	}
 
 	return 0;
 }
 
+int rd_i2c(int i2cbus, int slave_addr, int dst_addr, unsigned char len, unsigned char *buf)
+{
+	int res, file;
+	char filename[32];
+	int force = 0;
+	if (len <= 0)
+		return 0;
+
+	res = -1;
+	file = open_i2c_dev(i2cbus, filename, sizeof(filename), 0);
+	if (file < 0)
+		return -1;
+	if (set_slave_addr(file, slave_addr, force) == 0)
+	{
+		res = i2c_smbus_read_i2c_block_data(file, dst_addr, len, buf);
+	}
+	close(file);
+	return res;
+}
+
+int wr_i2c(int i2cbus, int slave_addr, int dst_addr, unsigned char len, const unsigned char *buf)
+{
+	int res, file;
+	char filename[32];
+	int force = 0;
+	if (len <= 0)
+		return 0;
+
+	res = -1;
+	file = open_i2c_dev(i2cbus, filename, sizeof(filename), 0);
+	if (file < 0)
+		return -1;
+	if (set_slave_addr(file, slave_addr, force) == 0)
+	{
+		res = i2c_smbus_write_i2c_block_data(file, dst_addr, len, buf);
+	}
+	close(file);
+	return res;
+}

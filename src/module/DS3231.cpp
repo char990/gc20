@@ -32,44 +32,24 @@ int DS3231::hex2bcd(int hex)
     return x10 * 0x10 + x1;
 }
 
-int DS3231::ReadRegs(int addr, int *buf, int len)
+int DS3231::ReadRegs(int addr, int len, unsigned char *buf)
 {
-    for (int i = 0; i < len; i++)
-    {
-        *buf = i2cget(_bus, 0x68, addr, I2C_SMBUS_BYTE_DATA);
-        if (*buf < 0)
-        {
-            return *buf;
-        }
-        addr++;
-        buf++;
-    }
-    return 0;
+    return rd_i2c(_bus, 0x68, addr, len, buf);
 }
 
-int DS3231::WriteRegs(int addr, int *buf, int len)
+int DS3231::WriteRegs(int addr, int len, const unsigned char *buf)
 {
-    for (int i = 0; i < len; i++)
-    {
-        int r = i2cset(_bus, 0x68, addr, *buf, I2C_SMBUS_BYTE_DATA);
-        if (r < 0)
-        {
-            return r;
-        }
-        addr++;
-        buf++;
-    }
-    return 0;
+    return wr_i2c(_bus, 0x68, addr, len, buf);
 }
 
 int DS3231::GetUtcTime(struct tm *utctm)
 {
-    int reg[7];
+    unsigned char reg[7];
     int result;
-    result = ReadRegs(0x00, reg, 7);
-    if (result < 0)
+    result = ReadRegs(0x00, 7, reg);
+    if (result < 7)
     {
-        return (result);
+        return -1;
     }
     utctm->tm_isdst = -1;
     utctm->tm_sec = bcd2hex(reg[0]);
@@ -85,7 +65,7 @@ int DS3231::GetUtcTime(struct tm *utctm)
             }
         }
         else
-        { //pm
+        { // pm
             if (utctm->tm_hour < 12)
             {
                 utctm->tm_hour += 12; // 1-11pm = 13-23
@@ -143,7 +123,7 @@ int DS3231::SetTimet(time_t t)
         return -1;
     }
     changed = 1;
-    int reg[7];
+    unsigned char reg[7];
     reg[0] = hex2bcd(utc.tm_sec);
     reg[1] = hex2bcd(utc.tm_min);
     reg[2] = hex2bcd(utc.tm_hour);
@@ -159,28 +139,28 @@ int DS3231::SetTimet(time_t t)
         reg[5] = hex2bcd(utc.tm_mon + 1);
         reg[6] = hex2bcd(utc.tm_year);
     }
-    return WriteRegs(0x00, reg, 7);
+    return WriteRegs(0x00, 7, reg);
 }
 
 int DS3231::SetRtcRegs(char *rtc)
 {
     changed = 1;
-    int reg[7];
+    unsigned char reg[7];
     for (int i = 0; i < 7; i++)
     {
         reg[i] = rtc[i];
     }
-    return WriteRegs(0x00, reg, 7);
+    return WriteRegs(0x00, 7, reg);
 }
 
 int DS3231::GetTemp(int *t)
 {
-    int tt;
+    unsigned char tt;
     int result;
-    result = ReadRegs(0x11, &tt, 1);
-    if (result < 0)
+    result = ReadRegs(0x11, 1, &tt);
+    if (result < 1)
     {
-        return (result);
+        return -1;
     }
     unsigned char t1 = tt;
     *t = *((int8_t *)&t1);
@@ -189,42 +169,38 @@ int DS3231::GetTemp(int *t)
 
 int DS3231::GetControl(char *v)
 {
-    int pr[1];
+    unsigned char pr;
     int result;
-    result = ReadRegs(0x0E, pr, 1);
-    if (result < 0)
+    result = ReadRegs(0x0E, 1, &pr);
+    if (result < 1)
     {
-        return (result);
+        return -1;
     }
-    *v = pr[0];
+    *v = pr;
     return 0;
 }
 
 int DS3231::SetControl(char v)
 {
-    int reg[1];
-    reg[0] = v;
-    return WriteRegs(0x0E, reg, 1);
+    return WriteRegs(0x0E, 1, (const unsigned char *)&v);
 }
 
 int DS3231::GetStatus(char *v)
 {
-    int pr[1];
+    unsigned char pr;
     int result;
-    result = ReadRegs(0x0F, pr, 1);
-    if (result < 0)
+    result = ReadRegs(0x0F, 1, &pr);
+    if (result < 1)
     {
-        return (result);
+        return -1;
     }
-    *v = pr[0];
+    *v = pr;
     return 0;
 }
 
 int DS3231::SetStatus(char v)
 {
-    int reg[1];
-    reg[0] = v;
-    return WriteRegs(0x0F, reg, 1);
+    return WriteRegs(0x0F, 1, (const unsigned char *)&v);
 }
 
 int DS3231::Print()
@@ -273,9 +249,9 @@ void DS3231::PrintTm(struct tm *tm)
 #define ALARM_FLAG 0x25
 int DS3231::WriteTimeAlarm(time_t t)
 {
-    int reg[7];
-    reg[0] = 1;
-    WriteRegs(0x0D, reg, 1);
+    unsigned char reg[7];
+    unsigned char rd = 1;
+    WriteRegs(0x0D, 1, &rd);
     struct tm utctm;
     struct tm *r = gmtime_r(&t, &utctm);
     if (r == &utctm)
@@ -288,14 +264,14 @@ int DS3231::WriteTimeAlarm(time_t t)
         reg[5] = hex2bcd(utctm.tm_mon);
         reg[6] = ALARM_FLAG; // flag
                              /*printf("WriteAlarm : t=%ld %2d/%02d/%d %2d:%02d:%02d\nRegs:", t,
-			utctm.tm_mday, utctm.tm_mon, utctm.tm_year-100, utctm.tm_hour, utctm.tm_min, utctm.tm_sec) ;
-		for(int i=0;i<7;i++)
-		{
-			printf(" %02X",reg[i]);
-		}
-		printf("\n");
-	    */
-        return WriteRegs(0x07, reg, 7);
+            utctm.tm_mday, utctm.tm_mon, utctm.tm_year-100, utctm.tm_hour, utctm.tm_min, utctm.tm_sec) ;
+        for(int i=0;i<7;i++)
+        {
+            printf(" %02X",reg[i]);
+        }
+        printf("\n");
+        */
+        return WriteRegs(0x07, 7, reg);
     }
     return -1;
 }
@@ -307,32 +283,30 @@ int DS3231::WriteTimeAlarm(time_t t)
 //	-1: DS3231 Error
 int DS3231::ReadTimeAlarm(time_t *t)
 {
-    int reg[7];
-    int r = ReadRegs(0x07, reg, 7);
+    unsigned char reg[7];
+    int r = ReadRegs(0x07, 7, reg);
     *t = -1;
-    if (r == 0)
+    if (r == 7 && reg[6] == ALARM_FLAG)
     {
-        if (reg[6] == ALARM_FLAG)
+        struct tm utctm = {0}; // init to 0
+        utctm.tm_isdst = -1;
+        utctm.tm_sec = bcd2hex(reg[0] & 0x7F);
+        utctm.tm_min = bcd2hex(reg[1] & 0x7F);
+        utctm.tm_hour = bcd2hex(reg[2] & 0x3F);
+        utctm.tm_mday = bcd2hex(reg[3] & 0x3F);       // 1-31
+        utctm.tm_year = bcd2hex(reg[4] & 0x7F) + 100; // 0-59: => 2000-2059
+        utctm.tm_mon = bcd2hex(reg[5] & 0x1F);        // 0-11
+        *t = timegm(&utctm);                          // utc time -> time_t
+                                                      /*printf("ReadTimeAlarm REgs:");
+        for(int i=0;i<7;i++)
         {
-            struct tm utctm = {0}; // init to 0
-            utctm.tm_isdst = -1;
-            utctm.tm_sec = bcd2hex(reg[0] & 0x7F);
-            utctm.tm_min = bcd2hex(reg[1] & 0x7F);
-            utctm.tm_hour = bcd2hex(reg[2] & 0x3F);
-            utctm.tm_mday = bcd2hex(reg[3] & 0x3F);       // 1-31
-            utctm.tm_year = bcd2hex(reg[4] & 0x7F) + 100; // 0-59: => 2000-2059
-            utctm.tm_mon = bcd2hex(reg[5] & 0x1F);        // 0-11
-            *t = timegm(&utctm);                          // utc time -> time_t
-                                                          /*printf("ReadTimeAlarm REgs:");
-			for(int i=0;i<7;i++)
-			{
-				printf(" %d",reg[i]);
-			}
-			printf(" => %s", ctime(t));
-			*/
+            printf(" %d",reg[i]);
         }
+        printf(" => %s", ctime(t));
+        */
+        return 0;
     }
-    return r;
+    return -1;
 }
 
 bool DS3231::IsChanged()
