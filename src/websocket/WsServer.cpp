@@ -1116,7 +1116,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         frm[6] = str.length();
         memcpy(frm.data() + 7, str.data(), str.length());
     }
-    else
+    else // Gfx or HR Gfx
     {
         str = msg["image"].get<std::string>();
         if(str.length() < 120)     // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
@@ -1128,7 +1128,11 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         auto &bmp = frmImg->GetBmp();
         auto rows = ucihw.PixelRows();
         auto columns = ucihw.PixelColumns();
-        if (bmp.TellHeight() != rows || bmp.TellWidth() != columns)
+        if(bmp.TellWidth() == columns+2*ucihw.CoreOffsetX() && bmp.TellHeight() == rows+2*ucihw.CoreOffsetY())
+        {// bmp including conspicuity & annulus
+            bmp.TrimFrame(ucihw.CoreOffsetX(), ucihw.CoreOffsetY());
+        }
+        if(bmp.TellHeight() != rows || bmp.TellWidth() != columns)
         {
             throw invalid_argument("Image size NOT matched with sign");
         }
@@ -1155,7 +1159,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
             frm[3] = rows;
             frm[4] = columns;
             frm[5] = colour;
-            frm[6] = 0;
+            frm[6] = conspicuity;
             Utils::Cnvt::PutU16(corelen, frm.data() + 7);
         }
         else
@@ -1165,7 +1169,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
             Cnvt::PutU16(rows, frm.data() + 3);
             Cnvt::PutU16(columns, frm.data() + 5);
             frm[7] = colour;
-            frm[8] = 0;
+            frm[8] = conspicuity;
             Utils::Cnvt::PutU32(corelen, frm.data() + 9);
         }
         frm[0] = static_cast<uint8_t>(frmType);

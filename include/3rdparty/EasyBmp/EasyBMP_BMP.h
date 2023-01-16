@@ -81,6 +81,7 @@ class BMP
  
  RGBApixel GetColor( int ColorNumber );
  bool SetColor( int ColorNumber, RGBApixel NewColor ); 
+ int TrimFrame(int x, int y);
 };
 
 #endif

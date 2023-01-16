@@ -1903,3 +1903,37 @@ bool Rescale( BMP& InputImage , char mode, int NewDimension )
  *InputImage(NewWidth-1,NewHeight-1) = *OldImage(OldWidth-1,OldHeight-1);
  return true;
 }
+
+int BMP::TrimFrame(int x, int y)
+{
+     if (Width <= x * 2 || Height <= y * 2)
+     {
+          return -1;
+     }
+     int w = Width - x * 2;
+     int h = Height - y * 2;
+
+     int i, j;
+     auto newPixels = new RGBApixel *[w];
+     for (i = 0; i < w; i++)
+     {
+          newPixels[i] = new RGBApixel[h];
+     }
+
+     for (int j = 0; j < h; j++)
+     {
+          for (int i = 0; i < w; i++)
+          {
+               newPixels[i][j] = Pixels[i + x][j + y];
+          }
+     }
+     for (i = 0; i < Width; i++)
+     {
+          delete[] Pixels[i];
+     }
+     delete[] Pixels;
+     Pixels = newPixels;
+     Width = w;
+     Height = h;
+     return 0;
+}

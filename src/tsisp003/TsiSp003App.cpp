@@ -143,7 +143,7 @@ void TsiSp003App::Password(uint8_t *data, int len)
     {
         session->Session(ISession::SESSION::OFF_LINE);
         SetRejectStr("Got[%04X]Expect[%04X]", pass, expp);
-        Reject(APP::ERROR::SyntaxError);
+        Reject(APP::ERROR::IncorrectPassword);
         //_Session_END();
         /*	Session_StartCount(INT_MAX-1);
     SetStatusLed(0);

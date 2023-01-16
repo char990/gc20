@@ -66,7 +66,8 @@ void FacilitySwitch::PeriodicRun()
             fsState = FS_STATE::OFF;
             break;
         default: // invalid
-            break;
+            PrintDbg(DBG_LOG, "Invalid FS=0x%02X",key);
+            return;        
         }
         if (lastState != fsState)
         {
