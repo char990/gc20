@@ -57,14 +57,14 @@ Group::Group(uint8_t groupId)
         }
         break;
     }
-    if (SignCnt() == 0)
+    if (vSigns.size() == 0)
     {
         throw invalid_argument(StrFn::PrintfStr("Error:There is no sign in Group[%d]", groupId));
     }
-    dsBak = new DispStatus(SignCnt());
-    dsCurrent = new DispStatus(SignCnt());
-    dsNext = new DispStatus(SignCnt());
-    dsExt = new DispStatus(SignCnt());
+    dsBak = new DispStatus(vSigns.size());
+    dsCurrent = new DispStatus(vSigns.size());
+    dsNext = new DispStatus(vSigns.size());
+    dsExt = new DispStatus(vSigns.size());
     // defult dsNext is BLANK
     dsNext->dispType = DISP_TYPE::BLK;
     dsNext->fmpid[0] = 0;
@@ -141,11 +141,11 @@ Group::~Group()
     delete dsCurrent;
     delete dsNext;
     delete dsExt;
-    for (int i = 0; i < SignCnt(); i++)
+    for (int i = 0; i < vSigns.size(); i++)
     {
         delete vSigns[i];
     }
-    for (int i = 0; i < SlaveCnt(); i++)
+    for (int i = 0; i < vSlaves.size(); i++)
     {
         delete vSlaves[i];
     }

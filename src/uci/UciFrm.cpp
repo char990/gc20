@@ -172,10 +172,9 @@ void UciFrm::SaveFrm(uint8_t i)
 	char filename[PRINT_BUF_SIZE];
 	// save uci format
 	snprintf(filename, PRINT_BUF_SIZE - 1, "%s/frm_%03d", PATH, i);
-	int len = stfrm->rawData.size() * 2;
-	char *v = new char[len + 1]; // 1 bytes space for '\n'
-	Cnvt::ParseToStr(stfrm->rawData.data(), v, stfrm->rawData.size());
-	v[len++] = '\n';
+	vector<char> v(stfrm->rawData.size() * 2 + 1);// 1 bytes space for '\n'
+	Cnvt::ParseToStr(stfrm->rawData.data(), v.data(), stfrm->rawData.size());
+	v.back() = '\n';
 	char buf[STRLOG_SIZE];
 	int frm_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	auto &alm = DbHelper::Instance().GetUciAlarm();
@@ -187,7 +186,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	}
 	else
 	{
-		if (write(frm_fd, v, len) != len)
+		if (write(frm_fd, v.data(), v.size()) != v.size())
 		{
 			snprintf(buf, STRLOG_SIZE - 1, "Write frm_%03d failed", i);
 			alm.Push(0, buf);
@@ -196,7 +195,6 @@ void UciFrm::SaveFrm(uint8_t i)
 		fdatasync(frm_fd);
 		close(frm_fd);
 	}
-	delete[] v;
 }
 
 void UciFrm::Reset()

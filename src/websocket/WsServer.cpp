@@ -314,7 +314,8 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
         }
         catch (...)
         {
-
+            reply.clear();
+            reply.emplace("result", "Something wrong");
         }
         WebSocketSend(c, reply);
     }
@@ -1603,7 +1604,7 @@ void WsServer::CMD_DisplayAtomic(struct mg_connection *c, json &msg, json &reply
 {
     vector<json> content = GetVector<json>(msg, "content");
     int len = content.size();
-    unique_ptr<uint8_t[]> cmd(new uint8_t[3 + len * 2]);
+    vector<uint8_t> cmd(3 + len * 2);
     cmd[0] = static_cast<uint8_t>(MI::CODE::SignDisplayAtomicFrames);
     cmd[1] = GetUint(msg, "group_id", 1, ctrller->GroupCnt());
     cmd[2] = len;
@@ -1612,7 +1613,7 @@ void WsServer::CMD_DisplayAtomic(struct mg_connection *c, json &msg, json &reply
         cmd[3 + i * 2] = GetUint(content[i], "sign_id", 1, ctrller->SignCnt());
         cmd[3 + i * 2 + 1] = GetUint(content[i], "frame_id", 1, 255);
     }
-    auto r = ctrller->CmdDispAtomicFrm(cmd.get(), 3 + len * 2);
+    auto r = ctrller->CmdDispAtomicFrm(cmd.data(), cmd.size());
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
 
@@ -1820,9 +1821,11 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
 void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
+    text.reserve(1024*1024);
     while (qltdTmc->size() > 0)
     {
-        text += qltdTmc->PopBack() + "\n";
+        text.append(qltdTmc->PopBack());
+        text.append("\n");
     }
     reply.emplace("text", text);
 }
@@ -1830,9 +1833,11 @@ void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohman
 void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
+    text.reserve(1024*1024);
     while (qltdSlave->size() > 0)
     {
-        text += qltdSlave->PopBack() + "\n";
+        text.append(qltdSlave->PopBack());
+        text.append("\n");
     }
     reply.emplace("text", text);
 }

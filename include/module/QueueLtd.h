@@ -53,16 +53,18 @@ public:
             *p++ = (buf[i] < ' ' || buf[i] >= 0x7F) ? ' ' : buf[i];
         }
         *p = '\0';
+        // modify "dd/mm/yyyy hh:mm:ss.mmm"
         if (id == ' ')
         {
-            p = pbuf.data() + 11; // skip data, start from "hh:mm:ss.mm"
+            p = pbuf.data() + 11; // skip header, start from "hh:mm:ss.mm"
         }
         else
         {
-            p = pbuf.data() + 8; // set id, start from "[X]hh:mm:ss.mm"
+            p = pbuf.data() + 7; // set id, start from "[X]-hh:mm:ss.mm"
             p[0] = '[';
             p[1] = id;
             p[2] = ']';
+            p[3] = '-';
         }
         PushBack(std::string(p)); // skip data, start from "hh:mm:ss.mm"
     }
