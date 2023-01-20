@@ -66,11 +66,19 @@ public:
             p[2] = ']';
             p[3] = '-';
         }
-        PushBack(std::string(p)); // skip data, start from "hh:mm:ss.mm"
+        if (size() == ltdSize)
+        {
+            pop_front();
+        }
+        emplace_back(p);
     }
 
     std::string PopFront()
     {
+        if (empty())
+        {
+            return std::string{};
+        }
         auto r = front();
         pop_front();
         return r;
@@ -78,15 +86,30 @@ public:
 
     std::string PopBack()
     {
+        if (empty())
+        {
+            return std::string{};
+        }
         auto r = back();
         pop_back();
         return r;
     }
 
-    int MaxSize() { return ltdSize; }
+    int LtdSize() { return ltdSize; }
+    void Resize(int s)
+    {
+        if (s >= 1 && s <= 255)
+        {
+            ltdSize = s;
+            if (size() > ltdSize)
+            {
+                resize(ltdSize);
+            }
+        }
+    }
 
 private:
-    const int ltdSize;
+    int ltdSize;
 };
 
 extern QueueLtd *qltdSlave;

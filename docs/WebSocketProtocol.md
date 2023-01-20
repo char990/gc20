@@ -58,7 +58,9 @@
     - [BackupFirmware](#backupfirmware)
     - [UpgradeFirmware](#upgradefirmware)
     - [TestTMC](#testtmc)
+    - [TestBufLenTMC](#testbuflentmc)
     - [TestSlave](#testslave)
+    - [TestBufLenSlave](#testbuflenslave)
 
 ---
 
@@ -1345,6 +1347,31 @@ Controller reply: JSON:
 }
 ```
 
+### TestBufLenTMC
+
+Direction: Master -> Controller
+
+Description: Set TMC buffer length in controller
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"TestBufLenTMC",
+"len":50  // 1-255
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"TestBufLenTMC",
+"result":"OK" or error message
+}
+```
+
 ### TestSlave
 
 Direction: Master -> Controller
@@ -1366,5 +1393,30 @@ Controller reply: JSON:
 "replyms":13274693458,
 "cmd":"TestSlave",
 "text":"12:34:56.235>>>Command from Controller\n12:34:56.235<<<Reply from slave\n........"
+}
+```
+
+### TestBufLenSlave
+
+Direction: Master -> Controller
+
+Description: Set Slave buffer length in controller
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"TestBufLenSlave",
+"len":50  // 1-255
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"TestBufLenSlave",
+"result":"OK" or error message
 }
 ```

@@ -240,7 +240,9 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(UpgradeFirmware),
     CMD_ITEM(BackupFirmware),
     CMD_ITEM(TestTMC),
+    CMD_ITEM(TestBufLenTMC),
     CMD_ITEM(TestSlave),
+    CMD_ITEM(TestBufLenSlave),
 };
 
 void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -1821,7 +1823,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
 void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
-    text.reserve(1024*1024);
+    text.reserve(64*1024);
     while (qltdTmc->size() > 0)
     {
         text.append(qltdTmc->PopBack());
@@ -1830,14 +1832,28 @@ void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohman
     reply.emplace("text", text);
 }
 
+void WsServer::CMD_TestBufLenTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    auto len = GetUint(msg, "len", 1, 255);
+    qltdTmc->Resize(len);
+    reply.emplace("result", "OK");
+}
+
 void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
-    text.reserve(1024*1024);
+    text.reserve(64*1024);
     while (qltdSlave->size() > 0)
     {
         text.append(qltdSlave->PopBack());
         text.append("\n");
     }
     reply.emplace("text", text);
+}
+
+void WsServer::CMD_TestBufLenSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
+{
+    auto len = GetUint(msg, "len", 1, 255);
+    qltdSlave->Resize(len);
+    reply.emplace("result", "OK");
 }
