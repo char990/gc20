@@ -117,11 +117,11 @@ namespace Utils
     public:
         /// \brief  Check if input is a legal Hex string
         /// \return 0:success
-        static int HexStr(uint8_t *frm, int len);
+        static int HexStr(const uint8_t *frm, int len);
 
         /// \brief  Check if input is text(0x20-0x7F)
         /// \return 0:success
-        static int Text(uint8_t *frm, int len);
+        static int Text(const uint8_t *frm, int len);
     };
 
     class Cnvt
@@ -468,21 +468,6 @@ namespace Utils
     class Pick
     {
     public:
-        /// \brief Pick a int/char/uint8_t... from int/char/uint8_t... array
-        /// \return index(0 ~ len-1), -1 means not hit
-        template <typename T>
-        static int PickInt(const T v, const T *src, const int len)
-        {
-            for (int i = 0; i < len; i++)
-            {
-                if (v == *src++)
-                {
-                    return i;
-                }
-            }
-            return -1;
-        };
-
         /// \brief Pick a string from stringz
         /// \return index(0 ~ len-1), -1 means not hit
         static int PickStr(const char *str, const char **strz, const int len, const bool ignore_case = false);

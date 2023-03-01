@@ -187,7 +187,8 @@ void SerialPort::ConfigureTermios()
 	if (spConfig.mode != SpConfig::SpMode::RS232)
 	{
 		rs485conf.flags |= SER_RS485_ENABLED |
-						   (spConfig.mode == SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);
+						   (spConfig.mode == SpConfig::SpMode::RS485_10 ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND) |
+						   SER_RS485_RX_DURING_TX;
 	}
 	if (ioctl(spFileDesc, TIOCSRS485, &rs485conf) < 0)
 	{

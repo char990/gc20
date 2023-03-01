@@ -24,7 +24,7 @@ const uint32_t Utils::MASK_BIT[32] = {
     0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
     0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000};
 
-int Check::HexStr(uint8_t *frm, int len)
+int Check::HexStr(const uint8_t *frm, int len)
 {
     if (len < 2 || len & 1)
     {
@@ -40,11 +40,11 @@ int Check::HexStr(uint8_t *frm, int len)
     return 0;
 }
 
-int Check::Text(uint8_t *frm, int len)
+int Check::Text(const uint8_t *frm, int len)
 {
     for (int i = 0; i < len; i++)
     {
-        if (*frm < 0x20 || *frm > 0x7F)
+        if (*frm < 0x20 || *frm >= 0x7F)
         {
             return -1;
         }
@@ -911,7 +911,7 @@ bool Bits::GetBit(int bitOffset)
     return BitOffset::Get07Bit(data.data(), bitOffset);
 }
 
-string Bits::ToString()
+string Bits::ToString() // first 256 items
 {
     char buf[PRINT_BUF_SIZE];
     int len = 0;

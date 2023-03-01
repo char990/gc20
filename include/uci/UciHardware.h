@@ -119,6 +119,8 @@ public:
     int MonitoringPort() { return monitoringPort; };
     int MonitoringBps() { return monitoringBps; };
 
+    bool IsAsciiAllowed(char c) { return allowedAscii.GetBit(c); };
+
 private:
     ///  ---------- section -----------
     const char *_SectionCtrller = "ctrller_cfg";
@@ -128,6 +130,7 @@ private:
     // string
     const char *_MfcCode = "MfcCode";
     const char *_ProdType = "ProdType";
+    const char *_AllowedAscii = "AllowedAscii";
 
     // int array
     const char *_Font = "Font";
@@ -201,6 +204,8 @@ private:
     PRODUCT prodType;
 
     char mfcCode[11]{};
+
+    Utils::Bits allowedAscii{128};
 
     Font *fonts[MAX_FONT + 1]{};
 

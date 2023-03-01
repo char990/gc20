@@ -75,8 +75,34 @@ void UciHardware::LoadConfig()
         ThrowError(_MfcCode, "Should be 6 bytes");
     }
 
-    testTMC = GetInt(uciSec, _TestTMC, 10, 99);
-    testSlave = GetInt(uciSec, _TestSlave, 10, 99);
+    auto achrs = GetStr(uciSec, _AllowedAscii, false);
+    if (achrs != nullptr)
+    {
+        while (char c = *achrs)
+        {
+            if (c >= ' ' && c < 127)
+            {
+                allowedAscii.SetBit(c);
+            }
+            else
+            {
+                ThrowError(_MfcCode, "Invalid Ascii");
+            }
+            achrs++;
+        }
+        allowedAscii.SetBit('"');
+        allowedAscii.SetBit('\'');
+    }
+    else
+    {
+        for (char c = ' '; c < 127; c++)
+        {
+            allowedAscii.SetBit(c);
+        }
+    }
+
+    testTMC = GetInt(uciSec, _TestTMC, 1, 255);
+    testSlave = GetInt(uciSec, _TestSlave, 1, 255);
 
     pixelRows = GetInt(uciSec, _PixelRows, 8, 4096);
     pixelColumns = GetInt(uciSec, _PixelColumns, 8, 4096);
@@ -469,6 +495,16 @@ void UciHardware::Dump()
     PrintOption_str(_TsiSp003Ver, TSISP003VER[TsiSp003Ver()]);
     PrintOption_str(_ProdType, PRODTYPE[static_cast<int>(ProdType())]);
     PrintOption_str(_MfcCode, MfcCode());
+
+    printf("\t%s\t'", _AllowedAscii);
+    for (int i = 0; i < 128; i++)
+    {
+        if (allowedAscii.GetBit(i))
+        {
+            printf("%c",i);
+        }
+    }
+    printf("'\n");
 
     PrintOption_d(_TestTMC, TestTMC());
     PrintOption_d(_TestSlave, TestSlave());

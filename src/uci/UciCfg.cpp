@@ -312,10 +312,9 @@ int UciCfg::GetIndexFromStrz(struct uci_section *uciSec, const char *option, con
 int UciCfg::GetInt(struct uci_section *uciSec, const char *option, const int *collection, int cSize, bool ex)
 {
 	int x = GetInt(uciSec, option, INT_MIN, INT_MAX, ex);
-	x = Utils::Pick::PickInt<int>(x, collection, cSize);
-	if (x >= 0)
+	if (std::find (collection, collection+cSize, x) != collection+cSize)
 	{
-		return collection[x];
+		return x;
 	}
 	else if (ex)
 	{

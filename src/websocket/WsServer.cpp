@@ -1122,7 +1122,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
     else // Gfx or HR Gfx
     {
         str = msg["image"].get<std::string>();
-        if(str.length() < 120)     // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
+        if (str.length() < 120) // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
         {
             throw invalid_argument("Invalid Base64 BMP data");
         }
@@ -1131,11 +1131,11 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         auto &bmp = frmImg->GetBmp();
         auto rows = ucihw.PixelRows();
         auto columns = ucihw.PixelColumns();
-        if(bmp.TellWidth() == columns+2*ucihw.CoreOffsetX() && bmp.TellHeight() == rows+2*ucihw.CoreOffsetY())
-        {// bmp including conspicuity & annulus
+        if (bmp.TellWidth() == columns + 2 * ucihw.CoreOffsetX() && bmp.TellHeight() == rows + 2 * ucihw.CoreOffsetY())
+        { // bmp including conspicuity & annulus
             bmp.TrimFrame(ucihw.CoreOffsetX(), ucihw.CoreOffsetY());
         }
-        if(bmp.TellHeight() != rows || bmp.TellWidth() != columns)
+        if (bmp.TellHeight() != rows || bmp.TellWidth() != columns)
         {
             throw invalid_argument("Image size NOT matched with sign");
         }
@@ -1474,7 +1474,7 @@ void WsServer::CMD_SetPlan(struct mg_connection *c, nlohmann::json &msg, json &r
     for (auto g : ctrller->GetGroups())
     {
         int gid = g->GroupId();
-        if (egs.size() > 0 && Pick::PickInt(gid, egs.data(), egs.size()) >= 0)
+        if (!egs.empty() && find(egs.begin(), egs.end(), gid) != egs.end())
         {
             enable_g.emplace_back(gid);
         }
@@ -1823,7 +1823,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
 void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
-    text.reserve(64*1024);
+    text.reserve(64 * 1024);
     while (qltdTmc->size() > 0)
     {
         text.append(qltdTmc->PopBack());
@@ -1842,7 +1842,7 @@ void WsServer::CMD_TestBufLenTMC(struct mg_connection *c, nlohmann::json &msg, n
 void WsServer::CMD_TestSlave(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
     string text;
-    text.reserve(64*1024);
+    text.reserve(64 * 1024);
     while (qltdSlave->size() > 0)
     {
         text.append(qltdSlave->PopBack());

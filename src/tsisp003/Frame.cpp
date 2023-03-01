@@ -145,6 +145,10 @@ void Frame::SetPixel(uint8_t colourbit, uint8_t *buf, int x, int y, uint8_t mono
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     int columns = ucihw.PixelColumns();
     int rows = ucihw.PixelRows();
+    if (x >= columns || y >= rows)
+    {
+        return;
+    }
     int offset = y * columns + x;
     if (colourbit == 1)
     {
@@ -227,8 +231,19 @@ FrmTxt::FrmTxt(uint8_t *frm, int len)
     frmBytes = frm[6];
     if (Frame::FrameCheck(frm, len) == 0)
     {
-        stFrm.Init(frm, len);
+        auto & hdw = DbHelper::Instance().GetUciHardware();
+        for (int i = 0; i < frmBytes; i++)
+        {
+            char c = frm[TXTFRM_HEADER_SIZE + i];
+            if (!hdw.IsAsciiAllowed(c))
+            {
+                Ldebug("Frame[%d]: '%c' NOT allowed", frmId, c);
+                appErr = APP::ERROR::TextNonASC;
+                return;
+            }
+        }
     }
+    stFrm.Init(frm, len);
 }
 
 int FrmTxt::CheckLength(int len)

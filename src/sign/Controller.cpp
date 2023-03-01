@@ -668,11 +668,26 @@ APP::ERROR Controller::CmdSetDimmingLevel(uint8_t *cmd, char *rejectStr)
         p += 3;
     }
     char buf[STRLOG_SIZE];
-    int len = sprintf(buf, "SetDimming:");
+    int slen = sprintf(buf, "SetDimming: Group:");
     p = cmd + 2;
     for (int i = 0; i < cmd[1]; i++)
     {
-        len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " Grp%d(%d-%d)", p[0], p[1], p[2]);
+        if (p[0] == 0)
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [All]");
+        }
+        else
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [%d]", p[0]);
+        }
+        if (p[1] == 0)
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, "Auto");
+        }
+        else
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, "=%d", p[2]);
+        }
         p += 3;
     }
     db.GetUciEvent().Push(0, buf);
@@ -720,11 +735,19 @@ APP::ERROR Controller::CmdPowerOnOff(uint8_t *cmd, char *rejectStr)
         p += 2;
     }
     char buf[STRLOG_SIZE];
-    int slen = sprintf(buf, "Power ON/OFF:");
+    int slen = sprintf(buf, "Power ON/OFF: Group:");
     p = cmd + 2;
     for (int i = 0; i < cmd[1] && slen < STRLOG_SIZE - 1; i++)
     {
-        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " Grp%d(%d)", p[0], p[1]);
+        if (p[0] == 0)
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [All]");
+        }
+        else
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [%d]", p[0]);
+        }
+        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, "%s", p[1] == 0 ? "Off" : "On");
         p += 2;
     }
     db.GetUciEvent().Push(0, buf);
@@ -772,11 +795,19 @@ APP::ERROR Controller::CmdDisableEnableDevice(uint8_t *cmd, char *rejectStr)
         p += 2;
     }
     char buf[STRLOG_SIZE];
-    int slen = sprintf(buf, "Dis/EnableDevice:");
+    int slen = sprintf(buf, "Dis/EnableDevice: Group:");
     p = cmd + 2;
     for (int i = 0; i < cmd[1] && slen < STRLOG_SIZE - 1; i++)
     {
-        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " Grp%d(%d)", p[0], p[1]);
+        if (p[0] == 0)
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [All]");
+        }
+        else
+        {
+            slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, " [%d]", p[0]);
+        }
+        slen += snprintf(buf + slen, STRLOG_SIZE - 1 - slen, "%s", p[1] == 0 ? "Dis" : "En");
         p += 2;
     }
     db.GetUciEvent().Push(0, buf);
@@ -927,6 +958,10 @@ APP::ERROR Controller::SignSetFrame(uint8_t *data, int len, char *rejectStr)
                 db.GetUciEvent().Push(0, "SetHiResGfxFrame: [%d]", id);
                 break;
             }
+        }
+        else
+        {
+            snprintf(rejectStr, REJECT_BUF_SIZE - 1, "SetFrame[%d] rejected:%s", id, APP::ToStr(r));
         }
     }
     return r;

@@ -126,13 +126,12 @@ void Sign::RefreshSlaveStatusAtSt()
     uint8_t check_chain_fault = 0;
     uint8_t check_selftest = 0;
     uint8_t check_lantern = 0;
-    /*
     for (auto &s : vsSlaves)
     {
         check_chain_fault |= s->panelFault & 0x0F;
         check_selftest |= s->selfTest & 1;
     }
-*/
+
     // lanterns installed at first&last slaves
     check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
 
@@ -386,11 +385,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             ls18hoursFault.ClearEdge();
             if (ls18hoursFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: ls18hours ONSET", lux, usercfg.Lux18HoursMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 18-hour: LS-18hoursFault ONSET", lux, usercfg.Lux18HoursMin());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min: ls18hours CLEAR", lux, usercfg.Lux18HoursMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 18-hour: LS-18hoursFault CLEAR", lux, usercfg.Lux18HoursMin());
             }
         }
         if (lsMiddayFault.HasEdge())
@@ -398,11 +397,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             lsMiddayFault.ClearEdge();
             if (lsMiddayFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 11am-3pm: lsMidday ONSET", lux, usercfg.LuxDayMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d(15-min in 11am-3pm): LS-MiddayFault ONSET", lux, usercfg.LuxDayMin());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-minin 11am-3pm: lsMidday CLEAR", lux, usercfg.LuxDayMin());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d(15-min in 11am-3pm): LS-MiddayFault CLEAR", lux, usercfg.LuxDayMin());
             }
         }
         if (lsMidnightFault.HasEdge())
@@ -410,11 +409,11 @@ void Sign::RefreshSlaveStatusAtExtSt()
             lsMidnightFault.ClearEdge();
             if (lsMidnightFault.IsHigh())
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d for 15-min in 23pm-3am: lsMidnight ONSET", lux, usercfg.LuxNightMax());
+                db.GetUciAlarm().Push(signId, "Lux(%d)>=%d(15-min in 23pm-3am): LS-MidnightFault ONSET", lux, usercfg.LuxNightMax());
             }
             else
             {
-                db.GetUciAlarm().Push(signId, "Lux(%d)<%d for 15-min in 23pm-3am: lsMidnight CLEAR", lux, usercfg.LuxNightMax());
+                db.GetUciAlarm().Push(signId, "Lux(%d)<%d(15-min in 23pm-3am): LS-MidnightFault CLEAR", lux, usercfg.LuxNightMax());
             }
         }
     }
@@ -422,12 +421,34 @@ void Sign::RefreshSlaveStatusAtExtSt()
 
 void Sign::RefreshFatalError()
 {
-    if (chainFault.IsHigh() || multiLedFault.IsHigh() || selftestFault.IsHigh() || voltageFault.IsHigh() || overtempFault.IsHigh())
+    char buf[6]{0};
+    char *p=buf;
+    if(chainFault.IsHigh())
+    {
+        *p++='C';
+    }
+    if(multiLedFault.IsHigh())
+    {
+        *p++='L';
+    }
+    if(selftestFault.IsHigh())
+    {
+        *p++='S';
+    }
+    if(voltageFault.IsHigh())
+    {
+        *p++='V';
+    }
+    if(overtempFault.IsHigh())
+    {
+        *p++='T';
+    }
+    if (p!=buf)
     {
         fatalError.Set();
         if (fatalError.IsRising())
         {
-            Ldebug("Sign[%d]:fatalError Set", signId);
+            Ldebug("Sign[%d]:fatalError Set:(%s)", signId, buf);
         }
     }
     else
