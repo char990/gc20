@@ -2,6 +2,8 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <thread>
+
 #include <3rdparty/mongoose/mongoose.h>
 #include <3rdparty/nlohmann/json.hpp>
 

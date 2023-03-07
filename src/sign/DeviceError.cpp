@@ -65,13 +65,14 @@ bool DeviceError::IsSet(DEV::ERROR code)
 }
 
 /***************** SignError *****************/
-#define SIGNERROR_SIZE 10
+#define SIGNERROR_SIZE 11
 const DEV::ERROR SignError::SIGNERROR[SIGNERROR_SIZE] = {
     DEV::ERROR::UnderLocalControl,
     DEV::ERROR::PoweredOffByCommand,
     DEV::ERROR::SignSingleLedFailure,
     DEV::ERROR::SignLuminanceControllerFailure,
     DEV::ERROR::ConspicuityDeviceFailure,
+    DEV::ERROR::MainProcessorCommunicationsError,
     DEV::ERROR::InternalPowerSupplyFault,
     DEV::ERROR::OverTemperatureAlarm,
     DEV::ERROR::SignMultiLedFailure,

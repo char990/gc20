@@ -16,7 +16,6 @@ Controller *WsServer::ctrller;
 int WsServer::activeCnt = 0;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
-    : tmrEvt(tmrEvt)
 {
     if (port < 1024 || port > 65535)
     {
@@ -27,8 +26,15 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
     mg_mgr_init(&mgr); // Initialise event manager
     Ldebug("Starting WebSocket listener on %s", buf);
     mg_http_listen(&mgr, buf, fn, NULL); // Create HTTP listener
-    tmrEvt->Add(this);
     ctrller = &(Controller::Instance());
+    this->tmrEvt = tmrEvt;
+    if(tmrEvt!=nullptr)
+    {
+        tmrEvt->Add(this);
+    }
+    else
+    {
+    }
 }
 
 WsServer::~WsServer()
@@ -43,8 +49,15 @@ WsServer::~WsServer()
         c = c->next;
     };
     mg_mgr_free(&mgr);
-    tmrEvt->Remove(this);
-    tmrEvt = nullptr;
+    if(tmrEvt!=nullptr)
+    {
+        tmrEvt->Remove(this);
+        tmrEvt = nullptr;
+    }
+    else
+    {
+
+    }
 }
 
 void WsServer::PeriodicRun()

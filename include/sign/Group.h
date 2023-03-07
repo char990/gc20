@@ -358,6 +358,7 @@ private:
         for (auto &s : vSlaves)
         {
             s->rqstNoRplTmr.Clear();
+            s->cnCrcErrTmr.Clear();
         }
     }
 

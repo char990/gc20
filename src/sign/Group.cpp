@@ -215,7 +215,7 @@ void Group::NormalMode()
     }
     for (auto &slv : vSlaves)
     {
-        fatal |= slv->isOffline;
+        fatal |= (slv->isOffline == 1) ? 1 : 0;
     }
     fatal ? fatalError.Set() : fatalError.Clr();
 
@@ -600,7 +600,6 @@ bool Group::TaskMsg(int *_ptLine)
                     if (msgDispEntry == pMsg->entries - 1 || pMsg->msgEntries[msgDispEntry].onTime != 0)
                     { // overlay frame do not need to run DispFrm
                         onDispFrmId = pMsg->msgEntries[msgDispEntry].frmId;
-                        GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                         (pMsg->msgEntries[msgDispEntry].onTime == 0) ? taskMsgTmr.Clear() // last entry && onTIme is 0, display forever
                                                                      : taskMsgTmr.Setms(pMsg->msgEntries[msgDispEntry].onTime * 100 - 1);
                         if (msgDispEntry == pMsg->entries - 1)
@@ -621,6 +620,7 @@ bool Group::TaskMsg(int *_ptLine)
                             if (allSlavesCurrent == 0)
                             {
                                 AllSlavesUpdateCurrentBak();
+                                GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                             }
                             else if (allSlavesCurrent == 3)
                             {
@@ -844,7 +844,6 @@ bool Group::TaskFrm(int *_ptLine)
             for (int i = 0; i < SignCnt(); i++)
             {
                 activeFrm.SetBit(dsCurrent->fmpid[i]);
-                vSigns.at(i)->SetReportDisp(dsCurrent->fmpid[i], 0, 0);
             }
             TaskSetATFReset();
             PT_WAIT_TASK(TaskSetATF(&taskATFLine));
@@ -888,7 +887,6 @@ bool Group::TaskFrm(int *_ptLine)
                     PT_WAIT_UNTIL(CheckAllSlavesNext() >= 0);
                 } while (allSlavesNext == 1);
             }
-            GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
         }
         // step2: display frame
         do
@@ -910,6 +908,17 @@ bool Group::TaskFrm(int *_ptLine)
                 if (allSlavesCurrent == 0)
                 {
                     AllSlavesUpdateCurrentBak();
+                    if (dsCurrent->dispType == DISP_TYPE::ATF)
+                    {
+                        for (int i = 0; i < SignCnt(); i++)
+                        {
+                            vSigns.at(i)->SetReportDisp(dsCurrent->fmpid[i], 0, 0);
+                        }
+                    }
+                    else
+                    {
+                        GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+                    }
                 }
             } while (allSlavesCurrent == 0); // all good
         } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
@@ -952,7 +961,7 @@ uint8_t Group::GetTargetDimmingLvl() // 1-16
     return tgt;
 }
 
-//#define DEBUG_ADJ_DIMMING
+// #define DEBUG_ADJ_DIMMING
 bool Group::TaskAdjustDimming(int *_ptLine)
 {
     PT_BEGIN();
@@ -1045,53 +1054,47 @@ bool Group::TaskRqstSlave(int *_ptLine)
         {
             taskRqstSlaveTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
             RqstStatus(rqstSt_slvindex);
-            {
-                auto slave = vSlaves.at(rqstSt_slvindex);
-                slave->rxStatus = 0;
-                if (slave->rqstNoRplTmr.IsClear())
-                {
-                    slave->rqstNoRplTmr.Setms(ucihw.OfflineDebounce() * 1000);
-                }
-            }
             PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
             {
                 auto s = vSlaves.at(rqstSt_slvindex);
                 if (s->GetRxStatus())
                 {
-                    s->rqstNoRplTmr.Clear();
-                    if (s->isOffline)
+                    s->ReportOffline(false);
+                    if (s->GetStCurrent() > 0 || s->GetStNext() > 0)
                     {
-                        s->ReportOffline(false);
-                        s->sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
+                        if (s->cnCrcErrTmr.IsClear())
+                        {
+                            s->cnCrcErrTmr.Setms(ucihw.OfflineDebounce() * 1000);
+                        }
+                        else if (s->cnCrcErrTmr.IsExpired())
+                        {
+                            s->ReportCNCrcErr(true);
+                        }
+                    }
+                    else
+                    {
+                        s->ReportCNCrcErr(false);
+                        s->cnCrcErrTmr.Clear();
                     }
                 }
                 else
                 {
                     if (s->rqstNoRplTmr.IsExpired())
                     {
-                        if (!s->isOffline)
-                        {
-                            s->ReportOffline(true);
-                            s->sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
-                        }
+                        s->ReportOffline(true);
                     }
                 }
             }
 
-            if (rqstSt_slvindex == SlaveCnt() - 1)
+            if (++rqstSt_slvindex >= SlaveCnt())
             {
                 rqstSt_slvindex = 0;
-            }
-            else
-            {
-                rqstSt_slvindex++;
             }
         } while (rqstSt_slvindex != 0);
 
         // Request Ext-status x
         taskRqstSlaveTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
         RqstExtStatus(rqstExtSt_slvindex);
-        vSlaves.at(rqstExtSt_slvindex)->rxExtSt = 0;
         PT_YIELD_UNTIL(taskRqstSlaveTmr.IsExpired());
         if (++rqstExtSt_slvindex == SlaveCnt())
         {
@@ -1105,7 +1108,7 @@ int Group::CheckAllSlavesNext()
 {
     for (auto &s : vSlaves)
     {
-        int x = s->CheckNext();
+        int x = s->GetStNext();
         if (x != 0)
         {
             allSlavesNext = x;
@@ -1120,7 +1123,7 @@ int Group::CheckAllSlavesCurrent()
 {
     for (auto &s : vSlaves)
     {
-        int x = s->CheckCurrent();
+        int x = s->GetStCurrent();
         if (x != 0)
         {
             allSlavesCurrent = x;
@@ -1576,7 +1579,7 @@ APP::ERROR Group::DispAtomic(uint8_t *cmd, bool log)
         {
             db.GetUciProcess().SetDisp(groupId, cmd, 3 + SignCnt() * 2);
             char buf[STRLOG_SIZE];
-            int len = snprintf(buf, STRLOG_SIZE-1, "Group[%d]DispAtomic:", cmd[1]);
+            int len = snprintf(buf, STRLOG_SIZE - 1, "Group[%d]DispAtomic:", cmd[1]);
             uint8_t *p = cmd + 3;
             for (int i = 0; i < cmd[2] && len < STRLOG_SIZE - 1; i++)
             {
@@ -1772,6 +1775,10 @@ int Group::RqstStatus(uint8_t slvindex)
 {
     LockBus(ucihw.SlaveRqstStTo());
     Slave *s = vSlaves[slvindex];
+    if (s->rqstNoRplTmr.IsClear())
+    {
+        s->rqstNoRplTmr.Setms(ucihw.OfflineDebounce() * 1000);
+    }
     s->rxStatus = 0;
     txBuf[0] = s->SlaveId();
     txBuf[1] = SLVCMD::RQST_STATUS;

@@ -134,7 +134,7 @@ bool GroupIslus::TaskSetATF(int *_ptLine)
         }
         for (int i = 0; i < SlaveCnt(); i++)
         { // mark atfSt
-            atfSt.at(i) = vSlaves.at(i)->CheckNext();
+            atfSt.at(i) = vSlaves.at(i)->GetStNext();
         }
     }
     PT_END();

@@ -26,7 +26,7 @@ Slave::Slave(uint8_t id)
     if (isSimSlave)
     {
         printf("SLAVE[%d] EMULATOR\n", id);
-        panelFault = 0;
+        chainFault = 0;
         overTemp = 0;
         selfTest = 0;
         singleLedFault = 0;
@@ -72,12 +72,11 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     {
         return 0;
     }
-    if (*buf != slaveId)
+    if (*buf++ != slaveId)
     {
         return -1;
     }
-    buf++;
-    if (*buf != 0x06)
+    if (*buf++ != 0x06)
     {
         return -2;
     }
@@ -85,9 +84,9 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     {
         return -3;
     }
-    buf++;
     rxStatus = 1;
-    panelFault = *buf++;
+    rqstNoRplTmr.Clear();
+    chainFault = *buf++;
     overTemp = *buf++;
     selfTest = *buf++;
     singleLedFault = *buf++;
@@ -98,6 +97,8 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     buf += 2;
     nextFrmId = *buf++;
     nextFrmCrc = Cnvt::GetU16(buf);
+    stCurrentCrc = CheckCurrent();
+    stNextCrc = CheckNext();
     return 0;
 }
 
@@ -170,24 +171,16 @@ uint8_t Slave::GetRxExtSt()
 
 int Slave::CheckCurrent()
 {
-    if (isSimSlave)
-    {
-        return 0;
-    }
-    if (rxStatus == 0)
-    {
-        return -1;
-    }
     if (expectCurrentFrmId == currentFrmId && frmCrc[expectCurrentFrmId] == currentFrmCrc)
     {
         return 0;
     }
     else
     {
-        Ldebug("Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)",
-                 sign->SignId(), slaveId,
-                 currentFrmId, currentFrmCrc,
-                 expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+        Pdebug("Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)",
+               sign->SignId(), slaveId,
+               currentFrmId, currentFrmCrc,
+               expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
             if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmIdBak] == currentFrmCrc)
@@ -198,45 +191,62 @@ int Slave::CheckCurrent()
                 }
                 else
                 { // if currentFrmId==0, slave may reset
-                    return 3;
+                    return 2;
                 }
             }
         }
-        return 2; // fatal error, frames in slave lost. Should re-SetFrame
+        return 3; // fatal error, frames in slave lost. Should re-SetFrame
     }
+}
+
+int Slave::GetStCurrent()
+{
+    return isSimSlave ? 0 : (rxStatus == 0 ? -1 : stCurrentCrc);
 }
 
 int Slave::CheckNext()
 {
-    if (isSimSlave)
-    {
-        return 0;
-    }
-    if (rxStatus == 0)
-    {
-        return -1;
-    }
     if (expectNextFrmId == nextFrmId && frmCrc[expectNextFrmId] == nextFrmCrc)
     {
         return 0;
     }
     else
     {
-        Ldebug("Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)",
-                 sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+        Pdebug("Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)",
+               sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
 }
 
+int Slave::GetStNext()
+{
+    return isSimSlave ? 0 : (rxStatus == 0 ? -1 : stNextCrc);
+}
+
 void Slave::ReportOffline(bool v)
 {
-    char buf[STRLOG_SIZE];
-    snprintf(buf, STRLOG_SIZE-1, "Sign[%d].Slave[%d] %s-line", sign->SignId(), slaveId, v ? "OFF" : "On");
-    Ldebug(buf);
-    DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
-    if (v)
+    int iv = v ? 1 : 0;
+    if (isOffline != iv)
     {
-        sign->SignErr(DEV::ERROR::InternalCommunicationsFailure, v);
+        isOffline = iv;
+        char buf[STRLOG_SIZE];
+        snprintf(buf, STRLOG_SIZE - 1, "Sign[%d].Slave[%d] %s-line", sign->SignId(), slaveId, v ? "OFF" : "On");
+        Ldebug(buf);
+        DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
+        sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
     }
-    isOffline = v;
+}
+
+void Slave::ReportCNCrcErr(bool v)
+{
+    int iv = v ? 1 : 0;
+    if (isCNCrcErr != iv)
+    {
+        isCNCrcErr = iv;
+        char buf[STRLOG_SIZE];
+        snprintf(buf, STRLOG_SIZE - 1, "Sign[%d].Slave[%d] C|N CRC %s (0x21=MPCerror)", sign->SignId(), slaveId, v ? "ERR" : "OK");
+        Ldebug(buf);
+        DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
+        sign->RefreshDevErr(DEV::ERROR::MainProcessorCommunicationsError);
+    }
 }

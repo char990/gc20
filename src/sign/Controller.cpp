@@ -906,7 +906,7 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
                 const char *s = "UpdateTime: Set DS3231 time failed(IntComFail)";
                 Ldebug(s);
                 db.GetUciAlarm().Push(0, s);
-                db.GetUciFault().Push(0, DEV::ERROR::InternalCommunicationsFailure, 1);
+                db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 return APP::ERROR::TimeExpired;
             }
             return APP::ERROR::AppNoError;

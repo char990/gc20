@@ -123,43 +123,53 @@ void Sign::RefreshSlaveStatusAtSt()
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
     char buf[STRLOG_SIZE];
+    int len;
     uint8_t check_chain_fault = 0;
     uint8_t check_selftest = 0;
     uint8_t check_lantern = 0;
-    for (auto &s : vsSlaves)
-    {
-        check_chain_fault |= s->panelFault & 0x0F;
-        check_selftest |= s->selfTest & 1;
-    }
 
     // lanterns installed at first&last slaves
-    check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
-
-    chainFault.Check(check_chain_fault > 0, t2);
-    snprintf(buf, STRLOG_SIZE - 1, "ChainFault=0x%02X", check_chain_fault);
-    DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
-
-    selftestFault.Check(check_selftest > 0, t2);
-    if (check_selftest > 0)
+    buf[0] = '\0';
+    check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : // only one slave
+                        ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
+    lanternFault.Check(check_lantern > 0, t2);
+    if (check_lantern > 0)
     {
-        int len = sprintf(buf, "Slave in Selftest:");
-        for (auto &s : vsSlaves)
+        sprintf(buf, "LanternFault=0x%02X", check_lantern);
+    }
+    DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
+
+    // Chain
+    buf[0] = '\0';
+    len = 0;
+    for (auto &s : vsSlaves)
+    {
+        auto cf = s->chainFault & 0x0F;
+        check_chain_fault |= cf;
+        if (cf)
         {
-            if (s->selfTest & 1)
-            {
-                len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " %d", s->SlaveId());
-                if (len > STRLOG_SIZE - 1)
-                {
-                    break;
-                }
-            }
+            len += snprintf(buf, STRLOG_SIZE - len - 1, " [%d]=0x%02X", s->SlaveId(), cf);
         }
     }
-    DbncFault(selftestFault, DEV::ERROR::UnderLocalControl, buf);
+    chainFault.Check(check_chain_fault > 0, t2);
+    DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
-    lanternFault.Check(check_lantern > 0, t2);
-    sprintf(buf, "LanternFault=0x%02X", check_lantern);
-    DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
+    // Selftest
+    buf[0] = '\0';
+    len = 0;
+    for (auto &s : vsSlaves)
+    {
+        if (s->selfTest & 1)
+        {
+            if (len == 0)
+            {
+                len = sprintf(buf, "Slave in Selftest:");
+            }
+            len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " %d", s->SlaveId());
+        }
+    }
+    selftestFault.Check(check_selftest > 0, t2);
+    DbncFault(selftestFault, DEV::ERROR::UnderLocalControl, buf);
 
     RefreshFatalError();
 }
@@ -422,28 +432,28 @@ void Sign::RefreshSlaveStatusAtExtSt()
 void Sign::RefreshFatalError()
 {
     char buf[6]{0};
-    char *p=buf;
-    if(chainFault.IsHigh())
+    char *p = buf;
+    if (chainFault.IsHigh())
     {
-        *p++='C';
+        *p++ = 'C';
     }
-    if(multiLedFault.IsHigh())
+    if (multiLedFault.IsHigh())
     {
-        *p++='L';
+        *p++ = 'L';
     }
-    if(selftestFault.IsHigh())
+    if (selftestFault.IsHigh())
     {
-        *p++='S';
+        *p++ = 'S';
     }
-    if(voltageFault.IsHigh())
+    if (voltageFault.IsHigh())
     {
-        *p++='V';
+        *p++ = 'V';
     }
-    if(overtempFault.IsHigh())
+    if (overtempFault.IsHigh())
     {
-        *p++='T';
+        *p++ = 'T';
     }
-    if (p!=buf)
+    if (p != buf)
     {
         fatalError.Set();
         if (fatalError.IsRising())
@@ -519,15 +529,43 @@ void Sign::DbncFault(Debounce &dbc, DEV::ERROR err, const char *info)
 void Sign::RefreshDevErr(DEV::ERROR err)
 {
     bool result = false;
+    int cnt0 = 0;
     if (err == DEV::ERROR::InternalCommunicationsFailure)
     {
         for (auto s : vsSlaves)
         {
-            if (s->isOffline)
+            if (s->isOffline == 1)
             {
                 result = true;
                 break;
             }
+            else if (s->isOffline == 0)
+            {
+                cnt0++;
+            }
+        }
+        if (result != true /*None is true*/ && cnt0 != vsSlaves.size() /*Not all 0*/)
+        {
+            return;
+        }
+    }
+    else if (err == DEV::ERROR::MainProcessorCommunicationsError)
+    {
+        for (auto s : vsSlaves)
+        {
+            if (s->isCNCrcErr == 1)
+            {
+                result = true;
+                break;
+            }
+            else if (s->isCNCrcErr == 0)
+            {
+                cnt0++;
+            }
+        }
+        if (result != true /*None is true*/ && cnt0 != vsSlaves.size() /*Not all 0*/)
+        {
+            return;
         }
     }
     if (signErr.IsSet(err) != result)
@@ -538,5 +576,5 @@ void Sign::RefreshDevErr(DEV::ERROR err)
 
 const char *Sign::GetImageBase64()
 {
-    return frameImages[slaveFrameId].Save2Base64().data();
+    return frameImages[(reportFrm == 0) ? 0 : slaveFrameId].Save2Base64().data();
 }
