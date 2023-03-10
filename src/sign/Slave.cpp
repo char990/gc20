@@ -26,7 +26,7 @@ Slave::Slave(uint8_t id)
     if (isSimSlave)
     {
         printf("SLAVE[%d] EMULATOR\n", id);
-        chainFault = 0;
+        mledchainFault = 0;
         overTemp = 0;
         selfTest = 0;
         singleLedFault = 0;
@@ -86,7 +86,7 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     }
     rxStatus = 1;
     rqstNoRplTmr.Clear();
-    chainFault = *buf++;
+    mledchainFault = *buf++;
     overTemp = *buf++;
     selfTest = *buf++;
     singleLedFault = *buf++;

@@ -30,9 +30,9 @@ public:
     uint8_t rxStatus{0};
     uint8_t GetRxStatus();
     // uint8_t slaveId; check rxbuf[0]
-    uint8_t chainFault{0};
-    bool IsChainFault(int i) { return (chainFault & (1 << i)) != 0; };
-    bool IsMultiLedFault(int i) { return ((chainFault >> 4) & (1 << i)) != 0; };
+    uint8_t mledchainFault{0};
+    bool IsChainFault(int i) { return (mledchainFault & (1 << i)) != 0; };
+    //bool IsMultiLedFault(int i) { return ((mledchainFault >> 4) & (1 << i)) != 0; };
     uint8_t overTemp;
     uint8_t selfTest;
     uint8_t singleLedFault;

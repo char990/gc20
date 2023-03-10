@@ -48,7 +48,8 @@ public:
     uint16_t SlaveCmdDly() { return slaveCmdDly; };
 
     uint16_t DriverFaultDebounce() { return driverFaultDebounce; };
-    uint16_t LedFaultDebounce() { return ledFaultDebounce; };
+    uint16_t MLedFaultDebounce() { return mledFaultDebounce; };
+    uint16_t SLedFaultDebounce() { return sledFaultDebounce; };
     uint16_t OverTempDebounce() { return overTempDebounce; };
     uint16_t SelftestDebounce() { return selftestDebounce; };
     uint16_t OfflineDebounce() { return offlineDebounce; };
@@ -152,7 +153,8 @@ private:
 
     /// uint16_t
     const char *_DriverFaultDebounce = "DriverFaultDebounce";
-    const char *_LedFaultDebounce = "LedFaultDebounce";
+    const char *_MLedFaultDebounce = "MLedFaultDebounce";
+    const char *_SLedFaultDebounce = "SLedFaultDebounce";
     const char *_OverTempDebounce = "OverTempDebounce";
     const char *_SelftestDebounce = "SelftestDebounce";
     const char *_OfflineDebounce = "OfflineDebounce";
@@ -224,7 +226,8 @@ private:
         slaveDispDly,
         slaveCmdDly,
         driverFaultDebounce,
-        ledFaultDebounce,
+        mledFaultDebounce,
+        sledFaultDebounce,
         overTempDebounce,
         selftestDebounce,
         offlineDebounce,

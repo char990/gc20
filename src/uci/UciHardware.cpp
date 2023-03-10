@@ -154,7 +154,12 @@ void UciHardware::LoadConfig()
 
     driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 3, 65535);
     overTempDebounce = GetInt(uciSec, _OverTempDebounce, 3, 65535);
-    ledFaultDebounce = GetInt(uciSec, _LedFaultDebounce, 3, 65535);
+    mledFaultDebounce = GetInt(uciSec, _MLedFaultDebounce, 3, 65535);
+    sledFaultDebounce = GetInt(uciSec, _SLedFaultDebounce, 3, 65535);
+    if (mledFaultDebounce >= sledFaultDebounce)
+    {
+        ThrowError(_MLedFaultDebounce, "SLedFaultDebounce should greater than MLedFaultDebounce");
+    }
     selftestDebounce = GetInt(uciSec, _SelftestDebounce, 3, 65535);
     offlineDebounce = GetInt(uciSec, _OfflineDebounce, 3, 65535);
     lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 60, 65535);
@@ -163,7 +168,7 @@ void UciHardware::LoadConfig()
     slaveVoltageHigh = GetInt(uciSec, _SlaveVoltageHigh, 1, 65535);
     slaveVoltageDebounce = GetInt(uciSec, _SlaveVoltageDebounce, 3, 65535);
 
-    if (slaveVoltageLow > slaveVoltageHigh)
+    if (slaveVoltageLow >= slaveVoltageHigh)
     {
         ThrowError(_SlaveVoltageHigh, "SlaveVoltageHigh should greater than SlaveVoltageLow");
     }
@@ -523,7 +528,8 @@ void UciHardware::Dump()
     PrintOption_d(_SlaveDispDly, SlaveDispDly());
     PrintOption_d(_SlaveCmdDly, SlaveCmdDly());
     PrintOption_d(_DriverFaultDebounce, DriverFaultDebounce());
-    PrintOption_d(_LedFaultDebounce, LedFaultDebounce());
+    PrintOption_d(_MLedFaultDebounce, MLedFaultDebounce());
+    PrintOption_d(_SLedFaultDebounce, SLedFaultDebounce());
     PrintOption_d(_OverTempDebounce, OverTempDebounce());
     PrintOption_d(_SelftestDebounce, SelftestDebounce());
     PrintOption_d(_OfflineDebounce, OfflineDebounce());

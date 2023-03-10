@@ -1,5 +1,5 @@
 TARGET   := goblin
-LDFLAGS  := -luci -lcrypto
+LDFLAGS  := -luci -lcrypto -lpthread
 #LDFLAGS  := -L/usr/lib -lstdc++ -lm
 
 #CXX      := -c++

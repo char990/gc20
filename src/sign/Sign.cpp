@@ -12,8 +12,8 @@ Sign::Sign(uint8_t id)
 {
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     chainFault.SetCNT(ucihw.DriverFaultDebounce());
-    multiLedFault.SetCNT(ucihw.LedFaultDebounce());
-    singleLedFault.SetCNT(ucihw.LedFaultDebounce());
+    multiLedFault.SetCNT(ucihw.MLedFaultDebounce());
+    singleLedFault.SetCNT(ucihw.SLedFaultDebounce());
     selftestFault.SetCNT(ucihw.SelftestDebounce());
     voltageFault.SetCNT(ucihw.SlaveVoltageDebounce());
     lanternFault.SetCNT(ucihw.LanternFaultDebounce());
@@ -124,51 +124,52 @@ void Sign::RefreshSlaveStatusAtSt()
     // over-temperature bits ignored. checked in ext_st
     char buf[STRLOG_SIZE];
     int len;
-    uint8_t check_chain_fault = 0;
-    uint8_t check_selftest = 0;
-    uint8_t check_lantern = 0;
+    uint8_t check;
 
     // lanterns installed at first&last slaves
     buf[0] = '\0';
-    check_lantern = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : // only one slave
+    check = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : // only one slave
                         ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
-    lanternFault.Check(check_lantern > 0, t2);
-    if (check_lantern > 0)
+    lanternFault.Check(check > 0, t2);
+    if (check > 0)
     {
-        sprintf(buf, "LanternFault=0x%02X", check_lantern);
+        sprintf(buf, "LanternFault=0x%02X", check);
     }
     DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
 
     // Chain
+    check = 0;
     buf[0] = '\0';
     len = 0;
     for (auto &s : vsSlaves)
     {
-        auto cf = s->chainFault & 0x0F;
-        check_chain_fault |= cf;
+        auto cf = s->mledchainFault & 0x0F;
+        check |= cf;
         if (cf)
         {
             len += snprintf(buf, STRLOG_SIZE - len - 1, " [%d]=0x%02X", s->SlaveId(), cf);
         }
     }
-    chainFault.Check(check_chain_fault > 0, t2);
+    chainFault.Check(check > 0, t2);
     DbncFault(chainFault, DEV::ERROR::SignDisplayDriverFailure, buf);
 
     // Selftest
+    check = 0;
     buf[0] = '\0';
     len = 0;
     for (auto &s : vsSlaves)
     {
-        if (s->selfTest & 1)
+        if (s->selfTest != 0)
         {
+            check |= s->selfTest;
             if (len == 0)
             {
-                len = sprintf(buf, "Slave in Selftest:");
+                len = sprintf(buf, "Selftest:");
             }
-            len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " %d", s->SlaveId());
+            len += snprintf(buf + len, STRLOG_SIZE - 1 - len, " [%d]=0x%02X", s->SlaveId(), s->selfTest);
         }
     }
-    selftestFault.Check(check_selftest > 0, t2);
+    selftestFault.Check(check > 0, t2);
     DbncFault(selftestFault, DEV::ERROR::UnderLocalControl, buf);
 
     RefreshFatalError();
@@ -208,6 +209,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     uint8_t vcnt = 0;
     int16_t temperature = 0; // 0.1'C
     int faultLeds = 0;
+
     for (auto &s : vsSlaves)
     {
         if (s->voltage > 3000 && s->voltage < 15000)
@@ -284,38 +286,21 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
 
     // *** single/multi led
-    if (faultLeds == 0)
-    {
-        singleLedFault.Check(false, t2);
-        multiLedFault.Check(false, t2);
-    }
-    else if (faultLeds == 1)
-    {
-        singleLedFault.Check(true, t2);
-        multiLedFault.Check(false, t2);
-    }
-    else
-    {
-        singleLedFault.Check(true, t2);
-        multiLedFault.Check(faultLeds > usercfg.MultiLedFaultThreshold(), t2);
-    }
+    sprintf(buf, "%d LEDs", faultLeds);
+    multiLedFault.Check(faultLeds >= usercfg.MultiLedFaultThreshold(), t2);
     if (multiLedFault.IsRising() || multiLedFault.IsFalling())
     {
         faultLedCnt = faultLeds;
     }
-    sprintf(buf, "%d LEDs", faultLeds);
     DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
     if (multiLedFault.IsLow())
     {
-        DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
+        singleLedFault.Check(faultLeds>0, t2);
         if (singleLedFault.IsRising() || singleLedFault.IsFalling())
         {
             faultLedCnt = faultLeds;
         }
-    }
-    else
-    {
-        singleLedFault.ClearEdge();
+        DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
     }
     RefreshFatalError();
 

@@ -13,7 +13,8 @@ unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
-int WsServer::activeCnt = 0;
+bool WsServer::wsInUse;
+atomic_bool WsServer::threadRunning;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
 {
@@ -21,24 +22,42 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
     {
         throw invalid_argument(StrFn::PrintfStr("WsServer error: port: %d", port));
     }
-    char buf[32];
-    sprintf(buf, "ws://0.0.0.0:%d", port);
-    mg_mgr_init(&mgr); // Initialise event manager
-    Ldebug("Starting WebSocket listener on %s", buf);
-    mg_http_listen(&mgr, buf, fn, NULL); // Create HTTP listener
+    wsInUse = false;
+    char url[32];
+    sprintf(url, "ws://0.0.0.0:%d", port);
+    Ldebug("Starting WebSocket listener on %s", url);
+    mg_mgr_init(&mgr);                   // Initialise event manager
+    mg_http_listen(&mgr, url, fn, NULL); // Create HTTP listener
     ctrller = &(Controller::Instance());
-    this->tmrEvt = tmrEvt;
-    if(tmrEvt!=nullptr)
+    if (tmrEvt != nullptr)
     {
-        tmrEvt->Add(this);
+        this->tmrEvt = tmrEvt;
+        this->tmrEvt->Add(this);
     }
     else
     {
+        threadRunning = false;
+        threadRun = new thread(ThreadRun, &mgr);
+        while (threadRunning == false)
+        {
+            usleep(1000);
+        }; // waiting for thread start
     }
 }
 
 WsServer::~WsServer()
 {
+    if (tmrEvt != nullptr)
+    {
+        tmrEvt->Remove(this);
+        tmrEvt = nullptr;
+    }
+    if (threadRun != nullptr)
+    {
+        threadRunning = false;
+        threadRun->join();
+        delete threadRun;
+    }
     auto c = mgr.conns;
     while (c != nullptr)
     {
@@ -49,14 +68,19 @@ WsServer::~WsServer()
         c = c->next;
     };
     mg_mgr_free(&mgr);
-    if(tmrEvt!=nullptr)
-    {
-        tmrEvt->Remove(this);
-        tmrEvt = nullptr;
-    }
-    else
-    {
+}
 
+void WsServer::ThreadRun(struct mg_mgr *_mgr)
+{
+    threadRunning = true;
+    while (1)
+    {
+        if (threadRunning == false)
+        {
+            usleep(10000);
+            return;
+        }
+        mg_mgr_poll(_mgr, 100); // Infinite event loop
     }
 }
 
@@ -73,14 +97,23 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     {
         c->is_hexdumping = (ws_hexdump & 2) ? 1 : 0;
         uint8_t *ip = (uint8_t *)&c->rem.ip;
-        Ldebug("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+        if (wsInUse == true)
+        {
+            c->is_closing = 1;
+            c->fn_data = nullptr;
+            Ldebug("WsServer: Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
+        }
+        else
+        {
+            Ldebug("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+        }
     }
     else if (ev == MG_EV_HTTP_MSG)
     {
         struct mg_http_message *hm = (struct mg_http_message *)ev_data;
         if (mg_http_match_uri(hm, uri_ws))
         {
-            if (activeCnt < 4)
+            if (wsInUse == false)
             {
                 // Upgrade to websocket. From now on, a connection is a full-duplex
                 // Websocket connection, which will receive MG_EV_WS_MSG events.
@@ -88,7 +121,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
                 uint8_t *ip = (uint8_t *)&c->rem.ip;
                 Ldebug("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
                 c->fn_data = new WsClient();
-                activeCnt++;
+                wsInUse = true;
             }
             else
             {
@@ -110,15 +143,19 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     }
     else if (ev == MG_EV_CLOSE)
     {
+        uint8_t *ip = (uint8_t *)&c->rem.ip;
         if (c->fn_data != nullptr)
         {
-            uint8_t *ip = (uint8_t *)&c->rem.ip;
             Ldebug("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             delete (WsClient *)c->fn_data;
-            if (activeCnt > 0)
+            if (wsInUse)
             {
-                activeCnt--;
+                wsInUse = false;
             }
+        }
+        else
+        {
+            Ldebug("Rejected connection from %d.%d.%d.%d closed", ip[0], ip[1], ip[2], ip[3]);
         }
     }
     //(void)fn_data;
