@@ -69,6 +69,7 @@ public:
     uint8_t humidity;
     uint16_t lux;
     std::vector<uint8_t> numberOfFaultyLed;
+    std::vector<uint32_t> faultyLedPerColour;
 
     int DecodeExtStRpl(uint8_t *buf, int len);
 

@@ -479,44 +479,22 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             auto net = uciNet.GetETH(eth);
             if (net != nullptr)
             {
-                Ipv4 pip1(pd + 36);
-                Ipv4 pip2(pd + 43);
-                Ipv4 pip3(pd + 47);
-                int m0 = net->proto.compare("static");
-                int m1 = pip1.Compare(net->ipaddr);
-                int m2 = pip2.Compare(net->netmask);
-                int m3 = pip3.Compare(net->gateway);
-                if (m0 != 0 || m1 != 0 || m2 != 0 || m3 != 0)
+                NetInterface nif;
+                nif.proto = std::string("static");
+                nif.ipaddr.Set(pd + 36);
+                nif.netmask.Set(pd + 43);
+                nif.gateway.Set(pd + 47);
+                nif.dns = net->dns;
+                uciNet.evts.clear();
+                if (uciNet.SaveETH(eth, nif) == 0)
                 {
-                    if (m0 != 0)
+                    if (!uciNet.evts.empty())
                     {
-                        char ipbuf[STRLOG_SIZE];
-                        snprintf(ipbuf, STRLOG_SIZE - 1, "network.ETH1.proto changed: %s -> %s", net->proto.c_str(), "static");
-                        evt.Push(0, ipbuf);
-                        net->proto.assign("static");
+                        if (uciNet.UciCommit() == 0)
+                        {
+                            rr_flag |= RQST_NETWORK;
+                        }
                     }
-                    auto newip = [&evt](const char *str, Ipv4 &old_n, Ipv4 &new_p) -> void
-                    {
-                        char ipbuf[STRLOG_SIZE];
-                        snprintf(ipbuf, STRLOG_SIZE - 1, "network.ETH1.%s changed: %s -> %s",
-                                 str, old_n.ToString().c_str(), new_p.ToString().c_str());
-                        evt.Push(0, ipbuf);
-                        old_n.Set(new_p.ip.ipa);
-                    };
-                    if (m1 != 0)
-                    {
-                        newip("ipaddr", net->ipaddr, pip1);
-                    }
-                    if (m2 != 0)
-                    {
-                        newip("netmask", net->netmask, pip2);
-                    }
-                    if (m3 != 0)
-                    {
-                        newip("gateway", net->gateway, pip3);
-                    }
-                    uciNet.SaveETH(eth);
-                    rr_flag |= RQST_NETWORK;
                 }
             }
             txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);

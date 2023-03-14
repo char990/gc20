@@ -152,7 +152,6 @@ void UciHardware::LoadConfig()
         ThrowError(_SlaveCmdDly, "SlaveCmdDly should greater than SlaveDispDly");
     }
 
-    driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 3, 65535);
     overTempDebounce = GetInt(uciSec, _OverTempDebounce, 3, 65535);
     mledFaultDebounce = GetInt(uciSec, _MLedFaultDebounce, 3, 65535);
     sledFaultDebounce = GetInt(uciSec, _SLedFaultDebounce, 3, 65535);
@@ -161,17 +160,23 @@ void UciHardware::LoadConfig()
         ThrowError(_MLedFaultDebounce, "SLedFaultDebounce should greater than MLedFaultDebounce");
     }
     selftestDebounce = GetInt(uciSec, _SelftestDebounce, 3, 65535);
+    driverFaultDebounce = GetInt(uciSec, _DriverFaultDebounce, 3, 65535);
+    if (driverFaultDebounce >= mledFaultDebounce)
+    {
+        ThrowError(_MLedFaultDebounce, "MLedFaultDebounce should greater than DriverFaultDebounce");
+    }
     offlineDebounce = GetInt(uciSec, _OfflineDebounce, 3, 65535);
     lightSensorFaultDebounce = GetInt(uciSec, _LightSensorFaultDebounce, 60, 65535);
     lanternFaultDebounce = GetInt(uciSec, _LanternFaultDebounce, 3, 65535);
+
     slaveVoltageLow = GetInt(uciSec, _SlaveVoltageLow, 1, 65535);
     slaveVoltageHigh = GetInt(uciSec, _SlaveVoltageHigh, 1, 65535);
     slaveVoltageDebounce = GetInt(uciSec, _SlaveVoltageDebounce, 3, 65535);
-
     if (slaveVoltageLow >= slaveVoltageHigh)
     {
         ThrowError(_SlaveVoltageHigh, "SlaveVoltageHigh should greater than SlaveVoltageLow");
     }
+
     lightSensorScale = GetInt(uciSec, _LightSensorScale, 1, 65535);
 
     slavePowerUpDelay = GetInt(uciSec, _SlavePowerUpDelay, 1, 255);
@@ -447,6 +452,8 @@ void UciHardware::LoadConfig()
     Slave::numberOfColours = strlen(colourLeds);
 
     pixels = (uint32_t)pixelRows * pixelColumns;
+    pixelsPerSign = pixels/numberOfSigns;
+    pixelsPerSlave = pixelsPerSign/slavesPerSign;
 
     gfx1CoreLen = 0;
     gfx4CoreLen = 0;

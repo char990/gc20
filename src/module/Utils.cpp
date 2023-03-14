@@ -554,6 +554,7 @@ uint32_t Crc::Crc32(uint8_t *buf, int len, uint32_t precrc)
 
 int Exec::Run(const char *cmd, char *outbuf, int len)
 {
+    Pdebug("Run(%s)\n",cmd);
     auto pipe = popen(cmd, "r");
     if (!pipe)
     {
@@ -650,6 +651,7 @@ int Exec::Shell(const char *fmt, ...)
     {
         throw out_of_range(StrFn::PrintfStr("Shell command is too long:%s", buf));
     }
+    Pdebug("Shell(%s)\n",buf);
     return system(buf);
 }
 

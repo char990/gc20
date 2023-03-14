@@ -55,36 +55,123 @@ void UciNetwork::LoadConfig()
         }
     }
     Close();
+    Dump();
 }
 
-void UciNetwork::SaveETH(string name)
+int UciNetwork::UciSet(const char *section, const char *option, string str)
 {
-    NetInterface *n = GetETH(name);
-    if (n != nullptr)
+    return Exec::Shell("uci -c %s set %s.%s.%s=%s", PATH, PACKAGE, section, option, str.c_str());
+}
+
+int UciNetwork::SaveETH(string name, NetInterface &nif)
+{
+    auto eth = GetETH(name);
+    if (eth == nullptr)
     {
-        if (n->proto.compare("static") != 0)
-        {
-            n->ipaddr.Set("0.0.0.0");
-            n->netmask.Set("0.0.0.0");
-            n->gateway.Set("0.0.0.0");
-        }
-        OpenSectionForSave(name.c_str());
-        OptionSave(_Proto, n->proto.c_str());
-        OptionSave(_Ipaddr, n->ipaddr.ToString().c_str());
-        OptionSave(_Netmask, n->netmask.ToString().c_str());
-        OptionSave(_Gateway, n->gateway.ToString().c_str());
-        OptionSave(_Dns, n->dns.c_str());
-        CommitCloseSectionForSave();
+        throw invalid_argument("Unknown interface name. Should be ETH1/2");
     }
+    if (nif.proto.compare("static") != 0 && nif.proto.compare("dhcp") != 0)
+    {
+        throw invalid_argument("Unknown proto. Should be static/dhcp");
+    }
+    int r;
+    const char *sec = name.c_str();
+    if (eth->proto.compare(nif.proto) != 0)
+    {
+        r = UciSet(sec, _Proto, nif.proto);
+        if (r != 0)
+        {
+            return r;
+        }
+        evts.push_back("Set " + name + ".proto=" + nif.proto);
+        eth->proto = nif.proto;
+    }
+    if (eth->proto.compare("static") == 0)
+    {
+        if (eth->ipaddr.Compare(nif.ipaddr) != 0)
+        {
+            r = UciSet(sec, _Ipaddr, nif.ipaddr.ToString());
+            if (r != 0)
+            {
+                return r;
+            }
+            evts.push_back("Set " + name + ".ipaddr=" + nif.ipaddr.ToString());
+            eth->ipaddr = nif.ipaddr;
+        }
+        if (eth->netmask.Compare(nif.netmask) != 0)
+        {
+            r = UciSet(sec, _Netmask, nif.netmask.ToString());
+            if (r != 0)
+            {
+                return r;
+            }
+            evts.push_back("Set " + name + ".netmask=" + nif.netmask.ToString());
+            eth->netmask = nif.netmask;
+        }
+        if (eth->gateway.Compare(nif.gateway) != 0)
+        {
+            r = UciSet(sec, _Gateway, nif.gateway.ToString());
+            if (r != 0)
+            {
+                return r;
+            }
+            evts.push_back("Set " + name + ".gateway=" + nif.gateway.ToString());
+            eth->gateway = nif.gateway;
+        }
+        if (eth->dns.compare(nif.dns) != 0)
+        {
+            r = UciSet(sec, _Dns, nif.dns);
+            if (r != 0)
+            {
+                return r;
+            }
+            evts.push_back("Set " + name + ".dns=" + nif.dns);
+            eth->dns = nif.dns;
+        }
+    }
+    else
+    {
+        UciSet(sec, _Ipaddr, string(""));
+        UciSet(sec, _Netmask, string(""));
+        UciSet(sec, _Gateway, string(""));
+        UciSet(sec, _Dns, string(""));
+    }
+    return 0;
 }
 
-void UciNetwork::SaveNtp()
+int UciNetwork::SaveNtp(NtpServer &ntps)
 {
+    if (ntp.server.compare(ntps.server) != 0)
+    {
+        evts.push_back("Set NTP.server=" + ntps.server);
+        ntp.server = ntps.server;
+    }
+    if (ntp.port != ntps.port)
+    {
+        evts.push_back("Set NTP.port=" + to_string(ntps.port));
+        ntp.port = ntps.port;
+    }
+    return 0;
+}
+
+int UciNetwork::UciCommit()
+{
+    int r = system("uci -c /etc/config commit");
+    if(r==0)
+    {
+        auto &evlog = DbHelper::Instance().GetUciEvent();
+        for (auto e : evts)
+        {
+            evlog.Push(0, e.c_str());
+        }
+        evts.clear();
+    }
+    return r;
 }
 
 void UciNetwork::Dump()
 {
-    auto PrintIp = [](const char *_option, Ipv4 & dst)
+    auto PrintIp = [](const char *_option, Ipv4 &dst)
     {
         printf("\t%s \t'%s'\n", _option, dst.ToString().c_str());
     };
@@ -92,7 +179,7 @@ void UciNetwork::Dump()
     PrintDash('<');
     for (auto &x : eths)
     {
-        printf("%s/%s.%s\n", PATH, PACKAGE, x.first.c_str());
+        printf("%s\n", x.first.c_str());
         auto &e = x.second;
         printf("\t%s \t'%s'\n", _Proto, e.proto.c_str());
         if (e.proto.compare("static") == 0)

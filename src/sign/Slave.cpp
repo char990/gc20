@@ -64,6 +64,7 @@ void Slave::Reset()
     expectCurrentFrmId = 0; // display frame command
     expectNextFrmId = 0;    // set frame command
     numberOfFaultyLed.assign(numberOfTiles * numberOfColours, 0);
+    faultyLedPerColour.assign(numberOfColours, 0);
 }
 
 int Slave::DecodeStRpl(uint8_t *buf, int len)
@@ -87,6 +88,15 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     rxStatus = 1;
     rqstNoRplTmr.Clear();
     mledchainFault = *buf++;
+    auto slavepixel = DbHelper::Instance().GetUciHardware().PixelsPerSlave();
+    for (int j = 0; j < faultyLedPerColour.size(); j++)
+    {
+        if(faultyLedPerColour[j] == slavepixel)
+        {
+            mledchainFault |= 1<<j;
+        }
+    }
+
     overTemp = *buf++;
     selfTest = *buf++;
     singleLedFault = *buf++;
@@ -146,6 +156,14 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
     lux = Cnvt::GetU16(buf);
     buf += 4;
     memcpy(numberOfFaultyLed.data(), buf, numberOfTiles * numberOfColours);
+    faultyLedPerColour.assign(faultyLedPerColour.size(), 0);
+    for (int i = 0; i < numberOfTiles; i++)
+    {
+        for (int j = 0; j < faultyLedPerColour.size(); j++)
+        {
+            faultyLedPerColour[j] += *buf++;
+        }
+    }
     return 0;
 }
 

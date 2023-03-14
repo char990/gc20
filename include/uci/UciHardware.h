@@ -105,6 +105,8 @@ public:
     uint8_t CharRows(int fontX);
     uint8_t CharColumns(int fontX);
     uint32_t Pixels() { return pixels; };
+    uint32_t PixelsPerSign(){ return pixelsPerSign; };
+    uint32_t PixelsPerSlave(){return pixelsPerSlave; };
     SESR_SIGN_TYPE ExtStsRplSignType() { return extStsRplSignType; };
     SCR_SIGN_TYPE ConfigRplSignType() { return configRplSignType; };
     int MaxCoreLen() { return maxCoreLen; };
@@ -273,6 +275,9 @@ private:
 
     // configurations calculated from other configurations
     uint32_t pixels;
+    uint32_t pixelsPerSign;
+    uint32_t pixelsPerSlave;
+
     SESR_SIGN_TYPE extStsRplSignType;
     SCR_SIGN_TYPE configRplSignType;
     int maxCoreLen;

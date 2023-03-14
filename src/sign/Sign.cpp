@@ -110,7 +110,6 @@ void Sign::RefreshSlaveStatusAtSt()
     }
     auto t1 = GetTime(nullptr);
     auto t2 = t1 - timeSt;
-    timeSt = t1;
     if (t2 == 0)
     {
         return;
@@ -119,6 +118,7 @@ void Sign::RefreshSlaveStatusAtSt()
     {
         t2 = 1;
     }
+    timeSt = t1;
     // ----------------------Check status
     // single & multiLed bits ignored. checked in ext_st
     // over-temperature bits ignored. checked in ext_st
@@ -129,13 +129,15 @@ void Sign::RefreshSlaveStatusAtSt()
     // lanterns installed at first&last slaves
     buf[0] = '\0';
     check = (vsSlaves.size() == 1) ? (vsSlaves[0]->lanternFan & 0x0F) : // only one slave
-                        ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
+                ((vsSlaves[0]->lanternFan & 0x03) | ((vsSlaves[vsSlaves.size() - 1]->lanternFan & 0x03) << 2));
     lanternFault.Check(check > 0, t2);
     if (check > 0)
     {
         sprintf(buf, "LanternFault=0x%02X", check);
     }
     DbncFault(lanternFault, DEV::ERROR::ConspicuityDeviceFailure, buf);
+
+    auto &ucihw = DbHelper::Instance().GetUciHardware();
 
     // Chain
     check = 0;
@@ -208,8 +210,7 @@ void Sign::RefreshSlaveStatusAtExtSt()
     uint32_t v = 0;
     uint8_t vcnt = 0;
     int16_t temperature = 0; // 0.1'C
-    int faultLeds = 0;
-
+    uint32_t faultLeds = 0;
     for (auto &s : vsSlaves)
     {
         if (s->voltage > 3000 && s->voltage < 15000)
@@ -229,14 +230,10 @@ void Sign::RefreshSlaveStatusAtExtSt()
         {
             temperature = s->temperature;
         }
-        for (auto x : s->numberOfFaultyLed)
+        for (auto x : s->faultyLedPerColour)
         {
             faultLeds += x;
         }
-    }
-    if (faultLeds > 65535)
-    {
-        faultLeds = 65535;
     }
     // *** voltage
     if (minvoltage < ucihw.SlaveVoltageLow())
@@ -286,21 +283,29 @@ void Sign::RefreshSlaveStatusAtExtSt()
     }
 
     // *** single/multi led
-    sprintf(buf, "%d LEDs", faultLeds);
-    multiLedFault.Check(faultLeds >= usercfg.MultiLedFaultThreshold(), t2);
-    if (multiLedFault.IsRising() || multiLedFault.IsFalling())
+    if (chainFault.IsLow())
     {
-        faultLedCnt = faultLeds;
-    }
-    DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
-    if (multiLedFault.IsLow())
-    {
-        singleLedFault.Check(faultLeds>0, t2);
-        if (singleLedFault.IsRising() || singleLedFault.IsFalling())
+        if (faultLeds > 65535)
+        {
+            faultLeds = 65535;
+        }
+
+        sprintf(buf, "%d LEDs", faultLeds);
+        multiLedFault.Check(faultLeds >= usercfg.MultiLedFaultThreshold(), t2);
+        if (multiLedFault.IsRising() || multiLedFault.IsFalling())
         {
             faultLedCnt = faultLeds;
         }
-        DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
+        DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
+        if (multiLedFault.IsLow())
+        {
+            singleLedFault.Check(faultLeds > 0, t2);
+            if (singleLedFault.IsRising() || singleLedFault.IsFalling())
+            {
+                faultLedCnt = faultLeds;
+            }
+            DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
+        }
     }
     RefreshFatalError();
 

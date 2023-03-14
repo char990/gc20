@@ -850,48 +850,83 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             catch (...)
             {
             }
-            if (str_gateway.length() > 0)
+            if (!str_gateway.empty())
             {
-                if (interfaces[i].netmask.Set(str_gateway) == false)
+                if (interfaces[i].gateway.Set(str_gateway) == false)
                 {
                     throw invalid_argument(StrFn::PrintfStr("Invalid %s.gateway", ethname[i]));
                 }
             }
         }
-        else if (interfaces[i].proto.compare("dhcp") != 0)
+        else if (interfaces[i].proto.compare("dhcp") == 0)
+        {
+            interfaces[i].dns = string("");
+            interfaces[i].ipaddr.ip.ip32 = 0;
+            interfaces[i].netmask.ip.ip32 = 0;
+            interfaces[i].gateway.ip.ip32 = 0;
+        }
+        else
         {
             throw invalid_argument(StrFn::PrintfStr("Invalid %s.proto", ethname[i]));
         }
     }
 
-    json ntpjs = msg["NTP"].get<json>();
-    NtpServer ntp;
-    ntp.server = GetStr(msg, net._Server);
-    ntp.port = GetUint(ntpjs, net._Port, 1, 65535);
-
     if (interfaces[0].gateway.Isvalid() && interfaces[1].gateway.Isvalid())
     {
         throw invalid_argument("Only one ETH can have gateway");
     }
-    if (interfaces[0].ipaddr.Compare(interfaces[1].ipaddr) == 0)
+    if (interfaces[0].ipaddr.Isvalid() && interfaces[1].ipaddr.Isvalid())
     {
-        throw invalid_argument("ETH1.ipaddr and ETH2.ipaddr should not be same");
+        if (interfaces[0].ipaddr.Compare(interfaces[1].ipaddr) == 0)
+        {
+            throw invalid_argument("ETH1.ipaddr and ETH2.ipaddr should not be same");
+        }
     }
-    if (ntp.server.find(interfaces[0].ipaddr.ToString()) >= 0 || ntp.server.find(interfaces[1].ipaddr.ToString()) >= 0)
+
+    json ntpjs = msg["NTP"].get<json>();
+    NtpServer ntp;
+    ntp.server = GetStr(ntpjs, net._Server);
+    ntp.port = GetUint(ntpjs, net._Port, 1, 65535);
+
+    for (int i = 0; i < 2; i++)
     {
-        throw invalid_argument("NTP Server should not be ETH1/2");
+        if (interfaces[i].ipaddr.Isvalid() && ntp.server.find(interfaces[i].ipaddr.ToString()) != string::npos)
+        {
+            throw invalid_argument("NTP Server should not be ETH" + to_string(i + 1));
+        }
     }
 
     // all parameters are OK, save
+    net.evts.clear();
+    int r;
+
     for (int i = 0; i < 2; i++)
     {
-        memcpy(net.GetETH(ethname[i]), &interfaces[i], sizeof(NetInterface));
-        net.SaveETH(ethname[i]);
+        r = net.SaveETH(ethname[i], interfaces[i]); 
+        if (r != 0)
+        {
+            throw runtime_error("Set network." + ethname[i] + " failed: " + to_string(r));
+        }
     }
-    memcpy(net.GetNtp(), &ntp, sizeof(NtpServer));
-    net.SaveNtp();
 
-    reply.emplace("result", "'Reboot' to active new setting");
+    r = net.SaveNtp(ntp);
+    if (r != 0)
+    {
+        throw runtime_error("Set NTP failed: " + to_string(r));
+    }
+    if (!net.evts.empty())
+    {
+        r = net.UciCommit();
+        if (r != 0)
+        {
+            throw runtime_error("Commit network failed: " + to_string(r));
+        }
+        reply.emplace("result", "'Reboot' to active new setting");
+    }
+    else
+    {
+        reply.emplace("result", "Nothing changed");
+    }
 }
 
 void WsServer::CMD_ControlDimming(struct mg_connection *c, json &msg, json &reply)
