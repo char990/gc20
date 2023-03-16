@@ -14,9 +14,9 @@ unsigned int ws_hexdump = 0;
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
 bool WsServer::wsInUse;
-atomic_bool WsServer::threadRunning;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
+:tmrEvt(tmrEvt)
 {
     if (port < 1024 || port > 65535)
     {
@@ -29,20 +29,7 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
     mg_mgr_init(&mgr);                   // Initialise event manager
     mg_http_listen(&mgr, url, fn, NULL); // Create HTTP listener
     ctrller = &(Controller::Instance());
-    if (tmrEvt != nullptr)
-    {
-        this->tmrEvt = tmrEvt;
-        this->tmrEvt->Add(this);
-    }
-    else
-    {
-        threadRunning = false;
-        threadRun = new thread(ThreadRun, &mgr);
-        while (threadRunning == false)
-        {
-            usleep(1000);
-        }; // waiting for thread start
-    }
+    tmrEvt->Add(this);
 }
 
 WsServer::~WsServer()
@@ -51,12 +38,6 @@ WsServer::~WsServer()
     {
         tmrEvt->Remove(this);
         tmrEvt = nullptr;
-    }
-    if (threadRun != nullptr)
-    {
-        threadRunning = false;
-        threadRun->join();
-        delete threadRun;
     }
     auto c = mgr.conns;
     while (c != nullptr)
@@ -68,19 +49,6 @@ WsServer::~WsServer()
         c = c->next;
     };
     mg_mgr_free(&mgr);
-}
-
-void WsServer::ThreadRun(struct mg_mgr *_mgr)
-{
-    threadRunning = true;
-    while (1)
-    {
-        if (threadRunning == false)
-        {
-            return;
-        }
-        mg_mgr_poll(_mgr, 100); // Infinite event loop
-    }
 }
 
 void WsServer::PeriodicRun()

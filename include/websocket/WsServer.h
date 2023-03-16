@@ -2,8 +2,6 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
-#include <thread>
-#include <atomic>
 
 #include <3rdparty/mongoose/mongoose.h>
 #include <3rdparty/nlohmann/json.hpp>
@@ -45,10 +43,6 @@ private:
     struct mg_mgr mgr; // Event manager
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
     TimerEvent *tmrEvt{nullptr};
-
-    std::thread *threadRun{nullptr};
-    static std::atomic_bool threadRunning;
-    static void ThreadRun(struct mg_mgr * mgr);
 
     static const char *uri_ws;
 

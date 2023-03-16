@@ -271,8 +271,7 @@ int main(int argc, char *argv[])
         }
 
         // Web
-        auto wsServer = new WsServer{usercfg.WsPort(), nullptr};
-        //auto wsServer = new WsServer{usercfg.WsPort(), timerEvt100ms};
+        auto wsServer = new WsServer{usercfg.WsPort(), timerEvt100ms};
         // TSI-SP-003 Tcp
         auto tcpServerNts = new TcpServer{usercfg.TmcTcpPort(), TcpSvrType::TMC, ucihw.TcpServerTMC(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
