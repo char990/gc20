@@ -1449,7 +1449,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
     {
         if (id >= 3 && id <= 6)
         {
-            auto &cfg = usercfg.ExtSwCfgX(id - 3);
+            auto &cfg = usercfg.ExtInputCfgX(id - 3);
             auto time = cfg.dispTime * 100;
             if (time != 0)
             {
@@ -1670,7 +1670,7 @@ bool Group::IsDsNextEmergency()
         uint8_t mid = dsExt->fmpid[0];
         if (mid >= 3 && mid <= 6)
         {
-            if (usercfg.ExtSwCfgX(mid - 3).emergency == 0)
+            if (usercfg.ExtInputCfgX(mid - 3).emergency == 0)
             {
                 r = true;
             }

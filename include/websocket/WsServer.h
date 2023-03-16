@@ -117,6 +117,8 @@ private:
     static void CMD_TestBufLenTMC(struct mg_connection *c, json &msg, json &reply);
     static void CMD_TestSlave(struct mg_connection *c, json &msg, json &reply);
     static void CMD_TestBufLenSlave(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_GetExtInput(struct mg_connection *c, json &msg, json &reply);
+    static void CMD_SetExtInput(struct mg_connection *c, json &msg, json &reply);
 
     // functions called by other command
     static void cmd_ResetLog(uint8_t logcode, json &reply);

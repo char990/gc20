@@ -77,7 +77,6 @@ void WsServer::ThreadRun(struct mg_mgr *_mgr)
     {
         if (threadRunning == false)
         {
-            usleep(10000);
             return;
         }
         mg_mgr_poll(_mgr, 100); // Infinite event loop
@@ -293,6 +292,8 @@ const WsCmd WsServer::CMD_LIST[] = {
     CMD_ITEM(TestBufLenTMC),
     CMD_ITEM(TestSlave),
     CMD_ITEM(TestBufLenSlave),
+    CMD_ITEM(GetExtInput),
+    CMD_ITEM(SetExtInput),
 };
 
 void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *wm)
@@ -897,22 +898,34 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
     }
 
     // all parameters are OK, save
-    net.evts.clear();
     int r;
-
-    for (int i = 0; i < 2; i++)
-    {
-        r = net.SaveETH(ethname[i], interfaces[i]); 
-        if (r != 0)
-        {
-            throw runtime_error("Set network." + ethname[i] + " failed: " + to_string(r));
-        }
-    }
-
+    net.evts.clear();
+    
+    bool ntpChanged{false};
     r = net.SaveNtp(ntp);
     if (r != 0)
     {
         throw runtime_error("Set NTP failed: " + to_string(r));
+    }
+    if (!net.evts.empty())
+    {
+        // TODO restart NTP service
+        ntpChanged = true;
+        auto &evlog = DbHelper::Instance().GetUciEvent();
+        for (auto &e : net.evts)
+        {
+            evlog.Push(0, e.c_str());
+        }
+        net.evts.clear();
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        r = net.SaveETH(ethname[i], interfaces[i]);
+        if (r != 0)
+        {
+            throw runtime_error("Set network." + ethname[i] + " failed: " + to_string(r));
+        }
     }
     if (!net.evts.empty())
     {
@@ -921,11 +934,12 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
         {
             throw runtime_error("Commit network failed: " + to_string(r));
         }
-        reply.emplace("result", "'Reboot' to active new setting");
+        reply.emplace("result", "Network changed. Controller will REBOOT to active new settings");
+        ctrller->RR_flag(RQST_REBOOT);
     }
     else
     {
-        reply.emplace("result", "Nothing changed");
+        reply.emplace("result", ntpChanged ? "NTP settings refreshed" : "Nothing changed");
     }
 }
 
@@ -1940,5 +1954,57 @@ void WsServer::CMD_TestBufLenSlave(struct mg_connection *c, nlohmann::json &msg,
 {
     auto len = GetUint(msg, "len", 1, 255);
     qltdSlave->Resize(len);
+    reply.emplace("result", "OK");
+}
+
+void WsServer::CMD_GetExtInput(struct mg_connection *c, json &msg, json &reply)
+{
+    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
+    vector<json> entries(4);
+    for (int i = 0; i < 4; i++)
+    {
+        auto &x = usercfg.ExtInputCfgX(i);
+        entries[i].emplace("id", i + 1);
+        entries[i].emplace("display_time", x.dispTime);
+        entries[i].emplace("reserved_byte", x.reserved);
+        entries[i].emplace("emergency", x.emergency);
+        entries[i].emplace("flashing_override", x.flashingOv);
+    }
+    reply.emplace("ExtInput", entries);
+}
+
+void WsServer::CMD_SetExtInput(struct mg_connection *c, json &msg, json &reply)
+{
+    auto &usercfg = DbHelper::Instance().GetUciUserCfg();
+    const int _EXT_SIZE = 4;
+    vector<ExtInput> extin(_EXT_SIZE);
+    vector<int> ids{_EXT_SIZE, 0};
+    auto entries = GetVector<json>(msg, "ExtInput");
+    if (entries.size() != _EXT_SIZE)
+    {
+        throw invalid_argument("There should be 4 entries in ExtInput");
+    }
+    for (auto &en : entries)
+    {
+        auto id = GetUint(en, "id", 1, _EXT_SIZE);
+        ids[id - 1] = 1;
+        extin[id - 1].dispTime = GetUint(en, "display_time", 0, 65535);
+        extin[id - 1].reserved = GetUint(en, "reserved_byte", 0, 255);
+        extin[id - 1].emergency = GetUint(en, "emergency", 0, 1);
+        extin[id - 1].flashingOv = GetUint(en, "flashing_override", 0, 1);
+    }
+    for (int i = 0; i < _EXT_SIZE; i++)
+    {
+        if (ids[i] == 0)
+        {
+            throw invalid_argument(StrFn::PrintfStr("Missing entry: \"id\":%d", i + 1));
+        }
+    }
+    for (int i = 0; i < _EXT_SIZE; i++)
+    {
+        usercfg.ExtInputCfgX(i, extin[i]);
+    }
+    auto &evt = DbHelper::Instance().GetUciEvent();
+    evt.Push(0, "UserCfg.ExtInput1-%d changed", _EXT_SIZE);
     reply.emplace("result", "OK");
 }

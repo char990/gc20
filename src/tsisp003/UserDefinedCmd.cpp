@@ -294,6 +294,15 @@ APP::ERROR TsiSp003App::CheckFA20(uint8_t *pd, char *shakehands_passwd)
 
 int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
 {
+    enum class FA20CODE : uint8_t
+    {
+        ALL_GOOD,
+        RESTART,
+        REBOOT,
+        END_SESSION,
+        NEW_PARAMETERS,
+        NETWORK
+    };
     if (ChkLen(len, 51))
     {
         char shakehands_passwd[11];
@@ -316,24 +325,28 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
             {
                 evt.Push(0, "UserCfg.SeedOffset changed: 0x%02X->0x%02X", usercfg.SeedOffset(), v);
                 usercfg.SeedOffset(v);
+                rr_flag |= RQST_NEW_PARA;
             }
             v = Cnvt::GetU16(pd + 3);
             if (v != usercfg.PasswordOffset())
             {
                 evt.Push(0, "UserCfg.PasswordOffset changed: 0x%04X->0x%04X", usercfg.PasswordOffset(), v);
                 usercfg.PasswordOffset(v);
+                rr_flag |= RQST_NEW_PARA;
             }
             v = *(pd + 5);
             if (v != usercfg.DeviceId())
             {
                 evt.Push(0, "UserCfg.DeviceID changed: %u->%u", usercfg.DeviceId(), v);
                 usercfg.DeviceId(v);
+                rr_flag |= RQST_NEW_PARA;
             }
             v = *(pd + 6);
             if (v != usercfg.BroadcastId())
             {
                 evt.Push(0, "UserCfg.BroadcastID changed: %u->%u", usercfg.BroadcastId(), v);
                 usercfg.BroadcastId(v);
+                rr_flag |= RQST_NEW_PARA;
             }
 
             /*
@@ -492,28 +505,27 @@ int TsiSp003App::FA20_SetUserCfg(uint8_t *data, int len)
                     {
                         if (uciNet.UciCommit() == 0)
                         {
-                            rr_flag |= RQST_NETWORK;
+                            rr_flag |= RQST_REBOOT;
                         }
                     }
                 }
             }
             txbuf[0] = static_cast<uint8_t>(MI::CODE::UserDefinedCmdFA);
             txbuf[1] = FACMD_RPL_SET_USER_CFG;
-            if (rr_flag == 0)
+            txbuf[2] = 0;
+            if (rr_flag & RQST_REBOOT)
             {
-                txbuf[2] = 0;
+                Controller::Instance().RR_flag(RQST_REBOOT);
+                txbuf[2] = static_cast<uint8_t>(FA20CODE::REBOOT);
             }
-            else
+            else if (rr_flag & RQST_RESTART)
             {
-                if (rr_flag & RQST_NETWORK)
-                {
-                    Controller::Instance().RR_flag(rr_flag);
-                    txbuf[2] = 5;
-                }
-                if (rr_flag & RQST_RESTART)
-                {
-                    txbuf[2] = 1;
-                }
+                Controller::Instance().RR_flag(RQST_RESTART);
+                txbuf[2] = static_cast<uint8_t>(FA20CODE::RESTART);
+            }
+            else if (rr_flag & RQST_NEW_PARA)
+            {
+                txbuf[2] = static_cast<uint8_t>(FA20CODE::NEW_PARAMETERS);
             }
             Tx(txbuf, 3);
         }
@@ -699,10 +711,10 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
     if (ChkLen(len, 15))
     {
         uint8_t *pt = data + 2;
-        ExtSw extsw[3];
+        ExtInput extin[3];
         for (int i = 0; i < 3; i++)
         {
-            extsw[i].dispTime = Cnvt::GetU16(pt);
+            extin[i].dispTime = Cnvt::GetU16(pt);
             pt += 2;
         }
         for (int i = 0; i < 3; i++)
@@ -713,11 +725,11 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
                 Reject(APP::ERROR::SyntaxError);
                 return 0;
             }
-            extsw[i].emergency = k;
+            extin[i].emergency = k;
         }
         for (int i = 0; i < 3; i++)
         {
-            extsw[i].reserved = *pt;
+            extin[i].reserved = *pt;
         }
         pt++;
         for (int i = 0; i < 3; i++)
@@ -728,12 +740,14 @@ int TsiSp003App::FA02_SetExtInput(uint8_t *data, int len)
                 Reject(APP::ERROR::SyntaxError);
                 return 0;
             }
-            extsw[i].flashingOv = k;
+            extin[i].flashingOv = k;
         }
         for (int i = 0; i < 3; i++)
         {
-            usercfg.ExtSwCfgX(i, extsw[i]);
+            usercfg.ExtInputCfgX(i, extin[i]);
         }
+        auto &evt = db.GetUciEvent();
+        evt.Push(0, "UserCfg.ExtInput1-3 changed");
         Ack();
     }
     return 0;
@@ -748,16 +762,16 @@ int TsiSp003App::FA03_RqstExtInput(uint8_t *data, int len)
         auto pt = txbuf + 2;
         for (int i = 0; i < 3; i++)
         {
-            pt = Cnvt::PutU16(usercfg.ExtSwCfgX(i).dispTime, pt);
+            pt = Cnvt::PutU16(usercfg.ExtInputCfgX(i).dispTime, pt);
         }
         for (int i = 0; i < 3; i++)
         {
-            *pt++ = usercfg.ExtSwCfgX(i).emergency;
+            *pt++ = usercfg.ExtInputCfgX(i).emergency;
         }
-        *pt++ = usercfg.ExtSwCfgX(0).reserved; // feedback = reserved, only report [0]
+        *pt++ = usercfg.ExtInputCfgX(0).reserved; // feedback = reserved, only report [0]
         for (int i = 0; i < 3; i++)
         {
-            *pt++ = usercfg.ExtSwCfgX(i).flashingOv;
+            *pt++ = usercfg.ExtInputCfgX(i).flashingOv;
         }
         Tx(txbuf, pt - txbuf);
     }

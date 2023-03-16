@@ -121,21 +121,12 @@ void Controller::PeriodicRun()
         if (rrTmr.IsExpired())
         {
             auto &evt = DbHelper::Instance().GetUciEvent();
-            if (rr_flag & RQST_NETWORK)
-            {
-                tcpServer->Close();
-                evt.Push(0, "ETH1 restart");
-                Ldebug("ETH1 restart...");
-                system("ifdown ETH1");
-                system("ifup ETH1");
-                Ldebug("Done.");
-                tcpServer->Open();
-            }
             if (rr_flag & RQST_REBOOT)
             {
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
                 Ldebug("\n%s...", _re);
+                system("sync");
                 system("reboot");
             }
             if (rr_flag & RQST_RESTART)

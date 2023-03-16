@@ -6,20 +6,20 @@
 #include <uci/UciHardware.h>
 #include <module/Tz_AU.h>
 
-typedef struct ExtSw
+typedef struct ExtInput
 {
     uint16_t dispTime{0}; // 0:disabled
     uint8_t reserved;
     uint8_t emergency;  // 0:ON / 1:OFF
     uint8_t flashingOv; // 0:ON / 1:OFF
-    bool Equal(struct ExtSw &v)
+    bool Equal(struct ExtInput &v)
     {
         return (dispTime == v.dispTime &&
                 reserved == v.reserved &&
                 emergency == v.emergency &&
                 flashingOv == v.flashingOv);
     };
-} ExtSw;
+} ExtInput;
 
 class UciUserCfg : public UciCfg
 {
@@ -70,9 +70,9 @@ public:
     uint8_t DayDimmingLevel() { return dayDimmingLevel; };
     uint8_t DawnDimmingLevel() { return dawnDimmingLevel; };
 
-    ExtSw &ExtSwCfgX(int i)
+    ExtInput &ExtInputCfgX(int i)
     {
-        return extSw.at(i);
+        return extInput.at(i);
     };
     const char *ShakehandsPassword() { return shakehandsPassword; };
 
@@ -100,7 +100,7 @@ public:
     void MultiLedFaultThreshold(uint16_t);
     void Luminance(uint16_t *);
     void DawnDusk(uint8_t *);
-    void ExtSwCfgX(int i, ExtSw &cfg);
+    void ExtInputCfgX(int i, ExtInput &cfg);
     void ShakehandsPassword(const char *shake);
     void NightDimmingLevel(uint8_t);
     void DayDimmingLevel(uint8_t);
@@ -146,7 +146,7 @@ private:
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 
-    std::vector<ExtSw> extSw{4};
+    std::vector<ExtInput> extInput{4};
 
     const char *_DeviceId = "DeviceId";
     const char *_BroadcastId = "BroadcastId";
@@ -177,7 +177,7 @@ private:
     const char *_ShakehandsPassword = "ShakehandsPassword";
     const char *_Luminance = "Luminance";
     const char *_DawnDusk = "DawnDusk";
-    const char *_ExtSw = "ExtSw";
+    const char *_ExtInput = "ExtInput";
 
     const char *_LuxDayMin = "LuxDayMin";
     const char *_LuxNightMax = "LuxNightMax";

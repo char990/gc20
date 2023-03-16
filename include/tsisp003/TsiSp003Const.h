@@ -308,7 +308,7 @@ enum class DISP_TYPE : uint8_t
 {
     N_A, // not available
     FRM, // frame (0 should to be convert to plan)
-    MSG, // message (0 should to be convert to plan), not including ExtSw
+    MSG, // message (0 should to be convert to plan), not including ExtInput
     PLN, // plan (get from frm0/msg0)
     ATF, // atomic frame
     EXT, // external input

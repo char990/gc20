@@ -156,11 +156,11 @@ int UciNetwork::SaveNtp(NtpServer &ntps)
 
 int UciNetwork::UciCommit()
 {
-    int r = system("uci -c /etc/config commit");
+    int r = Exec::Shell("uci -c %s commit %s", PATH, PACKAGE);
     if(r==0)
     {
         auto &evlog = DbHelper::Instance().GetUciEvent();
-        for (auto e : evts)
+        for (auto & e : evts)
         {
             evlog.Push(0, e.c_str());
         }

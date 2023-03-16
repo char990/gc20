@@ -94,14 +94,14 @@ void UciUserCfg::LoadConfig()
         shakehandsPassword[len] = '\0';
     }
 
-    for (int m = 0; m < extSw.size(); m++)
+    for (int m = 0; m < extInput.size(); m++)
     {
-        sprintf(cbuf, "%s%d", _ExtSw, m + 1); // ExtSw1-4
+        sprintf(cbuf, "%s%d", _ExtInput, m + 1); // ExtSw1-4
         str = GetStr(uciSec, cbuf);
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if (cnt == 4)
         {
-            auto &ext = extSw.at(m);
+            auto &ext = extInput.at(m);
             ext.dispTime = ibuf[0];
             ext.reserved = ibuf[1];
             ext.emergency = ibuf[2];
@@ -244,10 +244,10 @@ void UciUserCfg::Dump()
 
     char buf[PRINT_BUF_SIZE];
 
-    for (int i = 0; i < extSw.size(); i++)
+    for (int i = 0; i < extInput.size(); i++)
     {
         PrintExtSw(i, buf);
-        printf("\t%s%d \t'%s'\n", _ExtSw, i + 1, buf);
+        printf("\t%s%d \t'%s'\n", _ExtInput, i + 1, buf);
     }
 
     PrintOption_d(_LuxDayMin, LuxDayMin());
@@ -268,7 +268,7 @@ void UciUserCfg::Dump()
 
 void UciUserCfg::PrintExtSw(int i, char *buf)
 {
-    auto &exswcfg = ExtSwCfgX(i);
+    auto &exswcfg = ExtInputCfgX(i);
     sprintf(buf, "%d,%d,%d,%d",
             exswcfg.dispTime, exswcfg.reserved, exswcfg.emergency, exswcfg.flashingOv);
 }
@@ -549,13 +549,13 @@ void UciUserCfg::Luminance(uint16_t *p)
     }
 }
 
-void UciUserCfg::ExtSwCfgX(int i, ExtSw &cfg)
+void UciUserCfg::ExtInputCfgX(int i, ExtInput &cfg)
 {
-    if (i >= 0 && i < extSw.size() && !extSw.at(i).Equal(cfg))
+    if (i >= 0 && i < extInput.size() && !extInput.at(i).Equal(cfg))
     {
-        memcpy(&extSw.at(i), &cfg, sizeof(ExtSw));
+        memcpy(&extInput.at(i), &cfg, sizeof(ExtInput));
         char op[32];
-        strcpy(op, _ExtSw);
+        strcpy(op, _ExtInput);
         op[5] = i + '1';
         char buf[1024];
         PrintExtSw(i, buf);

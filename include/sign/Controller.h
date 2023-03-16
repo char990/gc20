@@ -14,9 +14,9 @@
 #include <module/Debounce.h>
 
 
-#define RQST_NETWORK (1 << 0)
-#define RQST_RESTART (1 << 1)
-#define RQST_REBOOT (1 << 2)
+#define RQST_NEW_PARA (1 << 5)
+#define RQST_RESTART (1 << 6)
+#define RQST_REBOOT (1 << 7)
 
 class Controller : public IPeriodicRun
 {

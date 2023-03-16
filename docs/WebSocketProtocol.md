@@ -61,6 +61,8 @@
     - [TestBufLenTMC](#testbuflentmc)
     - [TestSlave](#testslave)
     - [TestBufLenSlave](#testbuflenslave)
+    - [GetExtInput](#getextinput)
+    - [SetExtInput](#setextinput)
 
 ---
 
@@ -94,16 +96,20 @@ Change this doc to markdown.
 ## Brief
 
 Group controller should provide web service to help technician test/diagnose VMS/ISULUS.
+
 ![alt text](WebSocketProtocol_1.jpg)
+
 The "uhttpd" provides http service and "goblin" provides websocket service. In this document, "Master" stands for JavaScript program in browser (by http service) and "Controller" stands for websocket service in "goblin". Master talks to Controller by using JSON.
 
 ## Web Configuration
 
-http port: 80
+Maintenance port: `80`
 
-websocket port: 38401
+websocket test port: `60081`
 
-websocket path: ws://0.0.0.0:38401/ws
+websocket service port: `38401`
+
+websocket path: `ws://0.0.0.0:38401/ws`
 
 ## Websocket Protocol
 
@@ -196,7 +202,7 @@ Description: Set group of signs.
 
 **Because group configuration related to hardware (signs in same group should at same COM port).**
 
-**SO changing group configuration should directly edit "config/UciProd" file.**
+**SO changing group configuration should directly edit "config/UciHardware" file.**
 
 **Igonre this command. Controller reply "result":"Unspupported command".**
 
@@ -1085,7 +1091,7 @@ Controller reply: JSON:
   "event":"Onset",  // Fault log only
   "content":"Battery low" // less than 64-char
   },
-  ……
+  …… // max 500 entries
   ]
 }
 ```
@@ -1235,7 +1241,7 @@ Making file:
 1. Make a .tar by "tar -czf config.gz.tar ./config/*", which means all files in path "config"
 2. Make MD5 by "md5sum config.gz.tar > config.md5"
 3. Make a .tar by "tar -cf cfg_bak.tar config.gz.tar config.md5"
-4. Encode cfg_bak.tar to base64
+4. Encode "cfg_bak.tar" to base64
 
 ### ImportConfig
 
@@ -1266,8 +1272,8 @@ Unpacking file:
 
 1. Make a backup of current config to "cfg_bak.tar"
 2. Save file to "cfg_imp.tar"
-3. Unpack it("tar -xf cfg_imp.tar") and there should be config.gz.tar and config.md5
-4. Check MD5 and unpack config.gz.tar("tar xzf config.gz.tar"). File in "./config/" may be overwrited
+3. Unpack it("tar -xf cfg_imp.tar") and there should be "config.gz.tar" and "config.md5"
+4. Check MD5 and unpack "config.gz.tar"("tar xzf config.gz.tar"). Files in "./config/" may be overwritten
 
 ### BackupFirmware
 
@@ -1293,7 +1299,10 @@ Controller reply: JSON:
 }
 ```
 
-The "file" was created by "tar -cf goblin.tar goblin goblin.md5".
+Making file:
+
+1. Make a .tar by "tar -cf goblin.gz.tar goblin goblin.md5"
+2. Encode "goblin.gz.tar" to base64
 
 ### UpgradeFirmware
 
@@ -1417,6 +1426,77 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"TestBufLenSlave",
+"result":"OK" or error message
+}
+```
+
+### GetExtInput
+
+Direction: Master -> Controller
+
+Description: Get external switch/input setting in controller
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"GetExtInput"
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"GetExtInput",
+"ExtInput":[
+  {
+  "id":1, // 1-4
+  "display_time": 0-65535,
+  "reserved_byte": 0-255,
+  "emergency": 0|1,
+  "flashing_override": 0|1
+  },
+  …… // total 4 entries
+  ]
+}
+```
+
+Emergency: 0 is false; 1 is true
+
+FlashingOverride: 0 is false; 1 is true
+
+### SetExtInput
+
+Direction: Master -> Controller
+
+Description: Set external switch/input setting in controller
+
+Master send: JSON:
+
+```JSON
+{
+"cmd":"SetExtInput"
+"ExtInput":[
+  {
+  "id":1, // 1-4
+  "display_time": 0-65535,
+  "reserved_byte": 0-255,
+  "emergency": 0|1,
+  "flashing_override": 0|1
+  },
+  …… // total 4 entries
+  ]
+}
+```
+
+Controller reply: JSON:
+
+```JSON
+{
+"replyms":13274693458,
+"cmd":"SetExtInput",
 "result":"OK" or error message
 }
 ```
