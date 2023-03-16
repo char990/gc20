@@ -851,7 +851,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             throw invalid_argument("ETH1.ipaddr and ETH2.ipaddr should not be same");
         }
     }
-
+    #if false // TODO NTP disabled
     json ntpjs = msg["NTP"].get<json>();
     NtpServer ntp;
     ntp.server = GetStr(ntpjs, net._Server);
@@ -864,12 +864,13 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             throw invalid_argument("NTP Server should not be ETH" + to_string(i + 1));
         }
     }
-
+    #endif
     // all parameters are OK, save
     int r;
     net.evts.clear();
     
     bool ntpChanged{false};
+    #if false // TODO NTP disabled
     r = net.SaveNtp(ntp);
     if (r != 0)
     {
@@ -886,6 +887,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
         }
         net.evts.clear();
     }
+    #endif
 
     for (int i = 0; i < 2; i++)
     {
@@ -1950,7 +1952,7 @@ void WsServer::CMD_SetExtInput(struct mg_connection *c, json &msg, json &reply)
     auto entries = GetVector<json>(msg, "ExtInput");
     if (entries.size() != _EXT_SIZE)
     {
-        throw invalid_argument("There should be 4 entries in ExtInput");
+        throw invalid_argument(StrFn::PrintfStr("There should be %d entries in ExtInput", _EXT_SIZE));
     }
     for (auto &en : entries)
     {

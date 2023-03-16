@@ -94,7 +94,7 @@ public:
 class NtpServer
 {
 public:
-    std::string server{"0.au.pool.ntp.org"};
+    std::string server{"NTP disabled"};
     uint16_t port{123};
 };
 
