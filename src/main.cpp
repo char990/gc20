@@ -186,10 +186,22 @@ void GpioInit()
 
     for (int i = 0; i < sizeof(pins) / sizeof(pins[0]); i++)
     {
-        GpioEx::Export(pins[i]);
-        Utils::Time::SleepMs(100);
+        try
+        {
+            GpioEx::Unexport(pins[i]);
+        }
+        catch (...)
+        {
+        }
     }
     Utils::Time::SleepMs(1000);
+
+    for (int i = 0; i < sizeof(pins) / sizeof(pins[0]); i++)
+    {
+        GpioEx::Export(pins[i]);
+    }
+    Utils::Time::SleepMs(1000); // wait for udev to change the permission
+    
     pPinHeartbeatLed = new GpioOut(PIN_HB_LED, 1);  // heartbeat led, yellow
     pPinStatusLed = new GpioOut(PIN_ST_LED, 1);     // status led, green
     pPinWdt = new GpioOut(PIN_WDT, 1);              // watchdog

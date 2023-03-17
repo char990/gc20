@@ -24,6 +24,7 @@ public:
     void SetEdge(EDGE edge);
     unsigned int Pin() { return _pin; };
     static void Export(unsigned int pin);
+    static void Unexport(unsigned int pin);
 
 private:
     int OpenFd(void);

@@ -90,18 +90,23 @@ void GpioEx::Export(unsigned int pin)
 	fd = open(SYSFS_GPIO_DIR "/export", O_WRONLY);
 	if (fd < 0)
 	{
-		throw runtime_error(StrFn::PrintfStr("Can't open \"export\" for pin %d\n", pin));
+		throw runtime_error(StrFn::PrintfStr("Can't open \"export\" for gpio%d\n", pin));
 	}
 
 	len = snprintf(buf, sizeof(buf) - 1, "%d\n", pin);
 	write(fd, buf, len);
 	close(fd);
+	snprintf(buf, sizeof(buf) - 1, "%s/gpio%d/value", SYSFS_GPIO_DIR, pin);
+    if(!Exec::FileExists(buf))
+	{
+		throw runtime_error(StrFn::PrintfStr("export gpio%d failed\n", pin));
+	}
 }
 
 /****************************************************************
  * gpio_unexport
  ****************************************************************/
-void GpioEx::Unexport()
+void GpioEx::Unexport(unsigned int pin)
 {
 	int fd, len;
 	char buf[GpioEx_BUF_SIZE];
@@ -109,12 +114,22 @@ void GpioEx::Unexport()
 	fd = open(SYSFS_GPIO_DIR "/unexport", O_WRONLY);
 	if (fd < 0)
 	{
-		throw runtime_error(StrFn::PrintfStr("Can't open \"unexport\" for pin %d\n", _pin));
+		throw runtime_error(StrFn::PrintfStr("Can't open \"unexport\" for gpio%d\n", pin));
 	}
 
-	len = snprintf(buf, sizeof(buf) - 1, "%d\n", _pin);
+	len = snprintf(buf, sizeof(buf) - 1, "%d\n", pin);
 	write(fd, buf, len);
 	close(fd);
+	snprintf(buf, sizeof(buf) - 1, "%s/gpio%d/value", SYSFS_GPIO_DIR, pin);
+    if(Exec::FileExists(buf))
+	{
+		throw runtime_error(StrFn::PrintfStr("unexport gpio%d failed\n", pin));
+	}
+}
+
+void GpioEx::Unexport()
+{
+	Unexport(_pin);
 }
 
 /****************************************************************
@@ -128,7 +143,7 @@ void GpioEx::SetDir(DIR inout)
 	fd = open(buf, O_WRONLY);
 	if (fd < 0)
 	{
-		throw runtime_error(StrFn::PrintfStr("Can't open \"direction\" for pin %d\n", _pin));
+		throw runtime_error(StrFn::PrintfStr("Can't open \"direction\" for gpio%d\n", _pin));
 	}
 
 	if (inout == DIR::OUTPUT)
@@ -136,7 +151,7 @@ void GpioEx::SetDir(DIR inout)
 		if (write(fd, "out", 4) < 4)
 		{
 			close(fd);
-			throw runtime_error(StrFn::PrintfStr("Write \"direction\" failed for pin %d\n", _pin));
+			throw runtime_error(StrFn::PrintfStr("Write \"direction\" failed for gpio%d\n", _pin));
 		}
 		_dir = DIR::OUTPUT;
 	}
@@ -145,7 +160,7 @@ void GpioEx::SetDir(DIR inout)
 		if (write(fd, "in", 3) < 3)
 		{
 			close(fd);
-			throw runtime_error(StrFn::PrintfStr("Write \"direction\" failed for pin %d\n", _pin));
+			throw runtime_error(StrFn::PrintfStr("Write \"direction\" failed for gpio%d\n", _pin));
 		}
 		_dir = DIR::INPUT;
 	}
@@ -182,7 +197,7 @@ int GpioEx::GetValue()
 	char ch;
 	if (_dir != DIR::INPUT)
 	{
-		throw runtime_error(StrFn::PrintfStr("pin %d is NOT input\n", _pin));
+		throw runtime_error(StrFn::PrintfStr("gpio%d is NOT input\n", _pin));
 	}
 	if (lseek(_fd, 0, SEEK_SET) >= 0)
 	{
@@ -228,7 +243,7 @@ void GpioEx::SetEdge(EDGE edge)
 	fd = open(buf, O_WRONLY);
 	if (fd < 0)
 	{
-		throw runtime_error(StrFn::PrintfStr("Can't open \"edge\" for pin %d\n", _pin));
+		throw runtime_error(StrFn::PrintfStr("Can't open \"edge\" for gpio%d\n", _pin));
 	}
 	write(fd, p, strlen(p) + 1);
 	close(fd);
