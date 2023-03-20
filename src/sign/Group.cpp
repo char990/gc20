@@ -310,7 +310,7 @@ void Group::PowerFunc()
             }
             else if (pwrUpTmr.IsExpired())
             {
-                if (fsPwr == PWR_STATE::RISING)
+                if (fsPwr == PWR_STATE::RISING || fsPwr == PWR_STATE::ON)
                 { // from OFF switch to AUTO/MSG1/MSG2
                     auto fs = fcltSw.Get();
                     if (fs == FacilitySwitch::FS_STATE::AUTO)

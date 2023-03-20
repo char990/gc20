@@ -1379,7 +1379,7 @@ void WsServer::CMD_DisplayMessage(struct mg_connection *c, nlohmann::json &msg, 
     uint8_t cmd[3];
     cmd[0] = static_cast<uint8_t>(MI::CODE::SignDisplayMessage);
     cmd[1] = GetUint(msg, "group_id", 1, ctrller->GroupCnt());
-    cmd[2] = GetUint(msg, "message_id", 1, 255);
+    cmd[2] = GetUint(msg, "message_id", 0, 255);
     auto r = ctrller->CmdDispMsg(cmd);
     reply.emplace("result", (r == APP::ERROR::AppNoError) ? "OK" : APP::ToStr(r));
 }
