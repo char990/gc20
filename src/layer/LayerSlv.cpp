@@ -66,7 +66,7 @@ int LayerSlv::Rx(uint8_t *data, int len)
                                 qltdSlave->PushBack(groupId + '0', buf, length, 1);
                             }
                             length = 0;
-                            // return 0; // only deal with one pkt. Discard other data.
+                            return 0; // only deal with one pkt. Discard other data.
                         }
                     }
                 }
