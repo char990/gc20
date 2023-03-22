@@ -1079,6 +1079,8 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 }
                 else
                 {
+                    Ldebug("Slave[%d] NO reply", s->SlaveId());
+                    lowerLayer->PrintRxBuf();
                     if (s->rqstNoRplTmr.IsExpired())
                     {
                         s->ReportOffline(true);
@@ -1745,8 +1747,13 @@ int Group::Tx()
 
 void Group::SlaveStatusRpl(uint8_t *data, int len)
 {
-    if (len != 14)
+    const int RPL_LEN = 14;
+    if (len != RPL_LEN)
+    {
+        Ldebug("StatusRpl len error: %d(!=%d)", RPL_LEN);
+        lowerLayer->PrintRxBuf();
         return;
+    }
     for (int i = 0; i < SlaveCnt(); i++)
     {
         if (vSlaves[i]->DecodeStRpl(data, len) == 0)
@@ -1755,12 +1762,18 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
             return;
         }
     }
+    Ldebug("StatusRpl NOT hit");
+    lowerLayer->PrintRxBuf();
 }
 
 void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 {
-    if (len < 22)
+    const int RPL_LEN = 22;
+    if (len < RPL_LEN)
+    {
+        Ldebug("ExtStatusRpl len error: %d(<%d)", RPL_LEN);
         return;
+    }
     for (int i = 0; i < SlaveCnt(); i++)
     {
         if (vSlaves[i]->DecodeExtStRpl(data, len) == 0)
@@ -1769,11 +1782,11 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
             return;
         }
     }
+    Ldebug("ExtStatusRpl NOT hit");
 }
 
 int Group::RqstStatus(uint8_t slvindex)
 {
-    LockBus(ucihw.SlaveRqstStTo());
     Slave *s = vSlaves[slvindex];
     if (s->rqstNoRplTmr.IsClear())
     {

@@ -19,6 +19,8 @@ public:
     int TxHandle();
     void ClrTx() override;
 
+    void PrintRxBuf() override{} ;
+
 protected:
     uint8_t optxbuf[OPTXBUF_SIZE];
     int bufsize;

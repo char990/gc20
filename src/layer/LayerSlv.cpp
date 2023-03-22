@@ -8,7 +8,7 @@
 #include <uci/DbHelper.h>
 #include <module/QueueLtd.h>
 
-QueueLtd * qltdSlave;
+QueueLtd *qltdSlave;
 
 using namespace Utils;
 
@@ -33,6 +33,7 @@ int LayerSlv::Rx(uint8_t *data, int len)
     for (int i = 0; i < len; i++)
     {
         uint8_t c = *p++;
+        rxbuf.push_back(c);
         if (c == static_cast<uint8_t>(CTRL_CHAR::STX))
         { // packet start, clear buffer
             buf[0] = c;
@@ -44,21 +45,29 @@ int LayerSlv::Rx(uint8_t *data, int len)
             {
                 if (length < maxPktSize)
                 {
-                    buf[length++] = c;
-                    if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
+                    if (c == static_cast<uint8_t>(CTRL_CHAR::ETX) || isxdigit(c))
                     {
-                        if (len >= 34 && (len & 1) == 0)
+                        buf[length++] = c;
+                        if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                         {
-                            uint16_t crc1 = Crc::Crc16_8005(buf, len - 5);
-                            uint16_t crc2 = Cnvt::ParseToU16((char *)buf + len - 5);
-                            if (crc1 == crc2)
+                            if (length >= 34 && (length & 1) == 0)
                             {
-                                upperLayer->Rx(buf + 1, length - 6);
+                                uint16_t crc1 = Crc::Crc16_8005(buf, length - 5);
+                                uint16_t crc2 = Cnvt::ParseToU16((char *)buf + length - 5);
+                                if (crc1 == crc2)
+                                {
+                                    upperLayer->Rx(buf + 1, length - 6);
+                                    rxbuf.clear();
+                                }
+                                else
+                                {
+                                    Ldebug("LayerSlv Rx CRC error: %04X!=%04X", crc1, crc2);
+                                }
+                                qltdSlave->PushBack(groupId + '0', buf, length, 1);
                             }
-                            qltdSlave->PushBack(groupId+'0', buf, length, 1);
+                            length = 0;
+                            // return 0; // only deal with one pkt. Discard other data.
                         }
-                        length = 0;
-                        return 0; // only deal with one pkt. Discard other data.
                     }
                 }
                 else
@@ -86,7 +95,7 @@ int LayerSlv::Tx(uint8_t *data, int len)
     len += 4;
     *(buf + len) = static_cast<uint8_t>(CTRL_CHAR::ETX);
     len++;
-    qltdSlave->PushBack(groupId+'0', buf, len, 0);
+    qltdSlave->PushBack(groupId + '0', buf, len, 0);
     return lowerLayer->Tx(buf, len);
 }
 
@@ -97,4 +106,17 @@ void LayerSlv::ClrRx()
 void LayerSlv::ClrTx()
 {
     lowerLayer->ClrTx();
+}
+
+void LayerSlv::PrintRxBuf()
+{
+    Ldebug("SLV rxbuf(size=%d):", rxbuf.size());
+    if (rxbuf.size() > 0)
+    {
+        for (auto x : rxbuf)
+        {
+            PrintAsc(x);
+        }
+        printf("\n");
+    }
 }

@@ -17,3 +17,6 @@ extern void PrintDash(char c);
 
 /// Log debug
 #define Ldebug(...) PrintDbg(DBG_LOG, __VA_ARGS__)
+
+
+#define PrintAsc(x) printf((x < 0x20 || x > 0x7E) ? "<%02X>" : "%c", x)

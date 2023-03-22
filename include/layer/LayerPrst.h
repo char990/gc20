@@ -19,6 +19,8 @@ public:
 
     void ClrTx() override;
 
+    void PrintRxBuf() override { lowerLayer->PrintRxBuf();};
+
 private:
     int maxlen;
     uint8_t *buf;

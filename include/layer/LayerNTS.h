@@ -35,6 +35,7 @@ public:
 
     void ClrRx() override;
     void ClrTx() override;
+    void PrintRxBuf() override { lowerLayer->PrintRxBuf();};
 
     enum ISession::SESSION Session() override;
     void Session(enum ISession::SESSION v) override;
@@ -42,6 +43,7 @@ public:
 
     uint8_t Seed() override  { return seed;};
     void Seed(uint8_t v) override { seed = v ; };
+
 
 private:
     std::string name;

@@ -96,14 +96,14 @@ int OprSp::RxHandle()
     int n = read(eventFd, buf, 4096);
     if (n > 0)
     {
-        if (IsTxRdy()) // if tx is busy, discard this rx
+        if (IsTxRdy())
         {
             if (upperLayer != nullptr)
             {
                 upperLayer->Rx(buf, n);
             }
         }
-        else
+        else // if tx is busy, discard this rx
         {
             Ldebug("%s:ComTx not ready", sp->Config().name);
         }

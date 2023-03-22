@@ -5,6 +5,7 @@
 #include <layer/ILayer.h>
 #include <module/IOperator.h>
 #include <module/OprSp.h>
+#include <vector>
 
 class LayerSlv : public ILayer
 {
@@ -20,6 +21,7 @@ public:
 
     void ClrRx() override;
     void ClrTx() override;
+    void PrintRxBuf() override;
 
 private:
     std::string name;
@@ -27,4 +29,5 @@ private:
     uint8_t *buf;
     int maxPktSize;
     int groupId;
+    std::vector<uint8_t> rxbuf;
 };

@@ -52,6 +52,9 @@ public:
     /// \brief  Stop TX and Clear current layer. Called by lowerlayer
     virtual void ClrTx() = 0;
 
+    /// \brief  Printf Rx buffer data for debug
+    virtual void PrintRxBuf() = 0;
+
 protected:
     IUpperLayer *upperLayer{nullptr};
 };
