@@ -65,9 +65,9 @@ void PrintVersion(bool start)
     char buf[PRINT_BUF_SIZE];
     memset(buf, '*', len);
     buf[len] = '\0';
-    Ldebug(buf);
-    Ldebug(sbuf);
-    Ldebug(buf);
+    DebugLog(buf);
+    DebugLog(sbuf);
+    DebugLog(buf);
 }
 
 // a wrapper for time()
@@ -101,13 +101,13 @@ public:
             {
                 struct tm stm;
                 localtime_r(&t1, &stm);
-                Ldebug("DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
+                DebugLog("DS3231 updates system time->%2d/%02d/%d %2d:%02d:%02d",
                        stm.tm_mday, stm.tm_mon + 1, stm.tm_year + 1900, stm.tm_hour, stm.tm_min, stm.tm_sec);
                 Utils::Time::SetLocalTime(stm);
             }
             else
             {
-                Ldebug("DS3231 updates system time-> Timestamp matched, ignore this");
+                DebugLog("DS3231 updates system time-> Timestamp matched, ignore this");
             }
         }
         return t1;
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
         auto tcpServerNts = new TcpServer{usercfg.TmcTcpPort(), TcpSvrType::TMC, ucihw.TcpServerTMC(), tmrEvt1Sec};
         Controller::Instance().SetTcpServer(tcpServerNts);
 
-        Ldebug(">>> DONE >>>");
+        DebugLog(">>> DONE >>>");
         printf("\n=>Input '?<Enter>' to get console help.\n\n");
         /*************** Start ****************/
         while (1)
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
     catch (const exception &e)
     {
         // muntrace();
-        Ldebug("\n!!! main exception :%s", e.what());
+        DebugLog("\n!!! main exception :%s", e.what());
         return 255;
         // clean
     }

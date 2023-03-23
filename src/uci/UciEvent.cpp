@@ -15,6 +15,6 @@ void UciEvent::LoadConfig()
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciEvent";
 	SECTION = "evt";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
     UciStrLog::LoadConfig();
 }

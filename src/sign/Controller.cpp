@@ -125,14 +125,14 @@ void Controller::PeriodicRun()
             {
                 const char *_re = " -> -> -> reboot";
                 evt.Push(0, _re);
-                Ldebug("\n%s...", _re);
+                DebugLog("\n%s...", _re);
                 system("sync");
                 system("reboot");
             }
             if (rr_flag & RQST_RESTART)
             {
                 const char *_re = " -> -> -> restart";
-                Ldebug("\n%s...", _re);
+                DebugLog("\n%s...", _re);
                 system("sync");
                 throw runtime_error(_re);
             }
@@ -269,7 +269,7 @@ void Controller::ExtInputFunc()
             uint8_t msg = i + 3;
             const char *fmt = "Leading edge of external input[%d]";
             db.GetUciEvent().Push(0, fmt, i + 1);
-            Ldebug(fmt, i + 1);
+            DebugLog(fmt, i + 1);
             for (auto &g : groups)
             {
                 g->DispExt(msg);
@@ -883,11 +883,11 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
             sprintf(p, "->");
             Time::ParseTimeToLocalStr(t, p + 2);
             db.GetUciEvent().Push(0, buf);
-            Ldebug(buf);
+            DebugLog(buf);
             if (Time::SetLocalTime(stm) < 0)
             {
                 const char *s = "UpdateTime: Set system time failed(MemoryError)";
-                Ldebug(s);
+                DebugLog(s);
                 db.GetUciAlarm().Push(0, s);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 return APP::ERROR::TimeExpired;
@@ -895,7 +895,7 @@ APP::ERROR Controller::CmdUpdateTime(struct tm &stm)
             if (pDS3231->SetTimet(t) < 0)
             {
                 const char *s = "UpdateTime: Set DS3231 time failed(IntComFail)";
-                Ldebug(s);
+                DebugLog(s);
                 db.GetUciAlarm().Push(0, s);
                 db.GetUciFault().Push(0, DEV::ERROR::MemoryError, 1);
                 return APP::ERROR::TimeExpired;

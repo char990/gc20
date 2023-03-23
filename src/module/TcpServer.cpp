@@ -76,7 +76,7 @@ void TcpServer::Open()
     }
     events = EPOLLIN | EPOLLET;
     Epoll::Instance().AddEvent(this, events);
-    Ldebug("Starting %s listener on 0.0.0.0:%d", TcpSvrTypeName(serverType).c_str(), listenPort);
+    DebugLog("Starting %s listener on 0.0.0.0:%d", TcpSvrTypeName(serverType).c_str(), listenPort);
 }
 
 void TcpServer::Close()
@@ -113,7 +113,7 @@ void TcpServer::Accept()
 {
     sockaddr_in clientaddr;
     socklen_t clientlen = sizeof(struct sockaddr_in);
-    Pdebug("%s:Incomming...", name.c_str());
+    DebugPrt("%s:Incomming...", name.c_str());
     int connfd = accept(eventFd, (sockaddr *)&clientaddr, &clientlen);
     if (connfd < 0)
     {
@@ -123,14 +123,14 @@ void TcpServer::Accept()
     if (tcpOperator == nullptr)
     {
         close(connfd);
-        Ldebug("%s:Connection pool is full, reject", name.c_str());
+        DebugLog("%s:Connection pool is full, reject", name.c_str());
         return;
     }
     SetNonblocking(connfd);
     char ip_port[32];
     snprintf(ip_port, 31, "%s:%d", inet_ntoa(clientaddr.sin_addr), clientaddr.sin_port);
     tcpOperator->Accept(connfd, tmrEvt, ip_port);
-    Pdebug("%s:Accept %s as %s", name.c_str(), ip_port, tcpOperator->Name().c_str());
+    DebugPrt("%s:Accept %s as %s", name.c_str(), ip_port, tcpOperator->Name().c_str());
 }
 
 void TcpServer::SetNonblocking(int sock)

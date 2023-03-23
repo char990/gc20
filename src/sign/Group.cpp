@@ -229,7 +229,7 @@ void Group::NormalMode()
         dsNext->N_A();    // avoid to call LoadDsNext()
         dsCurrent->BLK(); // set current, force TaskFrm to display Frm[0]
         fatalError.ClearRising();
-        Ldebug("Group[%d]fatalError Set", groupId);
+        DebugLog("Group[%d]fatalError Set", groupId);
     }
     else if (fatalError.IsFalling())
     {
@@ -237,7 +237,7 @@ void Group::NormalMode()
         dsCurrent->N_A();
         ReadyToLoad(1);
         fatalError.ClearFalling();
-        Ldebug("Group[%d]fatalError Clr", groupId);
+        DebugLog("Group[%d]fatalError Clr", groupId);
     }
 
     if (fatalError.IsLow())
@@ -333,7 +333,7 @@ void Group::PowerFunc()
                 fsPwr = PWR_STATE::ON;
                 ReadyToLoad(1);
                 RqstExtStatus(0xFF);
-                Ldebug("Group[%d]PowerUp done", groupId);
+                DebugLog("Group[%d]PowerUp done", groupId);
             }
         }
     }
@@ -350,7 +350,7 @@ void Group::FcltSwitchFunc()
             DEV::ERROR::FacilitySwitchOverride, fs != FacilitySwitch::FS_STATE::AUTO);
         char buf[PRINT_BUF_SIZE];
         snprintf(buf, PRINT_BUF_SIZE - 1, "Group[%d]%s", groupId, fcltSw.ToStr());
-        Ldebug(buf);
+        DebugLog(buf);
         db.GetUciEvent().Push(0, buf);
         if (fs == FacilitySwitch::FS_STATE::OFF)
         {
@@ -407,7 +407,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // previouse is not BLANK
                     char buf[STRLOG_SIZE];
                     snprintf(buf, STRLOG_SIZE - 1, "Group[%d]TaskPln:Display BLANK", groupId);
-                    Ldebug(buf);
+                    DebugLog(buf);
                     db.GetUciEvent().Push(0, buf);
                     TaskFrmReset();
                     TaskMsgReset();
@@ -427,7 +427,7 @@ bool Group::TaskPln(int *_ptLine)
                 { // reset active frm/msg
                     char buf[PRINT_BUF_SIZE];
                     snprintf(buf, PRINT_BUF_SIZE - 1, "Group[%d]TaskPln:Plan[%d] start", groupId, plnmin.plnId);
-                    Ldebug(buf);
+                    DebugLog(buf);
                     db.GetUciEvent().Push(0, buf);
                     activeMsg.ClrAll();
                     activeFrm.ClrAll();
@@ -525,7 +525,7 @@ bool Group::TaskMsg(int *_ptLine)
             }
             SetActiveMsg(onDispMsgId);
         }
-        Ldebug("Group[%d]TaskMsg:Display Msg[%d]", groupId, onDispMsgId);
+        DebugLog("Group[%d]TaskMsg:Display Msg[%d]", groupId, onDispMsgId);
     }
     PT_BEGIN();
     while (true)
@@ -626,14 +626,14 @@ bool Group::TaskMsg(int *_ptLine)
                             {
                                 if (++msgSlaveErrCnt == 3)
                                 {
-                                    Ldebug("Group[%d]TaskMsg:SetStoredFrame:Slave may reset, RESTART", groupId);
+                                    DebugLog("Group[%d]TaskMsg:SetStoredFrame:Slave may reset, RESTART", groupId);
                                     goto NORMAL_MSG_TASK_START;
                                 }
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
                         { // this is a fatal error, restart
-                            Ldebug("Group[%d]TaskMsg:SetStoredFrame:Current NOT matched, RESTART", groupId);
+                            DebugLog("Group[%d]TaskMsg:SetStoredFrame:Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                         // ++++++++++ DispFrm X done
@@ -682,7 +682,7 @@ bool Group::TaskMsg(int *_ptLine)
                         } while (allSlavesCurrent == 0 && !taskMsgTmr.IsExpired());
                         if (!taskMsgTmr.IsExpired())
                         { // Currnet is NOT matched, fatal error
-                            Ldebug("Group[%d]TaskMsg:Frm-onTime:Current NOT matched, RESTART", groupId);
+                            DebugLog("Group[%d]TaskMsg:Frm-onTime:Current NOT matched, RESTART", groupId);
                             goto NORMAL_MSG_TASK_START;
                         }
                     }
@@ -854,7 +854,7 @@ bool Group::TaskFrm(int *_ptLine)
                 {
                     len += snprintf(buf + len, PRINT_BUF_SIZE - 1 - len, "[%d]%d", vSlaves.at(i)->SlaveId(), dsCurrent->fmpid[i]);
                 }
-                Ldebug("Group[%d]TaskFrm:Display ATF:%s", groupId, buf);
+                DebugLog("Group[%d]TaskFrm:Display ATF:%s", groupId, buf);
             }
         }
         else
@@ -877,7 +877,7 @@ bool Group::TaskFrm(int *_ptLine)
                 onDispFrmId = onDispPlnEntryId;
                 // frm set active in TaskPln
             }
-            Ldebug("Group[%d]TaskFrm:Display Frm[%d]", groupId, onDispFrmId);
+            DebugLog("Group[%d]TaskFrm:Display Frm[%d]", groupId, onDispFrmId);
             if (onDispFrmId > 0)
             {
                 do
@@ -991,7 +991,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         }
         currentDimmingV = ucihw.Dimming(currentDimmingLvl);
 #ifdef DEBUG_ADJ_DIMMING
-        Ldebug("Group[%d]Dimming:current:lvl=%d,V=%d; target:lvl=%d,V=%d",
+        DebugLog("Group[%d]Dimming:current:lvl=%d,V=%d; target:lvl=%d,V=%d",
                groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
 #endif
         for (adjDimmingSteps = 0; adjDimmingSteps < 16; adjDimmingSteps++)
@@ -1018,7 +1018,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
             {
                 setDimming = dv;
 #ifdef DEBUG_ADJ_DIMMING
-                Ldebug("Group[%d]AdjDimmingSteps=%d. Current:Lvl=%d,set:Dimming=%d",
+                DebugLog("Group[%d]AdjDimmingSteps=%d. Current:Lvl=%d,set:Dimming=%d",
                        groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
 #endif
                 PT_WAIT_UNTIL(IsBusFree());
@@ -1027,7 +1027,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
             PT_WAIT_UNTIL(dimmingAdjTimer.IsExpired());
         }
 #ifdef DEBUG_ADJ_DIMMING
-        Ldebug("Group[%d]AdjDimming done.Current:lvl=%d,V=%d,target:lvl=%d,V=%d",
+        DebugLog("Group[%d]AdjDimming done.Current:lvl=%d,V=%d,target:lvl=%d,V=%d",
                groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
 #endif
         if (targetDimmingLvl == 0)
@@ -1079,7 +1079,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 }
                 else
                 {
-                    Ldebug("Slave[%d] NO reply", s->SlaveId());
+                    DebugPrt("Slave[%d] NO reply", s->SlaveId());
                     lowerLayer->PrintRxBuf();
                     if (s->rqstNoRplTmr.IsExpired())
                     {
@@ -1357,7 +1357,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     char buf[STRLOG_SIZE];
     snprintf(buf, STRLOG_SIZE - 1, "Group[%d] %sable Plan[%d]", groupId, (endis == 0) ? "Dis" : "En", id);
     db.GetUciEvent().Push(0, buf);
-    Ldebug(buf);
+    DebugLog(buf);
     // PrintPlnMin();
     return APP::ERROR::AppNoError;
 }
@@ -1454,7 +1454,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                 if (dsCurrent->dispType == DISP_TYPE::EXT && dsCurrent->fmpid[0] == id)
                 { // same, reload timer
                     extDispTmr.Setms(time);
-                    Pdebug("Group[%d]EXT timer reload: %dms", groupId, time);
+                    DebugPrt("Group[%d]EXT timer reload: %dms", groupId, time);
                 }
                 else if (dsCurrent->dispType == DISP_TYPE::N_A ||
                          dsCurrent->dispType == DISP_TYPE::BLK ||
@@ -1467,7 +1467,7 @@ void Group::DispNext(DISP_TYPE type, uint8_t id)
                     extDispTmr.Setms(time);
                     dsExt->dispType = type;
                     dsExt->fmpid[0] = id;
-                    Pdebug("Group[%d]EXT timer start: %dms", groupId, time);
+                    DebugPrt("Group[%d]EXT timer start: %dms", groupId, time);
                 }
             }
         }
@@ -1598,13 +1598,13 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
     {
         sign->DimmingSet(dimming);
     }
-    Ldebug("Group[%d]SetDimming : %d", groupId, dimming);
+    DebugLog("Group[%d]SetDimming : %d", groupId, dimming);
     return APP::ERROR::AppNoError;
 }
 
 APP::ERROR Group::SetPower(uint8_t v)
 {
-    Ldebug("Group[%d]Power : %s", groupId, v == 0 ? "OFF" : "ON");
+    DebugLog("Group[%d]Power : %s", groupId, v == 0 ? "OFF" : "ON");
     if (v == 0)
     { // PowerOff
         if (cmdPwr != PWR_STATE::OFF)
@@ -1656,7 +1656,7 @@ void Group::EnDisDevice()
         {
             s->DeviceOnOff(deviceEnDisSet);
         }
-        Ldebug("Group[%d]%sable device", groupId, deviceEnDisCur == 0 ? "Dis" : "En");
+        DebugLog("Group[%d]%sable device", groupId, deviceEnDisCur == 0 ? "Dis" : "En");
     }
 }
 
@@ -1746,7 +1746,7 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
     const int RPL_LEN = 14;
     if (len != RPL_LEN)
     {
-        Ldebug("StatusRpl len error: %d(!=%d)", RPL_LEN);
+        DebugPrt("StatusRpl len error: %d(!=%d)", RPL_LEN);
         lowerLayer->PrintRxBuf();
         return;
     }
@@ -1758,7 +1758,7 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
             return;
         }
     }
-    Ldebug("StatusRpl NOT hit");
+    DebugPrt("StatusRpl NOT hit");
     lowerLayer->PrintRxBuf();
 }
 
@@ -1767,7 +1767,7 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
     const int RPL_LEN = 22;
     if (len < RPL_LEN)
     {
-        Ldebug("ExtStatusRpl len error: %d(<%d)", RPL_LEN);
+        DebugPrt("ExtStatusRpl len error: %d(<%d)", RPL_LEN);
         return;
     }
     for (int i = 0; i < SlaveCnt(); i++)
@@ -1778,7 +1778,7 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
             return;
         }
     }
-    Ldebug("ExtStatusRpl NOT hit");
+    DebugPrt("ExtStatusRpl NOT hit");
 }
 
 int Group::RqstStatus(uint8_t slvindex)
@@ -1843,7 +1843,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
 {
     if (slvFrmId == 0 || uciFrmId == 0)
     {
-        Ldebug("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)", slvId, slvFrmId, uciFrmId);
+        DebugLog("ERROR: SlaveSetFrame(slvId=%d, slvFrmId=%d, uciFrmId=%d)", slvId, slvFrmId, uciFrmId);
         return 10;
     }
     int ms = 10;
@@ -1980,7 +1980,7 @@ void Group::PrintPlnMin()
 
 APP::ERROR Group::SystemReset(uint8_t v)
 {
-    Ldebug("Group[%d]SystemReset : Level=%d", groupId, v);
+    DebugLog("Group[%d]SystemReset : Level=%d", groupId, v);
     switch (v)
     {
     case 0:

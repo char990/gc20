@@ -33,11 +33,11 @@ int LayerDtLk::Rx(uint8_t *data, int len)
         { // packet start, clear buffer
             buf[0] = c;
             length = 1;
-            // Pdebug("SOH");
+            // DebugPrt("SOH");
         }
         else if (c == static_cast<uint8_t>(CTRL_CHAR::NAK))
         {
-            // Pdebug("NAK");
+            // DebugPrt("NAK");
         } // TODO : CTRL_CHAR::NAK
         else
         {
@@ -48,7 +48,7 @@ int LayerDtLk::Rx(uint8_t *data, int len)
                     buf[length++] = c;
                     if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
                     {
-                        // Pdebug("ETX");
+                        // DebugPrt("ETX");
                         upperLayer->Rx(buf, length);
                         qltdTmc->PushBack(' ', buf, length, 0);
                         length = 0;

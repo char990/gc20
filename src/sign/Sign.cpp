@@ -448,7 +448,7 @@ void Sign::RefreshFatalError()
         fatalError.Set();
         if (fatalError.IsRising())
         {
-            Ldebug("Sign[%d]:fatalError Set:(%s)", signId, buf);
+            DebugLog("Sign[%d]:fatalError Set:(%s)", signId, buf);
         }
     }
     else
@@ -456,7 +456,7 @@ void Sign::RefreshFatalError()
         fatalError.Clr();
         if (fatalError.IsFalling() && (fatalError.PreV() != STATE5::S5_NA))
         {
-            Ldebug("Sign[%d]:fatalError Clr", signId);
+            DebugLog("Sign[%d]:fatalError Clr", signId);
         }
     }
     fatalError.ClearEdge();

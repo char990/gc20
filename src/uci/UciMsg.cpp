@@ -9,7 +9,7 @@ using namespace Utils;
 
 void UciMsg::LoadConfig()
 {
-	Ldebug(">>> Loading 'messages'");
+	DebugLog(">>> Loading 'messages'");
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciMsg";
 	SECTION = "msg";

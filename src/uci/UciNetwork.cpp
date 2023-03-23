@@ -19,7 +19,7 @@ void UciNetwork::LoadConfig()
 {
     PATH = "/etc/config";
     PACKAGE = "network";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
     auto LoadIp = [this](struct uci_section *uciSec, const char *_option, Ipv4 &ip, bool ex = true)
     {
         const char *str = GetStr(uciSec, _option, ex);

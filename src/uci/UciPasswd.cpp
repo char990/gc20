@@ -12,7 +12,7 @@ void UciPasswd::LoadConfig()
 {
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciPasswd";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
 
     Open();
 

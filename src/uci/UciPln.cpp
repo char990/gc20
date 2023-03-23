@@ -9,7 +9,7 @@ using namespace Utils;
 
 void UciPln::LoadConfig()
 {
-    Ldebug(">>> Loading 'plans'");
+    DebugLog(">>> Loading 'plans'");
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciPln";
     SECTION = "pln";

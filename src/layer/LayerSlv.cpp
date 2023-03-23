@@ -63,7 +63,7 @@ int LayerSlv::Rx(uint8_t *data, int len)
                                 }
                                 else
                                 {
-                                    Ldebug("LayerSlv Rx CRC error: %04X!=%04X", crc1, crc2);
+                                    DebugPrt("LayerSlv Rx CRC error: %04X!=%04X", crc1, crc2);
                                 }
                                 qltdSlave->PushBack(groupId + '0', buf, length, 1);
                             }
@@ -113,7 +113,7 @@ void LayerSlv::ClrTx()
 void LayerSlv::PrintRxBuf()
 {
     int cnt = rxbuf.Cnt();
-    Ldebug("SLV rxbuf(size=%d):", cnt);
+    DebugPrt("SLV rxbuf(size=%d):", cnt);
     if(cnt > 0)
     {
         std::unique_ptr<uint8_t> p(new uint8_t(cnt));

@@ -20,13 +20,13 @@ int Upgrade::FileInfo(uint8_t *data)
     uint32_t len = Cnvt::GetU32(data + 4);
     if (len < FILE_SIZE_MIN || len > FILE_SIZE_MAX)
     {
-        Ldebug("Upgrade::FileInfo: len=%d", len);
+        DebugLog("Upgrade::FileInfo: len=%d", len);
         return 1;
     }
     uint8_t sizeK = data[8];
     if (sizeK != 1 && sizeK != 4 && sizeK != 16 && sizeK != 64)
     {
-        Ldebug("Upgrade::FileInfo: PktSize=%d", sizeK);
+        DebugLog("Upgrade::FileInfo: PktSize=%d", sizeK);
         return 2;
     }
     char pf[PRINT_BUF_SIZE];
@@ -34,7 +34,7 @@ int Upgrade::FileInfo(uint8_t *data)
     int fd = open(pf, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd < 0)
     {
-        Ldebug("Upgrade::FileInfo: Can't open '%s'", pf);
+        DebugLog("Upgrade::FileInfo: Can't open '%s'", pf);
         return fd;
     }
     close(fd);
@@ -48,7 +48,7 @@ int Upgrade::FileInfo(uint8_t *data)
         delete[] rcvd;
     }
     rcvd = new uint8_t[totalPkt];
-    Ldebug("Upgrade::FileInfo: success");
+    DebugLog("Upgrade::FileInfo: success");
     return 0;
 }
 
@@ -56,21 +56,21 @@ int Upgrade::FilePacket(uint8_t *data, int len)
 {
     if (rcvd == nullptr || totalPkt == 0 || filelen == 0 || pktsizeK == 0)
     {
-        Ldebug("Upgrade::FilePacket: Need file info");
+        DebugLog("Upgrade::FilePacket: Need file info");
         return 1;
     }
     pktN = Cnvt::GetU16(data + 2);
     len -= 4;
     if (pktN > (totalPkt - 1))
     {
-        Ldebug("Upgrade::FilePacket: pktN[%d](0-%d)", pktN, totalPkt - 1);
+        DebugLog("Upgrade::FilePacket: pktN[%d](0-%d)", pktN, totalPkt - 1);
         return 2;
     }
     else if (pktN < (totalPkt - 1))
     {
         if (len != (pktsizeK * 1024))
         {
-            Ldebug("Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
+            DebugLog("Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
             return 3;
         }
     }
@@ -78,7 +78,7 @@ int Upgrade::FilePacket(uint8_t *data, int len)
     {
         if (len != (filelen % (pktsizeK * 1024)))
         {
-            Ldebug("Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
+            DebugLog("Upgrade::FilePacket: Pkt[%d] len=%d", pktN, len);
             return 4;
         }
     }
@@ -87,14 +87,14 @@ int Upgrade::FilePacket(uint8_t *data, int len)
     int fd = open(pf, O_WRONLY);
     if (fd < 0)
     {
-        Ldebug("Upgrade::FilePacket: Can't open '%s'", pf);
+        DebugLog("Upgrade::FilePacket: Can't open '%s'", pf);
         return fd;
     }
     int wr;
     wr = lseek(fd, pktN * pktsizeK * 1024, SEEK_SET);
     if (wr < 0)
     {
-        Ldebug("Upgrade::FilePacket: lseek failed:pkt[%d]size[%d]", pktN, pktsizeK);
+        DebugLog("Upgrade::FilePacket: lseek failed:pkt[%d]size[%d]", pktN, pktsizeK);
     }
     else
     {
@@ -106,7 +106,7 @@ int Upgrade::FilePacket(uint8_t *data, int len)
         }
         else
         {
-            Ldebug("Upgrade::FilePacket: Write '%s' failed:wr[%d]len[%d]", pf, wr, len);
+            DebugLog("Upgrade::FilePacket: Write '%s' failed:wr[%d]len[%d]", pf, wr, len);
             wr = -1;
         }
     }
@@ -118,14 +118,14 @@ int Upgrade::Start()
 {
     if (rcvd == nullptr || totalPkt == 0 || filelen == 0 || pktsizeK == 0)
     {
-        Ldebug("Upgrade::Start: Need file info");
+        DebugLog("Upgrade::Start: Need file info");
         return 1;
     }
     for (int i = 0; i < totalPkt; i++)
     {
         if (rcvd[pktN] == 0)
         {
-            Ldebug("Upgrade::Start: Receiving file uncompleted");
+            DebugLog("Upgrade::Start: Receiving file uncompleted");
             return 2;
         }
     }
@@ -138,7 +138,7 @@ int Upgrade::Start()
     {
         memset(md5, 0, 33);
     }
-    Ldebug(buf);
+    DebugLog(buf);
     filelen = 0;
     pktsizeK = 0;
     totalPkt = 0;

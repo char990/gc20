@@ -123,6 +123,6 @@ private:
 
     void print_status()
     {
-        Pdebug("Pool status: size:%d, busy:%d, free:%d", size, size-freeCnt, freeCnt);
+        DebugPrt("Pool status: size:%d, busy:%d, free:%d", size, size-freeCnt, freeCnt);
     }
 };

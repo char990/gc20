@@ -22,12 +22,12 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     }
     if (xlen < (MSG_LEN_MIN + MSG_TAIL) || xlen > (MSG_LEN_MAX + MSG_TAIL)) // with crc
     {
-        Ldebug("Msg[%d] Error:len=%d", msgId, xlen);
+        DebugPrt("Msg[%d] Error:len=%d", msgId, xlen);
         return APP::ERROR::LengthError;
     }
     if (msgId == 0)
     {
-        Ldebug("Msg Error:MsgID=0");
+        DebugPrt("Msg Error:MsgID=0");
         return APP::ERROR::SyntaxError;
     }
     uint8_t *p = xmsg + 4;
@@ -48,7 +48,7 @@ APP::ERROR Message::Init(uint8_t *xmsg, int xlen)
     }
     if (p != (xmsg + xlen - MSG_TAIL))
     {
-        Ldebug("Msg[%d] Error:Invalid entries", msgId);
+        DebugPrt("Msg[%d] Error:Invalid entries", msgId);
         return APP::ERROR::LengthError;
     }
     if (0 != CheckEntries())
@@ -113,7 +113,7 @@ int Message::CheckEntries()
     {
         if (!DbHelper::Instance().GetUciFrm().IsFrmDefined(msgEntries[i].frmId))
         {
-            Ldebug("Msg[%d] Error:Frame[%d] undefined", msgId, msgEntries[i].frmId);
+            DebugPrt("Msg[%d] Error:Frame[%d] undefined", msgId, msgEntries[i].frmId);
             return -1;
         }
     }

@@ -25,7 +25,7 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
     wsInUse = false;
     char url[32];
     sprintf(url, "ws://0.0.0.0:%d", port);
-    Ldebug("Starting WebSocket listener on %s", url);
+    DebugLog("Starting WebSocket listener on %s", url);
     mg_mgr_init(&mgr);                   // Initialise event manager
     mg_http_listen(&mgr, url, fn, NULL); // Create HTTP listener
     ctrller = &(Controller::Instance());
@@ -68,11 +68,11 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         {
             c->is_closing = 1;
             c->fn_data = nullptr;
-            Ldebug("WsServer: Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
+            DebugLog("WsServer: Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
         }
         else
         {
-            Ldebug("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+            DebugLog("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
         }
     }
     else if (ev == MG_EV_HTTP_MSG)
@@ -86,7 +86,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
                 // Websocket connection, which will receive MG_EV_WS_MSG events.
                 mg_ws_upgrade(c, hm, NULL);
                 uint8_t *ip = (uint8_t *)&c->rem.ip;
-                Ldebug("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+                DebugLog("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
                 c->fn_data = new WsClient();
                 wsInUse = true;
             }
@@ -113,7 +113,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         uint8_t *ip = (uint8_t *)&c->rem.ip;
         if (c->fn_data != nullptr)
         {
-            Ldebug("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            DebugLog("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             delete (WsClient *)c->fn_data;
             if (wsInUse)
             {
@@ -122,7 +122,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         }
         else
         {
-            Ldebug("Rejected connection from %d.%d.%d.%d closed", ip[0], ip[1], ip[2], ip[3]);
+            DebugLog("Rejected connection from %d.%d.%d.%d closed", ip[0], ip[1], ip[2], ip[3]);
         }
     }
     //(void)fn_data;
@@ -141,7 +141,7 @@ size_t WsServer::WebSocketSend(struct mg_connection *c, json &reply)
     auto s = reply.dump();
     if (ws_hexdump & 1)
     {
-        Pdebug(">>>mg_ws_send>>>\n%s", s.c_str());
+        DebugPrt(">>>mg_ws_send>>>\n%s", s.c_str());
     }
     mg_ws_send(c, s.c_str(), s.length(), WEBSOCKET_OP_TEXT);
     return s.length();
@@ -281,7 +281,7 @@ void WsServer::WebSokectProtocol(struct mg_connection *c, struct mg_ws_message *
     wsClient->len += wm->data.len;
     if (ws_hexdump & 1)
     {
-        Pdebug("<<<mg_ws_message<<<\n%s", p);
+        DebugPrt("<<<mg_ws_message<<<\n%s", p);
     }
 
     if (wsClient->len <= 0 || wsClient->buf[wsClient->len - 1] != '}')
@@ -1886,7 +1886,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
     {
         reply.emplace("result", buf);
     }
-    Ldebug(buf);
+    DebugLog(buf);
 }
 
 void WsServer::CMD_TestTMC(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)

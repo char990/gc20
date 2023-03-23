@@ -26,7 +26,7 @@ void UciUserCfg::LoadConfig()
     PACKAGE = "UciUserCfg";
     DEFAULT_FILE = "UciUserCfg.def";
     SECTION = "user_cfg";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     Open();
     struct uci_section *uciSec = GetSection(SECTION);

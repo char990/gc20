@@ -51,7 +51,7 @@ void UciHardware::LoadConfig()
 {
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciHardware";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
     char cbuf[16];
     int ibuf[16];
     const char *str;

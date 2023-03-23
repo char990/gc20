@@ -26,13 +26,13 @@ int Frame::FrameCheck(uint8_t *frm, int len)
     auto crc2 = Cnvt::GetU16(frm + len - 2);
     if (crc != crc2)
     {
-        Ldebug("Frame[%d] Error:Crc mismatch:%04X:%04X", frmId, crc, crc2);
+        DebugPrt("Frame[%d] Error:Crc mismatch:%04X:%04X", frmId, crc, crc2);
         appErr = APP::ERROR::DataChksumError;
         return 1;
     }
     if (len != (frmOffset + 2 + frmBytes))
     {
-        Ldebug("Frame[%d] Error:length mismatch:%d:%d", frmId, len, (frmOffset + 2 + frmBytes));
+        DebugPrt("Frame[%d] Error:length mismatch:%d:%d", frmId, len, (frmOffset + 2 + frmBytes));
         appErr = APP::ERROR::LengthError;
         return 1;
     }
@@ -53,7 +53,7 @@ int Frame::FrameCheck(uint8_t *frm, int len)
         !ucihw.IsConspicuity(cons) ||
         !ucihw.IsAnnulus(annu))
     {
-        Ldebug("Frame[%d] Error:conspicuity=%d;annulus=%d", frmId, cons, annu);
+        DebugPrt("Frame[%d] Error:conspicuity=%d;annulus=%d", frmId, cons, annu);
         appErr = APP::ERROR::ConspicuityNotSupported;
         return 1;
     }
@@ -66,17 +66,17 @@ int Frame::CheckLength(int len)
     auto &ucihw = DbHelper::Instance().GetUciHardware();
     if (len < frmOffset + 2 + ucihw.Gfx1CoreLen())
     {
-        Ldebug("Frame[%d] Error:len=%d", frmId, len);
+        DebugPrt("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooSmall;
     }
     else if (len > frmOffset + 2 + ucihw.MaxCoreLen())
     {
-        Ldebug("Frame[%d] Error:len=%d", frmId, len);
+        DebugPrt("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooLarge;
     }
     else if (pixelRows != ucihw.PixelRows() || pixelColumns != ucihw.PixelColumns()) // rows & columns
     {
-        Ldebug("Frame[%d] Error:pixelRows=%d;pixelColumns=%d", frmId, pixelRows, pixelColumns);
+        DebugPrt("Frame[%d] Error:pixelRows=%d;pixelColumns=%d", frmId, pixelRows, pixelColumns);
         appErr = APP::ERROR::SizeMismatch;
     }
     else
@@ -98,13 +98,13 @@ int Frame::CheckLength(int len)
         {
             if (frmBytes != x)
             {
-                Ldebug("Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
+                DebugPrt("Frame[%d] Error:frmBytes mismatch:%d:%d\n", frmId, frmBytes, x);
                 appErr = (frmBytes > x) ? APP::ERROR::FrameTooLarge : APP::ERROR::FrameTooSmall;
             }
         }
         else
         {
-            Ldebug("Frame[%d] Error:colour=%d", frmId, colour);
+            DebugPrt("Frame[%d] Error:colour=%d", frmId, colour);
             appErr = APP::ERROR::ColourNotSupported;
         }
     }
@@ -131,7 +131,7 @@ int Frame::CheckMultiColour(uint8_t *frm, int len)
                 if (d2 >= monoFinished || !ucihw.IsGfxFrmColourValid(d2))
                 {
                     appErr = APP::ERROR::ColourNotSupported;
-                    Ldebug("Frame[%d] Error:MultipleColours(frame contains coulour:%d)", frmId, d2);
+                    DebugPrt("Frame[%d] Error:MultipleColours(frame contains coulour:%d)", frmId, d2);
                     return 1;
                 }
             }
@@ -237,7 +237,7 @@ FrmTxt::FrmTxt(uint8_t *frm, int len)
             char c = frm[TXTFRM_HEADER_SIZE + i];
             if (!hdw.IsAsciiAllowed(c))
             {
-                Ldebug("Frame[%d]: '%c' NOT allowed", frmId, c);
+                DebugPrt("Frame[%d]: '%c' NOT allowed", frmId, c);
                 appErr = APP::ERROR::TextNonASC;
                 return;
             }
@@ -250,13 +250,13 @@ int FrmTxt::CheckLength(int len)
 {
     if (len > (255 + frmOffset + 2))
     {
-        Ldebug("Frame[%d] Error:len=%d", frmId, len);
+        DebugPrt("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
     }
     else if (len < (frmOffset + 2 + 1))
     {
-        Ldebug("Frame[%d] Error:len=%d", frmId, len);
+        DebugPrt("Frame[%d] Error:len=%d", frmId, len);
         appErr = APP::ERROR::FrameTooSmall;
         return 1;
     }
@@ -277,13 +277,13 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     }
     else if (Check::Text(frm + frmOffset, frmBytes) != 0)
     {
-        Ldebug("Frame[%d] Error:Non-ASC in TextFrame", frmId);
+        DebugPrt("Frame[%d] Error:Non-ASC in TextFrame", frmId);
         appErr = APP::ERROR::TextNonASC;
         return 1;
     }
     else if (!ucihw.IsFont(font))
     {
-        Ldebug("Frame[%d] Error:font=%d", frmId, font);
+        DebugPrt("Frame[%d] Error:font=%d", frmId, font);
         appErr = APP::ERROR::FontNotSupported;
         return 1;
     }
@@ -319,7 +319,7 @@ int FrmTxt::CheckSub(uint8_t *frm, int len)
     }
     if (lines > rows)
     {
-        Ldebug("Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d] lines",
+        DebugPrt("Frame[%d] Error:[%d*%d] for font[%d] but frame size is [%d] lines",
                frmId, columns, rows, font, lines);
         appErr = APP::ERROR::FrameTooLarge;
         return 1;
@@ -333,7 +333,7 @@ int FrmTxt::CheckColour()
     {
         return 0;
     }
-    Ldebug("Frame[%d] Error:colour=%d", frmId, colour);
+    DebugPrt("Frame[%d] Error:colour=%d", frmId, colour);
     return -1;
 }
 
@@ -494,7 +494,7 @@ int FrmGfx::CheckColour()
     {
         return 0;
     }
-    Ldebug("Frame[%d] Error:colour=%d", frmId, colour);
+    DebugPrt("Frame[%d] Error:colour=%d", frmId, colour);
     return -1;
 }
 
@@ -541,7 +541,7 @@ int FrmHrg::CheckColour()
     {
         return 0;
     }
-    Ldebug("Frame[%d] Error:colour=%d", frmId, colour);
+    DebugPrt("Frame[%d] Error:colour=%d", frmId, colour);
     return -1;
 }
 

@@ -31,7 +31,7 @@ UciFrm::~UciFrm()
 
 void UciFrm::LoadConfig()
 {
-	Ldebug(">>> Loading 'frames'");
+	DebugLog(">>> Loading 'frames'");
 	auto &db = DbHelper::Instance();
 	PATH = db.Path();
 	auto prodtype = db.GetUciHardware().ProdType();
@@ -78,7 +78,7 @@ void UciFrm::LoadFrms(const char *FMT)
 	}
 	catch (const std::exception &e)
 	{
-		Ldebug("%s", e.what());
+		DebugLog("%s", e.what());
 	}
 	// Dump();
 }
@@ -182,7 +182,7 @@ void UciFrm::SaveFrm(uint8_t i)
 	{
 		snprintf(buf, STRLOG_SIZE - 1, "Open frm_%03d failed", i);
 		alm.Push(0, buf);
-		Ldebug(buf);
+		DebugLog(buf);
 	}
 	else
 	{
@@ -190,7 +190,7 @@ void UciFrm::SaveFrm(uint8_t i)
 		{
 			snprintf(buf, STRLOG_SIZE - 1, "Write frm_%03d failed", i);
 			alm.Push(0, buf);
-			Ldebug(buf);
+			DebugLog(buf);
 		}
 		fdatasync(frm_fd);
 		close(frm_fd);

@@ -59,7 +59,7 @@ void TimerEvent::EventsHandle(uint32_t events)
         {
             cnt=0;
             sec++;
-            Ldebug("(%s)sec=%d", name.c_str(), sec);
+            DebugLog("(%s)sec=%d", name.c_str(), sec);
         }*/
         for(int i=0;i<pEvts.size();i++)
         {

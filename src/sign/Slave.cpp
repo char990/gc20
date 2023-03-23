@@ -91,9 +91,9 @@ int Slave::DecodeStRpl(uint8_t *buf, int len)
     auto slavepixel = DbHelper::Instance().GetUciHardware().PixelsPerSlave();
     for (int j = 0; j < faultyLedPerColour.size(); j++)
     {
-        if(faultyLedPerColour[j] == slavepixel)
+        if (faultyLedPerColour[j] == slavepixel)
         {
-            mledchainFault |= 1<<j;
+            mledchainFault |= 1 << j;
         }
     }
 
@@ -195,10 +195,10 @@ int Slave::CheckCurrent()
     }
     else
     {
-        Pdebug("Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)",
-               sign->SignId(), slaveId,
-               currentFrmId, currentFrmCrc,
-               expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+        DebugPrt("Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)",
+                 sign->SignId(), slaveId,
+                 currentFrmId, currentFrmCrc,
+                 expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
             if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmIdBak] == currentFrmCrc)
@@ -230,8 +230,8 @@ int Slave::CheckNext()
     }
     else
     {
-        Pdebug("Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)",
-               sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+        DebugPrt("Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)",
+                 sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
 }
@@ -249,7 +249,7 @@ void Slave::ReportOffline(bool v)
         isOffline = iv;
         char buf[STRLOG_SIZE];
         snprintf(buf, STRLOG_SIZE - 1, "Sign[%d].Slave[%d] %s-line", sign->SignId(), slaveId, v ? "OFF" : "On");
-        Ldebug(buf);
+        DebugLog(buf);
         DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
         sign->RefreshDevErr(DEV::ERROR::InternalCommunicationsFailure);
     }
@@ -263,7 +263,7 @@ void Slave::ReportCNCrcErr(bool v)
         isCNCrcErr = iv;
         char buf[STRLOG_SIZE];
         snprintf(buf, STRLOG_SIZE - 1, "Sign[%d].Slave[%d] C|N CRC %s (0x21=MPCerror)", sign->SignId(), slaveId, v ? "ERR" : "OK");
-        Ldebug(buf);
+        DebugLog(buf);
         DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
         sign->RefreshDevErr(DEV::ERROR::MainProcessorCommunicationsError);
     }

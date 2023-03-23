@@ -81,12 +81,12 @@ void TsiSp003App::Reject(APP::ERROR error)
     Tx(buf, 3);
     if (rejectStr[0] != '\0')
     {
-        Ldebug("Reject: MI=0x%02X(%s), Error=0x%02X(%s) :%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), rejectStr);
+        DebugPrt("Reject: MI=0x%02X(%s), Error=0x%02X(%s) :%s", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]), rejectStr);
         rejectStr[0] = '\0';
     }
     else
     {
-        Ldebug("Reject: MI=0x%02X(%s), Error=0x%02X(%s)", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]));
+        DebugPrt("Reject: MI=0x%02X(%s), Error=0x%02X(%s)", buf[1], MI::ToStr(buf[1]), buf[2], APP::ToStr(buf[2]));
     }
 }
 

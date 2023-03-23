@@ -12,7 +12,7 @@ void UciProcess::LoadConfig()
 	PATH = DbHelper::Instance().Path();
 	PACKAGE = "UciProcess";
 	SECTION = &sectionBuf[0];
-	Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+	DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
 	Open();
 	DbHelper &db = DbHelper::Instance();
 	char option[16];

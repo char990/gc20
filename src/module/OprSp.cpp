@@ -105,7 +105,7 @@ int OprSp::RxHandle()
         }
         else // if tx is busy, discard this rx
         {
-            Ldebug("%s:ComTx not ready", sp->Config().name);
+            DebugPrt("%s:ComTx not ready", sp->Config().name);
         }
     }
     return 0;

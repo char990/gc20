@@ -18,7 +18,7 @@ void UciFault::LoadConfig()
     PATH = DbHelper::Instance().Path();
     PACKAGE = "UciFault";
     SECTION = "flt";
-    Ldebug(">>> Loading '%s/%s'", PATH, PACKAGE);
+    DebugLog(">>> Loading '%s/%s'", PATH, PACKAGE);
     Open();
     struct uci_section *uciSec = GetSection(SECTION);
     struct uci_element *e;
@@ -209,7 +209,7 @@ void UciFault::Push(uint8_t id, DEV::ERROR errorCode, uint8_t onset, time_t t)
         {
             sprintf(v, "Sign[%d]", id);
         }
-        Ldebug("%s:Fault=%s : %s", v, DEV::ToStr(errorCode), onset ? "onset" : "clear");
+        DebugLog("%s:Fault=%s : %s", v, DEV::ToStr(errorCode), onset ? "onset" : "clear");
     }
 }
 
