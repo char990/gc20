@@ -59,7 +59,8 @@ void Slave::Reset()
     rxExtSt = 0;
     for (int i = 0; i < 7; i++)
     {
-        frmCrc[i] = 0;
+        frmCurrentCrc[i] = 0;
+        frmNextCrc[i] = 0;
     }
     expectCurrentFrmId = 0; // display frame command
     expectNextFrmId = 0;    // set frame command
@@ -189,7 +190,7 @@ uint8_t Slave::GetRxExtSt()
 
 int Slave::CheckCurrent()
 {
-    if (expectCurrentFrmId == currentFrmId && frmCrc[expectCurrentFrmId] == currentFrmCrc)
+    if (expectCurrentFrmId == currentFrmId && frmCurrentCrc[expectCurrentFrmId] == currentFrmCrc)
     {
         return 0;
     }
@@ -198,10 +199,10 @@ int Slave::CheckCurrent()
         DebugPrt("Sign[%d].Slave[%d] NOT matched: current(%d:%04X) expect(%d:%04X)",
                  sign->SignId(), slaveId,
                  currentFrmId, currentFrmCrc,
-                 expectCurrentFrmId, frmCrc[expectCurrentFrmId]);
+                 expectCurrentFrmId, frmCurrentCrc[expectCurrentFrmId]);
         if (expectCurrentFrmId != currentFrmId)
         {
-            if (currentFrmIdBak == currentFrmId && frmCrc[currentFrmIdBak] == currentFrmCrc)
+            if (currentFrmIdBak == currentFrmId && frmCurrentCrc[currentFrmIdBak] == currentFrmCrc)
             { // may missed the command
                 if (currentFrmId != 0)
                 {
@@ -224,14 +225,14 @@ int Slave::GetStCurrent()
 
 int Slave::CheckNext()
 {
-    if (expectNextFrmId == nextFrmId && frmCrc[expectNextFrmId] == nextFrmCrc)
+    if (expectNextFrmId == nextFrmId && frmNextCrc[expectNextFrmId] == nextFrmCrc)
     {
         return 0;
     }
     else
     {
         DebugPrt("Sign[%d].Slave[%d] NOT matched: next(%d:%04X) expect(%d:%04X)",
-                 sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmCrc[expectNextFrmId]);
+                 sign->SignId(), slaveId, nextFrmId, nextFrmCrc, expectNextFrmId, frmNextCrc[expectNextFrmId]);
         return 1; // NOT matched
     }
 }

@@ -75,8 +75,9 @@ public:
 
     // --------------------------- settings
 
-    uint16_t frmCrc[7];            // 0-6, keep [0] as 0
+    uint16_t frmCurrentCrc[7];            // 0-6, keep [0] as 0
     uint8_t expectCurrentFrmId{0}; // display frame command
+    uint16_t frmNextCrc[7];            // 0-6, keep [0] as 0
     uint8_t expectNextFrmId{0};    // set frame command
 
 private:

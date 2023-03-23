@@ -1862,7 +1862,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
             if (slvId == 0xFF || slvId == s->SlaveId())
             {
                 s->expectNextFrmId = slvFrmId;
-                s->frmCrc[slvFrmId] = crc;
+                s->frmNextCrc[slvFrmId] = crc;
             }
         }
         for (auto &s : vSigns)
@@ -1890,6 +1890,7 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
         {
             s->expectCurrentFrmId = slvFrmId;
             s->expectNextFrmId = slvFrmId;
+            s->frmCurrentCrc[slvFrmId] = s->frmNextCrc[slvFrmId];
         }
     }
     txBuf[0] = slvId;
