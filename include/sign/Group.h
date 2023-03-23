@@ -357,6 +357,7 @@ private:
         rqstExtSt_slvindex = 0;
         for (auto &s : vSlaves)
         {
+            s->rxStatus = 0;
             s->rqstNoRplTmr.Clear();
             s->cnCrcErrTmr.Clear();
         }

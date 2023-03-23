@@ -55,8 +55,8 @@ debug: pack
 
 release: 
 	@echo "release : $(BUILDTIME)" > buildtime
-release: CXXFLAGS += -O1
-release: CFLAGS += -O1
+release: CXXFLAGS += -O2
+release: CFLAGS += -O2
 release: all
 release: pack
 

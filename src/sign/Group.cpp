@@ -1150,11 +1150,7 @@ bool Group::AllSlavesGotStatus()
 
 void Group::ClrAllSlavesRxStatus()
 {
-    for (auto &s : vSlaves)
-    {
-        s->rxStatus = 0;
-    }
-    // TaskRqstSlaveReset();
+    TaskRqstSlaveReset();
 }
 
 bool Group::AllSlavesGotExtSt()

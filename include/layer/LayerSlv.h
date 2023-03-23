@@ -5,7 +5,7 @@
 #include <layer/ILayer.h>
 #include <module/IOperator.h>
 #include <module/OprSp.h>
-#include <vector>
+#include <module/RingBuf.h>
 
 class LayerSlv : public ILayer
 {
@@ -29,5 +29,5 @@ private:
     uint8_t *buf;
     int maxPktSize;
     int groupId;
-    std::vector<uint8_t> rxbuf;
+    RingBuf rxbuf;
 };
