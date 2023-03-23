@@ -13,7 +13,7 @@ unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
-bool WsServer::wsInUse;
+bool WsServer::isWsOccupied;
 
 WsServer::WsServer(int port, TimerEvent *tmrEvt)
 :tmrEvt(tmrEvt)
@@ -22,7 +22,7 @@ WsServer::WsServer(int port, TimerEvent *tmrEvt)
     {
         throw invalid_argument(StrFn::PrintfStr("WsServer error: port: %d", port));
     }
-    wsInUse = false;
+    isWsOccupied = false;
     char url[32];
     sprintf(url, "ws://0.0.0.0:%d", port);
     DebugLog("Starting WebSocket listener on %s", url);
@@ -64,11 +64,11 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     {
         c->is_hexdumping = (ws_hexdump & 2) ? 1 : 0;
         uint8_t *ip = (uint8_t *)&c->rem.ip;
-        if (wsInUse == true)
+        if (isWsOccupied == true)
         {
             c->is_closing = 1;
             c->fn_data = nullptr;
-            DebugLog("WsServer: Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
+            DebugLog("WsServer: Server is occupied. Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
         }
         else
         {
@@ -80,7 +80,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         struct mg_http_message *hm = (struct mg_http_message *)ev_data;
         if (mg_http_match_uri(hm, uri_ws))
         {
-            if (wsInUse == false)
+            if (isWsOccupied == false)
             {
                 // Upgrade to websocket. From now on, a connection is a full-duplex
                 // Websocket connection, which will receive MG_EV_WS_MSG events.
@@ -88,7 +88,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
                 uint8_t *ip = (uint8_t *)&c->rem.ip;
                 DebugLog("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
                 c->fn_data = new WsClient();
-                wsInUse = true;
+                isWsOccupied = true;
             }
             else
             {
@@ -115,9 +115,9 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         {
             DebugLog("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             delete (WsClient *)c->fn_data;
-            if (wsInUse)
+            if (isWsOccupied)
             {
-                wsInUse = false;
+                isWsOccupied = false;
             }
         }
         else

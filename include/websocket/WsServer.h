@@ -24,7 +24,7 @@ class WsClient
 #define WsMsgBuf_SIZE (4 * 1024 * 1024)
 public:
     WsClient() { buf[0] = '\0'; }
-    int len{0};
+    size_t len{0};
     char buf[WsMsgBuf_SIZE];
     bool login{false};
     std::string user;
@@ -38,7 +38,7 @@ public:
     virtual void PeriodicRun() override;
 
 private:
-    static bool wsInUse;
+    static bool isWsOccupied;
     static Controller *ctrller;
     struct mg_mgr mgr; // Event manager
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
