@@ -87,4 +87,6 @@ private:
     int stNextCrc{-1};
     int CheckCurrent();
     int stCurrentCrc{-1};
+
+    uint16_t hoursBak{0};
 };

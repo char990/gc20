@@ -165,6 +165,18 @@ int Slave::DecodeExtStRpl(uint8_t *buf, int len)
             faultyLedPerColour[j] += *buf++;
         }
     }
+    // check hours
+    if (hours != hoursBak)
+    {
+        if (hours == 0 && hoursBak != 65535)
+        {
+            char buf[64];
+            sprintf(buf,"Sign[%d].Slave[%d] reset: hours=0", sign->SignId(), slaveId);
+            DbHelper::Instance().GetUciAlarm().Push(sign->SignId(), buf);
+            DebugLog(buf);
+        }
+        hoursBak = hours;
+    }
     return 0;
 }
 
