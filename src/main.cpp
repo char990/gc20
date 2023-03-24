@@ -58,6 +58,13 @@ int PrintfVersion_(bool start, char *buf)
                     MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
 }
 
+int PrintfMD5_(char *buf)
+{
+    int len1 = sprintf(buf, "MD5=");
+    int len2 = Exec::Run("md5sum ./goblin", buf+len1, 32);
+    return len1+len2;
+}
+
 void PrintVersion(bool start)
 {
     char sbuf[PRINT_BUF_SIZE];
@@ -66,6 +73,8 @@ void PrintVersion(bool start)
     memset(buf, '*', len);
     buf[len] = '\0';
     DebugLog(buf);
+    DebugLog(sbuf);
+    PrintfMD5_(sbuf);
     DebugLog(sbuf);
     DebugLog(buf);
 }
@@ -149,6 +158,9 @@ void LogResetTime()
     db.GetUciFault().Push(0, DEV::ERROR::ControllerResetViaWatchdog, 0);
     char buf[64];
     PrintfVersion_(true, buf);
+    db.GetUciAlarm().Push(0, buf);
+    db.GetUciEvent().Push(0, buf);
+    PrintfMD5_(buf);
     db.GetUciAlarm().Push(0, buf);
     db.GetUciEvent().Push(0, buf);
     return;

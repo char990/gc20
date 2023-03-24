@@ -562,6 +562,7 @@ int Exec::Run(const char *cmd, char *outbuf, int len)
     }
     char *f = fgets(outbuf, len + 1, pipe);
     pclose(pipe);
+    outbuf[len]='\0';
     if (f == nullptr)
     {
         return -1;

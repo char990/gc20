@@ -9,13 +9,12 @@
 #include <uci/DbHelper.h>
 #include <module/QueueLtd.h>
 
-
 QueueLtd *qltdSlave;
 
 using namespace Utils;
 
 LayerSlv::LayerSlv(std::string name_, int groupId, int maxPktSize)
-    : length(0), maxPktSize(maxPktSize),rxbuf(maxPktSize)
+    : length(0), maxPktSize(maxPktSize), rxbuf(maxPktSize)
 {
     this->groupId = groupId;
     name = name_ + ":" + "SLV";
@@ -32,7 +31,8 @@ LayerSlv::~LayerSlv()
 int LayerSlv::Rx(uint8_t *data, int len)
 {
     uint8_t *p = data;
-    rxbuf.Push(data, len);
+    //    rxbuf.Push(data, len);
+    // TODO PrintRxBuf may crush, disable rxbuf
     for (int i = 0; i < len; i++)
     {
         uint8_t c = *p++;
@@ -110,20 +110,27 @@ void LayerSlv::ClrTx()
     lowerLayer->ClrTx();
 }
 
+// TODO PrintRxBuf may crush
 void LayerSlv::PrintRxBuf()
 {
     int cnt = rxbuf.Cnt();
     DebugPrt("SLV rxbuf(size=%d):", cnt);
-    if(cnt > 0)
+    if (cnt > 0)
     {
         std::unique_ptr<uint8_t> p(new uint8_t(cnt));
-        uint8_t * b = p.get();
+        uint8_t *b = p.get();
         auto x = rxbuf.Pop(b, cnt);
-        for(int i=0;i<x;i++)
+        for (int i = 0; i < x; i++)
         {
-            PrintAsc(*b);
+            auto c = *b;
+            PrintAsc(c);
+            if (c == static_cast<uint8_t>(CTRL_CHAR::ETX))
+            {
+                printf("\n");
+            }
             b++;
         }
+        printf("\n");
     }
     rxbuf.Reset();
 }

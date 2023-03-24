@@ -1079,8 +1079,9 @@ bool Group::TaskRqstSlave(int *_ptLine)
                 }
                 else
                 {
-                    //DebugPrt("Slave[%d] NO reply", s->SlaveId());
-                    //lowerLayer->PrintRxBuf();
+                    // DebugPrt("Slave[%d] NO reply", s->SlaveId());
+                    // lowerLayer->PrintRxBuf();
+                    // TODO PrintRxBuf may crush
                     if (s->rqstNoRplTmr.IsExpired())
                     {
                         s->ReportOffline(true);
