@@ -68,7 +68,9 @@ void UciHardware::LoadConfig()
     str = GetStr(uciSec, _MfcCode);
     if (strlen(str) == 6)
     {
-        snprintf(mfcCode, sizeof(mfcCode) - 1, "%s%s", str, FirmwareVer);
+        memcpy(mfcCode, str, 6);
+        memcpy(mfcCode+6, FirmwareVer, 4);
+        mfcCode[10]='\0';
     }
     else
     {
