@@ -172,7 +172,7 @@ Controller reply: JSON:
 ```JSON
 {
 "replyms":13274693458,
-"cmd":"GetGroupConfig"
+"cmd":"GetGroupConfig",
 "number_of_groups":3,
 "groups":[
   {
@@ -210,7 +210,7 @@ Master send: JSON:
 
 ```JSON
 {
-"cmd":"SetGroupConfig"
+"cmd":"SetGroupConfig",
 "number_of_groups":3,
 "groups":[
   {
@@ -364,7 +364,7 @@ Controller reply: JSON:
 "broadcast_id":0,
 "session_timeout":180,  // seconds
 "display_timeout":3,  // minutes
-"tmc_com_port":"Modem"/"COM1-6"
+"tmc_com_port":"Modem"/"COM1-6",
 "baudrate":38400,  // 19200/38400/57600/115200
 "multiled_fault":16, // 1-255
 "tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
@@ -408,7 +408,7 @@ Controller reply: JSON:
 "broadcast_id":0,
 "session_timeout":180,  // seconds
 "display_timeout":3,  // minutes
-"tmc_com_port":"Modem"/"COM1-6"
+"tmc_com_port":"Modem"/"COM1-6",
 "baudrate":38400,  // 19200/38400/57600/115200
 "multiled_fault":16, // 1-255
 "tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
@@ -736,7 +736,7 @@ Master send: JSON:
 
 ```JSON
 {
-"cmd":"GetStoredFrame"
+"cmd":"GetStoredFrame",
 "id":1 // 1-255, NOT 0
 }
 ```
@@ -751,7 +751,7 @@ Master send: JSON:
 "id":1,
 "revision":1,
 "type":"Text Frame"/"Graphics Frame"/"HR Graphics Frame",
-"colour":"Default "/"Red"/"Yellow"/"Green"/……/"Multi(4-bit)"/"RGB(24-bit)",
+"colour":"Default"/"Red"/"Yellow"/"Green"/……/"Multi(4-bit)"/"RGB(24-bit)",
 "font":0/1/2/3/4/5,
 "conspicuity":"Off"/"Up Down"/"Left Right"/"Wig Wag"/"All Flash"/"All On",
 "annulus":"Off"/"Flashing"/"On",
@@ -796,7 +796,7 @@ Master send: JSON:
 {
 "cmd":"SetFrame",
 "id": 1, // 1-255, NOT 0
-"revision": // 0-255
+"revision": 0, // 0-255
 "type":"Text Frame"/"Graphics Frame"/"HR Graphics Frame",
 "colour":"Default "/"Red"/"Yellow"/"Green"/……/"Multiple"/"24-bit",
 "font":0/1/2/3/4/5,
@@ -903,7 +903,7 @@ Master send: JSON:
 {
 "cmd":"SetMessage",
 "id":1, // 1-255, NOT 0
-"revision": // 0-255
+"revision": 0, // 0-255
 "transition":100,  //0.01 second
 "entries":[
     {
@@ -1024,7 +1024,7 @@ Master send: JSON:
 {
 "cmd":"SetPlan",
 "id":1,  // 1 - 255, Not 0
-"revision": // 0-255
+"revision": 0, // 0-255
 "week":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
 "entries":[
   {
@@ -1080,7 +1080,7 @@ Controller reply: JSON:
 ```JSON
 {
 "replyms":13274693458,
-"cmd":"RetrieveFaultLog"/"RetrieveAlarmLog"/"RetrieveEventLog"
+"cmd":"RetrieveFaultLog"/"RetrieveAlarmLog"/"RetrieveEventLog",
 "number_of_entries":500, // depends
 "logs":[
   {
@@ -1221,7 +1221,7 @@ Master send: JSON:
 
 ```JSON
 {
-"cmd":"ExportConfig",
+"cmd":"ExportConfig"
 }
 ```
 
@@ -1452,7 +1452,7 @@ Controller reply: JSON:
 "cmd":"GetExtInput",
 "ExtInput":[
   {
-  "id":1, // 1-4
+  "input_id":1, // 1-4
   "display_time": 0-65535,
   "reserved_byte": 0-255,
   "emergency": 0|1,
@@ -1477,10 +1477,10 @@ Master send: JSON:
 
 ```JSON
 {
-"cmd":"SetExtInput"
+"cmd":"SetExtInput",
 "ExtInput":[
   {
-  "id":1, // 1-4
+  "input_id":1, // 1-4
   "display_time": 0-65535,
   "reserved_byte": 0-255,
   "emergency": 0|1,

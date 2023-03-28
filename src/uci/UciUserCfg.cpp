@@ -96,7 +96,7 @@ void UciUserCfg::LoadConfig()
 
     for (int m = 0; m < extInput.size(); m++)
     {
-        sprintf(cbuf, "%s%d", _ExtInput, m + 1); // ExtSw1-4
+        sprintf(cbuf, "%s%d", _ExtInput, m + 1); // ExtInput1-4
         str = GetStr(uciSec, cbuf);
         cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
         if (cnt == 4)
@@ -555,8 +555,7 @@ void UciUserCfg::ExtInputCfgX(int i, ExtInput &cfg)
     {
         memcpy(&extInput.at(i), &cfg, sizeof(ExtInput));
         char op[32];
-        strcpy(op, _ExtInput);
-        op[5] = i + '1';
+        sprintf(op, "%s%d", _ExtInput, i + 1);
         char buf[1024];
         PrintExtSw(i, buf);
         OpenSaveClose(SECTION, op, buf);

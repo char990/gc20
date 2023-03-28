@@ -6,8 +6,9 @@
 #include <uci/UciHardware.h>
 #include <module/Tz_AU.h>
 
-typedef struct ExtInput
+class ExtInput
 {
+    public:
     uint16_t dispTime{0}; // 0:disabled
     uint8_t reserved;
     uint8_t emergency;  // 0:ON / 1:OFF
@@ -19,7 +20,7 @@ typedef struct ExtInput
                 emergency == v.emergency &&
                 flashingOv == v.flashingOv);
     };
-} ExtInput;
+};
 
 class UciUserCfg : public UciCfg
 {
@@ -70,6 +71,7 @@ public:
     uint8_t DayDimmingLevel() { return dayDimmingLevel; };
     uint8_t DawnDimmingLevel() { return dawnDimmingLevel; };
 
+    const int EXT_SIZE = 4;
     ExtInput &ExtInputCfgX(int i)
     {
         return extInput.at(i);
@@ -146,7 +148,7 @@ private:
     uint16_t luminance[16];
     uint8_t dawnDusk[16];
 
-    std::vector<ExtInput> extInput{4};
+    std::vector<ExtInput> extInput{std::vector<ExtInput>(EXT_SIZE)};
 
     const char *_DeviceId = "DeviceId";
     const char *_BroadcastId = "BroadcastId";

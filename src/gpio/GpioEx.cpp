@@ -97,7 +97,7 @@ void GpioEx::Export(unsigned int pin)
 	write(fd, buf, len);
 	close(fd);
 	snprintf(buf, sizeof(buf) - 1, "%s/gpio%d/value", SYSFS_GPIO_DIR, pin);
-    if(!Exec::FileExists(buf))
+	if (!Exec::FileExists(buf))
 	{
 		throw runtime_error(StrFn::PrintfStr("export gpio%d failed\n", pin));
 	}
@@ -121,7 +121,7 @@ void GpioEx::Unexport(unsigned int pin)
 	write(fd, buf, len);
 	close(fd);
 	snprintf(buf, sizeof(buf) - 1, "%s/gpio%d/value", SYSFS_GPIO_DIR, pin);
-    if(Exec::FileExists(buf))
+	if (Exec::FileExists(buf))
 	{
 		throw runtime_error(StrFn::PrintfStr("unexport gpio%d failed\n", pin));
 	}
@@ -140,11 +140,22 @@ void GpioEx::SetDir(DIR inout)
 	int fd;
 	char buf[GpioEx_BUF_SIZE];
 	snprintf(buf, sizeof(buf) - 1, SYSFS_GPIO_DIR "/gpio%d/direction", _pin);
-	fd = open(buf, O_WRONLY);
-	if (fd < 0)
+	int retry = 3;
+	do
 	{
-		throw runtime_error(StrFn::PrintfStr("Can't open \"direction\" for gpio%d\n", _pin));
-	}
+		fd = open(buf, O_WRONLY);
+		if (fd < 0)
+		{
+			if (--retry)
+			{
+				Utils::Time::SleepMs(1000);
+			}
+			else
+			{
+				throw runtime_error(StrFn::PrintfStr("Can't open \"direction\" for gpio%d\n", _pin));
+			}
+		}
+	}while(fd<0);
 
 	if (inout == DIR::OUTPUT)
 	{
