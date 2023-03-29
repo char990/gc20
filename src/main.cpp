@@ -36,7 +36,8 @@
 using namespace std;
 using namespace Utils;
 
-const char *FirmwareVer = "0120";
+const char *GcVer = "GC20";
+const char *FirmwareVer = "0130";
 const char *CONFIG_PATH = "config";
 
 char *mainpath;
@@ -53,9 +54,9 @@ const char *MAKE = "Release";
 
 int PrintfVersion_(bool start, char *buf)
 {
-    return snprintf(buf, PRINT_BUF_SIZE - 1, "%s* %s ver:%s @ %s *",
-                    start ? ">>> START >>> " : "",
-                    MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
+    return snprintf(buf, PRINT_BUF_SIZE - 1, "%s %s %s Ver:%s @ %s",
+                    start ? ">>>START>>>" : "",
+                    GcVer, MAKE, FirmwareVer, __BUILDTIME__); // __BUILDTIME__ is defined in Makefile
 }
 
 int PrintfMD5_(char *buf)
