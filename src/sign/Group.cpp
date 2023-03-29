@@ -551,6 +551,9 @@ bool Group::TaskMsg(int *_ptLine)
                 while (true)
                 {
                     SlaveSetStoredFrame(0xFF, 0);
+                    taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
+                    PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
+                    SlaveSetStoredFrame(0xFF, 0);
                     ClrAllSlavesRxStatus();
                     do
                     {
@@ -614,6 +617,9 @@ bool Group::TaskMsg(int *_ptLine)
                         msgSlaveErrCnt = 0;
                         do // +++++++++ DispFrm X
                         {
+                            SlaveSetStoredFrame(0xFF, msgDispEntry + 1);
+                            taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
+                            PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
                             SlaveSetStoredFrame(0xFF, msgDispEntry + 1);
                             ClrAllSlavesRxStatus();
                             PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0);
@@ -701,6 +707,9 @@ bool Group::TaskMsg(int *_ptLine)
                             do
                             {
                                 SlaveDisplayFrame(0xFF, 0);
+                                taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
+                                PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
+                                SlaveDisplayFrame(0xFF, 0);
                                 ClrAllSlavesRxStatus();
                                 AllSlavesUpdateCurrentBak();
                                 PT_WAIT_UNTIL(CheckAllSlavesCurrent() > 0 || taskMsgTmr.IsExpired());
@@ -787,6 +796,9 @@ bool Group::TaskSignTest(int *_ptLine)
     taskSignTestTmr.Setms(SlaveSetFrame(0xFF, 1, SIGN_TEST_FRAME_ID) + 100);
     PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
     // step2: display frame
+    SlaveSetStoredFrame(0xFF, 1);
+    taskSignTestTmr.Setms(100);
+    PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
     SlaveSetStoredFrame(0xFF, 1);
     taskSignTestTmr.Setms(60 * 1000);
     PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
@@ -892,6 +904,9 @@ bool Group::TaskFrm(int *_ptLine)
         do
         {
             SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
+            taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
+            PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
+            SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
             taskFrmRefreshTmr.Setms(taskFrmRefreshTmr.IsClear() ? 600 * 1000 : 1000);
             ClrAllSlavesRxStatus();
             do
@@ -992,7 +1007,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         currentDimmingV = ucihw.Dimming(currentDimmingLvl);
 #ifdef DEBUG_ADJ_DIMMING
         DebugLog("Group[%d]Dimming:current:lvl=%d,V=%d; target:lvl=%d,V=%d",
-               groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
+                 groupId, currentDimmingLvl, currentDimmingV, tdl, targetDimmingV);
 #endif
         for (adjDimmingSteps = 0; adjDimmingSteps < 16; adjDimmingSteps++)
         {
@@ -1019,7 +1034,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
                 setDimming = dv;
 #ifdef DEBUG_ADJ_DIMMING
                 DebugLog("Group[%d]AdjDimmingSteps=%d. Current:Lvl=%d,set:Dimming=%d",
-                       groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
+                         groupId, adjDimmingSteps, currentDimmingLvl, setDimming);
 #endif
                 PT_WAIT_UNTIL(IsBusFree());
                 RqstExtStatus(0xFF);
@@ -1028,7 +1043,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
         }
 #ifdef DEBUG_ADJ_DIMMING
         DebugLog("Group[%d]AdjDimming done.Current:lvl=%d,V=%d,target:lvl=%d,V=%d",
-               groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
+                 groupId, currentDimmingLvl, setDimming, tdl, targetDimmingV);
 #endif
         if (targetDimmingLvl == 0)
         {
