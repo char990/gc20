@@ -487,6 +487,14 @@ PlnMinute &Group::GetCurrentMinPln()
     return plnMin.at((stm.tm_wday * 24 + stm.tm_hour) * 60 + stm.tm_min);
 }
 
+#define SLAVE_SET_STORED_FRAME(slaveid, frameid)                                                  \
+    {                                                                                             \
+        SlaveSetStoredFrame(slaveid, frameid, ucihw.SlaveRqstInterval());                         \
+        PT_YIELD();                                                                               \
+        SlaveSetStoredFrame(slaveid, frameid,                                                     \
+                            ((frameid) == 0) ? ucihw.SlaveRqstInterval() : ucihw.SlaveDispDly()); \
+    }
+
 bool Group::TaskMsg(int *_ptLine)
 {
     uint8_t nextEntry; // temp using
@@ -550,10 +558,7 @@ bool Group::TaskMsg(int *_ptLine)
                 GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
                 while (true)
                 {
-                    SlaveSetStoredFrame(0xFF, 0);
-                    taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
-                    PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
-                    SlaveSetStoredFrame(0xFF, 0);
+                    SLAVE_SET_STORED_FRAME(0xFF, 0);
                     ClrAllSlavesRxStatus();
                     do
                     {
@@ -617,10 +622,7 @@ bool Group::TaskMsg(int *_ptLine)
                         msgSlaveErrCnt = 0;
                         do // +++++++++ DispFrm X
                         {
-                            SlaveSetStoredFrame(0xFF, msgDispEntry + 1);
-                            taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
-                            PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
-                            SlaveSetStoredFrame(0xFF, msgDispEntry + 1);
+                            SLAVE_SET_STORED_FRAME(0xFF, msgDispEntry + 1);
                             ClrAllSlavesRxStatus();
                             PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0);
                             if (allSlavesCurrent == 0)
@@ -635,6 +637,10 @@ bool Group::TaskMsg(int *_ptLine)
                                     DebugLog("Group[%d]TaskMsg:SetStoredFrame:Slave may reset, RESTART", groupId);
                                     goto NORMAL_MSG_TASK_START;
                                 }
+                            }
+                            if (pMsg->msgEntries[msgDispEntry].onTime < 10)
+                            {// if display time < 1 second, skip slave checking
+                                break;
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
                         if (allSlavesCurrent == 2)
@@ -704,16 +710,12 @@ bool Group::TaskMsg(int *_ptLine)
                                 ReadyToLoad(1);
                             }
                             taskMsgTmr.Setms(pMsg->transTime * 10 - MS_SHIFT);
-                            do
-                            {
-                                SlaveDisplayFrame(0xFF, 0);
-                                taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
-                                PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
-                                SlaveDisplayFrame(0xFF, 0);
-                                ClrAllSlavesRxStatus();
-                                AllSlavesUpdateCurrentBak();
-                                PT_WAIT_UNTIL(CheckAllSlavesCurrent() > 0 || taskMsgTmr.IsExpired());
-                            } while (!taskMsgTmr.IsExpired());
+                            SlaveDisplayFrame(0xFF, 0, ucihw.SlaveRqstInterval() - MS_SHIFT);
+                            PT_YIELD();
+                            SlaveDisplayFrame(0xFF, 0, ucihw.SlaveRqstInterval() - MS_SHIFT);
+                            ClrAllSlavesRxStatus();
+                            AllSlavesUpdateCurrentBak();
+                            PT_WAIT_UNTIL(taskMsgTmr.IsExpired());
                         }
                         // +++++++++++ transition time end
                     }
@@ -796,10 +798,7 @@ bool Group::TaskSignTest(int *_ptLine)
     taskSignTestTmr.Setms(SlaveSetFrame(0xFF, 1, SIGN_TEST_FRAME_ID) + 100);
     PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
     // step2: display frame
-    SlaveSetStoredFrame(0xFF, 1);
-    taskSignTestTmr.Setms(100);
-    PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
-    SlaveSetStoredFrame(0xFF, 1);
+    SLAVE_SET_STORED_FRAME(0xFF, 1);
     taskSignTestTmr.Setms(60 * 1000);
     PT_WAIT_UNTIL(taskSignTestTmr.IsExpired());
     {
@@ -903,10 +902,7 @@ bool Group::TaskFrm(int *_ptLine)
         // step2: display frame
         do
         {
-            SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
-            taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
-            PT_WAIT_UNTIL(taskFrmTmr.IsExpired());
-            SlaveSetStoredFrame(0xFF, (onDispFrmId == 0) ? 0 : 1);
+            SLAVE_SET_STORED_FRAME(0xFF, (onDispFrmId == 0) ? 0 : 1);
             taskFrmRefreshTmr.Setms(taskFrmRefreshTmr.IsClear() ? 600 * 1000 : 1000);
             ClrAllSlavesRxStatus();
             do
@@ -1894,7 +1890,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
     return ms;
 }
 
-int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
+int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 {
     if (deviceEnDisCur == 0)
     {
@@ -1914,20 +1910,19 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId)
     txBuf[2] = slvFrmId;
     txLen = 3;
     Tx();
-    int ms = (slvFrmId == 0) ? ucihw.SlaveRqstInterval() : ucihw.SlaveDispDly();
     LockBus(ms);
     return ms;
 }
 
 // this function is actually for transistion time ONLY
-int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId)
+int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 {
     // PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]DisplayFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::DISPLAY_FRM;
-    return SlaveSDFrame(slvId, slvFrmId);
+    return SlaveSDFrame(slvId, slvFrmId, ms);
 }
 
-int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
+int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 {
     for (auto &s : vSigns)
     {
@@ -1938,7 +1933,7 @@ int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId)
     }
     // PrintDbg(DBG_LEVEL::DBG_PRT, "Slave[%d]SetStoredFrame:%d", slvId, slvFrmId);
     txBuf[1] = SLVCMD::SET_STD_FRM;
-    return SlaveSDFrame(slvId, slvFrmId);
+    return SlaveSDFrame(slvId, slvFrmId, ms);
 }
 
 void Group::AllSlavesUpdateCurrentBak()
