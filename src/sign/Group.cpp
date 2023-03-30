@@ -100,7 +100,7 @@ Group::Group(uint8_t groupId)
         }
     }
     // PrintPlnMin();
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         s->SignErr(proc.SignErr(s->SignId()));
         s->InitFaults();
@@ -109,7 +109,7 @@ Group::Group(uint8_t groupId)
     targetDimmingLvl = tgtDim | 0x80;
     currentDimmingLvl = 1;
     uint8_t tdv = tgtDim != 0 ? tgtDim : 1;
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         sign->DimmingSet(tgtDim);
         sign->DimmingV(tdv);
@@ -120,7 +120,7 @@ Group::Group(uint8_t groupId)
     {
         pPinCmdPower = new GpioOut(PIN_MOSFET1_CTRL, pwr);
     }
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         sign->SignErr(DEV::ERROR::PoweredOffByCommand, !pwr);
     }
@@ -209,13 +209,13 @@ void Group::NormalMode()
 {
     // fatal error
     bool fatal = false;
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         fatal |= sign->fatalError.IsHigh();
     }
-    for (auto &slv : vSlaves)
+    for (auto s : vSlaves)
     {
-        fatal |= (slv->isOffline == 1) ? 1 : 0;
+        fatal |= (s->isOffline == 1) ? 1 : 0;
     }
     fatal ? fatalError.Set() : fatalError.Clr();
 
@@ -957,7 +957,7 @@ uint8_t Group::GetTargetDimmingLvl() // 1-16
     {
         int lux = 0;
         int luxCnt = 0;
-        for (auto &s : vSigns)
+        for (auto s : vSigns)
         {
             if (s->luminanceFault.IsLow())
             {
@@ -1043,7 +1043,7 @@ bool Group::TaskAdjustDimming(int *_ptLine)
 #endif
         if (targetDimmingLvl == 0)
         {
-            for (auto &sign : vSigns)
+            for (auto sign : vSigns)
             {
                 sign->DimmingSet(targetDimmingLvl);
                 sign->DimmingV(currentDimmingLvl);
@@ -1120,7 +1120,7 @@ bool Group::TaskRqstSlave(int *_ptLine)
 
 int Group::CheckAllSlavesNext()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         int x = s->GetStNext();
         if (x != 0)
@@ -1135,7 +1135,7 @@ int Group::CheckAllSlavesNext()
 
 int Group::CheckAllSlavesCurrent()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         int x = s->GetStCurrent();
         if (x != 0)
@@ -1150,7 +1150,7 @@ int Group::CheckAllSlavesCurrent()
 
 bool Group::AllSlavesGotStatus()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         if (s->GetRxStatus() == 0)
         {
@@ -1167,7 +1167,7 @@ void Group::ClrAllSlavesRxStatus()
 
 bool Group::AllSlavesGotExtSt()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         if (s->GetRxExtSt() == 0)
         {
@@ -1179,7 +1179,7 @@ bool Group::AllSlavesGotExtSt()
 
 void Group::ClrAllSlavesRxExtSt()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         s->rxExtSt = 0;
     }
@@ -1188,7 +1188,7 @@ void Group::ClrAllSlavesRxExtSt()
 
 bool Group::IsSignInGroup(uint8_t id)
 {
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         if (s->SignId() == id)
         {
@@ -1200,7 +1200,7 @@ bool Group::IsSignInGroup(uint8_t id)
 
 Sign *Group::GetSign(uint8_t id)
 {
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         if (s->SignId() == id)
         {
@@ -1212,7 +1212,7 @@ Sign *Group::GetSign(uint8_t id)
 
 Slave *Group::GetSlave(uint8_t id)
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         if (s->SlaveId() == id)
         {
@@ -1224,7 +1224,7 @@ Slave *Group::GetSlave(uint8_t id)
 
 void Group::GroupSetReportDisp(uint8_t frmId, uint8_t msgId, uint8_t plnId)
 {
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         s->SetReportDisp(frmId, msgId, plnId);
     }
@@ -1531,7 +1531,7 @@ APP::ERROR Group::DispFrm(uint8_t id, bool log)
     {
         return r;
     }
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         auto &signCfg = ucihw.GetSignCfg(sign->SignId());
         if (signCfg.rejectFrms.GetBit(id))
@@ -1606,7 +1606,7 @@ APP::ERROR Group::SetDimming(uint8_t dimming)
 {
     db.GetUciProcess().SetDimming(groupId, dimming);
     targetDimmingLvl = dimming;
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         sign->DimmingSet(dimming);
     }
@@ -1623,7 +1623,7 @@ APP::ERROR Group::SetPower(uint8_t v)
         {
             PinCmdPowerOff();
             db.GetUciProcess().SetPower(groupId, 0);
-            for (auto &sign : vSigns)
+            for (auto sign : vSigns)
             {
                 sign->SignErr(DEV::ERROR::PoweredOffByCommand, 1);
             }
@@ -1636,14 +1636,14 @@ APP::ERROR Group::SetPower(uint8_t v)
         {
             PinCmdPowerOn();
             db.GetUciProcess().SetPower(groupId, 1);
-            for (auto &sign : vSigns)
+            for (auto sign : vSigns)
             {
                 sign->SignErr(DEV::ERROR::PoweredOffByCommand, 0);
             }
             cmdPwr = PWR_STATE::RISING;
         }
     }
-    for (auto &sign : vSigns)
+    for (auto sign : vSigns)
     {
         sign->PowerOnOff(v);
     }
@@ -1664,7 +1664,7 @@ void Group::EnDisDevice()
         TaskMsgReset();
         TaskFrmReset();
         deviceEnDisCur = deviceEnDisSet;
-        for (auto &s : vSigns)
+        for (auto s : vSigns)
         {
             s->DeviceOnOff(deviceEnDisSet);
         }
@@ -1762,11 +1762,11 @@ void Group::SlaveStatusRpl(uint8_t *data, int len)
         lowerLayer->PrintRxBuf();
         return;
     }
-    for (int i = 0; i < SlaveCnt(); i++)
+    for (auto s : vSlaves)
     {
-        if (vSlaves[i]->DecodeStRpl(data, len) == 0)
+        if (s->DecodeStRpl(data, len) == 0)
         {
-            vSlaves[i]->sign->RefreshSlaveStatusAtSt();
+            s->sign->RefreshSlaveStatusAtSt();
             return;
         }
     }
@@ -1782,11 +1782,11 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
         DebugPrt("ExtStatusRpl len error: %d(<%d)", RPL_LEN);
         return;
     }
-    for (int i = 0; i < SlaveCnt(); i++)
+    for (auto s : vSlaves)
     {
-        if (vSlaves[i]->DecodeExtStRpl(data, len) == 0)
+        if (s->DecodeExtStRpl(data, len) == 0)
         {
-            vSlaves[i]->sign->RefreshSlaveStatusAtExtSt();
+            s->sign->RefreshSlaveStatusAtExtSt();
             return;
         }
     }
@@ -1795,7 +1795,7 @@ void Group::SlaveExtStatusRpl(uint8_t *data, int len)
 
 int Group::RqstStatus(uint8_t slvindex)
 {
-    Slave *s = vSlaves[slvindex];
+    auto s = vSlaves.at(slvindex);
     if (s->rqstNoRplTmr.IsClear())
     {
         s->rqstNoRplTmr.Setms(ucihw.OfflineDebounce() * 1000);
@@ -1818,7 +1818,7 @@ int Group::RqstExtStatus(uint8_t slvindex)
     }
     else
     {
-        Slave *s = vSlaves[slvindex];
+        auto s = vSlaves.at(slvindex);
         txBuf[0] = s->SlaveId();
         s->rxExtSt = 0;
     }
@@ -1869,7 +1869,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
         uint16_t crc = Crc::Crc16_8005((uint8_t *)asc.data(), (txLen - 1) * 2);
         Cnvt::PutU16(crc, txBuf + txLen);
         txLen += 2;
-        for (auto &s : vSlaves)
+        for (auto s : vSlaves)
         {
             if (slvId == 0xFF || slvId == s->SlaveId())
             {
@@ -1877,7 +1877,7 @@ int Group::SlaveSetFrame(uint8_t slvId, uint8_t slvFrmId, uint8_t uciFrmId)
                 s->frmNextCrc[slvFrmId] = crc;
             }
         }
-        for (auto &s : vSigns)
+        for (auto s : vSigns)
         {
             if (slvId == 0xFF || slvId == s->SignId())
             {
@@ -1896,7 +1896,7 @@ int Group::SlaveSDFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
     {
         slvFrmId = 0;
     }
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         if (slvId == s->SlaveId() || slvId == 0xFF)
         {
@@ -1924,7 +1924,7 @@ int Group::SlaveDisplayFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 
 int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 {
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         if (slvId == 0xFF || slvId == s->SignId())
         {
@@ -1938,7 +1938,7 @@ int Group::SlaveSetStoredFrame(uint8_t slvId, uint8_t slvFrmId, uint16_t ms)
 
 void Group::AllSlavesUpdateCurrentBak()
 {
-    for (auto &s : vSlaves)
+    for (auto s : vSlaves)
     {
         s->currentFrmIdBak = s->expectCurrentFrmId;
     }
@@ -2038,7 +2038,7 @@ void Group::SystemReset2()
     SystemReset1();
     auto &proc = db.GetUciProcess();
     // clear all faults
-    for (auto &s : vSigns)
+    for (auto s : vSigns)
     {
         s->ClearFaults();
         proc.SaveSignErr(s->SignId(), s->SignErr().GetV());
