@@ -639,7 +639,7 @@ bool Group::TaskMsg(int *_ptLine)
                                 }
                             }
                             if (pMsg->msgEntries[msgDispEntry].onTime < 10)
-                            {// if display time < 1 second, skip slave checking
+                            { // if display time < 1 second, skip slave checking
                                 break;
                             }
                         } while (allSlavesCurrent == 1 || allSlavesCurrent == 3); // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
@@ -905,6 +905,18 @@ bool Group::TaskFrm(int *_ptLine)
             SLAVE_SET_STORED_FRAME(0xFF, (onDispFrmId == 0) ? 0 : 1);
             taskFrmRefreshTmr.Setms(taskFrmRefreshTmr.IsClear() ? 600 * 1000 : 1000);
             ClrAllSlavesRxStatus();
+            AllSlavesUpdateCurrentBak();
+            if (dsCurrent->dispType == DISP_TYPE::ATF)
+            {
+                for (int i = 0; i < SignCnt(); i++)
+                {
+                    vSigns.at(i)->SetReportDisp(dsCurrent->fmpid[i], 0, 0);
+                }
+            }
+            else
+            {
+                GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
+            }
             do
             {
                 // step3: check current & next
@@ -916,21 +928,6 @@ bool Group::TaskFrm(int *_ptLine)
                 }
                 taskFrmTmr.Setms(ucihw.SlaveRqstInterval() - MS_SHIFT);
                 PT_WAIT_UNTIL(CheckAllSlavesCurrent() >= 0 && taskFrmTmr.IsExpired());
-                if (allSlavesCurrent == 0)
-                {
-                    AllSlavesUpdateCurrentBak();
-                    if (dsCurrent->dispType == DISP_TYPE::ATF)
-                    {
-                        for (int i = 0; i < SignCnt(); i++)
-                        {
-                            vSigns.at(i)->SetReportDisp(dsCurrent->fmpid[i], 0, 0);
-                        }
-                    }
-                    else
-                    {
-                        GroupSetReportDisp(onDispFrmId, onDispMsgId, onDispPlnId);
-                    }
-                }
             } while (allSlavesCurrent == 0); // all good
         } while (allSlavesCurrent == 1);     // Current is NOT matched but last is matched, re-issue SlaveSetStoredFrame
         // if allSlavesCurrent == 2, slave may reset, re-start
