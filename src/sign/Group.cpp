@@ -1235,7 +1235,7 @@ bool Group::IsEnPlanOverlap(uint8_t id)
         return false;
     }
     uint8_t week = 0x01;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < DAYS_A_WEEK; i++)
     {
         if (pln->weekdays & week)
         {
@@ -1246,10 +1246,10 @@ bool Group::IsEnPlanOverlap(uint8_t id)
                 int stop = GetMinOffset(i, &(entry.stop));
                 if (stop <= start)
                 {
-                    stop += 24 * 60;
-                    if (stop >= 7 * 24 * 60)
+                    stop += MINUTES_A_DAY;
+                    if (stop >= MINUTES_A_WEEK)
                     {
-                        stop -= 7 * 24 * 60;
+                        stop -= MINUTES_A_WEEK;
                     }
                 }
                 do
@@ -1259,7 +1259,7 @@ bool Group::IsEnPlanOverlap(uint8_t id)
                         return true;
                     }
                     start++;
-                    if (start == 7 * 24 * 60)
+                    if (start == MINUTES_A_WEEK)
                     {
                         start = 0;
                     }
@@ -1306,7 +1306,7 @@ void Group::LoadPlanToPlnMin(uint8_t id)
         return;
     }
     uint8_t week = 0x01;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < DAYS_A_WEEK; i++)
     {
         if (pln->weekdays & week)
         {
@@ -1317,10 +1317,10 @@ void Group::LoadPlanToPlnMin(uint8_t id)
                 int stop = GetMinOffset(i, &(entry.stop));
                 if (stop <= start)
                 {
-                    stop += 24 * 60;
-                    if (stop >= 7 * 24 * 60)
+                    stop += MINUTES_A_DAY;
+                    if (stop >= MINUTES_A_WEEK)
                     {
-                        stop -= 7 * 24 * 60;
+                        stop -= MINUTES_A_WEEK;
                     }
                 }
                 do
@@ -1329,7 +1329,7 @@ void Group::LoadPlanToPlnMin(uint8_t id)
                     k.plnId = id;
                     k.fmType = entry.fmType;
                     k.fmId = entry.fmId;
-                    if (++start == 7 * 24 * 60)
+                    if (++start == MINUTES_A_WEEK)
                     {
                         start = 0;
                     }
@@ -1348,7 +1348,7 @@ APP::ERROR Group::EnDisPlan(uint8_t id, bool endis)
     }
     if (id == 0)
     {
-        plnMin.assign(plnMin.size(), PlnMinute{});
+        plnMin.fill(PlnMinute{});
     }
     else
     {
@@ -1394,7 +1394,7 @@ APP::ERROR Group::DisablePlan(uint8_t id)
     db.GetUciProcess().EnDisPlan(groupId, id, false);
     Plan *pln = db.GetUciPln().GetPln(id);
     uint8_t week = 0x01;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < DAYS_A_WEEK; i++)
     {
         if (pln->weekdays & week)
         {
@@ -1405,17 +1405,17 @@ APP::ERROR Group::DisablePlan(uint8_t id)
                 int stop = GetMinOffset(i, &(entry.stop));
                 if (stop <= start)
                 {
-                    stop += 24 * 60;
-                    if (stop >= 7 * 24 * 60)
+                    stop += MINUTES_A_DAY;
+                    if (stop >= MINUTES_A_WEEK)
                     {
-                        stop -= 7 * 24 * 60;
+                        stop -= MINUTES_A_WEEK;
                     }
                 }
                 do
                 {
                     auto &k = plnMin.at(start);
                     k.plnId = 0;
-                    if (++start == 7 * 24 * 60)
+                    if (++start == MINUTES_A_WEEK)
                     {
                         start = 0;
                     }
@@ -1957,7 +1957,7 @@ void Group::LockBus(int ms)
 
 void Group::PrintPlnMin()
 {
-    vector<PlnMinute>::iterator it = plnMin.begin();
+    auto it = plnMin.begin();
     for (int d = 0; d < 7; d++)
     {
         printf("\nD%d:", d);

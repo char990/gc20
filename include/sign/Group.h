@@ -1,5 +1,6 @@
 #pragma once
 #include <cstring>
+#include <array>
 #include <vector>
 #include <module/OprSp.h>
 #include <module/OprTcp.h>
@@ -228,7 +229,10 @@ private:
 
     void FcltSwitchFunc();
 
-    std::vector<PlnMinute> plnMin{7 * 24 * 60};
+    static const int DAYS_A_WEEK{7};
+    static const int MINUTES_A_DAY{24 * 60};
+    static const int MINUTES_A_WEEK{DAYS_A_WEEK * MINUTES_A_DAY};
+    std::array<PlnMinute, MINUTES_A_WEEK> plnMin;
     PlnMinute &GetCurrentMinPln();
     int GetMinOffset(int day, Hm *t);
     void LoadPlanToPlnMin(uint8_t id);

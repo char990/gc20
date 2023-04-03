@@ -1726,7 +1726,7 @@ void WsServer::CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nloh
 
 void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-    reply.emplace("result", "Controller will reboot after 5 seconds");
+    reply.emplace("result", "OK");
     ctrller->RR_flag(RQST_REBOOT);
 }
 

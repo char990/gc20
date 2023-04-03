@@ -1207,7 +1207,7 @@ Controller reply: JSON:
 {
 "replyms":13274693458,
 "cmd":"Reboot",
-"result": "Controller will reboot after 5 seconds"
+"result": "OK"
 }
 ```
 
