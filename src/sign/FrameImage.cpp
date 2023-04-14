@@ -87,22 +87,22 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     switch (GetConspicuity(f_conspicuity))
     {
     case 1:
-        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][0] = &bmpLanternFlash;
         lanterns[0][1] = &bmpLanternOff;
-        lanterns[1][0] = &bmpLanternOn;
+        lanterns[1][0] = &bmpLanternFlash;
         lanterns[1][1] = &bmpLanternOff;
         break;
     case 2:
-        lanterns[0][0] = &bmpLanternOn;
-        lanterns[0][1] = &bmpLanternOn;
+        lanterns[0][0] = &bmpLanternFlash;
+        lanterns[0][1] = &bmpLanternFlash;
         lanterns[1][0] = &bmpLanternOff;
         lanterns[1][1] = &bmpLanternOff;
         break;
     case 3:
-        lanterns[0][0] = &bmpLanternOn;
+        lanterns[0][0] = &bmpLanternFlash;
         lanterns[0][1] = &bmpLanternOff;
         lanterns[1][0] = &bmpLanternOff;
-        lanterns[1][1] = &bmpLanternOn;
+        lanterns[1][1] = &bmpLanternFlash;
         break;
     case 4:
         lanterns[0][0] = &bmpLanternFlash;

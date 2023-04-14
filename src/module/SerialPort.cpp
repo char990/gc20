@@ -20,7 +20,7 @@ int ALLOWEDBPS[EXTENDEDBPS_SIZE] =
 
 const char *COM_NAME[COMPORT_SIZE] =
 	{
-		"MODEM",
+		"Modem",
 		"COM1",
 		"COM2",
 		"COM3",

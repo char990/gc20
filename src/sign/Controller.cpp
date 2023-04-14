@@ -531,9 +531,11 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     }
     db.GetUciEvent().Push(0, "SignTest:SetFrame[%d],Colour:%s,Pixels:%s",
                           SIGN_TEST_FRAME_ID, FrameColour::COLOUR_NAME[colourId], TestPixels[pixels]);
+    
+    
     for (auto g : groups)
     {
-        r = g->SignTestDispFrm();
+        r = g->DispFrm(SIGN_TEST_FRAME_ID, false);
         if (r != APP::ERROR::AppNoError)
         {
             return r;
