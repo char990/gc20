@@ -52,25 +52,27 @@ public:
     /// \return object pointer; nullptr: no valid object, all used
     T *Pop()
     {
+        print_status();
         T *pObj = nullptr;
         if (freeCnt > 0)
         {
-            freeCnt--;
-            if (std::is_base_of<Poolable<T>, T>::value)
+            for (int i = 0; i < size; i++)
             {
-                ((Poolable<T> *)freeObj[freeCnt])->PopClean();
-            }
-            print_status();
-            pObj = freeObj[freeCnt];
-            for(int i=0;i<size;i++)
-            {
-                if(busyObj[i]==nullptr)
+                if (busyObj[i] == nullptr)
                 {
-                    busyObj[i]=pObj;
+                    freeCnt--;
+                    pObj = freeObj[freeCnt];
+                    busyObj[i] = pObj;
+                    freeObj[freeCnt] = nullptr;
+                    if (std::is_base_of<Poolable<T>, T>::value)
+                    {
+                        ((Poolable<T> *)pObj)->PopClean();
+                    }
                     break;
                 }
             }
         }
+        print_status();
         return pObj;
     }
 
@@ -79,6 +81,7 @@ public:
     /// \return int : valid objects in pool; -1 : failed
     int Push(T *pObj)
     {
+        print_status();
         if (freeCnt >= size)
         {
             throw std::overflow_error("Pool is full, can't push a new obj in it");
@@ -92,11 +95,11 @@ public:
             ((Poolable<T> *)pObj)->PushClean();
         }
         freeObj[freeCnt++] = pObj;
-        for(int i=0;i<size;i++)
+        for (int i = 0; i < size; i++)
         {
-            if(busyObj[i]==pObj)
+            if (busyObj[i] == pObj)
             {
-                busyObj[i]=nullptr;
+                busyObj[i] = nullptr;
                 break;
             }
         }
@@ -109,7 +112,7 @@ public:
     std::vector<T *> &BusyObj() { return busyObj; };
     int Size() { return size; }
     int FreeCnt() { return freeCnt; }
-    int BusyCnt() { return size-freeCnt; }
+    int BusyCnt() { return size - freeCnt; }
 
 private:
     /// \brief  pool size
@@ -117,12 +120,12 @@ private:
     /// \brief  free objects counter
     int freeCnt;
 
-    std::vector<T *> pool;      // hold all new objects
-    std::vector<T *> freeObj;      // free objects
-    std::vector<T *> busyObj;      // busy objects
+    std::vector<T *> pool;    // hold all new objects
+    std::vector<T *> freeObj; // free objects
+    std::vector<T *> busyObj; // busy objects
 
     void print_status()
     {
-        DebugPrt("Pool status: size:%d, busy:%d, free:%d", size, size-freeCnt, freeCnt);
+        DebugPrt("Pool status: size:%d, busy:%d, free:%d", size, size - freeCnt, freeCnt);
     }
 };
