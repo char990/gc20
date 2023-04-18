@@ -32,19 +32,30 @@ public:
 class WsServer : public IPeriodicRun
 {
 public:
-    WsServer(int port, TimerEvent *tmrEvt);
-    ~WsServer();
+
+    WsServer(WsServer const &) = delete;
+    void operator=(WsServer const &) = delete;
+    static WsServer &Instance()
+    {
+        static WsServer instance;
+        return instance;
+    }
+
+    void Init(int port, TimerEvent *tmrEvt);
 
     virtual void PeriodicRun() override;
 
 private:
-    static bool isWsOccupied;
-    static Controller *ctrller;
-    struct mg_mgr mgr; // Event manager
-    static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
-    TimerEvent *tmrEvt{nullptr};
+    WsServer(){}
+    ~WsServer();
 
+    static Controller *ctrller;
+    static struct mg_mgr mgr; // Event manager
+    TimerEvent *tmrEvt{nullptr};
     static const char *uri_ws;
+
+    static void KickOff(unsigned long id);
+    static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
     static int GetUint(json &msg, const char *str, unsigned int min, unsigned int max);
     static int GetUintFromStr(json &msg, const char *str, unsigned int min, unsigned int max, bool chknull=true);

@@ -364,13 +364,16 @@ Controller reply: JSON:
 "broadcast_id":0,
 "session_timeout":180,  // seconds
 "display_timeout":3,  // minutes
-"tmc_com_port":"Modem"/"COM1-6",
-"baudrate":38400,  // 19200/38400/57600/115200
+"tmc_com_port_list":["Modem", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6"], // depends on hardware
+"tmc_com_port":"Modem", // one option from "tmc_com_port_list"
+"baudrate_list":[1200, 2400, 4800, 9600, 19200, 38400, 115200, 460800],
+"baudrate":38400, // one option from "baudrate_list"
 "multiled_fault":16, // 1-255
 "tmc_tcp_port":38400, // 1024 - 65535 and avoid 38401, 60080, 60081, 65305
 "over_temp":65,  // 0-99
 "locked_frame":2,  // 0-255
-"city":"Sydney",
+"city_list":["Perth", "Brisbane", "Darwin", "Adelaide", "Sydney", "Canberra", "Melbourne", "Hobart", "Eucla"],
+"city":"Sydney", // one option from "city_list"
 "last_frame_time":3, // 0-255
 "locked_msg":2,  // 0-255
 "night_level":1,   // 1-16, night < dawn/dusk < day

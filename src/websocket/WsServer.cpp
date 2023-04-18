@@ -5,6 +5,8 @@
 #include <module/Utils.h>
 #include <tsisp003/Upgrade.h>
 #include <module/QueueLtd.h>
+#include <module/Tz_AU.h>
+#include <module/SerialPort.h>
 
 using namespace std;
 using namespace Utils;
@@ -13,23 +15,25 @@ unsigned int ws_hexdump = 0;
 
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
-bool WsServer::isWsOccupied;
+struct mg_mgr WsServer::mgr;
 
-WsServer::WsServer(int port, TimerEvent *tmrEvt)
-:tmrEvt(tmrEvt)
+void WsServer::Init(int port, TimerEvent *tmrEvt)
 {
     if (port < 1024 || port > 65535)
     {
         throw invalid_argument(StrFn::PrintfStr("WsServer error: port: %d", port));
     }
-    isWsOccupied = false;
     char url[32];
     sprintf(url, "ws://0.0.0.0:%d", port);
     DebugLog("Starting WebSocket listener on %s", url);
     mg_mgr_init(&mgr);                   // Initialise event manager
     mg_http_listen(&mgr, url, fn, NULL); // Create HTTP listener
     ctrller = &(Controller::Instance());
-    tmrEvt->Add(this);
+    if (tmrEvt != nullptr)
+    {
+        this->tmrEvt = tmrEvt;
+        tmrEvt->Add(this);
+    }
 }
 
 WsServer::~WsServer()
@@ -56,6 +60,19 @@ void WsServer::PeriodicRun()
     mg_mgr_poll(&mgr, 1); // Infinite event loop
 }
 
+void WsServer::KickOff(unsigned long id)
+{
+    auto c = mgr.conns;
+    while (c != nullptr)
+    {
+        if (c->next != nullptr && c->id != id)
+        {
+            c->is_closing = 1;
+        }
+        c = c->next;
+    };
+}
+
 // This RESTful server implements the following endpoints:
 //   /websocket - upgrade to Websocket, and implement websocket echo server
 void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
@@ -64,36 +81,20 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
     {
         c->is_hexdumping = (ws_hexdump & 2) ? 1 : 0;
         uint8_t *ip = (uint8_t *)&c->rem.ip;
-        if (isWsOccupied == true)
-        {
-            c->is_closing = 1;
-            c->fn_data = nullptr;
-            DebugLog("WsServer: Server is occupied. Open from %d.%d.%d.%d rejected.", ip[0], ip[1], ip[2], ip[3]);
-        }
-        else
-        {
-            DebugLog("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-        }
+        DebugLog("WsServer: Open from %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     }
     else if (ev == MG_EV_HTTP_MSG)
     {
         struct mg_http_message *hm = (struct mg_http_message *)ev_data;
         if (mg_http_match_uri(hm, uri_ws))
         {
-            if (isWsOccupied == false)
-            {
-                // Upgrade to websocket. From now on, a connection is a full-duplex
-                // Websocket connection, which will receive MG_EV_WS_MSG events.
-                mg_ws_upgrade(c, hm, NULL);
-                uint8_t *ip = (uint8_t *)&c->rem.ip;
-                DebugLog("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
-                c->fn_data = new WsClient();
-                isWsOccupied = true;
-            }
-            else
-            {
-                c->fn_data = nullptr;
-            }
+            // Upgrade to websocket. From now on, a connection is a full-duplex
+            // Websocket connection, which will receive MG_EV_WS_MSG events.
+            mg_ws_upgrade(c, hm, NULL);
+            uint8_t *ip = (uint8_t *)&c->rem.ip;
+            DebugLog("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
+            c->fn_data = new WsClient();
+            KickOff(c->id);
         }
     }
     else if (ev == MG_EV_WS_MSG)
@@ -115,14 +116,6 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
         {
             DebugLog("WsClient@'%s' disconnected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             delete (WsClient *)c->fn_data;
-            if (isWsOccupied)
-            {
-                isWsOccupied = false;
-            }
-        }
-        else
-        {
-            DebugLog("Rejected connection from %d.%d.%d.%d closed", ip[0], ip[1], ip[2], ip[3]);
         }
     }
     //(void)fn_data;
@@ -556,13 +549,32 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("broadcast_id", usercfg.BroadcastId());
     reply.emplace("session_timeout", usercfg.SessionTimeoutSec());
     reply.emplace("display_timeout", usercfg.DisplayTimeoutMin());
+    vector<string> tmc_com_port_list;
+    for(int i=0;i<COMPORT_SIZE;i++)
+    {
+        tmc_com_port_list.emplace_back(COM_NAME[i]);
+    }
+    reply.emplace("tmc_com_port_list", tmc_com_port_list);
     reply.emplace("tmc_com_port", COM_NAME[usercfg.TmcComPort()]);
+
+    vector<int> baudrate_list;
+    for(int i=0;i<EXTENDEDBPS_SIZE;i++)
+    {
+        baudrate_list.emplace_back(ALLOWEDBPS[i]);
+    }
+    reply.emplace("baudrate_list", baudrate_list);
     reply.emplace("baudrate", usercfg.TmcBaudrate());
     reply.emplace("multiled_fault", usercfg.MultiLedFaultThreshold());
     reply.emplace("tmc_tcp_port", usercfg.TmcTcpPort());
     reply.emplace("over_temp", usercfg.OverTemp());
     reply.emplace("locked_frame", usercfg.LockedFrm());
     reply.emplace("locked_msg", usercfg.LockedMsg());
+    vector<string> city_list;
+    for(int i=0;i<NUMBER_OF_TZ;i++)
+    {
+        city_list.emplace_back(Tz_AU::tz_au[i].city);
+    }
+    reply.emplace("city_list", city_list);
     reply.emplace("city", usercfg.City());
     reply.emplace("last_frame_time", usercfg.LastFrmTime());
     reply.emplace("night_level", usercfg.NightDimmingLevel());
@@ -851,7 +863,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             throw invalid_argument("ETH1.ipaddr and ETH2.ipaddr should not be same");
         }
     }
-    #if false // TODO NTP disabled
+#if false // TODO NTP disabled
     json ntpjs = msg["NTP"].get<json>();
     NtpServer ntp;
     ntp.server = GetStr(ntpjs, net._Server);
@@ -864,13 +876,13 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
             throw invalid_argument("NTP Server should not be ETH" + to_string(i + 1));
         }
     }
-    #endif
+#endif
     // all parameters are OK, save
     int r;
     net.evts.clear();
-    
+
     bool ntpChanged{false};
-    #if false // TODO NTP disabled
+#if false // TODO NTP disabled
     r = net.SaveNtp(ntp);
     if (r != 0)
     {
@@ -887,7 +899,7 @@ void WsServer::CMD_SetNetworkConfig(struct mg_connection *c, json &msg, json &re
         }
         net.evts.clear();
     }
-    #endif
+#endif
 
     for (int i = 0; i < 2; i++)
     {
@@ -979,7 +991,8 @@ void WsServer::CMD_UpdateTime(struct mg_connection *c, json &msg, json &reply)
 void WsServer::CMD_GetFrameSetting(struct mg_connection *c, json &msg, json &reply)
 {
     auto &ucihw = DbHelper::Instance().GetUciHardware();
-    vector<string> frametype{"Text Frame"};
+    vector<string> frametype;
+    frametype.push_back("Text Frame");
     if (ucihw.PixelRows() < 255 && ucihw.PixelColumns() < 255)
     {
         frametype.push_back("Graphics Frame");
@@ -1726,7 +1739,7 @@ void WsServer::CMD_GetPlanCrc(struct mg_connection *c, nlohmann::json &msg, nloh
 
 void WsServer::CMD_Reboot(struct mg_connection *c, nlohmann::json &msg, nlohmann::json &reply)
 {
-    reply.emplace("result", "OK");
+    reply.emplace("result", "Controller will reboot after 5 seconds");
     ctrller->RR_flag(RQST_REBOOT);
 }
 
@@ -1934,7 +1947,7 @@ void WsServer::CMD_GetExtInput(struct mg_connection *c, json &msg, json &reply)
     for (int i = 0; i < usercfg.EXT_SIZE; i++)
     {
         auto &x = usercfg.ExtInputCfgX(i);
-        auto & en = entries.at(i);
+        auto &en = entries.at(i);
         en.emplace("input_id", i + 1);
         en.emplace("display_time", x.dispTime);
         en.emplace("reserved_byte", x.reserved);
@@ -1956,9 +1969,9 @@ void WsServer::CMD_SetExtInput(struct mg_connection *c, json &msg, json &reply)
     }
     for (auto &en : entries)
     {
-        auto id = GetUint(en, "input_id", 1, usercfg.EXT_SIZE)-1;
+        auto id = GetUint(en, "input_id", 1, usercfg.EXT_SIZE) - 1;
         ids.at(id) = 1;
-        auto & in = extin.at(id);
+        auto &in = extin.at(id);
         in.dispTime = GetUint(en, "display_time", 0, 65535);
         in.reserved = GetUint(en, "reserved_byte", 0, 255);
         in.emergency = GetUint(en, "emergency", 0, 1);
