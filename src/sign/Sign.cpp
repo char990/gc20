@@ -289,21 +289,14 @@ void Sign::RefreshSlaveStatusAtExtSt()
         {
             faultLeds = 65535;
         }
+        faultLedCnt = faultLeds;
 
         sprintf(buf, "%d LEDs", faultLeds);
         multiLedFault.Check(faultLeds >= usercfg.MultiLedFaultThreshold(), t2);
-        if (multiLedFault.IsRising() || multiLedFault.IsFalling())
-        {
-            faultLedCnt = faultLeds;
-        }
         DbncFault(multiLedFault, DEV::ERROR::SignMultiLedFailure, buf);
         if (multiLedFault.IsLow())
         {
             singleLedFault.Check(faultLeds > 0, t2);
-            if (singleLedFault.IsRising() || singleLedFault.IsFalling())
-            {
-                faultLedCnt = faultLeds;
-            }
             DbncFault(singleLedFault, DEV::ERROR::SignSingleLedFailure, buf);
         }
     }
@@ -476,7 +469,7 @@ uint8_t *Sign::LedStatus(uint8_t *buf)
             {
                 if (s->numberOfFaultyLed.at(j * s->numberOfTiles + i) > 0)
                 {
-                    BitOffset::Set07Bit(buf, bitOffset);
+                    BitOffset::Set70Bit(buf, bitOffset);
                     break;
                 }
             }
