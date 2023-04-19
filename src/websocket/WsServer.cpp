@@ -596,8 +596,19 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
     }
     auto session_timeout = GetUint(msg, "session_timeout", 0, 65535);
     auto display_timeout = GetUint(msg, "display_timeout", 0, 65535);
-    auto baudrate = GetUint(msg, "baudrate", 19200, 115200);
-    auto multiled_fault = GetUint(msg, "multiled_fault", 0, 255);
+    auto baudrate = GetUint(msg, "baudrate", ALLOWEDBPS[0], ALLOWEDBPS[EXTENDEDBPS_SIZE - 1]);
+    for (int i = 0; i < EXTENDEDBPS_SIZE; i++)
+    {
+        if (baudrate == ALLOWEDBPS[i])
+        {
+            break;
+        }
+        else if (i == EXTENDEDBPS_SIZE - 1)
+        {
+            throw invalid_argument("'baudrate' NOT valid");
+        }
+    }
+    auto multiled_fault = GetUint(msg, "multiled_fault", 1, 65535);
     auto tmc_tcp_port = GetUint(msg, "tmc_tcp_port", 1024, 65535);
     auto over_temp = GetUint(msg, "over_temp", 0, 99);
     auto locked_frame = GetUint(msg, "locked_frame", 0, 255);
