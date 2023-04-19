@@ -8,6 +8,7 @@ class FrameImage
 public:
     FrameImage();
     ~FrameImage();
+    static bool hasLanterns;
     void SetId(uint8_t signId, uint8_t frmId);
     void FillCoreFromSlaveFrame(uint8_t *frame);
     void FillCoreFromUciFrame();
@@ -15,12 +16,14 @@ public:
     std::vector<char> &Save2Base64();
 
     BMP & GetBmp(){ return bmpSign;};
-
+    
 private:
     BMP bmpSign;
+
     BMP bmpLanternOn;
     BMP bmpLanternOff;
     BMP bmpLanternFlash;
+
     uint8_t signId{0}; // Slave: 1 - Max Sign, UciFrame:0
     uint8_t frmId{0};  // Slave: 0 - 6, UciFrame: 1 - 255
     std::vector<char> base64Img;

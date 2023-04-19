@@ -7,6 +7,7 @@
 #include <module/Utils.h>
 #include <sign/Sign.h>
 #include <uci/DbHelper.h>
+#include <sign/FrameImage.h>
 
 extern const char *FirmwareVer;
 
@@ -40,11 +41,6 @@ UciHardware::~UciHardware()
             }
         }
     }
-    /*
-    if (groupCfg != nullptr)
-    {
-        delete[] groupCfg;
-    }*/
 }
 
 void UciHardware::LoadConfig()
@@ -69,8 +65,8 @@ void UciHardware::LoadConfig()
     if (strlen(str) == 6)
     {
         memcpy(mfcCode, str, 6);
-        memcpy(mfcCode+6, FirmwareVer, 4);
-        mfcCode[10]='\0';
+        memcpy(mfcCode + 6, FirmwareVer, 4);
+        mfcCode[10] = '\0';
     }
     else
     {
@@ -112,6 +108,20 @@ void UciHardware::LoadConfig()
     slavesPerSign = GetInt(uciSec, _SlavesPerSign, 1, 16);
     coreOffsetX = GetInt(uciSec, _CoreOffsetX, 0, pixelColumns);
     coreOffsetY = GetInt(uciSec, _CoreOffsetY, 0, pixelRows);
+    str = GetStr(uciSec, _DisplayArea);
+    cnt = Cnvt::GetIntArray(str, 4, ibuf, 0, 65535);
+    if (cnt == 4 && ibuf[0] < ibuf[2] && ibuf[1] < ibuf[3] && ibuf[2] < pixelColumns && ibuf[3] < pixelRows)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            displayArea[i] = ibuf[i];
+        }
+    }
+    else
+    {
+        ThrowError(cbuf, str);
+    }
+
 
     numberOfSigns = GetInt(uciSec, _NumberOfSigns, 1, 12);
     numberOfGroups = GetInt(uciSec, _NumberOfGroups, 1, 4);
@@ -240,6 +250,8 @@ void UciHardware::LoadConfig()
         ThrowError(_ColourBits, "Not matched with ColourLeds");
     }
 
+    hasLanterns = GetInt(uciSec, _HasLanterns, 0, 1);
+    FrameImage::hasLanterns = HasLanterns();
     isResetLogAllowed = GetInt(uciSec, _IsResetLogAllowed, 0, 1);
     isUpgradeAllowed = GetInt(uciSec, _IsUpgradeAllowed, 0, 1);
     loadLastDisp = GetInt(uciSec, _LoadLastDisp, 0, 1);
@@ -454,8 +466,8 @@ void UciHardware::LoadConfig()
     Slave::numberOfColours = strlen(colourLeds);
 
     pixels = (uint32_t)pixelRows * pixelColumns;
-    pixelsPerSign = pixels/numberOfSigns;
-    pixelsPerSlave = pixelsPerSign/slavesPerSign;
+    pixelsPerSign = pixels / numberOfSigns;
+    pixelsPerSlave = pixelsPerSign / slavesPerSign;
 
     gfx1CoreLen = 0;
     gfx4CoreLen = 0;
@@ -515,7 +527,7 @@ void UciHardware::Dump()
     {
         if (allowedAscii.GetBit(i))
         {
-            printf("%c",i);
+            printf("%c", i);
         }
     }
     printf("'\n");
@@ -529,6 +541,12 @@ void UciHardware::Dump()
     PrintOption_d(_SlavesPerSign, SlavesPerSign());
     PrintOption_d(_CoreOffsetX, CoreOffsetX());
     PrintOption_d(_CoreOffsetY, CoreOffsetY());
+    printf("\t%s\t'%u", _DisplayArea, displayArea[0]);
+    for (int i = 1; i < 4; i++)
+    {
+        printf(",%u", displayArea[i]);
+    }
+    printf("'\n");
 
     PrintOption_d(_SlaveRqstInterval, SlaveRqstInterval());
     PrintOption_d(_SlaveRqstStTo, SlaveRqstStTo());
@@ -588,6 +606,7 @@ void UciHardware::Dump()
             printf("\t%s%d \t'%s'\n", _Font, i, Fonts(i)->FontName());
         }
     }
+    PrintOption_d(_HasLanterns, HasLanterns());
     PrintOption_str(_Conspicuity, bConspicuity.ToString().c_str());
     PrintOption_str(_Annulus, bAnnulus.ToString().c_str());
 

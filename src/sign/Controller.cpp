@@ -507,8 +507,8 @@ APP::ERROR Controller::CmdSignTest(uint8_t *cmd)
     { // odd(1)/even(2) rows
         uint8_t *core = frm.data() + f_offset;
         memset(core, 0, corelen);
-        int bitOffset = 0;
-        for (int j = pixels - 1; j < rows; j += 2)
+        int bitOffset = (pixels == 1) ? 0 : columns;
+        for (int j = 0; j < rows / 2; j++)
         {
             for (int i = 0; i < columns; i++)
             {

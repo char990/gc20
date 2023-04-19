@@ -74,6 +74,7 @@ public:
     uint8_t SlavesPerSign() { return slavesPerSign; };
     uint16_t CoreOffsetX() { return coreOffsetX; };
     uint16_t CoreOffsetY() { return coreOffsetY; };
+    uint16_t *DisplayArea() { return displayArea; };
 
     uint8_t *Dimming() { return &dimming[0]; };
     uint8_t Dimming(uint8_t lvl) { return dimming[lvl - 1]; };
@@ -96,6 +97,8 @@ public:
     bool IsIslusSpFrm(int i) { return bIslusSpFrm.GetBit(i); };
 
     bool IsSimSlave(int i) { return bSimSlaves.GetBit(i); };
+
+    bool HasLanterns() {return hasLanterns!=0;};
 
     uint8_t MaxConspicuity() { return bConspicuity.GetMaxBit(); };
     uint8_t MaxFont() { return bFont.GetMaxBit(); };
@@ -143,6 +146,7 @@ private:
     const char *_GfxFrmColour = "GfxFrmColour";
     const char *_HrgFrmColour = "HrgFrmColour";
     // const char *_GroupCfg = "GroupCfg";
+    const char *_DisplayArea = "DisplayArea"; // "left,top,right,bottom"
 
     /// int
     const char *_SlaveRqstInterval = "SlaveRqstInterval";
@@ -190,6 +194,7 @@ private:
     const char *_LoadLastDisp = "LoadLastDisp";
     const char *_TestTMC = "TestTMC";
     const char *_TestSlave = "TestSlave";
+    const char *_HasLanterns ="HasLanterns";
 
     // float
     const char *_LightSensorScale = "LightSensorScale";
@@ -256,10 +261,12 @@ private:
         powerOnDelay,
         dimmingAdjTime,
         driverMode,
-        loadLastDisp;
+        loadLastDisp,
+        hasLanterns;
 
     uint8_t dimming[16];
     uint8_t colourRatio[4];
+    uint16_t displayArea[4]; // "left,top,right,bottom"
 
     char colourLeds[5]{}; // with end '\0'
 

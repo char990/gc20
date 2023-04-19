@@ -17,19 +17,24 @@ const char *islus_sp_frm = "config/islus_%03d.bmp";
 const char *uci_frame = "/tmp/uci_frame.bmp";
 const char *tmp_sign_frm = "/tmp/Sign%d_Frm%d.bmp";
 
+bool FrameImage::hasLanterns = false;
+
 FrameImage::FrameImage()
 {
-    if (bmpLanternOn.ReadFromFile(lantern_on) == false)
+    if (hasLanterns)
     {
-        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_on));
-    }
-    if (bmpLanternOff.ReadFromFile(lantern_off) == false)
-    {
-        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_off));
-    }
-    if (bmpLanternFlash.ReadFromFile(lantern_flash) == false)
-    {
-        throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_flash));
+        if (bmpLanternOn.ReadFromFile(lantern_on) == false)
+        {
+            throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_on));
+        }
+        if (bmpLanternOff.ReadFromFile(lantern_off) == false)
+        {
+            throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_off));
+        }
+        if (bmpLanternFlash.ReadFromFile(lantern_flash) == false)
+        {
+            throw runtime_error(StrFn::PrintfStr("Read file error: %s", lantern_flash));
+        }
     }
 }
 
@@ -83,53 +88,56 @@ void FrameImage::FillCore(uint8_t f_colour, uint8_t f_conspicuity, uint8_t *fram
     auto coreOffsetY = ucihw.CoreOffsetY();
     auto coreRows = ucihw.PixelRows();
     auto coreColumns = ucihw.PixelColumns();
-    BMP *lanterns[2][2];
-    switch (GetConspicuity(f_conspicuity))
+    if (hasLanterns)
     {
-    case 1:
-        lanterns[0][0] = &bmpLanternFlash;
-        lanterns[0][1] = &bmpLanternOff;
-        lanterns[1][0] = &bmpLanternFlash;
-        lanterns[1][1] = &bmpLanternOff;
-        break;
-    case 2:
-        lanterns[0][0] = &bmpLanternFlash;
-        lanterns[0][1] = &bmpLanternFlash;
-        lanterns[1][0] = &bmpLanternOff;
-        lanterns[1][1] = &bmpLanternOff;
-        break;
-    case 3:
-        lanterns[0][0] = &bmpLanternFlash;
-        lanterns[0][1] = &bmpLanternOff;
-        lanterns[1][0] = &bmpLanternOff;
-        lanterns[1][1] = &bmpLanternFlash;
-        break;
-    case 4:
-        lanterns[0][0] = &bmpLanternFlash;
-        lanterns[0][1] = &bmpLanternFlash;
-        lanterns[1][0] = &bmpLanternFlash;
-        lanterns[1][1] = &bmpLanternFlash;
-        break;
-    case 5:
-        lanterns[0][0] = &bmpLanternOn;
-        lanterns[0][1] = &bmpLanternOn;
-        lanterns[1][0] = &bmpLanternOn;
-        lanterns[1][1] = &bmpLanternOn;
-        break;
-    default:
-        lanterns[0][0] = &bmpLanternOff;
-        lanterns[0][1] = &bmpLanternOff;
-        lanterns[1][0] = &bmpLanternOff;
-        lanterns[1][1] = &bmpLanternOff;
-        break;
-    }
-    int X[2]{0, bmpSign.TellWidth() - bmpLanternOff.TellWidth()};
-    int Y[2]{0, bmpSign.TellHeight() - bmpLanternOff.TellHeight()};
-    for (int x = 0; x < 2; x++)
-    {
-        for (int y = 0; y < 2; y++)
+        BMP *lanterns[2][2];
+        switch (GetConspicuity(f_conspicuity))
         {
-            BmpMask(lanterns[x][y], &bmpSign, X[x], Y[y]);
+        case 1:
+            lanterns[0][0] = &bmpLanternFlash;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternFlash;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        case 2:
+            lanterns[0][0] = &bmpLanternFlash;
+            lanterns[0][1] = &bmpLanternFlash;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        case 3:
+            lanterns[0][0] = &bmpLanternFlash;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternFlash;
+            break;
+        case 4:
+            lanterns[0][0] = &bmpLanternFlash;
+            lanterns[0][1] = &bmpLanternFlash;
+            lanterns[1][0] = &bmpLanternFlash;
+            lanterns[1][1] = &bmpLanternFlash;
+            break;
+        case 5:
+            lanterns[0][0] = &bmpLanternOn;
+            lanterns[0][1] = &bmpLanternOn;
+            lanterns[1][0] = &bmpLanternOn;
+            lanterns[1][1] = &bmpLanternOn;
+            break;
+        default:
+            lanterns[0][0] = &bmpLanternOff;
+            lanterns[0][1] = &bmpLanternOff;
+            lanterns[1][0] = &bmpLanternOff;
+            lanterns[1][1] = &bmpLanternOff;
+            break;
+        }
+        int X[2]{0, bmpSign.TellWidth() - bmpLanternOff.TellWidth()};
+        int Y[2]{0, bmpSign.TellHeight() - bmpLanternOff.TellHeight()};
+        for (int x = 0; x < 2; x++)
+        {
+            for (int y = 0; y < 2; y++)
+            {
+                BmpMask(lanterns[x][y], &bmpSign, X[x], Y[y]);
+            }
         }
     }
     if (f_colour >= 0 && f_colour <= 9)
@@ -255,7 +263,7 @@ void FrameImage::FillCoreFromUciFrame()
 
 void FrameImage::LoadBmpFromBase64(const char *buf, int len)
 {
-    if(len < 120)     // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
+    if (len < 120) // a 5*7 mono bmp file is 90 bytes in binary and 120 bytes in base64
     {
         throw invalid_argument("Invalid Base64 BMP data");
     }
