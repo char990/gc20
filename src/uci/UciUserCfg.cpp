@@ -76,7 +76,7 @@ void UciUserCfg::LoadConfig()
         throw invalid_argument(StrFn::PrintfStr("%s.%s.%s(%d) should not be same as %s(%d)",
                                                 PACKAGE, SECTION, _TmcTcpPort, tmcTcpPort, _WsPort, wsPort));
     }
-    multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 0, 0xFFFF);
+    multiLedFaultThreshold = GetInt(uciSec, _MultiLedFaultThreshold, 1, 0xFFFF);
 
     tmcBaudrate = GetInt(uciSec, _TmcBaudrate, ALLOWEDBPS, STANDARDBPS_SIZE);
 
