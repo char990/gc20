@@ -550,7 +550,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("session_timeout", usercfg.SessionTimeoutSec());
     reply.emplace("display_timeout", usercfg.DisplayTimeoutMin());
     vector<string> tmc_com_port_list;
-    for(int i=0;i<COMPORT_SIZE;i++)
+    for (int i = 0; i < COMPORT_SIZE; i++)
     {
         tmc_com_port_list.emplace_back(COM_NAME[i]);
     }
@@ -558,7 +558,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("tmc_com_port", COM_NAME[usercfg.TmcComPort()]);
 
     vector<int> baudrate_list;
-    for(int i=0;i<EXTENDEDBPS_SIZE;i++)
+    for (int i = 0; i < EXTENDEDBPS_SIZE; i++)
     {
         baudrate_list.emplace_back(ALLOWEDBPS[i]);
     }
@@ -570,7 +570,7 @@ void WsServer::CMD_GetUserConfig(struct mg_connection *c, json &msg, json &reply
     reply.emplace("locked_frame", usercfg.LockedFrm());
     reply.emplace("locked_msg", usercfg.LockedMsg());
     vector<string> city_list;
-    for(int i=0;i<NUMBER_OF_TZ;i++)
+    for (int i = 0; i < NUMBER_OF_TZ; i++)
     {
         city_list.emplace_back(Tz_AU::tz_au[i].city);
     }
@@ -1211,6 +1211,20 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         unique_ptr<FrameImage> frmImg(new FrameImage);
         frmImg->LoadBmpFromBase64(str.c_str(), str.length());
         auto &bmp = frmImg->GetBmp();
+        if (frmType == MI::CODE::SignSetGraphicsFrame)
+        {
+            if (bmp.TellWidth() > 255 || bmp.TellHeight() > 255)
+            {
+                throw invalid_argument("Image size is too large for Graphics Frame");
+            }
+        }
+        else // if (frmType == MI::CODE::SignSetGraphicsFrame)
+        {
+            if (bmp.TellWidth() > 65535 || bmp.TellHeight() > 65535)
+            {
+                throw invalid_argument("Image size is too large for Hi-Res Graphics Frame");
+            }
+        }
         auto rows = ucihw.PixelRows();
         auto columns = ucihw.PixelColumns();
         if (bmp.TellWidth() == columns + 2 * ucihw.CoreOffsetX() && bmp.TellHeight() == rows + 2 * ucihw.CoreOffsetY())
@@ -1237,7 +1251,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
             corelen = ucihw.Gfx24CoreLen();
         }
         int f_offset;
-        if (rows < 255 && columns < 255)
+        if (frmType == MI::CODE::SignSetGraphicsFrame)
         {
             f_offset = 9;
             frm.resize(corelen + f_offset + 2);
@@ -1247,7 +1261,7 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
             frm[6] = conspicuity;
             Utils::Cnvt::PutU16(corelen, frm.data() + 7);
         }
-        else
+        else // if (frmType == MI::CODE::SignSetHighResolutionGraphicsFrame)
         {
             f_offset = 13;
             frm.resize(corelen + f_offset + 2);
@@ -1295,6 +1309,10 @@ void WsServer::CMD_SetFrame(struct mg_connection *c, nlohmann::json &msg, json &
         }
         else if (colour == static_cast<uint8_t>(FRMCOLOUR::RGB_24bit))
         {
+            if (frmType != MI::CODE::SignSetHighResolutionGraphicsFrame)
+            {
+                throw invalid_argument("24-bit colour is only for Hi-Res Graphics Frame");
+            }
             bitOffset = f_offset;
             for (int y = 0; y < rows; y++)
             {
