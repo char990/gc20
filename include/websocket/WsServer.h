@@ -54,7 +54,7 @@ private:
     TimerEvent *tmrEvt{nullptr};
     static const char *uri_ws;
 
-    static void KickOff(unsigned long id);
+    static void KickOthersOff(unsigned long id);
     static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
     static int GetUint(json &msg, const char *str, unsigned int min, unsigned int max);

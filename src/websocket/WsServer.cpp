@@ -16,6 +16,7 @@ unsigned int ws_hexdump = 0;
 const char *WsServer::uri_ws = "/ws";
 Controller *WsServer::ctrller;
 struct mg_mgr WsServer::mgr;
+static const char * APP_RESTART = "App will restart after 5 seconds";
 
 void WsServer::Init(int port, TimerEvent *tmrEvt)
 {
@@ -60,7 +61,7 @@ void WsServer::PeriodicRun()
     mg_mgr_poll(&mgr, 1); // Infinite event loop
 }
 
-void WsServer::KickOff(unsigned long id)
+void WsServer::KickOthersOff(unsigned long id)
 {
     auto c = mgr.conns;
     while (c != nullptr)
@@ -94,7 +95,7 @@ void WsServer::fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
             uint8_t *ip = (uint8_t *)&c->rem.ip;
             DebugLog("WsClient@'%s' connected from %d.%d.%d.%d, ID=%lu", uri_ws, ip[0], ip[1], ip[2], ip[3], c->id);
             c->fn_data = new WsClient();
-            KickOff(c->id);
+            KickOthersOff(c->id);
         }
     }
     else if (ev == MG_EV_WS_MSG)
@@ -778,7 +779,7 @@ void WsServer::CMD_SetUserConfig(struct mg_connection *c, json &msg, json &reply
         evt.Push(0, "User.Lux18HoursMin changed: %d->%d", usercfg.Lux18HoursMin(), min_lux_18_hours);
         usercfg.Lux18HoursMin(min_lux_18_hours);
     }
-    reply.emplace("result", (rr_flag != 0) ? "'Reboot' to active new setting" : "OK");
+    reply.emplace("result", (rr_flag != 0) ?  APP_RESTART: "OK");
 }
 
 void WsServer::CMD_DefaultUserConfig(struct mg_connection *c, json &msg, json &reply)
@@ -786,7 +787,7 @@ void WsServer::CMD_DefaultUserConfig(struct mg_connection *c, json &msg, json &r
     auto &usercfg = DbHelper::Instance().GetUciUserCfg();
     usercfg.LoadFactoryDefault();
     CMD_GetUserConfig(c, msg, reply);
-    reply.emplace("result", "Controller will reboot after 5 seconds");
+    reply.emplace("result", "OK");
     ctrller->RR_flag(RQST_REBOOT);
 }
 
@@ -1881,7 +1882,7 @@ void WsServer::CMD_ImportConfig(struct mg_connection *c, nlohmann::json &msg, nl
         throw runtime_error(buf);
     }
     DbHelper::Instance().GetUciEvent().Push(0, "Import configuration");
-    reply.emplace("result", "Controller will restart after 5 seconds");
+    reply.emplace("result", APP_RESTART);
     ctrller->RR_flag(RQST_RESTART);
 }
 
@@ -1921,7 +1922,7 @@ void WsServer::CMD_UpgradeFirmware(struct mg_connection *c, nlohmann::json &msg,
     if (Upgrade::UnpackFirmware(buf, md5) == 0)
     {
         DbHelper::Instance().GetUciEvent().Push(0, buf);
-        reply.emplace("result", "Controller will restart after 5 seconds");
+        reply.emplace("result", APP_RESTART);
         ctrller->RR_flag(RQST_RESTART);
     }
     else
