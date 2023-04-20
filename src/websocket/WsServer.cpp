@@ -1128,14 +1128,13 @@ void WsServer::CMD_GetStoredFrame(struct mg_connection *c, json &msg, json &repl
 
             auto vtxt = static_cast<FrmTxt *>(frm)->ToStringVector();
             string text;
-            int s = vtxt.size() - 1;
-            for (int vi = 0; vi <= s; vi++)
+            for (int vi = 0; vi <vtxt.size(); vi++)
             {
-                text.append(vtxt.at(vi));
-                if (vi < s)
+                if (vi != 0)
                 {
                     text.append("\n");
                 }
+                text.append(vtxt.at(vi));
             }
             std::replace(text.begin(), text.end(), '_', ' ');
             reply.emplace("text", text);
