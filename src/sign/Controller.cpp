@@ -127,7 +127,7 @@ void Controller::PeriodicRun()
                 evt.Push(0, _re);
                 DebugLog("\n%s...", _re);
                 system("sync");
-                system("reboot");
+                system("./reboot.sh");
             }
             if (rr_flag & RQST_RESTART)
             {
